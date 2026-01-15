@@ -189,7 +189,7 @@ export default function Account() {
     if (isEditing) {
       setName(profile?.name || user?.user_metadata?.name || '')
       setEmail(profile?.email || user?.email || '')
-      setPhone(profile?.phone || '')
+      setPhone((user?.user_metadata?.phone as string | undefined) || '')
       setNotice(null)
     }
     setIsEditing((prev) => !prev)
