@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { LayoutGrid, Store, Plus, User, LogOut } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 
 interface DashboardLayoutProps {
@@ -6,13 +7,12 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, signOut } = useAuth()
+  const { signOut } = useAuth()
   const location = useLocation()
 
   const menuItems = [
-    { path: '/dashboard', label: 'Painel' },
-    { path: '/shops', label: 'Minhas Lojas' },
-    { path: '/account', label: 'Minha Conta' },
+    { path: '/dashboard', label: 'Painel de controle', icon: LayoutGrid },
+    { path: '/shops', label: 'Minhas lojas', icon: Store },
   ]
 
   const handleLogout = async () => {
@@ -22,25 +22,38 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const isActive = (path: string) => location.pathname === path
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: '#f4f7ff' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--bg-primary)' }}>
       {/* Sidebar */}
-      <aside style={{ width: '264px', backgroundColor: '#0e1729', color: '#f5fafe', display: 'flex', flexDirection: 'column' }}>
+      <aside
+        style={{
+          width: '264px',
+          backgroundColor: 'var(--bg-sidebar)',
+          color: 'var(--text-on-dark)',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'fixed',
+          inset: '0 auto 0 0',
+          height: '100vh',
+          overflow: 'hidden',
+        }}
+      >
         {/* Logo */}
-        <div style={{ padding: '24px', borderBottom: '1px solid rgba(245, 250, 254, 0.12)' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--sidebar-border)' }}>
           <img
             src="/replyna-logo.webp"
             alt="Replyna"
-            style={{ width: '160px', height: 'auto', display: 'block' }}
+            style={{ width: '180px', height: 'auto', display: 'block', margin: '0 auto' }}
           />
         </div>
 
         {/* Menu */}
-        <nav style={{ flex: 1, padding: '16px' }}>
+        <nav style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {menuItems.map((item) => (
               <li key={item.path} style={{ marginBottom: '8px' }}>
                 <Link
                   to={item.path}
+                  className={`replyna-sidebar-link${isActive(item.path) ? ' active' : ''}`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -48,25 +61,60 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     padding: '12px 16px',
                     borderRadius: '8px',
                     textDecoration: 'none',
-                    backgroundColor: isActive(item.path) ? '#4672ec' : 'transparent',
-                    color: isActive(item.path) ? '#f5fafe' : 'rgba(245, 250, 254, 0.72)',
                     fontWeight: 500,
                   }}
                 >
-                  <span>{item.label}</span>
+                  <item.icon size={18} />
+                  <span style={{ flex: 1 }}>{item.label}</span>
+                  {item.path === '/shops' && (
+                    <span style={{ fontSize: '12px', color: 'var(--sidebar-text-muted)' }}>▼</span>
+                  )}
                 </Link>
               </li>
             ))}
+            <li style={{ marginTop: '8px' }}>
+              <Link
+                to="/shops?create=true"
+                className="replyna-sidebar-link replyna-sidebar-integrate"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  gap: '12px',
+                }}
+              >
+                <Plus size={18} />
+                Integrar loja
+              </Link>
+            </li>
           </ul>
         </nav>
 
         {/* User & Logout */}
-        <div style={{ padding: '16px', borderTop: '1px solid rgba(245, 250, 254, 0.12)' }}>
-          <div style={{ fontSize: '13px', color: 'rgba(245, 250, 254, 0.7)', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {user?.email}
-          </div>
+        <div style={{ padding: '16px', borderTop: '1px solid var(--sidebar-border)' }}>
+          <Link
+            to="/account"
+            className={`replyna-sidebar-link${isActive('/account') ? ' active' : ''}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontWeight: 500,
+              gap: '12px',
+              marginBottom: '8px',
+            }}
+          >
+            <User size={18} />
+            Minha conta
+          </Link>
           <button
             onClick={handleLogout}
+            className="replyna-sidebar-link replyna-sidebar-logout"
             style={{
               width: '100%',
               display: 'flex',
@@ -74,21 +122,29 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               gap: '12px',
               padding: '12px 16px',
               borderRadius: '8px',
-              backgroundColor: 'transparent',
-              color: 'rgba(245, 250, 254, 0.85)',
               border: 'none',
               cursor: 'pointer',
               fontSize: '15px',
               fontWeight: 500,
             }}
           >
-            <span>Sair</span>
+            <LogOut size={18} />
+            Sair
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, padding: '32px 40px', backgroundColor: '#f4f7ff' }}>
+      <main
+        style={{
+          flex: 1,
+          padding: '32px 40px',
+          backgroundColor: 'var(--bg-primary)',
+          marginLeft: '264px',
+          width: 'calc(100% - 264px)',
+          minHeight: '100vh',
+        }}
+      >
         {children}
       </main>
     </div>

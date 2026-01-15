@@ -17,22 +17,24 @@ interface DateRangePickerProps {
 export default function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   const [open, setOpen] = useState(false)
   const [tempRange, setTempRange] = useState<DateRange>(value)
+  const today = useMemo(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  }, [])
 
   useEffect(() => {
     setTempRange(value)
   }, [value, open])
 
   const shortcuts = useMemo(() => {
-    const normalizeDate = (date: Date) =>
-      new Date(date.getFullYear(), date.getMonth(), date.getDate())
-    const today = normalizeDate(new Date())
     const yesterday = subDays(today, 1)
+    const capToToday = (date: Date) => (date > today ? today : date)
     return [
       { label: 'Hoje', range: { from: today, to: today } },
       { label: 'Ontem', range: { from: yesterday, to: yesterday } },
       { label: 'Últimos 7 dias', range: { from: subDays(today, 6), to: today } },
       { label: 'Últimos 30 dias', range: { from: subDays(today, 29), to: today } },
-      { label: 'Este mês', range: { from: startOfMonth(today), to: endOfMonth(today) } },
+      { label: 'Este mês', range: { from: startOfMonth(today), to: capToToday(endOfMonth(today)) } },
       {
         label: 'Mês passado',
         range: {
@@ -42,7 +44,7 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
       },
       { label: 'Últimos 90 dias', range: { from: subDays(today, 90), to: today } },
     ]
-  }, [])
+  }, [today])
 
   const rangeLabel = useMemo(() => {
     if (!value?.from || !value?.to) return 'Selecionar período'
@@ -74,10 +76,10 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
         type="button"
         onClick={() => setOpen(true)}
         style={{
-          backgroundColor: '#ffffff',
-          color: '#0e1729',
+          backgroundColor: 'var(--bg-card)',
+          color: 'var(--text-primary)',
           borderRadius: '10px',
-          border: '1px solid #d7deef',
+          border: '1px solid var(--border-color)',
           padding: '10px 14px',
           fontSize: '14px',
           fontWeight: 600,
@@ -136,6 +138,7 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
                   locale={ptBR}
                   weekStartsOn={1}
                   showOutsideDays
+                  disabled={{ after: today }}
                   className="replyna-day-picker"
                 />
               </div>

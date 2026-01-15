@@ -9,6 +9,8 @@ import {
   Legend,
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
+import { useMemo } from 'react'
+import { useTheme } from '../context/ThemeContext'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend)
 
@@ -23,6 +25,24 @@ interface VolumeChartProps {
 }
 
 export default function VolumeChart({ data }: VolumeChartProps) {
+  const { theme } = useTheme()
+
+  const chartColors = useMemo(() => {
+    if (typeof document === 'undefined') {
+      return {
+        text: '#42506a',
+        grid: 'rgba(215, 222, 239, 0.6)',
+      }
+    }
+    const styles = getComputedStyle(document.documentElement)
+    const text = styles.getPropertyValue('--text-secondary').trim() || '#42506a'
+    const grid = styles.getPropertyValue('--border-color').trim() || 'rgba(215, 222, 239, 0.6)'
+    return {
+      text,
+      grid,
+    }
+  }, [theme])
+
   const chartData = {
     labels: data.map((point) => point.label),
     datasets: [
@@ -52,7 +72,7 @@ export default function VolumeChart({ data }: VolumeChartProps) {
       legend: {
         position: 'bottom' as const,
         labels: {
-          color: '#42506a',
+          color: chartColors.text,
           usePointStyle: true,
           boxWidth: 8,
         },
@@ -67,18 +87,18 @@ export default function VolumeChart({ data }: VolumeChartProps) {
     scales: {
       x: {
         grid: {
-          color: 'rgba(215, 222, 239, 0.6)',
+          color: chartColors.grid,
         },
         ticks: {
-          color: '#42506a',
+          color: chartColors.text,
         },
       },
       y: {
         grid: {
-          color: 'rgba(215, 222, 239, 0.6)',
+          color: chartColors.grid,
         },
         ticks: {
-          color: '#42506a',
+          color: chartColors.text,
           precision: 0,
         },
       },

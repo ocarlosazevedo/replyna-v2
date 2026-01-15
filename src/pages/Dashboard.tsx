@@ -245,7 +245,7 @@ const Skeleton = ({ height = 16, width = '100%' }: { height?: number; width?: nu
     style={{
       width,
       height,
-      backgroundColor: '#e6ebf7',
+      backgroundColor: 'var(--border-color)',
       borderRadius: 8,
       animation: 'replyna-pulse 1.6s ease-in-out infinite',
     }}
@@ -673,10 +673,10 @@ export default function Dashboard() {
         }}
       >
         <div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: '#0e1729' }}>
+          <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
             {loadingProfile ? <Skeleton width={180} height={24} /> : `Olá, ${shopName}`}
           </div>
-          <div style={{ color: '#42506a', marginTop: '6px', fontSize: '14px' }}>
+          <div style={{ color: 'var(--text-secondary)', marginTop: '6px', fontSize: '14px' }}>
             Acompanhe o desempenho do seu atendimento automatizado
           </div>
         </div>
@@ -686,13 +686,13 @@ export default function Dashboard() {
             value={selectedShopId}
             onChange={handleShopChange}
             style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid #d7deef',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
               borderRadius: '10px',
               padding: '10px 14px',
               fontSize: '14px',
               fontWeight: 600,
-              color: '#0e1729',
+              color: 'var(--text-primary)',
               minWidth: '180px',
             }}
             disabled={loadingShops}
@@ -734,8 +734,8 @@ export default function Dashboard() {
           </>
         ) : (
           <>
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', padding: '16px', border: '1px solid #d7deef' }}>
-              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Email</div>
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '14px', padding: '16px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Email</div>
               <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span
                   style={{
@@ -745,13 +745,13 @@ export default function Dashboard() {
                     backgroundColor: integrations.emailConnected ? '#22c55e' : '#ef4444',
                   }}
                 />
-                <span style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729' }}>
+                <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {integrations.emailConnected ? 'Conectado' : 'Desconectado'}
                 </span>
               </div>
             </div>
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', padding: '16px', border: '1px solid #d7deef' }}>
-              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Shopify</div>
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '14px', padding: '16px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Shopify</div>
               <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span
                   style={{
@@ -761,14 +761,14 @@ export default function Dashboard() {
                     backgroundColor: integrations.shopifyConnected ? '#22c55e' : '#ef4444',
                   }}
                 />
-                <span style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729' }}>
+                <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {integrations.shopifyConnected ? 'Conectado' : 'Desconectado'}
                 </span>
               </div>
             </div>
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', padding: '16px', border: '1px solid #d7deef' }}>
-              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Última verificação</div>
-              <div style={{ marginTop: '8px', fontSize: '16px', fontWeight: 700, color: '#0e1729' }}>
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '14px', padding: '16px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Última verificação</div>
+              <div style={{ marginTop: '8px', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {formatRelativeTime(integrations.lastCheckedAt)}
               </div>
             </div>
@@ -787,48 +787,48 @@ export default function Dashboard() {
           </>
         ) : (
           <>
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
-              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Total de Conversas</div>
-              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: '#0e1729' }}>
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Total de Conversas</div>
+              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {renderValue(metrics.totalConversations)}
               </div>
-              <div style={{ color: '#6b7a99', fontSize: '13px', marginTop: '6px' }}>no período selecionado</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>no período selecionado</div>
             </div>
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
-              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Taxa de Automação</div>
-              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: '#0e1729' }}>
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Taxa de Automação</div>
+              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {renderValue(metrics.automationRate, 'percent')}
               </div>
-              <div style={{ color: '#6b7a99', fontSize: '13px', marginTop: '6px' }}>emails respondidos automaticamente</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>emails respondidos automaticamente</div>
             </div>
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
-              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Categoria mais frequente</div>
-              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: '#0e1729' }}>
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Categoria mais frequente</div>
+              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {metrics.topCategoryName ? formatCategoryLabel(metrics.topCategoryName) : '--'}
               </div>
-              <div style={{ color: '#6b7a99', fontSize: '13px', marginTop: '6px' }}>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>
                 {metrics.topCategoryName
                   ? `${formatPercentWhole(metrics.topCategoryPercent)} das conversas`
                   : 'Sem dados no período'}
               </div>
             </div>
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
-              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Aguardando Humano</div>
-              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: '#0e1729' }}>
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Aguardando Humano</div>
+              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {renderValue(metrics.pendingHuman)}
               </div>
-              <div style={{ color: '#6b7a99', fontSize: '13px', marginTop: '6px' }}>conversas pendentes de atendimento</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>conversas pendentes de atendimento</div>
             </div>
           </>
         )}
       </div>
 
       {/* Gráfico */}
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
+      <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729' }}>Volume de Emails</div>
-            <div style={{ fontSize: '13px', color: '#6b7a99', marginTop: '4px' }}>Recebidos x Respondidos</div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Volume de Emails</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>Recebidos x Respondidos</div>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             {(['day', 'week', 'month'] as const).map((option) => (
@@ -839,9 +839,9 @@ export default function Dashboard() {
                 style={{
                   padding: '8px 12px',
                   borderRadius: '8px',
-                  border: '1px solid #d7deef',
-                  backgroundColor: granularity === option ? '#4672ec' : '#ffffff',
-                  color: granularity === option ? '#ffffff' : '#42506a',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: granularity === option ? 'var(--accent)' : 'var(--bg-card)',
+                  color: granularity === option ? 'var(--bg-card)' : 'var(--text-secondary)',
                   fontSize: '13px',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -856,7 +856,7 @@ export default function Dashboard() {
           {loadingChart ? (
             <Skeleton height={320} />
           ) : volumeData.length === 0 ? (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#6b7a99', fontWeight: 600 }}>
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600 }}>
               Nenhum dado encontrado para o período selecionado
             </div>
           ) : (
@@ -871,8 +871,8 @@ export default function Dashboard() {
 
       {/* Bottom */}
       <div className="replyna-dashboard-bottom">
-        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729', marginBottom: '16px' }}>
+        <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
             Últimas Conversas
           </div>
           {loadingConversations ? (
@@ -882,14 +882,14 @@ export default function Dashboard() {
               <Skeleton height={36} />
             </div>
           ) : conversations.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#6b7a99', fontWeight: 600 }}>
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600 }}>
               Nenhum dado encontrado para o período selecionado
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
                 <thead>
-                  <tr style={{ textAlign: 'left', backgroundColor: '#f4f7ff', color: '#42506a', fontSize: '12px' }}>
+                  <tr style={{ textAlign: 'left', backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', fontSize: '12px' }}>
                     <th style={{ padding: '10px 12px', fontWeight: 700 }}>Cliente</th>
                     <th style={{ padding: '10px 12px', fontWeight: 700 }}>Assunto</th>
                     <th style={{ padding: '10px 12px', fontWeight: 700 }}>Categoria</th>
@@ -903,7 +903,7 @@ export default function Dashboard() {
                       key={conversation.id}
                       onClick={() => handleConversationClick(conversation.id)}
                       style={{
-                        borderBottom: '1px solid #eef1f7',
+                        borderBottom: '1px solid var(--border-color)',
                         cursor: 'pointer',
                       }}
                     >
@@ -915,7 +915,7 @@ export default function Dashboard() {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            color: '#0e1729',
+                            color: 'var(--text-primary)',
                             fontWeight: 600,
                           }}
                         >
@@ -930,7 +930,7 @@ export default function Dashboard() {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            color: '#42506a',
+                            color: 'var(--text-secondary)',
                           }}
                         >
                           {conversation.subject || 'Sem assunto'}
@@ -942,7 +942,7 @@ export default function Dashboard() {
                       <td style={{ padding: '12px' }}>
                         <span style={getStatusBadge(conversation.status)}>{conversation.status || 'desconhecido'}</span>
                       </td>
-                      <td style={{ padding: '12px', color: '#42506a', fontSize: '13px' }}>
+                      <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '13px' }}>
                         {formatDateTime(new Date(conversation.created_at))}
                       </td>
                     </tr>
@@ -953,8 +953,8 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729', marginBottom: '16px' }}>
+        <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
             Consumo do Plano
           </div>
 
@@ -967,39 +967,39 @@ export default function Dashboard() {
           ) : (
             <div style={{ display: 'grid', gap: '16px' }}>
               <div>
-                <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Plano atual</div>
-                <div style={{ fontSize: '20px', fontWeight: 700, color: '#0e1729', marginTop: '6px' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Plano atual</div>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
                   {profile?.plan || 'Starter'}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Emails respondidos</div>
-                <div style={{ fontSize: '18px', fontWeight: 700, color: '#0e1729', marginTop: '6px' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Emails respondidos</div>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
                   {formatNumber(emailsUsed)} de {formatNumber(emailsLimit)}
                 </div>
-                <div style={{ marginTop: '8px', backgroundColor: '#eef1f7', borderRadius: '999px', height: '8px' }}>
+                <div style={{ marginTop: '8px', backgroundColor: 'var(--border-color)', borderRadius: '999px', height: '8px' }}>
                   <div
                     style={{
                       width: `${usagePercent}%`,
-                      backgroundColor: '#4672ec',
+                      backgroundColor: 'var(--accent)',
                       height: '8px',
                       borderRadius: '999px',
                     }}
                   />
                 </div>
-                <div style={{ fontSize: '12px', color: '#6b7a99', marginTop: '6px', fontWeight: 600 }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', fontWeight: 600 }}>
                   {formatPercent(usagePercent)} utilizado
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Renovação do plano</div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729', marginTop: '6px' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Renovação do plano</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
                   {renewalDate ? formatDate(renewalDate) : 'Sem data'}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Lojas</div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729', marginTop: '6px' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Lojas</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
                   {formatNumber(shops.length)} de {formatNumber(shopsLimit)}
                 </div>
               </div>

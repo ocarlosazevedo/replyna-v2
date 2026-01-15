@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 
@@ -13,6 +14,7 @@ interface Shop {
 
 export default function Shops() {
   const { user } = useAuth()
+  const location = useLocation()
   const [shops, setShops] = useState<Shop[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -24,6 +26,13 @@ export default function Shops() {
   useEffect(() => {
     loadShops()
   }, [user])
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('create') === 'true') {
+      setShowModal(true)
+    }
+  }, [location.search])
 
   const loadShops = async () => {
     if (!user) return
@@ -94,20 +103,21 @@ export default function Shops() {
       case 'error':
         return <span style={{ ...baseStyle, backgroundColor: '#fef2f2', color: '#dc2626' }}>Erro</span>
       default:
-        return <span style={{ ...baseStyle, backgroundColor: '#f3f4f6', color: '#4b5563' }}>Não configurado</span>
+        return <span style={{ ...baseStyle, backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>Não configurado</span>
     }
   }
 
   const cardStyle = {
-    backgroundColor: 'white',
+    backgroundColor: 'var(--bg-card)',
     borderRadius: '12px',
     padding: '24px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    border: '1px solid var(--border-color)',
   }
 
   const buttonPrimary = {
-    backgroundColor: '#2563eb',
-    color: 'white',
+    backgroundColor: 'var(--accent)',
+    color: '#ffffff',
     padding: '8px 16px',
     borderRadius: '8px',
     fontWeight: '500',
@@ -117,8 +127,8 @@ export default function Shops() {
   }
 
   const buttonSecondary = {
-    backgroundColor: '#f3f4f6',
-    color: '#374151',
+    backgroundColor: 'var(--bg-primary)',
+    color: 'var(--text-secondary)',
     padding: '8px 16px',
     borderRadius: '8px',
     border: 'none',
@@ -129,7 +139,7 @@ export default function Shops() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937' }}>Minhas Lojas</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--text-primary)' }}>Minhas Lojas</h1>
         <button onClick={() => setShowModal(true)} style={buttonPrimary}>
           + Nova Loja
         </button>
@@ -142,8 +152,8 @@ export default function Shops() {
       ) : shops.length === 0 ? (
         <div style={{ ...cardStyle, textAlign: 'center', padding: '48px' }}>
           <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏪</div>
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>Nenhuma loja cadastrada</h2>
-          <p style={{ color: '#6b7280', marginBottom: '24px' }}>Crie sua primeira loja para começar a usar o atendimento automático.</p>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '8px' }}>Nenhuma loja cadastrada</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Crie sua primeira loja para começar a usar o atendimento automático.</p>
           <button onClick={() => setShowModal(true)} style={{ ...buttonPrimary, padding: '12px 24px', fontSize: '16px' }}>
             Criar minha primeira loja
           </button>
@@ -152,16 +162,16 @@ export default function Shops() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
           {shops.map((shop) => (
             <div key={shop.id} style={cardStyle}>
-              <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>{shop.name}</h3>
-              <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>{shop.support_email}</p>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '8px' }}>{shop.name}</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '16px' }}>{shop.support_email}</p>
               
               <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>Email:</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Email:</span>
                   {getStatusBadge(shop.mail_status)}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>Shopify:</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Shopify:</span>
                   {getStatusBadge(shop.shopify_status)}
                 </div>
               </div>
@@ -185,8 +195,8 @@ export default function Shops() {
       {/* Modal Nova Loja */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '400px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px' }}>Nova Loja</h2>
+          <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '400px', border: '1px solid var(--border-color)' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '16px' }}>Nova Loja</h2>
             
             <form onSubmit={handleCreateShop}>
               {error && (
@@ -196,28 +206,28 @@ export default function Shops() {
               )}
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                   Nome da loja
                 </label>
                 <input
                   type="text"
                   value={newShopName}
                   onChange={(e) => setNewShopName(e.target.value)}
-                  style={{ width: '100%', padding: '12px 16px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '16px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '12px 16px', border: '1px solid var(--input-border)', borderRadius: '8px', fontSize: '16px', boxSizing: 'border-box', backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)' }}
                   placeholder="Minha Loja"
                   required
                 />
               </div>
 
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                   Email de suporte
                 </label>
                 <input
                   type="email"
                   value={newShopEmail}
                   onChange={(e) => setNewShopEmail(e.target.value)}
-                  style={{ width: '100%', padding: '12px 16px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '16px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '12px 16px', border: '1px solid var(--input-border)', borderRadius: '8px', fontSize: '16px', boxSizing: 'border-box', backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)' }}
                   placeholder="suporte@minhaloja.com"
                   required
                 />

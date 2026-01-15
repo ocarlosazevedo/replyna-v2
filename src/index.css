@@ -4,21 +4,77 @@
 
 :root {
   color-scheme: light;
-  --color-bg: #f4f7ff;
-  --color-surface: #ffffff;
-  --color-ink: #0e1729;
-  --color-ink-subtle: #42506a;
-  --color-primary: #4672ec;
-  --color-border: #d7deef;
+  --bg-primary: #f4f7ff;
+  --bg-card: #ffffff;
+  --bg-sidebar: #0e1729;
+  --text-primary: #0e1729;
+  --text-secondary: #6b7280;
+  --text-on-dark: #f5fafe;
+  --border-color: #e5e7eb;
+  --accent: #4672ec;
+  --input-bg: #ffffff;
+  --input-border: #e5e7eb;
+  --sidebar-bg: #0e1729;
+  --sidebar-text: #f5fafe;
+  --sidebar-text-muted: rgba(245, 250, 254, 0.72);
+  --sidebar-hover: rgba(245, 250, 254, 0.12);
+  --sidebar-integrate: rgba(245, 250, 254, 0.08);
+  --sidebar-border: rgba(245, 250, 254, 0.12);
+  --datepicker-bg: #ffffff;
+  --datepicker-header-bg: #f4f7ff;
+  --datepicker-day-text: #0e1729;
+  --datepicker-day-hover: rgba(70, 114, 236, 0.12);
+  --datepicker-day-selected: #4672ec;
+  --datepicker-day-range: rgba(70, 114, 236, 0.18);
+  --datepicker-day-outside: #94a3b8;
+  --datepicker-border: #e5e7eb;
+  --datepicker-header-text: #0e1729;
+  --datepicker-weekday-text: #6b7280;
+  --color-bg: var(--bg-primary);
+  --color-surface: var(--bg-card);
+  --color-ink: var(--text-primary);
+  --color-ink-subtle: var(--text-secondary);
+  --color-primary: var(--accent);
+  --color-border: var(--border-color);
   --color-success: #22c55e;
   --color-danger: #ef4444;
   --color-warning: #f59e0b;
 }
 
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-primary: #0f172a;
+  --bg-card: #1e293b;
+  --bg-sidebar: #020617;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-on-dark: #f1f5f9;
+  --border-color: #334155;
+  --accent: #4672ec;
+  --input-bg: #1e293b;
+  --input-border: #475569;
+  --sidebar-bg: #020617;
+  --sidebar-text: #f1f5f9;
+  --sidebar-text-muted: rgba(241, 245, 249, 0.72);
+  --sidebar-hover: rgba(241, 245, 249, 0.12);
+  --sidebar-integrate: rgba(241, 245, 249, 0.08);
+  --sidebar-border: rgba(241, 245, 249, 0.12);
+  --datepicker-bg: #1e293b;
+  --datepicker-header-bg: #0f172a;
+  --datepicker-day-text: #e2e8f0;
+  --datepicker-day-hover: #334155;
+  --datepicker-day-selected: #4672ec;
+  --datepicker-day-range: rgba(70, 114, 236, 0.2);
+  --datepicker-day-outside: #64748b;
+  --datepicker-border: #334155;
+  --datepicker-header-text: #f1f5f9;
+  --datepicker-weekday-text: #94a3b8;
+}
+
 body {
   font-family: "Manrope", "Segoe UI", sans-serif;
-  background-color: var(--color-bg);
-  color: var(--color-ink);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 @keyframes replyna-pulse {
@@ -35,6 +91,40 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 24px;
+}
+
+.replyna-sidebar-link {
+  color: var(--sidebar-text-muted);
+  background: transparent;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.replyna-sidebar-link:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text);
+}
+
+.replyna-sidebar-link.active {
+  background: var(--accent);
+  color: var(--sidebar-text);
+}
+
+.replyna-sidebar-integrate {
+  background: var(--sidebar-integrate);
+  color: var(--sidebar-text);
+}
+
+.replyna-sidebar-integrate:hover {
+  background: var(--sidebar-hover);
+}
+
+.replyna-sidebar-logout {
+  color: var(--sidebar-text);
+  background: transparent;
+}
+
+.replyna-sidebar-link svg {
+  flex-shrink: 0;
 }
 
 @media (max-width: 1024px) {
@@ -63,9 +153,9 @@ body {
 
 .replyna-date-popover {
   position: relative;
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 16px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border-color);
   width: min(780px, 95vw);
   box-shadow: 0 24px 60px rgba(14, 23, 41, 0.2);
   z-index: 51;
@@ -74,7 +164,8 @@ body {
 
 .replyna-date-header {
   padding: 16px 20px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--datepicker-header-bg);
 }
 
 .replyna-date-inputs {
@@ -87,16 +178,16 @@ body {
   flex: 0 0 auto;
   padding: 10px 14px;
   border-radius: 10px;
-  border: 1px solid var(--color-border);
-  background: #f4f7ff;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   font-weight: 600;
-  color: var(--color-ink);
+  color: var(--text-primary);
   min-width: 130px;
   text-align: center;
 }
 
 .replyna-date-separator {
-  color: var(--color-ink-subtle);
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
@@ -108,7 +199,7 @@ body {
 }
 
 .replyna-date-shortcuts {
-  background: #f4f7ff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 12px;
 }
@@ -116,7 +207,7 @@ body {
 .replyna-date-shortcuts-title {
   font-size: 13px;
   font-weight: 700;
-  color: var(--color-ink);
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
@@ -130,7 +221,7 @@ body {
   border: none;
   text-align: left;
   background: transparent;
-  color: var(--color-ink-subtle);
+  color: var(--text-secondary);
   font-size: 13px;
   padding: 6px 8px;
   border-radius: 8px;
@@ -140,17 +231,19 @@ body {
 
 .replyna-date-shortcut:hover {
   background: rgba(70, 114, 236, 0.12);
-  color: var(--color-ink);
+  color: var(--text-primary);
 }
 
 .replyna-date-shortcut.active {
   background: rgba(70, 114, 236, 0.2);
-  color: var(--color-ink);
+  color: var(--text-primary);
 }
 
 .replyna-day-picker {
-  --rdp-accent-color: #4672ec;
-  --rdp-background-color: rgba(70, 114, 236, 0.18);
+  --rdp-accent-color: var(--datepicker-day-selected);
+  --rdp-accent-background-color: var(--datepicker-day-range);
+  --rdp-range_middle-background-color: var(--datepicker-day-range);
+  --rdp-today-color: var(--datepicker-day-selected);
   margin: 0;
 }
 
@@ -159,37 +252,54 @@ body {
 }
 
 .replyna-day-picker .rdp-caption_label {
-  color: var(--color-ink);
+  color: var(--datepicker-header-text);
   font-weight: 700;
 }
 
 .replyna-day-picker .rdp-nav_button {
-  color: var(--color-ink);
+  color: var(--datepicker-header-text);
 }
 
 .replyna-day-picker .rdp-head_cell {
-  color: var(--color-ink-subtle);
+  color: var(--datepicker-weekday-text);
   font-weight: 600;
+}
+
+.replyna-day-picker .rdp-day_button {
+  color: var(--datepicker-day-text);
+  background: transparent;
+}
+
+.replyna-day-picker .rdp-outside {
+  opacity: 1;
+}
+
+.replyna-day-picker .rdp-outside .rdp-day_button {
+  color: var(--datepicker-day-outside);
 }
 
 .replyna-day-picker .rdp-day {
   border-radius: 8px;
 }
 
-.replyna-day-picker .rdp-day_range_start,
-.replyna-day-picker .rdp-day_range_end,
-.replyna-day-picker .rdp-day_selected {
-  background: #4672ec;
+.replyna-day-picker .rdp-selected .rdp-day_button,
+.replyna-day-picker .rdp-range_start .rdp-day_button,
+.replyna-day-picker .rdp-range_end .rdp-day_button {
+  background: var(--datepicker-day-selected);
   color: #ffffff;
 }
 
-.replyna-day-picker .rdp-day_range_middle {
-  background: rgba(70, 114, 236, 0.16);
-  color: var(--color-ink);
+.replyna-day-picker .rdp-range_middle {
+  background: var(--datepicker-day-range);
+  color: var(--datepicker-day-text);
 }
 
-.replyna-day-picker .rdp-day:hover:not(.rdp-day_selected) {
-  background: #f4f7ff;
+.replyna-day-picker .rdp-range_middle .rdp-day_button {
+  color: var(--datepicker-day-text);
+}
+
+.replyna-day-picker .rdp-day_button:hover:not(:disabled) {
+  background: var(--datepicker-day-hover);
 }
 
 .replyna-date-footer {
@@ -197,14 +307,14 @@ body {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border-color);
 }
 
 .replyna-date-cancel {
   border-radius: 10px;
-  border: 1px solid var(--color-border);
-  background: #ffffff;
-  color: var(--color-ink);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
   padding: 8px 16px;
   font-weight: 600;
   cursor: pointer;
@@ -213,7 +323,7 @@ body {
 .replyna-date-apply {
   border-radius: 10px;
   border: none;
-  background: var(--color-primary);
+  background: var(--accent);
   color: #ffffff;
   padding: 8px 16px;
   font-weight: 600;
