@@ -29,62 +29,90 @@ export default function Account() {
         .eq('id', user?.id)
 
       setSuccess(true)
-    } catch (err: any) {
-      setError(err.message || 'Erro ao salvar')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar'
+      setError(errorMessage)
     } finally {
       setSaving(false)
     }
   }
 
+  const cardStyle = {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    padding: '24px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  }
+
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 16px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '16px',
+    boxSizing: 'border-box' as const,
+  }
+
+  const buttonPrimary = {
+    backgroundColor: '#2563eb',
+    color: 'white',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontWeight: '500',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '16px',
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Minha Conta</h1>
+      <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', marginBottom: '24px' }}>Minha Conta</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
         {/* Dados pessoais */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Dados pessoais</h2>
+        <div style={cardStyle}>
+          <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px' }}>Dados pessoais</h2>
           
-          <form onSubmit={handleSave} className="space-y-4">
+          <form onSubmit={handleSave}>
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+              <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px' }}>
                 {error}
               </div>
             )}
             {success && (
-              <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm">
+              <div style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '12px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px' }}>
                 Dados salvos com sucesso!
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                 Nome
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                style={inputStyle}
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                 Email
               </label>
               <input
                 type="email"
                 value={user?.email || ''}
                 disabled
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500"
+                style={{ ...inputStyle, backgroundColor: '#f9fafb', color: '#6b7280' }}
               />
             </div>
 
             <button
               type="submit"
               disabled={saving}
-              className="bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
+              style={{ ...buttonPrimary, opacity: saving ? 0.5 : 1 }}
             >
               {saving ? 'Salvando...' : 'Salvar alterações'}
             </button>
@@ -92,39 +120,39 @@ export default function Account() {
         </div>
 
         {/* Meu plano */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Meu Plano</h2>
+        <div style={cardStyle}>
+          <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px' }}>Meu Plano</h2>
           
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-primary-50 rounded-lg">
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', backgroundColor: '#eff6ff', borderRadius: '8px', marginBottom: '16px' }}>
               <div>
-                <div className="font-bold text-primary-700">Plano Starter</div>
-                <div className="text-sm text-primary-600">R$ 197,00/mês</div>
+                <div style={{ fontWeight: 'bold', color: '#1d4ed8' }}>Plano Starter</div>
+                <div style={{ fontSize: '14px', color: '#2563eb' }}>R$ 197,00/mês</div>
               </div>
-              <span className="text-2xl">⭐</span>
+              <span style={{ fontSize: '24px' }}>⭐</span>
             </div>
 
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Emails usados</span>
-                <span className="text-gray-800 font-medium">0 de 300</span>
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '4px' }}>
+                <span style={{ color: '#6b7280' }}>Emails usados</span>
+                <span style={{ color: '#1f2937', fontWeight: '500' }}>0 de 300</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-primary-600 h-2 rounded-full" style={{ width: '0%' }}></div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Lojas</span>
-                <span className="text-gray-800 font-medium">0 de 1</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-primary-600 h-2 rounded-full" style={{ width: '0%' }}></div>
+              <div style={{ width: '100%', backgroundColor: '#e5e7eb', borderRadius: '9999px', height: '8px' }}>
+                <div style={{ backgroundColor: '#2563eb', height: '8px', borderRadius: '9999px', width: '0%' }}></div>
               </div>
             </div>
 
-            <button className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors">
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '4px' }}>
+                <span style={{ color: '#6b7280' }}>Lojas</span>
+                <span style={{ color: '#1f2937', fontWeight: '500' }}>0 de 1</span>
+              </div>
+              <div style={{ width: '100%', backgroundColor: '#e5e7eb', borderRadius: '9999px', height: '8px' }}>
+                <div style={{ backgroundColor: '#2563eb', height: '8px', borderRadius: '9999px', width: '0%' }}></div>
+              </div>
+            </div>
+
+            <button style={{ width: '100%', backgroundColor: '#f3f4f6', color: '#374151', padding: '12px', borderRadius: '8px', fontWeight: '500', border: 'none', cursor: 'pointer', fontSize: '16px' }}>
               Fazer upgrade
             </button>
           </div>
