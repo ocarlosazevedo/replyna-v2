@@ -1,57 +1,1011 @@
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import type { DateRange } from 'react-day-picker'
+import { subDays } from 'date-fns'
 import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
+import DateRangePicker from '../components/DateRangePicker'
+
+const VolumeChart = lazy(() => import('../components/VolumeChart'))
+
+const CACHE_TTL = 5 * 60 * 1000
+
+interface ShopOption {
+  id: string
+  name: string
+}
+
+interface UserProfile {
+  name: string | null
+  plan: string | null
+  emails_limit: number | null
+  emails_used: number | null
+  shops_limit: number | null
+  created_at: string | null
+}
+
+interface ConversationRow {
+  id: string
+  shop_id: string
+  customer_name: string | null
+  subject: string | null
+  category: string | null
+  status: string | null
+  created_at: string
+}
+
+interface MetricSummary {
+  totalConversations: number
+  automationRate: number
+  pendingHuman: number
+  topCategoryName: string | null
+  topCategoryPercent: number
+}
+
+interface IntegrationSummary {
+  emailConnected: boolean
+  shopifyConnected: boolean
+  lastCheckedAt: Date | null
+}
+
+interface MessageRow {
+  created_at: string
+  direction: string
+  was_auto_replied: boolean | null
+}
+
+const formatNumber = (value: number) =>
+  new Intl.NumberFormat('pt-BR').format(value)
+
+const formatPercent = (value: number) =>
+  `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)}%`
+
+const formatPercentWhole = (value: number) =>
+  `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(value)}%`
+
+const formatDate = (date: Date) =>
+  new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
+
+const formatDateTime = (date: Date) =>
+  new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+
+const formatRelativeTime = (date: Date | null) => {
+  if (!date) return 'Sem verificação'
+  const diffMs = date.getTime() - Date.now()
+  const absMs = Math.abs(diffMs)
+  const rtf = new Intl.RelativeTimeFormat('pt-BR', { numeric: 'auto' })
+
+  if (absMs < 60 * 1000) {
+    return rtf.format(Math.round(diffMs / 1000), 'second')
+  }
+  if (absMs < 60 * 60 * 1000) {
+    return rtf.format(Math.round(diffMs / (60 * 1000)), 'minute')
+  }
+  if (absMs < 24 * 60 * 60 * 1000) {
+    return rtf.format(Math.round(diffMs / (60 * 60 * 1000)), 'hour')
+  }
+  return rtf.format(Math.round(diffMs / (24 * 60 * 60 * 1000)), 'day')
+}
+
+const getDefaultRange = (): DateRange => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return { from: subDays(today, 6), to: today }
+}
+
+const toLocalDateString = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const parseLocalDateString = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number)
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
+
+const startOfDay = (date: Date) => {
+  const next = new Date(date)
+  next.setHours(0, 0, 0, 0)
+  return next
+}
+
+const endOfDay = (date: Date) => {
+  const next = new Date(date)
+  next.setHours(23, 59, 59, 999)
+  return next
+}
+
+const calculateRenewalDate = (createdAt: string | null) => {
+  if (!createdAt) return null
+  const created = new Date(createdAt)
+  const today = new Date()
+  const renewal = new Date(created)
+  while (renewal <= today) {
+    renewal.setMonth(renewal.getMonth() + 1)
+  }
+  return renewal
+}
+
+const getWeekStart = (date: Date) => {
+  const day = date.getDay()
+  const diff = (day + 6) % 7
+  const start = new Date(date)
+  start.setDate(date.getDate() - diff)
+  start.setHours(0, 0, 0, 0)
+  return start
+}
+
+const buildVolumeSeries = (messages: MessageRow[], granularity: 'day' | 'week' | 'month') => {
+  const buckets = new Map<string, { date: Date; received: number; replied: number }>()
+  messages.forEach((message) => {
+    const date = new Date(message.created_at)
+    let key = ''
+    let labelDate = date
+
+    if (granularity === 'day') {
+      labelDate = startOfDay(date)
+      key = labelDate.toISOString().slice(0, 10)
+    } else if (granularity === 'week') {
+      labelDate = getWeekStart(date)
+      key = labelDate.toISOString().slice(0, 10)
+    } else {
+      labelDate = new Date(date.getFullYear(), date.getMonth(), 1)
+      key = `${labelDate.getFullYear()}-${labelDate.getMonth()}`
+    }
+
+    if (!buckets.has(key)) {
+      buckets.set(key, { date: labelDate, received: 0, replied: 0 })
+    }
+    const bucket = buckets.get(key)
+    if (!bucket) return
+
+    if (message.direction === 'inbound') {
+      bucket.received += 1
+    }
+    if (message.direction === 'outbound' && message.was_auto_replied) {
+      bucket.replied += 1
+    }
+  })
+
+  return Array.from(buckets.values())
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .map((bucket) => {
+      let label = ''
+      if (granularity === 'day') {
+        label = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(bucket.date)
+      } else if (granularity === 'week') {
+        label = `Sem ${new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(bucket.date)}`
+      } else {
+        label = new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(bucket.date)
+      }
+      return {
+        label,
+        received: bucket.received,
+        replied: bucket.replied,
+      }
+    })
+}
+
+const getCategoryBadge = (category: string | null) => {
+  const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
+  switch (category) {
+    case 'duvidas_gerais':
+      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' }
+    case 'institucional':
+      return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' }
+    case 'reembolso':
+      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
+    case 'suporte_humano':
+      return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' }
+    default:
+      return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' }
+  }
+}
+
+const categoryLabelMap: Record<string, string> = {
+  duvidas_gerais: 'Dúvidas gerais',
+  rastreio: 'Rastreio',
+  reembolso: 'Reembolso',
+  institucional: 'Institucional',
+  suporte_humano: 'Suporte humano',
+  outros: 'Outros',
+}
+
+const formatCategoryLabel = (category: string | null) => {
+  if (!category) return 'Outros'
+  return categoryLabelMap[category] ?? 'Outros'
+}
+
+const getStatusBadge = (status: string | null) => {
+  const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
+  switch (status) {
+    case 'open':
+      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' }
+    case 'resolved':
+      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#15803d' }
+    case 'pending_human':
+      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
+    case 'closed':
+      return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' }
+    default:
+      return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' }
+  }
+}
+
+const Skeleton = ({ height = 16, width = '100%' }: { height?: number; width?: number | string }) => (
+  <div
+    style={{
+      width,
+      height,
+      backgroundColor: '#e6ebf7',
+      borderRadius: 8,
+      animation: 'replyna-pulse 1.6s ease-in-out infinite',
+    }}
+  />
+)
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const navigate = useNavigate()
+  const cacheRef = useRef(new Map<string, { timestamp: number; data: unknown }>())
 
-  const cardStyle = {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    padding: '24px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  const [shops, setShops] = useState<ShopOption[]>([])
+  const [selectedShopId, setSelectedShopId] = useState('all')
+  const [range, setRange] = useState<DateRange>(getDefaultRange())
+  const [granularity, setGranularity] = useState<'day' | 'week' | 'month'>('day')
+
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [integrations, setIntegrations] = useState<IntegrationSummary>({
+    emailConnected: false,
+    shopifyConnected: false,
+    lastCheckedAt: null,
+  })
+  const [metrics, setMetrics] = useState<MetricSummary>({
+    totalConversations: 0,
+    automationRate: 0,
+    pendingHuman: 0,
+    topCategoryName: null,
+    topCategoryPercent: 0,
+  })
+  const [volumeData, setVolumeData] = useState<Array<{ label: string; received: number; replied: number }>>([])
+  const [conversations, setConversations] = useState<ConversationRow[]>([])
+
+  const [loadingProfile, setLoadingProfile] = useState(true)
+  const [loadingShops, setLoadingShops] = useState(true)
+  const [loadingIntegrations, setLoadingIntegrations] = useState(true)
+  const [loadingMetrics, setLoadingMetrics] = useState(true)
+  const [loadingChart, setLoadingChart] = useState(true)
+  const [loadingConversations, setLoadingConversations] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const cacheFetch = useCallback(<T,>(key: string, fetcher: () => Promise<T>): Promise<T> => {
+    const cached = cacheRef.current.get(key)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return Promise.resolve(cached.data as T)
+    }
+    return fetcher().then((data) => {
+      cacheRef.current.set(key, { timestamp: Date.now(), data })
+      return data
+    })
+  }, [])
+
+  const storagePrefix = useMemo(() => (user?.id ? `replyna.dashboard.${user.id}` : 'replyna.dashboard'), [user?.id])
+
+  const activeShopIds = useMemo(() => shops.map((shop) => shop.id), [shops])
+  const effectiveShopIds = useMemo(() => {
+    if (selectedShopId === 'all') return activeShopIds
+    return [selectedShopId]
+  }, [activeShopIds, selectedShopId])
+
+  const dateStart = useMemo(() => (range?.from ? startOfDay(range.from) : null), [range])
+  const dateEnd = useMemo(() => (range?.to ? endOfDay(range.to) : null), [range])
+
+  useEffect(() => {
+    if (!user) return
+    const storedRange = localStorage.getItem(`${storagePrefix}.range`)
+    if (storedRange) {
+      try {
+        const parsed = JSON.parse(storedRange)
+        const from = parsed?.from ? parseLocalDateString(parsed.from) : null
+        const to = parsed?.to ? parseLocalDateString(parsed.to) : null
+        if (from && to) {
+          setRange({ from, to })
+        }
+      } catch {
+        setRange(getDefaultRange())
+      }
+    }
+
+    const storedGranularity = localStorage.getItem(`${storagePrefix}.granularity`)
+    if (storedGranularity === 'day' || storedGranularity === 'week' || storedGranularity === 'month') {
+      setGranularity(storedGranularity)
+    }
+  }, [storagePrefix, user])
+
+  useEffect(() => {
+    if (!user) return
+    localStorage.setItem(
+      `${storagePrefix}.range`,
+      JSON.stringify({
+        from: range?.from ? toLocalDateString(range.from) : null,
+        to: range?.to ? toLocalDateString(range.to) : null,
+      })
+    )
+  }, [range, storagePrefix, user])
+
+  useEffect(() => {
+    if (!user) return
+    localStorage.setItem(`${storagePrefix}.granularity`, granularity)
+  }, [granularity, storagePrefix, user])
+
+  useEffect(() => {
+    if (!user) return
+    localStorage.setItem(`${storagePrefix}.shop`, selectedShopId)
+  }, [selectedShopId, storagePrefix, user])
+
+  useEffect(() => {
+    if (!user) return
+    const loadProfile = async () => {
+      setLoadingProfile(true)
+      try {
+        const data = await cacheFetch(`profile:${user.id}`, async () => {
+          const { data, error } = await supabase
+            .from('users')
+            .select('name, plan, emails_limit, emails_used, shops_limit, created_at')
+            .eq('id', user.id)
+            .maybeSingle()
+          if (error) throw error
+          return data as UserProfile | null
+        })
+        setProfile(data)
+      } catch (err) {
+        console.error('Erro ao carregar perfil:', err)
+      } finally {
+        setLoadingProfile(false)
+      }
+    }
+
+    const loadShops = async () => {
+      setLoadingShops(true)
+      try {
+        const data = await cacheFetch(`shops:${user.id}`, async () => {
+          const { data, error } = await supabase
+            .from('shops')
+            .select('id, name')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .order('name', { ascending: true })
+          if (error) throw error
+          return (data || []) as ShopOption[]
+        })
+        setShops(data)
+      } catch (err) {
+        console.error('Erro ao carregar lojas:', err)
+      } finally {
+        setLoadingShops(false)
+      }
+    }
+
+    loadProfile()
+    loadShops()
+  }, [cacheFetch, user])
+
+  useEffect(() => {
+    if (!user || loadingShops) return
+    if (shops.length === 0) {
+      navigate('/shops')
+      return
+    }
+
+    const storedShop = localStorage.getItem(`${storagePrefix}.shop`)
+    if (storedShop && (storedShop === 'all' || shops.some((shop) => shop.id === storedShop))) {
+      setSelectedShopId(storedShop)
+    } else {
+      setSelectedShopId('all')
+    }
+  }, [loadingShops, navigate, shops, storagePrefix, user])
+
+  useEffect(() => {
+    if (!user || !dateStart || !dateEnd || effectiveShopIds.length === 0) return
+    let isActive = true
+    setError(null)
+    setLoadingIntegrations(true)
+    setLoadingMetrics(true)
+    setLoadingChart(true)
+    setLoadingConversations(true)
+
+    const loadIntegrations = async () => {
+      const emailData = await cacheFetch(
+        `email-credentials:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}`,
+        async () => {
+          const query = supabase.from('email_credentials').select('shop_id, is_valid, last_checked_at')
+          const { data, error } =
+            selectedShopId === 'all'
+              ? await query.in('shop_id', effectiveShopIds)
+              : await query.eq('shop_id', selectedShopId)
+          if (error) throw error
+          return data || []
+        }
+      )
+
+      const shopifyData = await cacheFetch(
+        `shopify-credentials:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}`,
+        async () => {
+          const query = supabase.from('shopify_credentials').select('shop_id, is_valid, last_checked_at')
+          const { data, error } =
+            selectedShopId === 'all'
+              ? await query.in('shop_id', effectiveShopIds)
+              : await query.eq('shop_id', selectedShopId)
+          if (error) throw error
+          return data || []
+        }
+      )
+
+      const resolveStatus = (rows: Array<{ shop_id: string; is_valid: boolean | null }>) => {
+        if (selectedShopId !== 'all') {
+          return rows.length > 0 ? Boolean(rows[0]?.is_valid) : false
+        }
+        const byShop = new Map(rows.map((row) => [row.shop_id, row.is_valid]))
+        return effectiveShopIds.every((shopId) => byShop.get(shopId))
+      }
+
+      const lastCheckedDates = [
+        ...emailData.map((row: { last_checked_at?: string | null }) => row.last_checked_at).filter(Boolean),
+        ...shopifyData.map((row: { last_checked_at?: string | null }) => row.last_checked_at).filter(Boolean),
+      ].map((value) => new Date(value as string))
+
+      const lastCheckedAt = lastCheckedDates.length
+        ? new Date(Math.max(...lastCheckedDates.map((date) => date.getTime())))
+        : null
+
+      return {
+        emailConnected: resolveStatus(emailData),
+        shopifyConnected: resolveStatus(shopifyData),
+        lastCheckedAt,
+      }
+    }
+
+    const loadConversationMetrics = async () => {
+      const baseQuery = () =>
+        supabase
+          .from('conversations')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', dateStart.toISOString())
+          .lte('created_at', dateEnd.toISOString())
+
+      const totalQuery =
+        selectedShopId === 'all'
+          ? baseQuery().in('shop_id', effectiveShopIds)
+          : baseQuery().eq('shop_id', selectedShopId)
+
+      const pendingQuery =
+        selectedShopId === 'all'
+          ? baseQuery().in('shop_id', effectiveShopIds).eq('status', 'pending_human')
+          : baseQuery().eq('shop_id', selectedShopId).eq('status', 'pending_human')
+
+      const [{ count: totalConversations }, { count: pendingHuman }] = await Promise.all([
+        cacheFetch(
+          `conversations-total:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
+          async () => {
+          const { count, error } = await totalQuery
+          if (error) throw error
+          return { count }
+        }
+        ),
+        cacheFetch(
+          `conversations-pending:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
+          async () => {
+            const { count, error } = await pendingQuery
+            if (error) throw error
+            return { count }
+          }
+        ),
+      ])
+
+      return {
+        totalConversations: totalConversations ?? 0,
+        pendingHuman: pendingHuman ?? 0,
+      }
+    }
+
+    const loadMessages = async () => {
+      const query = supabase
+        .from('messages')
+        .select('created_at, direction, was_auto_replied, conversations!inner(shop_id)')
+        .gte('created_at', dateStart.toISOString())
+        .lte('created_at', dateEnd.toISOString())
+
+      const { data, error } =
+        selectedShopId === 'all'
+          ? await query.in('conversations.shop_id', effectiveShopIds)
+          : await query.eq('conversations.shop_id', selectedShopId)
+
+      if (error) throw error
+      return (data || []) as MessageRow[]
+    }
+
+    const loadTopCategory = async () => {
+      const query = supabase
+        .from('conversations')
+        .select('category')
+        .gte('created_at', dateStart.toISOString())
+        .lte('created_at', dateEnd.toISOString())
+
+      const { data, error } =
+        selectedShopId === 'all'
+          ? await query.in('shop_id', effectiveShopIds)
+          : await query.eq('shop_id', selectedShopId)
+
+      if (error) throw error
+
+      const rows = (data || []) as Array<{ category: string | null }>
+      if (rows.length === 0) {
+        return { topCategoryName: null, topCategoryPercent: 0 }
+      }
+
+      const counts = rows.reduce<Record<string, number>>((acc, row) => {
+        const key = row.category ?? 'outros'
+        acc[key] = (acc[key] ?? 0) + 1
+        return acc
+      }, {})
+
+      const [topCategory, topCount] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
+      const topPercent = Math.round((topCount / rows.length) * 100)
+
+      return { topCategoryName: topCategory, topCategoryPercent: topPercent }
+    }
+
+    const loadConversationsList = async () => {
+      const query = supabase
+        .from('conversations')
+        .select('id, shop_id, customer_name, subject, category, status, created_at')
+        .gte('created_at', dateStart.toISOString())
+        .lte('created_at', dateEnd.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      const { data, error } =
+        selectedShopId === 'all'
+          ? await query.in('shop_id', effectiveShopIds)
+          : await query.eq('shop_id', selectedShopId)
+
+      if (error) throw error
+      return (data || []) as ConversationRow[]
+    }
+
+    const loadAll = async () => {
+      try {
+        const [integrationSummary, conversationMetrics, messageRows, conversationRows, topCategoryData] = await Promise.all([
+          cacheFetch(`integrations:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}`, loadIntegrations),
+          loadConversationMetrics(),
+          cacheFetch(
+            `messages:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
+            loadMessages
+          ),
+          cacheFetch(
+            `conversations:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
+            loadConversationsList
+          ),
+          cacheFetch(
+            `top-category:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
+            loadTopCategory
+          ),
+        ])
+
+        if (!isActive) return
+
+        setIntegrations(integrationSummary)
+
+        const inboundMessages = messageRows.filter((message) => message.direction === 'inbound')
+        const automatedInbound = inboundMessages.filter((message) => message.was_auto_replied).length
+        const automationRate = inboundMessages.length
+          ? (automatedInbound / inboundMessages.length) * 100
+          : 0
+
+        setMetrics({
+          totalConversations: conversationMetrics.totalConversations,
+          pendingHuman: conversationMetrics.pendingHuman,
+          automationRate,
+          topCategoryName: topCategoryData.topCategoryName,
+          topCategoryPercent: topCategoryData.topCategoryPercent,
+        })
+
+        setVolumeData(buildVolumeSeries(messageRows, granularity))
+        setConversations(conversationRows)
+      } catch (err) {
+        console.error('Erro ao carregar dados do dashboard:', err)
+        setError('Não foi possível carregar os dados do dashboard.')
+      } finally {
+        if (!isActive) return
+        setLoadingIntegrations(false)
+        setLoadingMetrics(false)
+        setLoadingChart(false)
+        setLoadingConversations(false)
+      }
+    }
+
+    loadAll()
+
+    return () => {
+      isActive = false
+    }
+  }, [cacheFetch, dateEnd, dateStart, effectiveShopIds, granularity, selectedShopId, user])
+
+  const renewalDate = useMemo(() => calculateRenewalDate(profile?.created_at ?? null), [profile?.created_at])
+  const emailsLimit = profile?.emails_limit ?? 0
+  const emailsUsed = profile?.emails_used ?? 0
+  const shopsLimit = profile?.shops_limit ?? 0
+  const usagePercent = emailsLimit ? Math.min((emailsUsed / emailsLimit) * 100, 100) : 0
+
+  const shopName = profile?.name || user?.user_metadata?.name || 'Cliente'
+
+  const handleShopChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedShopId(event.target.value)
+  }
+
+  const handleConversationClick = (id: string) => {
+    navigate(`/conversations/${id}`)
+  }
+
+  const renderValue = (value: number, suffix?: string) => {
+    if (suffix === 'percent') return formatPercent(value)
+    return formatNumber(value)
   }
 
   return (
-    <div>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', marginBottom: '24px' }}>Painel de Controle</h1>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-        {/* Card - Lojas */}
-        <div style={cardStyle}>
-          <div style={{ fontSize: '32px', marginBottom: '8px' }}>🏪</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937' }}>0</div>
-          <div style={{ color: '#6b7280' }}>Lojas cadastradas</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '16px',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div>
+          <div style={{ fontSize: '24px', fontWeight: 700, color: '#0e1729' }}>
+            {loadingProfile ? <Skeleton width={180} height={24} /> : `Olá, ${shopName}`}
+          </div>
+          <div style={{ color: '#42506a', marginTop: '6px', fontSize: '14px' }}>
+            Acompanhe o desempenho do seu atendimento automatizado
+          </div>
         </div>
 
-        {/* Card - Emails respondidos */}
-        <div style={cardStyle}>
-          <div style={{ fontSize: '32px', marginBottom: '8px' }}>📧</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937' }}>0</div>
-          <div style={{ color: '#6b7280' }}>Emails respondidos</div>
-        </div>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <select
+            value={selectedShopId}
+            onChange={handleShopChange}
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid #d7deef',
+              borderRadius: '10px',
+              padding: '10px 14px',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: '#0e1729',
+              minWidth: '180px',
+            }}
+            disabled={loadingShops}
+          >
+            <option value="all">Todas as lojas</option>
+            {shops.map((shop) => (
+              <option key={shop.id} value={shop.id}>
+                {shop.name}
+              </option>
+            ))}
+          </select>
 
-        {/* Card - Emails restantes */}
-        <div style={cardStyle}>
-          <div style={{ fontSize: '32px', marginBottom: '8px' }}>📊</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937' }}>300</div>
-          <div style={{ color: '#6b7280' }}>Emails restantes</div>
-        </div>
-
-        {/* Card - Plano */}
-        <div style={cardStyle}>
-          <div style={{ fontSize: '32px', marginBottom: '8px' }}>⭐</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#2563eb' }}>Starter</div>
-          <div style={{ color: '#6b7280' }}>Plano atual</div>
+          <DateRangePicker value={range} onChange={setRange} />
         </div>
       </div>
 
-      {/* Boas vindas */}
-      <div style={{ ...cardStyle, marginTop: '32px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>
-          Bem-vindo, {user?.user_metadata?.name || 'usuário'}! 👋
-        </h2>
-        <p style={{ color: '#6b7280', margin: 0 }}>
-          Comece adicionando sua primeira loja para ativar o atendimento automático por email.
-        </p>
+      {error && (
+        <div
+          style={{
+            backgroundColor: '#fef2f2',
+            color: '#b91c1c',
+            padding: '12px 16px',
+            borderRadius: '10px',
+            border: '1px solid rgba(185, 28, 28, 0.2)',
+            fontWeight: 600,
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {/* Integrações */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        {loadingIntegrations ? (
+          <>
+            <Skeleton height={72} />
+            <Skeleton height={72} />
+            <Skeleton height={72} />
+          </>
+        ) : (
+          <>
+            <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', padding: '16px', border: '1px solid #d7deef' }}>
+              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Email</div>
+              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span
+                  style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    backgroundColor: integrations.emailConnected ? '#22c55e' : '#ef4444',
+                  }}
+                />
+                <span style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729' }}>
+                  {integrations.emailConnected ? 'Conectado' : 'Desconectado'}
+                </span>
+              </div>
+            </div>
+            <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', padding: '16px', border: '1px solid #d7deef' }}>
+              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Shopify</div>
+              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span
+                  style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    backgroundColor: integrations.shopifyConnected ? '#22c55e' : '#ef4444',
+                  }}
+                />
+                <span style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729' }}>
+                  {integrations.shopifyConnected ? 'Conectado' : 'Desconectado'}
+                </span>
+              </div>
+            </div>
+            <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', padding: '16px', border: '1px solid #d7deef' }}>
+              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Última verificação</div>
+              <div style={{ marginTop: '8px', fontSize: '16px', fontWeight: 700, color: '#0e1729' }}>
+                {formatRelativeTime(integrations.lastCheckedAt)}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Métricas */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        {loadingMetrics ? (
+          <>
+            <Skeleton height={110} />
+            <Skeleton height={110} />
+            <Skeleton height={110} />
+            <Skeleton height={110} />
+          </>
+        ) : (
+          <>
+            <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
+              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Total de Conversas</div>
+              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: '#0e1729' }}>
+                {renderValue(metrics.totalConversations)}
+              </div>
+              <div style={{ color: '#6b7a99', fontSize: '13px', marginTop: '6px' }}>no período selecionado</div>
+            </div>
+            <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
+              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Taxa de Automação</div>
+              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: '#0e1729' }}>
+                {renderValue(metrics.automationRate, 'percent')}
+              </div>
+              <div style={{ color: '#6b7a99', fontSize: '13px', marginTop: '6px' }}>emails respondidos automaticamente</div>
+            </div>
+            <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
+              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Categoria mais frequente</div>
+              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: '#0e1729' }}>
+                {metrics.topCategoryName ? formatCategoryLabel(metrics.topCategoryName) : '--'}
+              </div>
+              <div style={{ color: '#6b7a99', fontSize: '13px', marginTop: '6px' }}>
+                {metrics.topCategoryName
+                  ? `${formatPercentWhole(metrics.topCategoryPercent)} das conversas`
+                  : 'Sem dados no período'}
+              </div>
+            </div>
+            <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
+              <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Aguardando Humano</div>
+              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: '#0e1729' }}>
+                {renderValue(metrics.pendingHuman)}
+              </div>
+              <div style={{ color: '#6b7a99', fontSize: '13px', marginTop: '6px' }}>conversas pendentes de atendimento</div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Gráfico */}
+      <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729' }}>Volume de Emails</div>
+            <div style={{ fontSize: '13px', color: '#6b7a99', marginTop: '4px' }}>Recebidos x Respondidos</div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {(['day', 'week', 'month'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setGranularity(option)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #d7deef',
+                  backgroundColor: granularity === option ? '#4672ec' : '#ffffff',
+                  color: granularity === option ? '#ffffff' : '#42506a',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {option === 'day' ? 'Por dia' : option === 'week' ? 'Por semana' : 'Por mês'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginTop: '20px', minHeight: '320px' }}>
+          {loadingChart ? (
+            <Skeleton height={320} />
+          ) : volumeData.length === 0 ? (
+            <div style={{ padding: '32px', textAlign: 'center', color: '#6b7a99', fontWeight: 600 }}>
+              Nenhum dado encontrado para o período selecionado
+            </div>
+          ) : (
+            <Suspense fallback={<Skeleton height={320} />}>
+              <div style={{ height: '320px' }}>
+                <VolumeChart data={volumeData} />
+              </div>
+            </Suspense>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom */}
+      <div className="replyna-dashboard-bottom">
+        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729', marginBottom: '16px' }}>
+            Últimas Conversas
+          </div>
+          {loadingConversations ? (
+            <div style={{ display: 'grid', gap: '12px' }}>
+              <Skeleton height={36} />
+              <Skeleton height={36} />
+              <Skeleton height={36} />
+            </div>
+          ) : conversations.length === 0 ? (
+            <div style={{ padding: '24px', textAlign: 'center', color: '#6b7a99', fontWeight: 600 }}>
+              Nenhum dado encontrado para o período selecionado
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', backgroundColor: '#f4f7ff', color: '#42506a', fontSize: '12px' }}>
+                    <th style={{ padding: '10px 12px', fontWeight: 700 }}>Cliente</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700 }}>Assunto</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700 }}>Categoria</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700 }}>Status</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700 }}>Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {conversations.map((conversation) => (
+                    <tr
+                      key={conversation.id}
+                      onClick={() => handleConversationClick(conversation.id)}
+                      style={{
+                        borderBottom: '1px solid #eef1f7',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <td style={{ padding: '12px' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            maxWidth: '160px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            color: '#0e1729',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {conversation.customer_name || 'Sem nome'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            maxWidth: '240px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            color: '#42506a',
+                          }}
+                        >
+                          {conversation.subject || 'Sem assunto'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={getCategoryBadge(conversation.category)}>{conversation.category || 'outros'}</span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={getStatusBadge(conversation.status)}>{conversation.status || 'desconhecido'}</span>
+                      </td>
+                      <td style={{ padding: '12px', color: '#42506a', fontSize: '13px' }}>
+                        {formatDateTime(new Date(conversation.created_at))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #d7deef' }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729', marginBottom: '16px' }}>
+            Consumo do Plano
+          </div>
+
+          {loadingProfile ? (
+            <div style={{ display: 'grid', gap: '12px' }}>
+              <Skeleton height={48} />
+              <Skeleton height={48} />
+              <Skeleton height={48} />
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: '16px' }}>
+              <div>
+                <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Plano atual</div>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: '#0e1729', marginTop: '6px' }}>
+                  {profile?.plan || 'Starter'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Emails respondidos</div>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: '#0e1729', marginTop: '6px' }}>
+                  {formatNumber(emailsUsed)} de {formatNumber(emailsLimit)}
+                </div>
+                <div style={{ marginTop: '8px', backgroundColor: '#eef1f7', borderRadius: '999px', height: '8px' }}>
+                  <div
+                    style={{
+                      width: `${usagePercent}%`,
+                      backgroundColor: '#4672ec',
+                      height: '8px',
+                      borderRadius: '999px',
+                    }}
+                  />
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7a99', marginTop: '6px', fontWeight: 600 }}>
+                  {formatPercent(usagePercent)} utilizado
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Renovação do plano</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729', marginTop: '6px' }}>
+                  {renewalDate ? formatDate(renewalDate) : 'Sem data'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '13px', color: '#6b7a99', fontWeight: 600 }}>Lojas</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#0e1729', marginTop: '6px' }}>
+                  {formatNumber(shops.length)} de {formatNumber(shopsLimit)}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

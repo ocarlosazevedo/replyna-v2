@@ -10,9 +10,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation()
 
   const menuItems = [
-    { path: '/dashboard', label: 'Painel', icon: '📊' },
-    { path: '/shops', label: 'Minhas Lojas', icon: '🏪' },
-    { path: '/account', label: 'Minha Conta', icon: '👤' },
+    { path: '/dashboard', label: 'Painel' },
+    { path: '/shops', label: 'Minhas Lojas' },
+    { path: '/account', label: 'Minha Conta' },
   ]
 
   const handleLogout = async () => {
@@ -22,12 +22,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const isActive = (path: string) => location.pathname === path
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: '#f3f4f6' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: '#f4f7ff' }}>
       {/* Sidebar */}
-      <aside style={{ width: '256px', backgroundColor: '#0f172a', color: 'white', display: 'flex', flexDirection: 'column' }}>
+      <aside style={{ width: '264px', backgroundColor: '#0e1729', color: '#f5fafe', display: 'flex', flexDirection: 'column' }}>
         {/* Logo */}
-        <div style={{ padding: '24px', borderBottom: '1px solid #334155' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#60a5fa' }}>Replyna</h1>
+        <div style={{ padding: '24px', borderBottom: '1px solid rgba(245, 250, 254, 0.12)' }}>
+          <img
+            src="/replyna-logo.webp"
+            alt="Replyna"
+            style={{ width: '160px', height: 'auto', display: 'block' }}
+          />
         </div>
 
         {/* Menu */}
@@ -44,11 +48,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     padding: '12px 16px',
                     borderRadius: '8px',
                     textDecoration: 'none',
-                    backgroundColor: isActive(item.path) ? '#2563eb' : 'transparent',
-                    color: isActive(item.path) ? 'white' : '#cbd5e1',
+                    backgroundColor: isActive(item.path) ? '#4672ec' : 'transparent',
+                    color: isActive(item.path) ? '#f5fafe' : 'rgba(245, 250, 254, 0.72)',
+                    fontWeight: 500,
                   }}
                 >
-                  <span>{item.icon}</span>
                   <span>{item.label}</span>
                 </Link>
               </li>
@@ -57,8 +61,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </nav>
 
         {/* User & Logout */}
-        <div style={{ padding: '16px', borderTop: '1px solid #334155' }}>
-          <div style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ padding: '16px', borderTop: '1px solid rgba(245, 250, 254, 0.12)' }}>
+          <div style={{ fontSize: '13px', color: 'rgba(245, 250, 254, 0.7)', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user?.email}
           </div>
           <button
@@ -71,20 +75,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               padding: '12px 16px',
               borderRadius: '8px',
               backgroundColor: 'transparent',
-              color: '#cbd5e1',
+              color: 'rgba(245, 250, 254, 0.85)',
               border: 'none',
               cursor: 'pointer',
-              fontSize: '16px',
+              fontSize: '15px',
+              fontWeight: 500,
             }}
           >
-            <span>🚪</span>
             <span>Sair</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, padding: '32px' }}>
+      <main style={{ flex: 1, padding: '32px 40px', backgroundColor: '#f4f7ff' }}>
         {children}
       </main>
     </div>
