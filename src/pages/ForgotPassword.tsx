@@ -17,8 +17,9 @@ export default function ForgotPassword() {
     try {
       await resetPassword(email)
       setSuccess(true)
-    } catch (err: any) {
-      setError(err.message || 'Erro ao enviar email')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao enviar email'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -26,17 +27,17 @@ export default function ForgotPassword() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
-          <div className="text-5xl mb-4">📧</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Email enviado!</h2>
-          <p className="text-gray-600 mb-6">
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
+        <div style={{ maxWidth: '400px', width: '100%', backgroundColor: 'white', borderRadius: '12px', padding: '32px', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📧</div>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>Email enviado!</h2>
+          <p style={{ color: '#6b7280', marginBottom: '24px' }}>
             Enviamos um link para <strong>{email}</strong>. 
             Clique no link para redefinir sua senha.
           </p>
           <Link
             to="/login"
-            className="inline-block bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors"
+            style={{ display: 'inline-block', backgroundColor: '#2563eb', color: 'white', padding: '12px 24px', borderRadius: '8px', fontWeight: '500', textDecoration: 'none' }}
           >
             Voltar para login
           </Link>
@@ -46,33 +47,33 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary-600">Replyna</h1>
-          <p className="text-gray-600 mt-2">Recuperar senha</p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
+      <div style={{ maxWidth: '400px', width: '100%', backgroundColor: 'white', borderRadius: '12px', padding: '32px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: '#2563eb' }}>Replyna</h1>
+          <p style={{ color: '#6b7280', marginTop: '8px' }}>Recuperar senha</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+            <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px' }}>
               {error}
             </div>
           )}
 
-          <p className="text-gray-600 text-sm">
+          <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>
             Digite seu email e enviaremos um link para você criar uma nova senha.
           </p>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
               Email
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              style={{ width: '100%', padding: '12px 16px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '16px', boxSizing: 'border-box' }}
               placeholder="seu@email.com"
               required
             />
@@ -81,14 +82,24 @@ export default function ForgotPassword() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
+            style={{ 
+              width: '100%', 
+              backgroundColor: loading ? '#93c5fd' : '#2563eb', 
+              color: 'white', 
+              padding: '12px', 
+              borderRadius: '8px', 
+              fontWeight: '500', 
+              fontSize: '16px',
+              border: 'none',
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
           >
             {loading ? 'Enviando...' : 'Enviar link'}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <Link to="/login" className="text-primary-600 hover:underline">
+        <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '14px', color: '#6b7280' }}>
+          <Link to="/login" style={{ color: '#2563eb', textDecoration: 'none' }}>
             ← Voltar para login
           </Link>
         </div>
