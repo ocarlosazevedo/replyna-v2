@@ -669,7 +669,7 @@ export default function Dashboard() {
               backgroundColor: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
               borderRadius: '10px',
-              padding: '10px 14px',
+              padding: '10px 32px 10px 14px',
               fontSize: '14px',
               fontWeight: 600,
               color: 'var(--text-primary)',

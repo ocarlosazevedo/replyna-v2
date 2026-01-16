@@ -107,6 +107,7 @@ export default function VolumeChart({ data }: VolumeChartProps) {
           color: chartColors.text,
           usePointStyle: true,
           boxWidth: 8,
+          padding: 24,
         },
       },
       tooltip: {
