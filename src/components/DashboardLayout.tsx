@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Store, Plus, User, LogOut } from 'lucide-react'
+import { LayoutGrid, Store, User, LogOut } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 
 interface DashboardLayoutProps {
@@ -66,30 +66,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 >
                   <item.icon size={18} />
                   <span style={{ flex: 1 }}>{item.label}</span>
-                  {item.path === '/shops' && (
-                    <span style={{ fontSize: '12px', color: 'var(--sidebar-text-muted)' }}>▼</span>
-                  )}
                 </Link>
               </li>
             ))}
-            <li style={{ marginTop: '8px' }}>
-              <Link
-                to="/shops/setup"
-                className="replyna-sidebar-link replyna-sidebar-integrate"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  textDecoration: 'none',
-                  fontWeight: 600,
-                  gap: '12px',
-                }}
-              >
-                <Plus size={18} />
-                Integrar loja
-              </Link>
-            </li>
           </ul>
         </nav>
 
