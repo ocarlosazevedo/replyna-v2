@@ -544,14 +544,14 @@ export default function ShopSetup() {
           <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
             <span style={{ color: 'var(--accent)' }}>→</span>
             <span>Em <strong>Redirect URLs</strong>, adicione: <code
-              onClick={() => copyToClipboard('https://replyna.com.br/api/shopify-callback', 'URL copiada!')}
+              onClick={() => copyToClipboard('https://replyna-v2.vercel.app/api/shopify-callback', 'URL copiada!')}
               style={{
                 backgroundColor: 'rgba(70, 114, 236, 0.15)',
                 padding: '2px 8px',
                 borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '13px'
-              }}>https://replyna.com.br/api/shopify-callback</code></span>
+              }}>https://replyna-v2.vercel.app/api/shopify-callback</code></span>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
             <span style={{ color: 'var(--accent)' }}>→</span>
