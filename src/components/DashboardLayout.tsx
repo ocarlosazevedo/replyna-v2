@@ -74,7 +74,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             ))}
             <li style={{ marginTop: '8px' }}>
               <Link
-                to="/shops?create=true"
+                to="/shops/setup"
                 className="replyna-sidebar-link replyna-sidebar-integrate"
                 style={{
                   display: 'flex',

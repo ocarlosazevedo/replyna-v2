@@ -7,6 +7,7 @@ import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
 import Shops from './pages/Shops'
+import ShopSetup from './pages/ShopSetup'
 import Account from './pages/Account'
 
 // Components
@@ -69,6 +70,20 @@ function App() {
           <PrivateRoute>
             <DashboardLayout>
               <Shops />
+            </DashboardLayout>
+          </PrivateRoute>
+        } />
+        <Route path="/shops/setup" element={
+          <PrivateRoute>
+            <DashboardLayout>
+              <ShopSetup />
+            </DashboardLayout>
+          </PrivateRoute>
+        } />
+        <Route path="/shops/setup/:shopId" element={
+          <PrivateRoute>
+            <DashboardLayout>
+              <ShopSetup />
             </DashboardLayout>
           </PrivateRoute>
         } />
