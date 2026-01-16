@@ -296,8 +296,11 @@ export default function ShopSetup() {
 
       navigate('/shops')
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar loja'
-      setError(errorMessage)
+      console.error('Erro ao salvar loja:', err)
+      // Handle Supabase error format
+      const supabaseError = err as { message?: string; details?: string; hint?: string; code?: string }
+      const errorMessage = supabaseError?.message || (err instanceof Error ? err.message : 'Erro ao salvar loja')
+      setError(`${errorMessage}${supabaseError?.details ? ` - ${supabaseError.details}` : ''}`)
     } finally {
       setSaving(false)
     }
