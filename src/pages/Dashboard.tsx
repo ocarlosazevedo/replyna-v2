@@ -701,9 +701,9 @@ export default function Dashboard() {
                 style={{
                   padding: '8px 12px',
                   borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
+                  border: granularity === option ? '1px solid var(--accent)' : '1px solid var(--border-color)',
                   backgroundColor: granularity === option ? 'var(--accent)' : 'var(--bg-card)',
-                  color: granularity === option ? 'var(--bg-card)' : 'var(--text-secondary)',
+                  color: granularity === option ? '#ffffff' : 'var(--text-secondary)',
                   fontSize: '13px',
                   fontWeight: 600,
                   cursor: 'pointer',
