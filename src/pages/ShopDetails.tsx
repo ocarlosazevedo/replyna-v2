@@ -38,7 +38,7 @@ const toneOptions = [
 ]
 
 export default function ShopDetails() {
-  const { user } = useAuth()
+  useAuth() // Ensures user is authenticated
   const navigate = useNavigate()
   const { shopId } = useParams()
 
