@@ -218,7 +218,7 @@ export default function Shops() {
               {/* Actions */}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
-                  onClick={() => navigate(`/shops/setup/${shop.id}`)}
+                  onClick={() => navigate(`/shops/${shop.id}`)}
                   style={{
                     ...buttonPrimary,
                     flex: 1,
@@ -231,7 +231,7 @@ export default function Shops() {
                   }}
                 >
                   <Settings size={16} />
-                  Configurar
+                  Gerenciar
                 </button>
                 <button
                   onClick={() => handleToggleActive(shop.id, shop.is_active)}

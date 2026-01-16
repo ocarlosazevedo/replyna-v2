@@ -8,6 +8,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
 import Shops from './pages/Shops'
 import ShopSetup from './pages/ShopSetup'
+import ShopDetails from './pages/ShopDetails'
 import Account from './pages/Account'
 
 // Components
@@ -80,10 +81,10 @@ function App() {
             </DashboardLayout>
           </PrivateRoute>
         } />
-        <Route path="/shops/setup/:shopId" element={
+        <Route path="/shops/:shopId" element={
           <PrivateRoute>
             <DashboardLayout>
-              <ShopSetup />
+              <ShopDetails />
             </DashboardLayout>
           </PrivateRoute>
         } />
