@@ -47,6 +47,7 @@ interface MessageRow {
   created_at: string
   direction: string
   was_auto_replied: boolean | null
+  conversations: { shop_id: string }[]
 }
 
 const formatNumber = (value: number) =>
@@ -557,7 +558,6 @@ export default function Dashboard() {
   const renewalDate = useMemo(() => calculateRenewalDate(profile?.created_at ?? null), [profile?.created_at])
   const emailsLimit = profile?.emails_limit ?? 0
   const emailsUsed = profile?.emails_used ?? 0
-  const shopsLimit = profile?.shops_limit ?? 0
   const usagePercent = emailsLimit ? Math.min((emailsUsed / emailsLimit) * 100, 100) : 0
 
   const shopName = profile?.name || user?.user_metadata?.name || 'Cliente'
@@ -870,9 +870,9 @@ export default function Dashboard() {
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Lojas</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Lojas ativas</div>
                 <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
-                  {formatNumber(shops.length)} de {formatNumber(shopsLimit)}
+                  {formatNumber(shops.length)}
                 </div>
               </div>
             </div>

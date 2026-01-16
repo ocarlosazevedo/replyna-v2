@@ -10,6 +10,7 @@ import Shops from './pages/Shops'
 import ShopSetup from './pages/ShopSetup'
 import ShopDetails from './pages/ShopDetails'
 import Account from './pages/Account'
+import ConversationDetails from './pages/ConversationDetails'
 
 // Components
 import DashboardLayout from './components/DashboardLayout'
@@ -95,7 +96,14 @@ function App() {
             </DashboardLayout>
           </PrivateRoute>
         } />
-        
+        <Route path="/conversations/:conversationId" element={
+          <PrivateRoute>
+            <DashboardLayout>
+              <ConversationDetails />
+            </DashboardLayout>
+          </PrivateRoute>
+        } />
+
         {/* Redirect padrão */}
         <Route path="/" element={<Navigate to="/dashboard" />} />
         <Route path="*" element={<Navigate to="/dashboard" />} />

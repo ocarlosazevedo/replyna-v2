@@ -47,8 +47,38 @@ export interface ResponseGenerationResult {
 }
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL = 'claude-3-5-sonnet-20241022';
+const MODEL = 'claude-3-5-haiku-20241022';
 const MAX_TOKENS = 500;
+
+/**
+ * Remove formatação markdown do texto
+ */
+function stripMarkdown(text: string): string {
+  return text
+    // Remove linhas de cabeçalho de email que Claude às vezes inclui
+    .replace(/^Subject:\s*.+\r?\n/im, '')
+    .replace(/^To:\s*.+\r?\n/im, '')
+    .replace(/^From:\s*.+\r?\n/im, '')
+    .replace(/^Date:\s*.+\r?\n/im, '')
+    // Remove bold (**text** ou __text__)
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    // Remove italic (*text* ou _text_)
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    // Remove headers (### text)
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove bullet points (- item ou * item)
+    .replace(/^[\-\*]\s+/gm, '• ')
+    // Remove links [text](url)
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove code blocks
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    // Limpar espaços extras
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 /**
  * Obtém a API key do ambiente
@@ -110,9 +140,17 @@ export async function classifyEmail(
 Sua tarefa é analisar o email e retornar um JSON com:
 1. category: categoria do email (uma das opções abaixo)
 2. confidence: confiança na classificação (0.0 a 1.0)
-3. language: idioma do email (pt-BR, en, es, etc.)
+3. language: idioma EXATO do email do cliente (MUITO IMPORTANTE - detecte corretamente!)
 4. order_id_found: número do pedido se mencionado (ex: #12345, 12345), ou null
 5. summary: resumo de 1 linha do que o cliente quer
+
+DETECÇÃO DE IDIOMA (CRÍTICO):
+- Analise o texto do cliente cuidadosamente
+- "es" para Espanhol (palavras como: hola, pedido, cancelar, gracias, quiero, donde, está)
+- "pt-BR" para Português do Brasil (palavras como: olá, obrigado, quero, onde, está, cancelamento)
+- "en" para Inglês (palavras como: hello, order, cancel, thanks, want, where, tracking)
+- Se o assunto menciona "cancelado/cancelar" em espanhol, o idioma é "es"
+- NUNCA assuma português por padrão - analise o texto real
 
 CATEGORIAS DISPONÍVEIS:
 - rastreio: Perguntas sobre onde está o pedido, código de rastreio, status de entrega
@@ -217,7 +255,8 @@ export async function generateResponse(
     fulfillment_status: string | null;
     items: Array<{ name: string; quantity: number }>;
     customer_name: string | null;
-  } | null
+  } | null,
+  language: string = 'pt-BR'
 ): Promise<ResponseGenerationResult> {
   // Mapear tom de voz para instruções
   const toneInstructions: Record<string, string> = {
@@ -236,7 +275,6 @@ export async function generateResponse(
 DADOS DO PEDIDO DO CLIENTE:
 - Número do pedido: ${shopifyData.order_number}
 - Data: ${shopifyData.order_date || 'N/A'}
-- Status: ${shopifyData.order_status || 'N/A'}
 - Valor total: ${shopifyData.order_total || 'N/A'}
 - Status de envio: ${shopifyData.fulfillment_status || 'N/A'}
 - Código de rastreio: ${shopifyData.tracking_number || 'Ainda não disponível'}
@@ -264,6 +302,19 @@ INFORMAÇÕES DA LOJA:
     storeInfo += `\n- Garantia: ${shopContext.warranty_info}`;
   }
 
+  // Mapear idioma para instruções
+  const languageInstructions: Record<string, string> = {
+    'pt-BR': 'Responda em Português do Brasil.',
+    'pt': 'Responda em Português.',
+    'en': 'Respond in English.',
+    'es': 'Responde en Español.',
+    'fr': 'Répondez en Français.',
+    'de': 'Antworten Sie auf Deutsch.',
+    'it': 'Rispondi in Italiano.',
+  };
+
+  const languageInstruction = languageInstructions[language] || `Responda no mesmo idioma do cliente (${language}).`;
+
   const systemPrompt = `Você é ${shopContext.attendant_name}, atendente virtual da loja ${shopContext.name}.
 
 ${tone}
@@ -273,14 +324,16 @@ ${shopifyContext}
 
 CATEGORIA DO EMAIL: ${category}
 
-REGRAS:
+REGRAS IMPORTANTES:
 1. Responda de forma clara e objetiva
 2. Use as informações do pedido quando disponíveis
 3. Se não souber algo específico, diga que vai verificar
 4. Não invente informações - use apenas os dados fornecidos
 5. Máximo 400 palavras
-6. Não use markdown ou formatação especial
-7. Assine apenas com seu nome no final
+6. NÃO use markdown (nada de **, ##, *, listas com -, etc.)
+7. NÃO use formatação especial - escreva como um email normal em texto puro
+8. Assine apenas com seu nome no final
+9. IDIOMA: ${languageInstruction}
 
 ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.signature_html}` : ''}`;
 
@@ -304,7 +357,7 @@ ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.s
   const response = await callClaude(systemPrompt, messages, MAX_TOKENS);
 
   return {
-    response: response.content[0]?.text || '',
+    response: stripMarkdown(response.content[0]?.text || ''),
     tokens_input: response.usage.input_tokens,
     tokens_output: response.usage.output_tokens,
   };
@@ -321,7 +374,8 @@ export async function generateDataRequestMessage(
   },
   emailSubject: string,
   emailBody: string,
-  attemptNumber: number
+  attemptNumber: number,
+  language: string = 'pt-BR'
 ): Promise<ResponseGenerationResult> {
   const toneInstructions: Record<string, string> = {
     professional:
@@ -334,6 +388,19 @@ export async function generateDataRequestMessage(
   };
 
   const tone = toneInstructions[shopContext.tone_of_voice] || toneInstructions.friendly;
+
+  // Mapear idioma para instruções
+  const languageInstructions: Record<string, string> = {
+    'pt-BR': 'Responda em Português do Brasil.',
+    'pt': 'Responda em Português.',
+    'en': 'Respond in English.',
+    'es': 'Responde en Español.',
+    'fr': 'Répondez en Français.',
+    'de': 'Antworten Sie auf Deutsch.',
+    'it': 'Rispondi in Italiano.',
+  };
+
+  const languageInstruction = languageInstructions[language] || `Responda no mesmo idioma do cliente (${language}).`;
 
   let urgencyNote = '';
   if (attemptNumber === 2) {
@@ -353,7 +420,12 @@ Você precisa pedir educadamente que ele informe:
 - O email usado na compra, OU
 - O número do pedido (ex: #12345)
 
-Seja breve e direto. Máximo 100 palavras.
+REGRAS IMPORTANTES:
+1. NÃO use markdown (nada de **, ##, *, etc.)
+2. NÃO use formatação especial
+3. Escreva em texto puro, como um email normal
+4. Seja breve e direto. Máximo 100 palavras.
+5. IDIOMA: ${languageInstruction}
 ${urgencyNote}`;
 
   const response = await callClaude(
@@ -368,7 +440,7 @@ ${urgencyNote}`;
   );
 
   return {
-    response: response.content[0]?.text || '',
+    response: stripMarkdown(response.content[0]?.text || ''),
     tokens_input: response.usage.input_tokens,
     tokens_output: response.usage.output_tokens,
   };
@@ -432,7 +504,7 @@ Nome do cliente: ${customerName || 'Cliente'}`;
   );
 
   return {
-    response: response.content[0]?.text || '',
+    response: stripMarkdown(response.content[0]?.text || ''),
     tokens_input: response.usage.input_tokens,
     tokens_output: response.usage.output_tokens,
   };

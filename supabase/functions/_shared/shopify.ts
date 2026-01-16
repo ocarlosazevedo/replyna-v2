@@ -196,10 +196,14 @@ export async function getOrderByNumber(
     // Remover # se presente
     const cleanNumber = orderNumber.replace(/^#/, '');
 
+    console.log(`Buscando pedido no Shopify: #${cleanNumber}`);
+
     const data = await shopifyRequest<{ orders: ShopifyOrder[] }>(
       credentials,
       `orders.json?name=${encodeURIComponent('#' + cleanNumber)}&status=any&limit=1`
     );
+
+    console.log(`Resultado da busca: ${data.orders?.length || 0} pedidos encontrados`);
 
     return data.orders?.[0] || null;
   } catch (error) {
@@ -325,18 +329,18 @@ export async function getOrderDataForAI(
 export function extractOrderNumber(text: string): string | null {
   if (!text) return null;
 
-  // Padrões comuns de número de pedido
+  // Padrões comuns de número de pedido (incluindo formatos com letras como #W185ES1320)
   const patterns = [
-    /#(\d{4,})/,           // #12345
-    /pedido\s*#?\s*(\d{4,})/i,    // pedido 12345, pedido #12345
-    /order\s*#?\s*(\d{4,})/i,     // order 12345
-    /nº?\s*(\d{4,})/i,            // nº 12345, n 12345
-    /número\s*(\d{4,})/i,         // número 12345
+    /#([A-Z]*\d+[A-Z]*\d*)/i,     // #W185ES1320, #12345, #ES1234
+    /pedido\s*#?\s*([A-Z]*\d+[A-Z]*\d*)/i,    // pedido W185ES1320
+    /order\s*#?\s*([A-Z]*\d+[A-Z]*\d*)/i,     // order W185ES1320
+    /nº?\s*([A-Z]*\d+[A-Z]*\d*)/i,            // nº W185ES1320
+    /número\s*([A-Z]*\d+[A-Z]*\d*)/i,         // número W185ES1320
   ];
 
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (match) {
+    if (match && match[1].length >= 4) {
       return match[1];
     }
   }

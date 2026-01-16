@@ -25,8 +25,6 @@ import {
   getConversationHistory,
   updateConversation,
   logProcessingEvent,
-  checkRateLimit,
-  incrementRateLimit,
   updateShopEmailSync,
   updateCreditsWarning,
   type Shop,
@@ -199,8 +197,14 @@ async function processShop(shop: Shop, stats: ProcessingStats): Promise<void> {
     throw error;
   }
 
-  // 3. Salvar emails no banco
+  // 3. Salvar emails no banco (ignorando emails da própria loja)
+  const shopEmail = emailCredentials.smtp_user.toLowerCase();
   for (const email of incomingEmails) {
+    // Ignorar emails enviados pela própria loja (evita responder a si mesmo)
+    if (email.from_email.toLowerCase() === shopEmail) {
+      console.log(`Ignorando email de ${email.from_email} (própria loja)`);
+      continue;
+    }
     try {
       await saveIncomingEmail(shop.id, email);
     } catch (error) {
@@ -327,16 +331,8 @@ async function processMessage(
     return 'pending_credits';
   }
 
-  // 2. Verificar rate limit
-  const rateLimit = await checkRateLimit(shop.id, message.from_email);
-  if (!rateLimit.allowed) {
-    console.log(`Rate limit atingido para ${message.from_email}`);
-    await updateMessage(message.id, {
-      status: 'pending',
-      error_message: 'Rate limit - aguardando cooldown',
-    });
-    return 'skipped';
-  }
+  // 2. Rate limit removido - controle de spam será feito de outra forma
+  // TODO: Implementar detecção de spam via análise de conteúdo/frequência
 
   // 3. Limpar corpo do email
   const cleanBody = cleanEmailBody(message.body_text || message.body_html || '');
@@ -447,7 +443,8 @@ async function processMessage(
       },
       message.subject || '',
       cleanBody,
-      conversation.data_request_count + 1
+      conversation.data_request_count + 1,
+      classification.language // Passar idioma detectado
     );
 
     // Incrementar contador de pedidos de dados
@@ -495,7 +492,8 @@ async function processMessage(
       cleanBody,
       classification.category,
       conversationHistory,
-      shopifyData
+      shopifyData,
+      classification.language // Passar idioma detectado
     );
   }
 
@@ -561,9 +559,8 @@ async function processMessage(
     replied_at: new Date().toISOString(),
   });
 
-  // 11. Incrementar contadores
+  // 11. Incrementar contador de emails usados
   await incrementEmailsUsed(user.id);
-  await incrementRateLimit(shop.id, message.from_email);
 
   // 12. Atualizar status da conversation se foi para humano
   if (finalStatus === 'pending_human') {
