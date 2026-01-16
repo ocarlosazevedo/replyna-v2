@@ -82,12 +82,39 @@ export default function ShopSetup() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [showImapPassword, setShowImapPassword] = useState(false)
-  const [showSmtpPassword, setShowSmtpPassword] = useState(false)
   const [showShopifyToken, setShowShopifyToken] = useState(false)
   const [testingEmail, setTestingEmail] = useState(false)
   const [emailTestResult, setEmailTestResult] = useState<'success' | 'error' | null>(null)
   const [testingShopify, setTestingShopify] = useState(false)
   const [shopifyTestResult, setShopifyTestResult] = useState<'success' | 'error' | null>(null)
+  const [emailProvider, setEmailProvider] = useState('')
+
+  // Email providers configuration
+  const emailProviders = [
+    { value: '', label: 'Selecione um provedor...', imap_host: '', imap_port: '', smtp_host: '', smtp_port: '' },
+    { value: 'gmail', label: 'Gmail (Google Workspace)', imap_host: 'imap.gmail.com', imap_port: '993', smtp_host: 'smtp.gmail.com', smtp_port: '465' },
+    { value: 'outlook', label: 'Outlook (Microsoft 365)', imap_host: 'outlook.office365.com', imap_port: '993', smtp_host: 'smtp.office365.com', smtp_port: '587' },
+    { value: 'zoho', label: 'Zoho Mail', imap_host: 'imap.zoho.com', imap_port: '993', smtp_host: 'smtp.zoho.com', smtp_port: '465' },
+    { value: 'titan', label: 'Titan Mail', imap_host: 'imap.titan.email', imap_port: '993', smtp_host: 'smtp.titan.email', smtp_port: '465' },
+    { value: 'locaweb', label: 'Locaweb', imap_host: 'email-ssl.com.br', imap_port: '993', smtp_host: 'email-ssl.com.br', smtp_port: '465' },
+    { value: 'hostinger', label: 'Hostinger', imap_host: 'imap.hostinger.com', imap_port: '993', smtp_host: 'smtp.hostinger.com', smtp_port: '465' },
+    { value: 'hostgator', label: 'HostGator', imap_host: 'mail.seudominio.com.br', imap_port: '993', smtp_host: 'mail.seudominio.com.br', smtp_port: '465' },
+    { value: 'godaddy', label: 'GoDaddy', imap_host: 'imap.secureserver.net', imap_port: '993', smtp_host: 'smtpout.secureserver.net', smtp_port: '465' },
+    { value: 'kinghost', label: 'KingHost', imap_host: 'imap.kinghost.net', imap_port: '993', smtp_host: 'smtp.kinghost.net', smtp_port: '587' },
+    { value: 'migadu', label: 'Migadu', imap_host: 'imap.migadu.com', imap_port: '993', smtp_host: 'smtp.migadu.com', smtp_port: '465' },
+    { value: 'outro', label: 'Outro (manual)', imap_host: '', imap_port: '993', smtp_host: '', smtp_port: '465' },
+  ]
+
+  const handleProviderChange = (providerValue: string) => {
+    setEmailProvider(providerValue)
+    const provider = emailProviders.find(p => p.value === providerValue)
+    if (provider && providerValue !== 'outro') {
+      updateField('imap_host', provider.imap_host)
+      updateField('imap_port', provider.imap_port)
+      updateField('smtp_host', provider.smtp_host)
+      updateField('smtp_port', provider.smtp_port)
+    }
+  }
 
   useEffect(() => {
     if (isEditing) {
@@ -672,62 +699,67 @@ export default function ShopSetup() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div>
         <h2 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' }}>
-          Integração de Email
+          Integração com e-mail
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
-          Configure IMAP para receber emails e SMTP para enviar respostas
+          Configure suas integrações com seu provedor de e-mail
         </p>
       </div>
 
-      {/* IMAP Section */}
-      <div style={{ ...cardStyle, padding: '20px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px' }}>
-          IMAP (Recebimento)
-        </h3>
+      {/* Provider Select */}
+      <div>
+        <label style={labelStyle}>Provedor de e-mail:</label>
+        <select
+          value={emailProvider}
+          onChange={(e) => handleProviderChange(e.target.value)}
+          style={{
+            ...inputStyle,
+            cursor: 'pointer',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 16px center',
+            paddingRight: '40px',
+          }}
+        >
+          {emailProviders.map((provider) => (
+            <option key={provider.value} value={provider.value}>
+              {provider.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '16px', marginBottom: '16px' }}>
+      {/* Show fields only after selecting a provider */}
+      {emailProvider && (
+        <>
+          {/* Email and Password */}
           <div>
-            <label style={labelStyle}>Servidor IMAP</label>
+            <label style={labelStyle}>Usuário do e-mail</label>
             <input
-              type="text"
-              value={shopData.imap_host}
-              onChange={(e) => updateField('imap_host', e.target.value)}
-              style={inputStyle}
-              placeholder="imap.gmail.com"
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Porta</label>
-            <input
-              type="text"
-              value={shopData.imap_port}
-              onChange={(e) => updateField('imap_port', e.target.value)}
-              style={inputStyle}
-              placeholder="993"
-            />
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div>
-            <label style={labelStyle}>Usuário</label>
-            <input
-              type="text"
+              type="email"
               value={shopData.imap_user}
-              onChange={(e) => updateField('imap_user', e.target.value)}
+              onChange={(e) => {
+                updateField('imap_user', e.target.value)
+                updateField('smtp_user', e.target.value)
+              }}
               style={inputStyle}
-              placeholder="email@exemplo.com"
+              placeholder="seuemail@exemplo.com"
             />
           </div>
+
           <div>
-            <label style={labelStyle}>Senha</label>
+            <label style={labelStyle}>Senha do e-mail</label>
             <div style={{ position: 'relative' }}>
               <input
                 type={showImapPassword ? 'text' : 'password'}
                 value={shopData.imap_password}
-                onChange={(e) => updateField('imap_password', e.target.value)}
+                onChange={(e) => {
+                  updateField('imap_password', e.target.value)
+                  updateField('smtp_password', e.target.value)
+                }}
                 style={{ ...inputStyle, paddingRight: '48px' }}
-                placeholder="••••••••"
+                placeholder="••••••••••••"
               />
               <button
                 type="button"
@@ -747,116 +779,114 @@ export default function ShopSetup() {
               </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* SMTP Section */}
-      <div style={{ ...cardStyle, padding: '20px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px' }}>
-          SMTP (Envio)
-        </h3>
+          {/* Manual fields for "Outro" */}
+          {emailProvider === 'outro' && (
+            <>
+              <div>
+                <label style={labelStyle}>Host SMTP</label>
+                <input
+                  type="text"
+                  value={shopData.smtp_host}
+                  onChange={(e) => updateField('smtp_host', e.target.value)}
+                  style={inputStyle}
+                  placeholder="smtp.seudominio.com"
+                />
+              </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '16px', marginBottom: '16px' }}>
-          <div>
-            <label style={labelStyle}>Servidor SMTP</label>
-            <input
-              type="text"
-              value={shopData.smtp_host}
-              onChange={(e) => updateField('smtp_host', e.target.value)}
-              style={inputStyle}
-              placeholder="smtp.gmail.com"
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Porta</label>
-            <input
-              type="text"
-              value={shopData.smtp_port}
-              onChange={(e) => updateField('smtp_port', e.target.value)}
-              style={inputStyle}
-              placeholder="587"
-            />
-          </div>
-        </div>
+              <div>
+                <label style={labelStyle}>Porta SMTP</label>
+                <input
+                  type="text"
+                  value={shopData.smtp_port}
+                  onChange={(e) => updateField('smtp_port', e.target.value)}
+                  style={inputStyle}
+                  placeholder="465"
+                />
+              </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div>
-            <label style={labelStyle}>Usuário</label>
-            <input
-              type="text"
-              value={shopData.smtp_user}
-              onChange={(e) => updateField('smtp_user', e.target.value)}
-              style={inputStyle}
-              placeholder="email@exemplo.com"
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Senha</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showSmtpPassword ? 'text' : 'password'}
-                value={shopData.smtp_password}
-                onChange={(e) => updateField('smtp_password', e.target.value)}
-                style={{ ...inputStyle, paddingRight: '48px' }}
-                placeholder="••••••••"
-              />
+              <div>
+                <label style={labelStyle}>Host IMAP</label>
+                <input
+                  type="text"
+                  value={shopData.imap_host}
+                  onChange={(e) => updateField('imap_host', e.target.value)}
+                  style={inputStyle}
+                  placeholder="imap.seudominio.com"
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Porta IMAP</label>
+                <input
+                  type="text"
+                  value={shopData.imap_port}
+                  onChange={(e) => updateField('imap_port', e.target.value)}
+                  style={inputStyle}
+                  placeholder="993"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Show configured hosts for non-manual providers */}
+          {emailProvider !== 'outro' && shopData.imap_host && (
+            <div style={{
+              backgroundColor: 'var(--bg-primary)',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid var(--border-color)'
+            }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.6' }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Configuração automática:</strong><br />
+                SMTP: {shopData.smtp_host}:{shopData.smtp_port}<br />
+                IMAP: {shopData.imap_host}:{shopData.imap_port}
+              </p>
+            </div>
+          )}
+
+          {/* Test connection button */}
+          {shopData.imap_user && shopData.imap_password && shopData.imap_host && (
+            <div>
               <button
-                type="button"
-                onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                onClick={testEmailConnection}
+                disabled={testingEmail}
                 style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-secondary)',
+                  ...buttonSecondary,
+                  opacity: testingEmail ? 0.7 : 1,
                 }}
               >
-                {showSmtpPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                {testingEmail ? 'Testando...' : 'Testar conexão'}
               </button>
+              {emailTestResult === 'success' && (
+                <p style={{ color: '#22c55e', fontSize: '14px', marginTop: '8px' }}>
+                  Conexão estabelecida com sucesso!
+                </p>
+              )}
+              {emailTestResult === 'error' && (
+                <p style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>
+                  Falha na conexão. Verifique as credenciais.
+                </p>
+              )}
             </div>
-          </div>
-        </div>
-      </div>
-
-      {shopData.imap_host && shopData.smtp_host && (
-        <div>
-          <button
-            onClick={testEmailConnection}
-            disabled={testingEmail}
-            style={{
-              ...buttonSecondary,
-              opacity: testingEmail ? 0.7 : 1,
-            }}
-          >
-            {testingEmail ? 'Testando...' : 'Testar conexão'}
-          </button>
-          {emailTestResult === 'success' && (
-            <p style={{ color: '#22c55e', fontSize: '14px', marginTop: '8px' }}>
-              Conexão estabelecida com sucesso!
-            </p>
           )}
-          {emailTestResult === 'error' && (
-            <p style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>
-              Falha na conexão. Verifique as credenciais.
-            </p>
-          )}
-        </div>
+        </>
       )}
 
-      <div style={{
-        backgroundColor: 'rgba(245, 158, 11, 0.08)',
-        padding: '16px',
-        borderRadius: '12px',
-        border: '1px solid rgba(245, 158, 11, 0.2)'
-      }}>
-        <p style={{ fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
-          <strong>Dica para Gmail:</strong> Use uma "Senha de app" em vez da sua senha normal.
-          Acesse Conta Google → Segurança → Senhas de app para gerar uma.
-        </p>
-      </div>
+      {/* Gmail tip */}
+      {emailProvider === 'gmail' && (
+        <div style={{
+          backgroundColor: 'rgba(245, 158, 11, 0.08)',
+          padding: '16px',
+          borderRadius: '12px',
+          border: '1px solid rgba(245, 158, 11, 0.2)'
+        }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
+            <strong>Dica para Gmail:</strong> Use uma "Senha de app" em vez da sua senha normal.
+            Acesse Conta Google → Segurança → Senhas de app para gerar uma.
+          </p>
+        </div>
+      )}
     </div>
   )
 
