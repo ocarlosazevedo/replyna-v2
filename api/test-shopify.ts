@@ -38,32 +38,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       domain = `${domain}.myshopify.com`
     }
 
-    // Create access token using Client Credentials (Shopify 2024+ Custom App flow)
-    // First, we need to exchange client_id + client_secret for an access token
-    // For Custom Apps created in Dev Dashboard, the client_secret IS the access token
+    // Step 1: Get access token using Client Credentials Grant (Shopify 2026 flow)
+    const tokenUrl = `https://${domain}/admin/oauth/access_token`
 
-    // Test the connection by making a simple API call
-    const apiUrl = `https://${domain}/admin/api/2024-01/shop.json`
-
-    const response = await fetch(apiUrl, {
-      method: 'GET',
+    const tokenResponse = await fetch(tokenUrl, {
+      method: 'POST',
       headers: {
-        'X-Shopify-Access-Token': config.shopify_client_secret,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: config.shopify_client_id,
+        client_secret: config.shopify_client_secret,
+      }).toString(),
     })
 
-    if (!response.ok) {
-      const errorText = await response.text()
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text()
 
-      if (response.status === 401) {
+      if (tokenResponse.status === 401 || tokenResponse.status === 403) {
         return res.status(400).json({
           success: false,
-          error: 'Credenciais inválidas. Verifique o Client Secret.'
+          error: 'Credenciais inválidas. Verifique o Client ID e Client Secret.'
         })
       }
 
-      if (response.status === 404) {
+      if (tokenResponse.status === 404) {
         return res.status(400).json({
           success: false,
           error: 'Loja não encontrada. Verifique o domínio.'
@@ -72,7 +72,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       return res.status(400).json({
         success: false,
-        error: `Erro Shopify: ${response.status} - ${errorText}`
+        error: `Erro ao obter token: ${tokenResponse.status} - ${errorText}`
+      })
+    }
+
+    const tokenData = await tokenResponse.json()
+    const accessToken = tokenData.access_token
+
+    if (!accessToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Não foi possível obter o access token. Verifique as credenciais.'
+      })
+    }
+
+    // Step 2: Test the connection by making a simple API call
+    const apiUrl = `https://${domain}/admin/api/2024-01/shop.json`
+
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+
+      return res.status(400).json({
+        success: false,
+        error: `Erro ao acessar API: ${response.status} - ${errorText}`
       })
     }
 
