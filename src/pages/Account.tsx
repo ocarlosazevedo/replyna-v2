@@ -71,14 +71,48 @@ export default function Account() {
           .from('users')
           .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
         if (error) throw error
-        const resolvedProfile = data as UserProfile | null
-        setProfile(resolvedProfile)
-        setName(resolvedProfile?.name || user.user_metadata?.name || '')
-        setEmail(resolvedProfile?.email || user.email || '')
-        setPhone((user.user_metadata?.phone as string | undefined) || '')
+
+        // Se não existir registro na tabela users, criar um
+        if (!data) {
+          const newUserData = {
+            id: user.id,
+            email: user.email,
+            name: user.user_metadata?.name || null,
+            plan: 'Starter',
+            emails_limit: 500,
+            emails_used: 0,
+            shops_limit: 1,
+          }
+
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert(newUserData)
+
+          if (insertError) {
+            console.error('Erro ao criar perfil:', insertError)
+          }
+
+          setProfile({
+            name: newUserData.name,
+            email: newUserData.email || null,
+            plan: newUserData.plan,
+            emails_limit: newUserData.emails_limit,
+            emails_used: newUserData.emails_used,
+            shops_limit: newUserData.shops_limit,
+            created_at: new Date().toISOString(),
+          })
+          setName(newUserData.name || '')
+          setEmail(newUserData.email || '')
+          setPhone((user.user_metadata?.phone as string | undefined) || '')
+        } else {
+          setProfile(data)
+          setName(data.name || user.user_metadata?.name || '')
+          setEmail(data.email || user.email || '')
+          setPhone((user.user_metadata?.phone as string | undefined) || '')
+        }
       } catch (err) {
         console.error('Erro ao carregar perfil:', err)
         setNotice({ type: 'error', message: 'Não foi possível carregar suas informações.' })

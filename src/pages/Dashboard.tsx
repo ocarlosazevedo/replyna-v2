@@ -42,12 +42,6 @@ interface MetricSummary {
   topCategoryPercent: number
 }
 
-interface IntegrationSummary {
-  emailConnected: boolean
-  shopifyConnected: boolean
-  lastCheckedAt: Date | null
-}
-
 interface MessageRow {
   created_at: string
   direction: string
@@ -73,24 +67,6 @@ const formatDateTime = (date: Date) =>
     hour: '2-digit',
     minute: '2-digit',
   }).format(date)
-
-const formatRelativeTime = (date: Date | null) => {
-  if (!date) return 'Sem verificação'
-  const diffMs = date.getTime() - Date.now()
-  const absMs = Math.abs(diffMs)
-  const rtf = new Intl.RelativeTimeFormat('pt-BR', { numeric: 'auto' })
-
-  if (absMs < 60 * 1000) {
-    return rtf.format(Math.round(diffMs / 1000), 'second')
-  }
-  if (absMs < 60 * 60 * 1000) {
-    return rtf.format(Math.round(diffMs / (60 * 1000)), 'minute')
-  }
-  if (absMs < 24 * 60 * 60 * 1000) {
-    return rtf.format(Math.round(diffMs / (60 * 60 * 1000)), 'hour')
-  }
-  return rtf.format(Math.round(diffMs / (24 * 60 * 60 * 1000)), 'day')
-}
 
 const getDefaultRange = (): DateRange => {
   const today = new Date()
@@ -263,11 +239,6 @@ export default function Dashboard() {
   const [granularity, setGranularity] = useState<'day' | 'week' | 'month'>('day')
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [integrations, setIntegrations] = useState<IntegrationSummary>({
-    emailConnected: false,
-    shopifyConnected: false,
-    lastCheckedAt: null,
-  })
   const [metrics, setMetrics] = useState<MetricSummary>({
     totalConversations: 0,
     automationRate: 0,
@@ -280,7 +251,6 @@ export default function Dashboard() {
 
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [loadingShops, setLoadingShops] = useState(true)
-  const [loadingIntegrations, setLoadingIntegrations] = useState(true)
   const [loadingMetrics, setLoadingMetrics] = useState(true)
   const [loadingChart, setLoadingChart] = useState(true)
   const [loadingConversations, setLoadingConversations] = useState(true)
@@ -417,61 +387,9 @@ export default function Dashboard() {
     if (!user || !dateStart || !dateEnd || effectiveShopIds.length === 0) return
     let isActive = true
     setError(null)
-    setLoadingIntegrations(true)
     setLoadingMetrics(true)
     setLoadingChart(true)
     setLoadingConversations(true)
-
-    const loadIntegrations = async () => {
-      const emailData = await cacheFetch(
-        `email-credentials:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}`,
-        async () => {
-          const query = supabase.from('email_credentials').select('shop_id, is_valid, last_checked_at')
-          const { data, error } =
-            selectedShopId === 'all'
-              ? await query.in('shop_id', effectiveShopIds)
-              : await query.eq('shop_id', selectedShopId)
-          if (error) throw error
-          return data || []
-        }
-      )
-
-      const shopifyData = await cacheFetch(
-        `shopify-credentials:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}`,
-        async () => {
-          const query = supabase.from('shopify_credentials').select('shop_id, is_valid, last_checked_at')
-          const { data, error } =
-            selectedShopId === 'all'
-              ? await query.in('shop_id', effectiveShopIds)
-              : await query.eq('shop_id', selectedShopId)
-          if (error) throw error
-          return data || []
-        }
-      )
-
-      const resolveStatus = (rows: Array<{ shop_id: string; is_valid: boolean | null }>) => {
-        if (selectedShopId !== 'all') {
-          return rows.length > 0 ? Boolean(rows[0]?.is_valid) : false
-        }
-        const byShop = new Map(rows.map((row) => [row.shop_id, row.is_valid]))
-        return effectiveShopIds.every((shopId) => byShop.get(shopId))
-      }
-
-      const lastCheckedDates = [
-        ...emailData.map((row: { last_checked_at?: string | null }) => row.last_checked_at).filter(Boolean),
-        ...shopifyData.map((row: { last_checked_at?: string | null }) => row.last_checked_at).filter(Boolean),
-      ].map((value) => new Date(value as string))
-
-      const lastCheckedAt = lastCheckedDates.length
-        ? new Date(Math.max(...lastCheckedDates.map((date) => date.getTime())))
-        : null
-
-      return {
-        emailConnected: resolveStatus(emailData),
-        shopifyConnected: resolveStatus(shopifyData),
-        lastCheckedAt,
-      }
-    }
 
     const loadConversationMetrics = async () => {
       const baseQuery = () =>
@@ -583,8 +501,7 @@ export default function Dashboard() {
 
     const loadAll = async () => {
       try {
-        const [integrationSummary, conversationMetrics, messageRows, conversationRows, topCategoryData] = await Promise.all([
-          cacheFetch(`integrations:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}`, loadIntegrations),
+        const [conversationMetrics, messageRows, conversationRows, topCategoryData] = await Promise.all([
           loadConversationMetrics(),
           cacheFetch(
             `messages:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
@@ -601,8 +518,6 @@ export default function Dashboard() {
         ])
 
         if (!isActive) return
-
-        setIntegrations(integrationSummary)
 
         const inboundMessages = messageRows.filter((message) => message.direction === 'inbound')
         const automatedInbound = inboundMessages.filter((message) => message.was_auto_replied).length
@@ -625,7 +540,6 @@ export default function Dashboard() {
         setError('Não foi possível carregar os dados do dashboard.')
       } finally {
         if (!isActive) return
-        setLoadingIntegrations(false)
         setLoadingMetrics(false)
         setLoadingChart(false)
         setLoadingConversations(false)
@@ -723,58 +637,6 @@ export default function Dashboard() {
           {error}
         </div>
       )}
-
-      {/* Integrações */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        {loadingIntegrations ? (
-          <>
-            <Skeleton height={72} />
-            <Skeleton height={72} />
-            <Skeleton height={72} />
-          </>
-        ) : (
-          <>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '14px', padding: '16px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Email</div>
-              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span
-                  style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    backgroundColor: integrations.emailConnected ? '#22c55e' : '#ef4444',
-                  }}
-                />
-                <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {integrations.emailConnected ? 'Conectado' : 'Desconectado'}
-                </span>
-              </div>
-            </div>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '14px', padding: '16px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Shopify</div>
-              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span
-                  style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    backgroundColor: integrations.shopifyConnected ? '#22c55e' : '#ef4444',
-                  }}
-                />
-                <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {integrations.shopifyConnected ? 'Conectado' : 'Desconectado'}
-                </span>
-              </div>
-            </div>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '14px', padding: '16px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Última verificação</div>
-              <div style={{ marginTop: '8px', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {formatRelativeTime(integrations.lastCheckedAt)}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
 
       {/* Métricas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
