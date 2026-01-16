@@ -10,9 +10,10 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 const getInitialTheme = (): ThemeMode => {
-  if (typeof window === 'undefined') return 'light'
+  if (typeof window === 'undefined') return 'dark'
   const stored = localStorage.getItem('replyna-theme')
-  return stored === 'dark' ? 'dark' : 'light'
+  if (stored === 'light' || stored === 'dark') return stored
+  return 'dark' // Tema escuro como padrão
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
