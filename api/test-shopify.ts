@@ -6,6 +6,44 @@ interface ShopifyTestRequest {
   shopify_client_secret: string
 }
 
+function parseShopifyError(responseText: string, statusCode: number): string {
+  // Check if response is HTML (error page)
+  if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+    // Extract error from HTML if possible
+    const titleMatch = responseText.match(/<title>([^<]+)<\/title>/i)
+    const errorTitle = titleMatch ? titleMatch[1] : ''
+
+    if (errorTitle.includes('invalid_request')) {
+      return 'Requisição OAuth inválida. Verifique se o app foi instalado corretamente na loja e se as credenciais estão corretas.'
+    }
+
+    if (errorTitle.includes('access_denied')) {
+      return 'Acesso negado. Verifique se o app tem as permissões necessárias.'
+    }
+
+    if (statusCode === 400) {
+      return 'Requisição inválida. Verifique se o Client ID e Client Secret estão corretos e se o app foi instalado na loja.'
+    }
+
+    return `Erro do Shopify (${statusCode}). Verifique se o app foi criado e instalado corretamente.`
+  }
+
+  // Try to parse as JSON
+  try {
+    const json = JSON.parse(responseText)
+    if (json.error_description) return json.error_description
+    if (json.error) return json.error
+    if (json.errors) return typeof json.errors === 'string' ? json.errors : JSON.stringify(json.errors)
+  } catch {
+    // Not JSON, return truncated text
+    if (responseText.length > 200) {
+      return responseText.substring(0, 200) + '...'
+    }
+  }
+
+  return responseText || `Erro desconhecido (${statusCode})`
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -53,36 +91,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }).toString(),
     })
 
+    const tokenResponseText = await tokenResponse.text()
+
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text()
+      const errorMessage = parseShopifyError(tokenResponseText, tokenResponse.status)
 
-      if (tokenResponse.status === 401 || tokenResponse.status === 403) {
-        return res.status(400).json({
-          success: false,
-          error: 'Credenciais inválidas. Verifique o Client ID e Client Secret.'
-        })
-      }
-
-      if (tokenResponse.status === 404) {
-        return res.status(400).json({
-          success: false,
-          error: 'Loja não encontrada. Verifique o domínio.'
-        })
+      // Provide helpful guidance based on error
+      let helpText = ''
+      if (tokenResponse.status === 400 || tokenResponseText.includes('invalid_request')) {
+        helpText = '\n\nPossíveis soluções:\n' +
+          '1. Verifique se o app foi instalado na loja (Release → Install)\n' +
+          '2. Confirme que o Client ID e Secret estão corretos\n' +
+          '3. Verifique se os escopos foram configurados corretamente'
       }
 
       return res.status(400).json({
         success: false,
-        error: `Erro ao obter token: ${tokenResponse.status} - ${errorText}`
+        error: errorMessage + helpText
       })
     }
 
-    const tokenData = await tokenResponse.json()
+    // Try to parse token response
+    let tokenData
+    try {
+      tokenData = JSON.parse(tokenResponseText)
+    } catch {
+      return res.status(400).json({
+        success: false,
+        error: 'Resposta inválida do Shopify ao obter token. Verifique as credenciais.'
+      })
+    }
+
     const accessToken = tokenData.access_token
 
     if (!accessToken) {
       return res.status(400).json({
         success: false,
-        error: 'Não foi possível obter o access token. Verifique as credenciais.'
+        error: 'Não foi possível obter o access token. Verifique se o app foi instalado na loja.'
       })
     }
 
@@ -99,10 +144,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!response.ok) {
       const errorText = await response.text()
+      const errorMessage = parseShopifyError(errorText, response.status)
 
       return res.status(400).json({
         success: false,
-        error: `Erro ao acessar API: ${response.status} - ${errorText}`
+        error: `Erro ao acessar API: ${errorMessage}`
       })
     }
 
@@ -114,9 +160,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       shop_name: shopData.shop?.name || domain
     })
   } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Erro interno do servidor'
+
     return res.status(500).json({
       success: false,
-      error: err instanceof Error ? err.message : 'Erro interno do servidor'
+      error: `Erro de conexão: ${errorMessage}. Verifique se o domínio está correto.`
     })
   }
 }
