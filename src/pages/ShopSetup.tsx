@@ -11,8 +11,9 @@ interface ShopData {
   support_email: string
 
   // Step 2 - Shopify
-  shopify_store_url: string
-  shopify_access_token: string
+  shopify_domain: string
+  shopify_client_id: string
+  shopify_client_secret: string
 
   // Step 3 - Email IMAP/SMTP
   imap_host: string
@@ -36,8 +37,9 @@ const initialShopData: ShopData = {
   name: '',
   attendant_name: '',
   support_email: '',
-  shopify_store_url: '',
-  shopify_access_token: '',
+  shopify_domain: '',
+  shopify_client_id: '',
+  shopify_client_secret: '',
   imap_host: '',
   imap_port: '993',
   imap_user: '',
@@ -120,8 +122,9 @@ export default function ShopSetup() {
           name: shop.name || '',
           attendant_name: shop.attendant_name || '',
           support_email: shop.support_email || '',
-          shopify_store_url: shop.shopify_store_url || '',
-          shopify_access_token: shop.shopify_access_token || '',
+          shopify_domain: shop.shopify_domain || '',
+          shopify_client_id: shop.shopify_client_id || '',
+          shopify_client_secret: shop.shopify_client_secret || '',
           imap_host: shop.imap_host || '',
           imap_port: shop.imap_port || '993',
           imap_user: shop.imap_user || '',
@@ -170,14 +173,20 @@ export default function ShopSetup() {
         }
         return true
       case 2:
-        // Shopify is optional, but if provided, both fields are required
-        if (shopData.shopify_store_url && !shopData.shopify_access_token) {
-          setError('Token de acesso do Shopify é obrigatório')
-          return false
-        }
-        if (shopData.shopify_access_token && !shopData.shopify_store_url) {
-          setError('URL da loja Shopify é obrigatória')
-          return false
+        // Shopify is optional, but if provided, all three fields are required
+        if (shopData.shopify_domain || shopData.shopify_client_id || shopData.shopify_client_secret) {
+          if (!shopData.shopify_domain) {
+            setError('Domínio da loja Shopify é obrigatório')
+            return false
+          }
+          if (!shopData.shopify_client_id) {
+            setError('Client ID é obrigatório')
+            return false
+          }
+          if (!shopData.shopify_client_secret) {
+            setError('Client Secret é obrigatório')
+            return false
+          }
         }
         return true
       case 3:
@@ -222,9 +231,10 @@ export default function ShopSetup() {
         name: shopData.name,
         attendant_name: shopData.attendant_name,
         support_email: shopData.support_email,
-        shopify_store_url: shopData.shopify_store_url || null,
-        shopify_access_token: shopData.shopify_access_token || null,
-        shopify_status: shopData.shopify_store_url && shopData.shopify_access_token ? 'pending' : null,
+        shopify_domain: shopData.shopify_domain || null,
+        shopify_client_id: shopData.shopify_client_id || null,
+        shopify_client_secret: shopData.shopify_client_secret || null,
+        shopify_status: shopData.shopify_domain && shopData.shopify_client_id && shopData.shopify_client_secret ? 'pending' : null,
         imap_host: shopData.imap_host || null,
         imap_port: shopData.imap_port || null,
         imap_user: shopData.imap_user || null,
@@ -292,7 +302,7 @@ export default function ShopSetup() {
     await new Promise(resolve => setTimeout(resolve, 2000))
 
     // For now, just simulate success if all fields are filled
-    if (shopData.shopify_store_url && shopData.shopify_access_token) {
+    if (shopData.shopify_domain && shopData.shopify_client_id && shopData.shopify_client_secret) {
       setShopifyTestResult('success')
     } else {
       setShopifyTestResult('error')
@@ -439,7 +449,7 @@ export default function ShopSetup() {
       </div>
 
       <div>
-        <label style={labelStyle}>Email para atendimento humano *</label>
+        <label style={labelStyle}>Email para escalonamento humano *</label>
         <input
           type="email"
           value={shopData.support_email}
@@ -447,9 +457,19 @@ export default function ShopSetup() {
           style={inputStyle}
           placeholder="suporte@minhaloja.com"
         />
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-          Emails que precisam de atendimento humano serão encaminhados para este endereço
-        </p>
+        <div style={{
+          backgroundColor: 'rgba(70, 114, 236, 0.08)',
+          padding: '12px 16px',
+          borderRadius: '10px',
+          marginTop: '10px',
+          border: '1px solid rgba(70, 114, 236, 0.15)'
+        }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: 0, lineHeight: '1.5' }}>
+            <strong>Quando a IA não conseguir resolver</strong> uma solicitação do cliente
+            (casos complexos, reclamações graves, pedidos especiais), o email será
+            automaticamente encaminhado para este endereço para atendimento humano.
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -472,34 +492,66 @@ export default function ShopSetup() {
         border: '1px solid rgba(70, 114, 236, 0.2)'
       }}>
         <p style={{ fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
-          <strong>Como obter o token de acesso:</strong><br />
-          1. Acesse Admin da Shopify → Configurações → Apps e canais de vendas<br />
-          2. Clique em "Desenvolver apps" → "Criar app"<br />
-          3. Em "Configurar escopo da API Admin", selecione: read_orders, read_products<br />
-          4. Instale o app e copie o token de acesso
+          <strong>Como criar um Custom App na Shopify:</strong><br /><br />
+          1. Acesse o <strong>Admin da Shopify</strong> → Configurações → Apps e canais de vendas<br />
+          2. Clique em <strong>"Desenvolver apps"</strong> → "Criar um app"<br />
+          3. Dê um nome ao app (ex: "Replyna") e clique em "Criar app"<br />
+          4. Vá em <strong>"Configurar escopos da API Admin"</strong> e selecione:<br />
+          &nbsp;&nbsp;&nbsp;• <code style={{ backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px' }}>read_orders</code> - Ler pedidos<br />
+          &nbsp;&nbsp;&nbsp;• <code style={{ backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px' }}>read_products</code> - Ler produtos<br />
+          &nbsp;&nbsp;&nbsp;• <code style={{ backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px' }}>read_customers</code> - Ler clientes<br />
+          5. Salve e vá em <strong>"Credenciais da API"</strong><br />
+          6. Copie o <strong>Client ID</strong> e <strong>Client Secret</strong>
         </p>
       </div>
 
       <div>
-        <label style={labelStyle}>URL da loja Shopify</label>
+        <label style={labelStyle}>Domínio da loja Shopify</label>
+        <div style={{ position: 'relative' }}>
+          <input
+            type="text"
+            value={shopData.shopify_domain}
+            onChange={(e) => updateField('shopify_domain', e.target.value)}
+            style={{ ...inputStyle, paddingRight: '140px' }}
+            placeholder="minhaloja"
+          />
+          <span style={{
+            position: 'absolute',
+            right: '16px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: 'var(--text-secondary)',
+            fontSize: '14px',
+            pointerEvents: 'none',
+          }}>
+            .myshopify.com
+          </span>
+        </div>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+          Digite apenas o nome da loja, sem o ".myshopify.com"
+        </p>
+      </div>
+
+      <div>
+        <label style={labelStyle}>Client ID</label>
         <input
           type="text"
-          value={shopData.shopify_store_url}
-          onChange={(e) => updateField('shopify_store_url', e.target.value)}
+          value={shopData.shopify_client_id}
+          onChange={(e) => updateField('shopify_client_id', e.target.value)}
           style={inputStyle}
-          placeholder="minhaloja.myshopify.com"
+          placeholder="Ex: a1b2c3d4e5f6g7h8i9j0..."
         />
       </div>
 
       <div>
-        <label style={labelStyle}>Token de acesso</label>
+        <label style={labelStyle}>Client Secret</label>
         <div style={{ position: 'relative' }}>
           <input
             type={showShopifyToken ? 'text' : 'password'}
-            value={shopData.shopify_access_token}
-            onChange={(e) => updateField('shopify_access_token', e.target.value)}
+            value={shopData.shopify_client_secret}
+            onChange={(e) => updateField('shopify_client_secret', e.target.value)}
             style={{ ...inputStyle, paddingRight: '48px' }}
-            placeholder="shpat_xxxxxxxxxxxxxxxxxxxxx"
+            placeholder="Ex: shpss_xxxxxxxxxxxxxxxxxxxxx"
           />
           <button
             type="button"
@@ -520,7 +572,7 @@ export default function ShopSetup() {
         </div>
       </div>
 
-      {shopData.shopify_store_url && shopData.shopify_access_token && (
+      {shopData.shopify_domain && shopData.shopify_client_id && shopData.shopify_client_secret && (
         <div>
           <button
             onClick={testShopifyConnection}
@@ -879,7 +931,7 @@ export default function ShopSetup() {
             Editar
           </button>
         </div>
-        {shopData.shopify_store_url ? (
+        {shopData.shopify_domain ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{
               display: 'inline-block',
@@ -888,7 +940,7 @@ export default function ShopSetup() {
               borderRadius: '50%',
               backgroundColor: '#22c55e'
             }} />
-            <span style={{ color: 'var(--text-primary)' }}>{shopData.shopify_store_url}</span>
+            <span style={{ color: 'var(--text-primary)' }}>{shopData.shopify_domain}.myshopify.com</span>
           </div>
         ) : (
           <span style={{ color: 'var(--text-secondary)' }}>Não configurado</span>
