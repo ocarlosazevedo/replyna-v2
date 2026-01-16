@@ -552,8 +552,57 @@ export default function Dashboard() {
 
     loadAll()
 
+    // Real-time subscription para novas conversas
+    const channel = supabase
+      .channel('dashboard-conversations')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'conversations',
+        },
+        (payload) => {
+          const newConversation = payload.new as ConversationRow
+          // Verificar se a conversa pertence a uma das lojas do usuário
+          if (effectiveShopIds.includes(newConversation.shop_id)) {
+            // Invalidar cache
+            cacheRef.current.delete(
+              `conversations:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`
+            )
+            // Adicionar nova conversa no topo da lista
+            setConversations((prev) => {
+              const updated = [newConversation, ...prev.filter((c) => c.id !== newConversation.id)]
+              return updated.slice(0, 10) // Manter apenas 10
+            })
+            // Atualizar métricas
+            setMetrics((prev) => ({
+              ...prev,
+              totalConversations: prev.totalConversations + 1,
+            }))
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'conversations',
+        },
+        (payload) => {
+          const updatedConversation = payload.new as ConversationRow
+          // Atualizar conversa existente na lista
+          setConversations((prev) =>
+            prev.map((c) => (c.id === updatedConversation.id ? updatedConversation : c))
+          )
+        }
+      )
+      .subscribe()
+
     return () => {
       isActive = false
+      supabase.removeChannel(channel)
     }
   }, [cacheFetch, dateEnd, dateStart, effectiveShopIds, granularity, selectedShopId, user])
 
