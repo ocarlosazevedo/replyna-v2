@@ -252,6 +252,22 @@ export default function ShopSetup() {
     setSaving(true)
     setError('')
 
+    // Verificar se as conexões foram validadas
+    const hasShopifyConfig = shopData.shopify_domain && shopData.shopify_client_id && shopData.shopify_client_secret
+    const hasEmailConfig = shopData.imap_host && shopData.smtp_host
+
+    if (hasShopifyConfig && shopifyTestResult !== 'success') {
+      setError('Você precisa testar e validar a conexão com o Shopify antes de salvar.')
+      setSaving(false)
+      return
+    }
+
+    if (hasEmailConfig && emailTestResult !== 'success') {
+      setError('Você precisa testar e validar a conexão de email antes de salvar.')
+      setSaving(false)
+      return
+    }
+
     try {
       const shopPayload = {
         user_id: user.id,
@@ -261,7 +277,7 @@ export default function ShopSetup() {
         shopify_domain: shopData.shopify_domain || null,
         shopify_client_id: shopData.shopify_client_id || null,
         shopify_client_secret: shopData.shopify_client_secret || null,
-        shopify_status: shopData.shopify_domain && shopData.shopify_client_id && shopData.shopify_client_secret ? 'pending' : null,
+        shopify_status: hasShopifyConfig && shopifyTestResult === 'success' ? 'ok' : null,
         imap_host: shopData.imap_host || null,
         imap_port: shopData.imap_port || null,
         imap_user: shopData.imap_user || null,
@@ -270,7 +286,7 @@ export default function ShopSetup() {
         smtp_port: shopData.smtp_port || null,
         smtp_user: shopData.smtp_user || null,
         smtp_password: shopData.smtp_password || null,
-        mail_status: shopData.imap_host && shopData.smtp_host ? 'pending' : null,
+        mail_status: hasEmailConfig && emailTestResult === 'success' ? 'ok' : null,
         delivery_time: shopData.delivery_time || null,
         dispatch_time: shopData.dispatch_time || null,
         warranty_info: shopData.warranty_info || null,
@@ -306,19 +322,41 @@ export default function ShopSetup() {
     }
   }
 
+  const [emailTestError, setEmailTestError] = useState('')
+  const [shopifyTestError, setShopifyTestError] = useState('')
+
   const testEmailConnection = async () => {
     setTestingEmail(true)
     setEmailTestResult(null)
+    setEmailTestError('')
 
-    // Simulate testing - in production this would call a backend endpoint
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      const response = await fetch('/api/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imap_host: shopData.imap_host,
+          imap_port: shopData.imap_port,
+          imap_user: shopData.imap_user,
+          imap_password: shopData.imap_password,
+          smtp_host: shopData.smtp_host,
+          smtp_port: shopData.smtp_port,
+          smtp_user: shopData.smtp_user,
+          smtp_password: shopData.smtp_password,
+        }),
+      })
 
-    // For now, just simulate success if all fields are filled
-    if (shopData.imap_host && shopData.imap_user && shopData.imap_password &&
-        shopData.smtp_host && shopData.smtp_user && shopData.smtp_password) {
-      setEmailTestResult('success')
-    } else {
+      const data = await response.json()
+
+      if (data.success) {
+        setEmailTestResult('success')
+      } else {
+        setEmailTestResult('error')
+        setEmailTestError(data.error || 'Falha na conexão')
+      }
+    } catch (err) {
       setEmailTestResult('error')
+      setEmailTestError(err instanceof Error ? err.message : 'Erro ao testar conexão')
     }
 
     setTestingEmail(false)
@@ -327,15 +365,30 @@ export default function ShopSetup() {
   const testShopifyConnection = async () => {
     setTestingShopify(true)
     setShopifyTestResult(null)
+    setShopifyTestError('')
 
-    // Simulate testing - in production this would call a backend endpoint
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      const response = await fetch('/api/test-shopify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shopify_domain: shopData.shopify_domain,
+          shopify_client_id: shopData.shopify_client_id,
+          shopify_client_secret: shopData.shopify_client_secret,
+        }),
+      })
 
-    // For now, just simulate success if all fields are filled
-    if (shopData.shopify_domain && shopData.shopify_client_id && shopData.shopify_client_secret) {
-      setShopifyTestResult('success')
-    } else {
+      const data = await response.json()
+
+      if (data.success) {
+        setShopifyTestResult('success')
+      } else {
+        setShopifyTestResult('error')
+        setShopifyTestError(data.error || 'Falha na conexão')
+      }
+    } catch (err) {
       setShopifyTestResult('error')
+      setShopifyTestError(err instanceof Error ? err.message : 'Erro ao testar conexão')
     }
 
     setTestingShopify(false)
@@ -690,7 +743,7 @@ export default function ShopSetup() {
           )}
           {shopifyTestResult === 'error' && (
             <p style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>
-              Falha na conexão. Verifique as credenciais.
+              {shopifyTestError || 'Falha na conexão. Verifique as credenciais.'}
             </p>
           )}
         </div>
@@ -868,7 +921,7 @@ export default function ShopSetup() {
               )}
               {emailTestResult === 'error' && (
                 <p style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>
-                  Falha na conexão. Verifique as credenciais.
+                  {emailTestError || 'Falha na conexão. Verifique as credenciais.'}
                 </p>
               )}
             </div>
