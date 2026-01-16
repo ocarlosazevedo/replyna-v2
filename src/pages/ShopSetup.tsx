@@ -200,7 +200,7 @@ export default function ShopSetup() {
         }
         return true
       case 2:
-        // Shopify is optional, but if provided, all three fields are required
+        // Shopify is optional, but if provided, must be tested and validated
         if (shopData.shopify_domain || shopData.shopify_client_id || shopData.shopify_client_secret) {
           if (!shopData.shopify_domain) {
             setError('Domínio da loja Shopify é obrigatório')
@@ -214,17 +214,27 @@ export default function ShopSetup() {
             setError('Client Secret é obrigatório')
             return false
           }
+          // Require successful connection test
+          if (shopifyTestResult !== 'success') {
+            setError('Você precisa testar e validar a conexão com o Shopify antes de continuar.')
+            return false
+          }
         }
         return true
       case 3:
-        // Email is optional, but if provided, all fields are required
-        if (shopData.imap_host || shopData.smtp_host) {
+        // Email is optional, but if provided, must be tested and validated
+        if (shopData.imap_user || shopData.imap_password || emailProvider) {
           if (!shopData.imap_host || !shopData.imap_user || !shopData.imap_password) {
-            setError('Todos os campos IMAP são obrigatórios')
+            setError('Todos os campos de email são obrigatórios')
             return false
           }
           if (!shopData.smtp_host || !shopData.smtp_user || !shopData.smtp_password) {
-            setError('Todos os campos SMTP são obrigatórios')
+            setError('Todos os campos de email são obrigatórios')
+            return false
+          }
+          // Require successful connection test
+          if (emailTestResult !== 'success') {
+            setError('Você precisa testar e validar a conexão de email antes de continuar.')
             return false
           }
         }
