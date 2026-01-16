@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import DateRangePicker from '../components/DateRangePicker'
 import CreditsWarningBanner from '../components/CreditsWarningBanner'
+import ConversationModal from '../components/ConversationModal'
 
 const VolumeChart = lazy(() => import('../components/VolumeChart'))
 
@@ -257,6 +258,7 @@ export default function Dashboard() {
   const [loadingChart, setLoadingChart] = useState(true)
   const [loadingConversations, setLoadingConversations] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
 
   const cacheFetch = useCallback(<T,>(key: string, fetcher: () => Promise<T>): Promise<T> => {
     const cached = cacheRef.current.get(key)
@@ -567,7 +569,7 @@ export default function Dashboard() {
   }
 
   const handleConversationClick = (id: string) => {
-    navigate(`/conversations/${id}`)
+    setSelectedConversationId(id)
   }
 
   const renderValue = (value: number, suffix?: string) => {
@@ -577,6 +579,12 @@ export default function Dashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Modal de conversa */}
+      <ConversationModal
+        conversationId={selectedConversationId}
+        onClose={() => setSelectedConversationId(null)}
+      />
+
       {/* Banner de créditos */}
       {profile && profile.emails_limit && profile.emails_used !== null && (
         <CreditsWarningBanner
