@@ -1,0 +1,364 @@
+/**
+ * Módulo de Integração Shopify
+ * Busca dados de pedidos e clientes
+ */
+
+import { decrypt, getEncryptionKey } from './encryption.ts';
+
+// Tipos
+export interface ShopifyCredentials {
+  domain: string;
+  client_id: string;
+  client_secret: string;
+  access_token?: string;
+}
+
+export interface ShopifyOrder {
+  id: number;
+  order_number: number;
+  name: string; // "#1001"
+  created_at: string;
+  financial_status: string;
+  fulfillment_status: string | null;
+  total_price: string;
+  currency: string;
+  customer: {
+    id: number;
+    email: string;
+    first_name: string;
+    last_name: string;
+  } | null;
+  line_items: Array<{
+    id: number;
+    title: string;
+    quantity: number;
+    price: string;
+  }>;
+  fulfillments: Array<{
+    id: number;
+    status: string;
+    tracking_number: string | null;
+    tracking_url: string | null;
+    tracking_company: string | null;
+  }>;
+  shipping_address?: {
+    city: string;
+    province: string;
+    country: string;
+  };
+}
+
+export interface ShopifyCustomer {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  orders_count: number;
+  total_spent: string;
+  created_at: string;
+}
+
+export interface OrderSummary {
+  order_number: string;
+  order_date: string;
+  order_status: string;
+  order_total: string;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  fulfillment_status: string | null;
+  items: Array<{ name: string; quantity: number }>;
+  customer_name: string | null;
+}
+
+/**
+ * Decripta as credenciais Shopify de uma loja
+ */
+export async function decryptShopifyCredentials(shop: {
+  shopify_domain: string | null;
+  shopify_client_id: string | null;
+  shopify_client_secret: string | null;
+  shopify_client_secret_encrypted: string | null;
+}): Promise<ShopifyCredentials | null> {
+  if (!shop.shopify_domain || !shop.shopify_client_id) {
+    return null;
+  }
+
+  const encryptionKey = getEncryptionKey();
+
+  let clientSecret = '';
+  if (shop.shopify_client_secret_encrypted) {
+    clientSecret = await decrypt(shop.shopify_client_secret_encrypted, encryptionKey);
+  } else if (shop.shopify_client_secret) {
+    clientSecret = shop.shopify_client_secret;
+  }
+
+  if (!clientSecret) {
+    return null;
+  }
+
+  return {
+    domain: shop.shopify_domain,
+    client_id: shop.shopify_client_id,
+    client_secret: clientSecret,
+  };
+}
+
+/**
+ * Obtém access token via Client Credentials Grant (Shopify 2024+)
+ */
+async function getAccessToken(credentials: ShopifyCredentials): Promise<string> {
+  // Se já tem token, retornar
+  if (credentials.access_token) {
+    return credentials.access_token;
+  }
+
+  const tokenUrl = `https://${credentials.domain}/admin/oauth/access_token`;
+
+  const response = await fetch(tokenUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      client_id: credentials.client_id,
+      client_secret: credentials.client_secret,
+      grant_type: 'client_credentials',
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Erro ao obter access token Shopify: ${response.status} - ${error}`);
+  }
+
+  const data = await response.json();
+  return data.access_token;
+}
+
+/**
+ * Faz uma requisição para a API Admin do Shopify
+ */
+async function shopifyRequest<T>(
+  credentials: ShopifyCredentials,
+  endpoint: string,
+  method: string = 'GET',
+  body?: unknown
+): Promise<T> {
+  const accessToken = await getAccessToken(credentials);
+  const url = `https://${credentials.domain}/admin/api/2024-01/${endpoint}`;
+
+  const response = await fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': accessToken,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Erro na API Shopify: ${response.status} - ${error}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Busca pedidos de um cliente pelo email
+ */
+export async function getOrdersByCustomerEmail(
+  credentials: ShopifyCredentials,
+  customerEmail: string,
+  limit: number = 5
+): Promise<ShopifyOrder[]> {
+  try {
+    const data = await shopifyRequest<{ orders: ShopifyOrder[] }>(
+      credentials,
+      `orders.json?email=${encodeURIComponent(customerEmail)}&status=any&limit=${limit}`
+    );
+
+    return data.orders || [];
+  } catch (error) {
+    console.error('Erro ao buscar pedidos por email:', error);
+    return [];
+  }
+}
+
+/**
+ * Busca um pedido pelo número
+ */
+export async function getOrderByNumber(
+  credentials: ShopifyCredentials,
+  orderNumber: string
+): Promise<ShopifyOrder | null> {
+  try {
+    // Remover # se presente
+    const cleanNumber = orderNumber.replace(/^#/, '');
+
+    const data = await shopifyRequest<{ orders: ShopifyOrder[] }>(
+      credentials,
+      `orders.json?name=${encodeURIComponent('#' + cleanNumber)}&status=any&limit=1`
+    );
+
+    return data.orders?.[0] || null;
+  } catch (error) {
+    console.error('Erro ao buscar pedido por número:', error);
+    return null;
+  }
+}
+
+/**
+ * Busca um pedido pelo ID
+ */
+export async function getOrderById(
+  credentials: ShopifyCredentials,
+  orderId: number | string
+): Promise<ShopifyOrder | null> {
+  try {
+    const data = await shopifyRequest<{ order: ShopifyOrder }>(
+      credentials,
+      `orders/${orderId}.json`
+    );
+
+    return data.order || null;
+  } catch (error) {
+    console.error('Erro ao buscar pedido por ID:', error);
+    return null;
+  }
+}
+
+/**
+ * Busca cliente pelo email
+ */
+export async function getCustomerByEmail(
+  credentials: ShopifyCredentials,
+  email: string
+): Promise<ShopifyCustomer | null> {
+  try {
+    const data = await shopifyRequest<{ customers: ShopifyCustomer[] }>(
+      credentials,
+      `customers/search.json?query=email:${encodeURIComponent(email)}&limit=1`
+    );
+
+    return data.customers?.[0] || null;
+  } catch (error) {
+    console.error('Erro ao buscar cliente por email:', error);
+    return null;
+  }
+}
+
+/**
+ * Converte um pedido Shopify para o formato resumido usado na IA
+ */
+export function orderToSummary(order: ShopifyOrder): OrderSummary {
+  // Encontrar tracking mais recente
+  const latestFulfillment = order.fulfillments?.[order.fulfillments.length - 1];
+
+  // Traduzir status
+  const financialStatusMap: Record<string, string> = {
+    pending: 'Pagamento pendente',
+    authorized: 'Pagamento autorizado',
+    partially_paid: 'Parcialmente pago',
+    paid: 'Pago',
+    partially_refunded: 'Parcialmente reembolsado',
+    refunded: 'Reembolsado',
+    voided: 'Cancelado',
+  };
+
+  const fulfillmentStatusMap: Record<string, string> = {
+    fulfilled: 'Enviado',
+    partial: 'Parcialmente enviado',
+    unfulfilled: 'Aguardando envio',
+    null: 'Aguardando envio',
+  };
+
+  return {
+    order_number: order.name || `#${order.order_number}`,
+    order_date: formatDate(order.created_at),
+    order_status: financialStatusMap[order.financial_status] || order.financial_status,
+    order_total: formatCurrency(order.total_price, order.currency),
+    tracking_number: latestFulfillment?.tracking_number || null,
+    tracking_url: latestFulfillment?.tracking_url || null,
+    fulfillment_status:
+      fulfillmentStatusMap[order.fulfillment_status || 'null'] ||
+      order.fulfillment_status ||
+      'Aguardando envio',
+    items: order.line_items.map((item) => ({
+      name: item.title,
+      quantity: item.quantity,
+    })),
+    customer_name: order.customer
+      ? `${order.customer.first_name} ${order.customer.last_name}`.trim()
+      : null,
+  };
+}
+
+/**
+ * Busca dados do pedido para enriquecer a resposta da IA
+ */
+export async function getOrderDataForAI(
+  credentials: ShopifyCredentials,
+  customerEmail: string,
+  orderNumberFromEmail?: string | null
+): Promise<OrderSummary | null> {
+  // Se tem número do pedido no email, buscar direto
+  if (orderNumberFromEmail) {
+    const order = await getOrderByNumber(credentials, orderNumberFromEmail);
+    if (order) {
+      return orderToSummary(order);
+    }
+  }
+
+  // Buscar pelo email do cliente
+  const orders = await getOrdersByCustomerEmail(credentials, customerEmail, 1);
+  if (orders.length > 0) {
+    return orderToSummary(orders[0]);
+  }
+
+  return null;
+}
+
+/**
+ * Extrai número de pedido de um texto (subject ou body do email)
+ */
+export function extractOrderNumber(text: string): string | null {
+  if (!text) return null;
+
+  // Padrões comuns de número de pedido
+  const patterns = [
+    /#(\d{4,})/,           // #12345
+    /pedido\s*#?\s*(\d{4,})/i,    // pedido 12345, pedido #12345
+    /order\s*#?\s*(\d{4,})/i,     // order 12345
+    /nº?\s*(\d{4,})/i,            // nº 12345, n 12345
+    /número\s*(\d{4,})/i,         // número 12345
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return null;
+}
+
+// Helpers
+
+function formatDate(isoDate: string): string {
+  const date = new Date(isoDate);
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function formatCurrency(amount: string, currency: string): string {
+  const num = parseFloat(amount);
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: currency || 'BRL',
+  }).format(num);
+}

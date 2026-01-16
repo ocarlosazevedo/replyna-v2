@@ -5,6 +5,7 @@ import { subDays } from 'date-fns'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import DateRangePicker from '../components/DateRangePicker'
+import CreditsWarningBanner from '../components/CreditsWarningBanner'
 
 const VolumeChart = lazy(() => import('../components/VolumeChart'))
 
@@ -576,6 +577,15 @@ export default function Dashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Banner de créditos */}
+      {profile && profile.emails_limit && profile.emails_used !== null && (
+        <CreditsWarningBanner
+          emailsUsed={profile.emails_used ?? 0}
+          emailsLimit={profile.emails_limit}
+          plan={profile.plan ?? 'Starter'}
+        />
+      )}
+
       {/* Header */}
       <div
         style={{
