@@ -491,17 +491,95 @@ export default function ShopSetup() {
         borderRadius: '12px',
         border: '1px solid rgba(70, 114, 236, 0.2)'
       }}>
-        <p style={{ fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-primary)', margin: 0, lineHeight: '1.7' }}>
           <strong>Como criar um Custom App na Shopify:</strong><br /><br />
           1. Acesse o <strong>Admin da Shopify</strong> → Configurações → Apps e canais de vendas<br />
           2. Clique em <strong>"Desenvolver apps"</strong> → "Criar um app"<br />
           3. Dê um nome ao app (ex: "Replyna") e clique em "Criar app"<br />
-          4. Vá em <strong>"Configurar escopos da API Admin"</strong> e selecione:<br />
-          &nbsp;&nbsp;&nbsp;• <code style={{ backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px' }}>read_orders</code> - Ler pedidos<br />
-          &nbsp;&nbsp;&nbsp;• <code style={{ backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px' }}>read_products</code> - Ler produtos<br />
-          &nbsp;&nbsp;&nbsp;• <code style={{ backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px' }}>read_customers</code> - Ler clientes<br />
-          5. Salve e vá em <strong>"Credenciais da API"</strong><br />
-          6. Copie o <strong>Client ID</strong> e <strong>Client Secret</strong>
+          4. Vá em <strong>"Configurar escopos da API Admin"</strong> e selecione os escopos abaixo<br />
+          5. Em <strong>"URL do app"</strong> e <strong>"URLs de redirecionamento permitidas"</strong>, cole a URL de callback abaixo<br />
+          6. Salve e vá em <strong>"Credenciais da API"</strong><br />
+          7. Copie o <strong>Client ID</strong> e <strong>Client Secret</strong>
+        </p>
+      </div>
+
+      {/* Scopes para copiar */}
+      <div>
+        <label style={labelStyle}>Escopos necessários (clique para copiar)</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {['read_orders', 'read_products', 'read_customers'].map((scope) => (
+            <button
+              key={scope}
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(scope)
+                alert(`"${scope}" copiado!`)
+              }}
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                padding: '8px 14px',
+                fontSize: '14px',
+                fontFamily: 'monospace',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--accent)'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-primary)'}
+            >
+              {scope}
+            </button>
+          ))}
+        </div>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+          Clique em cada escopo para copiar e cole na configuração do app
+        </p>
+      </div>
+
+      {/* URL de callback */}
+      <div>
+        <label style={labelStyle}>URL de callback (cole no Shopify)</label>
+        <div style={{ position: 'relative' }}>
+          <input
+            type="text"
+            readOnly
+            value="https://replyna.com.br/api/shopify-callback"
+            style={{ ...inputStyle, backgroundColor: 'var(--bg-primary)', cursor: 'pointer', paddingRight: '80px' }}
+            onClick={(e) => {
+              const input = e.currentTarget
+              input.select()
+              navigator.clipboard.writeText(input.value)
+              alert('URL copiada!')
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText('https://replyna.com.br/api/shopify-callback')
+              alert('URL copiada!')
+            }}
+            style={{
+              position: 'absolute',
+              right: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              backgroundColor: 'var(--accent)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            Copiar
+          </button>
+        </div>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+          Cole esta URL em "URL do app" e "URLs de redirecionamento permitidas"
         </p>
       </div>
 
