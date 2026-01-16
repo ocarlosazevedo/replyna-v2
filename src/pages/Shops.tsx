@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { Settings, Trash2, Power, PowerOff } from 'lucide-react'
+import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User } from 'lucide-react'
 
 interface Shop {
   id: string
   name: string
   attendant_name: string
   support_email: string
+  imap_user: string
   mail_status: string
   shopify_status: string
   is_active: boolean
@@ -74,17 +75,16 @@ export default function Shops() {
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    const baseStyle = { padding: '4px 10px', borderRadius: '9999px', fontSize: '12px', fontWeight: '500' }
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'ok':
-        return <span style={{ ...baseStyle, backgroundColor: '#dcfce7', color: '#15803d' }}>Conectado</span>
+        return { color: '#22c55e', label: 'Conectado' }
       case 'error':
-        return <span style={{ ...baseStyle, backgroundColor: '#fef2f2', color: '#dc2626' }}>Erro</span>
+        return { color: '#ef4444', label: 'Erro' }
       case 'pending':
-        return <span style={{ ...baseStyle, backgroundColor: '#fef3c7', color: '#d97706' }}>Pendente</span>
+        return { color: '#f59e0b', label: 'Pendente' }
       default:
-        return <span style={{ ...baseStyle, backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>Não configurado</span>
+        return { color: 'var(--text-secondary)', label: 'Não configurado' }
     }
   }
 
@@ -156,103 +156,154 @@ export default function Shops() {
           </button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
-          {shops.map((shop) => (
-            <div key={shop.id} style={cardStyle}>
-              {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
-                      {shop.name}
-                    </h3>
-                    {shop.is_active ? (
-                      <span style={{
-                        backgroundColor: '#dcfce7',
-                        color: '#15803d',
-                        padding: '2px 8px',
-                        borderRadius: '9999px',
-                        fontSize: '11px',
-                        fontWeight: '600'
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '24px' }}>
+          {shops.map((shop) => {
+            const emailStatus = getStatusIcon(shop.mail_status)
+            const shopifyStatus = getStatusIcon(shop.shopify_status)
+
+            return (
+              <div key={shop.id} style={cardStyle}>
+                {/* Header com nome e status */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                    {shop.name}
+                  </h3>
+                  <span style={{
+                    backgroundColor: shop.is_active ? '#dcfce7' : 'var(--bg-primary)',
+                    color: shop.is_active ? '#15803d' : 'var(--text-secondary)',
+                    padding: '4px 12px',
+                    borderRadius: '9999px',
+                    fontSize: '12px',
+                    fontWeight: '600'
+                  }}>
+                    {shop.is_active ? 'Ativa' : 'Inativa'}
+                  </span>
+                </div>
+
+                {/* Informações organizadas */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                  {/* Email da IA (Replyna) */}
+                  {shop.imap_user && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '10px',
+                        backgroundColor: 'rgba(70, 114, 236, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}>
-                        Ativa
-                      </span>
-                    ) : (
-                      <span style={{
-                        backgroundColor: 'var(--bg-primary)',
-                        color: 'var(--text-secondary)',
-                        padding: '2px 8px',
-                        borderRadius: '9999px',
-                        fontSize: '11px',
-                        fontWeight: '600'
+                        <Mail size={18} style={{ color: 'var(--accent)' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
+                          Email da IA (Replyna responde)
+                        </div>
+                        <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '500' }}>
+                          {shop.imap_user}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Email Humano (Escalonamento) */}
+                  {shop.support_email && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '10px',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}>
-                        Inativa
-                      </span>
-                    )}
-                  </div>
-                  {shop.attendant_name && (
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>
-                      Atendente: {shop.attendant_name}
-                    </p>
+                        <User size={18} style={{ color: '#f59e0b' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
+                          Email humano (escalonamento)
+                        </div>
+                        <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '500' }}>
+                          {shop.support_email}
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
 
-              {/* Email */}
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '16px' }}>
-                {shop.support_email}
-              </p>
-
-              {/* Status Badges */}
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Email:</span>
-                  {getStatusBadge(shop.mail_status)}
+                {/* Status das integrações */}
+                <div style={{
+                  display: 'flex',
+                  gap: '16px',
+                  padding: '16px',
+                  backgroundColor: 'var(--bg-primary)',
+                  borderRadius: '12px',
+                  marginBottom: '20px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                    <Mail size={16} style={{ color: emailStatus.color }} />
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Email
+                      </div>
+                      <div style={{ fontSize: '13px', color: emailStatus.color, fontWeight: '600' }}>
+                        {emailStatus.label}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ width: '1px', backgroundColor: 'var(--border-color)' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                    <ShoppingBag size={16} style={{ color: shopifyStatus.color }} />
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Shopify
+                      </div>
+                      <div style={{ fontSize: '13px', color: shopifyStatus.color, fontWeight: '600' }}>
+                        {shopifyStatus.label}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Shopify:</span>
-                  {getStatusBadge(shop.shopify_status)}
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => navigate(`/shops/${shop.id}`)}
+                    style={{
+                      ...buttonPrimary,
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <Settings size={16} />
+                    Gerenciar
+                  </button>
+                  <button
+                    onClick={() => handleToggleActive(shop.id, shop.is_active)}
+                    style={{
+                      ...buttonIcon,
+                      color: shop.is_active ? '#22c55e' : 'var(--text-secondary)',
+                    }}
+                    title={shop.is_active ? 'Desativar loja' : 'Ativar loja'}
+                  >
+                    {shop.is_active ? <Power size={18} /> : <PowerOff size={18} />}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteShop(shop.id)}
+                    style={{ ...buttonIcon, color: '#ef4444' }}
+                    title="Excluir loja"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
               </div>
-
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => navigate(`/shops/${shop.id}`)}
-                  style={{
-                    ...buttonPrimary,
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    backgroundColor: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  <Settings size={16} />
-                  Gerenciar
-                </button>
-                <button
-                  onClick={() => handleToggleActive(shop.id, shop.is_active)}
-                  style={{
-                    ...buttonIcon,
-                    color: shop.is_active ? '#22c55e' : 'var(--text-secondary)',
-                  }}
-                  title={shop.is_active ? 'Desativar loja' : 'Ativar loja'}
-                >
-                  {shop.is_active ? <Power size={18} /> : <PowerOff size={18} />}
-                </button>
-                <button
-                  onClick={() => handleDeleteShop(shop.id)}
-                  style={{ ...buttonIcon, color: '#ef4444' }}
-                  title="Excluir loja"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
