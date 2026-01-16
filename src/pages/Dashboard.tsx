@@ -239,7 +239,6 @@ export default function Dashboard() {
   const [shops, setShops] = useState<ShopOption[]>([])
   const [selectedShopId, setSelectedShopId] = useState('all')
   const [range, setRange] = useState<DateRange>(getDefaultRange())
-  const [granularity, setGranularity] = useState<'day' | 'week' | 'month'>('day')
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [metrics, setMetrics] = useState<MetricSummary>({
@@ -282,6 +281,15 @@ export default function Dashboard() {
   const dateStart = useMemo(() => (range?.from ? startOfDay(range.from) : null), [range])
   const dateEnd = useMemo(() => (range?.to ? endOfDay(range.to) : null), [range])
 
+  // Calcular granularidade automaticamente baseado no range de datas
+  const granularity = useMemo((): 'day' | 'week' | 'month' => {
+    if (!range?.from || !range?.to) return 'day'
+    const diffDays = Math.ceil((range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffDays <= 14) return 'day' // Até 2 semanas: por dia
+    if (diffDays <= 90) return 'week' // Até 3 meses: por semana
+    return 'month' // Mais de 3 meses: por mês
+  }, [range])
+
   useEffect(() => {
     if (!user) return
     const storedRange = localStorage.getItem(`${storagePrefix}.range`)
@@ -298,10 +306,6 @@ export default function Dashboard() {
       }
     }
 
-    const storedGranularity = localStorage.getItem(`${storagePrefix}.granularity`)
-    if (storedGranularity === 'day' || storedGranularity === 'week' || storedGranularity === 'month') {
-      setGranularity(storedGranularity)
-    }
   }, [storagePrefix, user])
 
   useEffect(() => {
@@ -314,11 +318,6 @@ export default function Dashboard() {
       })
     )
   }, [range, storagePrefix, user])
-
-  useEffect(() => {
-    if (!user) return
-    localStorage.setItem(`${storagePrefix}.granularity`, granularity)
-  }, [granularity, storagePrefix, user])
 
   useEffect(() => {
     if (!user) return
@@ -754,32 +753,9 @@ export default function Dashboard() {
 
       {/* Gráfico */}
       <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Volume de Emails</div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>Recebidos x Respondidos</div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {(['day', 'week', 'month'] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setGranularity(option)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: granularity === option ? '1px solid var(--accent)' : '1px solid var(--border-color)',
-                  backgroundColor: granularity === option ? 'var(--accent)' : 'var(--bg-card)',
-                  color: granularity === option ? '#ffffff' : 'var(--text-secondary)',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {option === 'day' ? 'Por dia' : option === 'week' ? 'Por semana' : 'Por mês'}
-              </button>
-            ))}
-          </div>
+        <div>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Volume de Emails</div>
+          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>Recebidos x Respondidos</div>
         </div>
         <div style={{ marginTop: '20px', minHeight: '320px' }}>
           {loadingChart ? (
