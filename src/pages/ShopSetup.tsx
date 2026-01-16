@@ -474,6 +474,16 @@ export default function ShopSetup() {
     </div>
   )
 
+  const copyToClipboard = (text: string, message: string) => {
+    navigator.clipboard.writeText(text)
+    // Visual feedback without alert
+    const toast = document.createElement('div')
+    toast.textContent = message
+    toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:8px;font-weight:600;z-index:9999;'
+    document.body.appendChild(toast)
+    setTimeout(() => toast.remove(), 2000)
+  }
+
   const renderStep2 = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div>
@@ -481,148 +491,114 @@ export default function ShopSetup() {
           Integração Shopify
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
-          Conecte sua loja Shopify para habilitar consultas de pedidos e produtos
+          Conecte sua loja Shopify via Custom App (Dev Dashboard)
         </p>
       </div>
 
+      {/* How to get credentials - estilo do print */}
       <div style={{
-        backgroundColor: 'rgba(70, 114, 236, 0.08)',
-        padding: '16px',
+        backgroundColor: 'var(--bg-primary)',
+        padding: '20px',
         borderRadius: '12px',
-        border: '1px solid rgba(70, 114, 236, 0.2)'
+        border: '1px solid var(--border-color)'
       }}>
-        <p style={{ fontSize: '14px', color: 'var(--text-primary)', margin: 0, lineHeight: '1.7' }}>
-          <strong>Como criar um Custom App na Shopify:</strong><br /><br />
-          1. Acesse o <strong>Admin da Shopify</strong> → Configurações → Apps e canais de vendas<br />
-          2. Clique em <strong>"Desenvolver apps"</strong> → "Criar um app"<br />
-          3. Dê um nome ao app (ex: "Replyna") e clique em "Criar app"<br />
-          4. Vá em <strong>"Configurar escopos da API Admin"</strong> e selecione os escopos abaixo<br />
-          5. Em <strong>"URL do app"</strong> e <strong>"URLs de redirecionamento permitidas"</strong>, cole a URL de callback abaixo<br />
-          6. Salve e vá em <strong>"Credenciais da API"</strong><br />
-          7. Copie o <strong>Client ID</strong> e <strong>Client Secret</strong>
-        </p>
-      </div>
-
-      {/* Scopes para copiar */}
-      <div>
-        <label style={labelStyle}>Escopos necessários (clique para copiar)</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {['read_orders', 'read_products', 'read_customers'].map((scope) => (
-            <button
-              key={scope}
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(scope)
-                alert(`"${scope}" copiado!`)
-              }}
-              style={{
-                backgroundColor: 'var(--bg-primary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '8px 14px',
-                fontSize: '14px',
-                fontFamily: 'monospace',
-                color: 'var(--text-primary)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--accent)'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-primary)'}
-            >
-              {scope}
-            </button>
-          ))}
-        </div>
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-          Clique em cada escopo para copiar e cole na configuração do app
-        </p>
-      </div>
-
-      {/* URL de callback */}
-      <div>
-        <label style={labelStyle}>URL de callback (cole no Shopify)</label>
-        <div style={{ position: 'relative' }}>
-          <input
-            type="text"
-            readOnly
-            value="https://replyna.com.br/api/shopify-callback"
-            style={{ ...inputStyle, backgroundColor: 'var(--bg-primary)', cursor: 'pointer', paddingRight: '80px' }}
-            onClick={(e) => {
-              const input = e.currentTarget
-              input.select()
-              navigator.clipboard.writeText(input.value)
-              alert('URL copiada!')
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard.writeText('https://replyna.com.br/api/shopify-callback')
-              alert('URL copiada!')
-            }}
-            style={{
-              position: 'absolute',
-              right: '8px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              backgroundColor: 'var(--accent)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: '600',
-              cursor: 'pointer',
-            }}
-          >
-            Copiar
-          </button>
-        </div>
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-          Cole esta URL em "URL do app" e "URLs de redirecionamento permitidas"
-        </p>
-      </div>
-
-      <div>
-        <label style={labelStyle}>Domínio da loja Shopify</label>
-        <div style={{ position: 'relative' }}>
-          <input
-            type="text"
-            value={shopData.shopify_domain}
-            onChange={(e) => updateField('shopify_domain', e.target.value)}
-            style={{ ...inputStyle, paddingRight: '140px' }}
-            placeholder="minhaloja"
-          />
-          <span style={{
-            position: 'absolute',
-            right: '16px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: 'var(--text-secondary)',
-            fontSize: '14px',
-            pointerEvents: 'none',
-          }}>
-            .myshopify.com
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            border: '2px solid var(--accent)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '12px',
+            color: 'var(--accent)',
+            fontWeight: '700'
+          }}>i</div>
+          <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--accent)' }}>
+            Como obter as credenciais
           </span>
         </div>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-          Digite apenas o nome da loja, sem o ".myshopify.com"
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '14px', color: 'var(--text-primary)' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <span style={{ color: 'var(--accent)' }}>→</span>
+            <span>Acesse o <a href="https://partners.shopify.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '600' }}>Dev Dashboard</a> da Shopify</span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <span style={{ color: 'var(--accent)' }}>→</span>
+            <span>Clique em <strong>Create an app</strong> → Start from Dev Dashboard</span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+            <span style={{ color: 'var(--accent)' }}>→</span>
+            <span>Em <strong>App URL</strong>, adicione: <code
+              onClick={() => copyToClipboard('https://replyna.com.br/api/shopify-callback', 'URL copiada!')}
+              style={{
+                backgroundColor: 'rgba(70, 114, 236, 0.15)',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '13px'
+              }}>https://replyna.com.br/api/shopify-callback</code></span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+            <span style={{ color: 'var(--accent)' }}>→</span>
+            <div>
+              <span>Em <strong>Scopes</strong>, adicione: </span>
+              <code
+                onClick={() => copyToClipboard('read_orders, read_products, read_customers, read_inventory, read_fulfillments', 'Escopos copiados!')}
+                style={{
+                  backgroundColor: 'rgba(70, 114, 236, 0.15)',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  display: 'inline-block',
+                  marginTop: '4px'
+                }}>read_orders, read_products, read_customers, read_inventory, read_fulfillments</code>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <span style={{ color: 'var(--accent)' }}>→</span>
+            <span>Clique em <strong>Release</strong> e depois <strong>Install</strong> na sua loja</span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <span style={{ color: 'var(--accent)' }}>→</span>
+            <span>Copie o <strong>Client ID</strong> e <strong>Client Secret</strong> em Settings</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Store Domain */}
+      <div>
+        <label style={labelStyle}>Store Domain *</label>
+        <input
+          type="text"
+          value={shopData.shopify_domain}
+          onChange={(e) => updateField('shopify_domain', e.target.value)}
+          style={inputStyle}
+          placeholder="mystore.myshopify.com"
+        />
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+          Seu domínio .myshopify.com completo
         </p>
       </div>
 
+      {/* Client ID */}
       <div>
-        <label style={labelStyle}>Client ID</label>
+        <label style={labelStyle}>Client ID *</label>
         <input
           type="text"
           value={shopData.shopify_client_id}
           onChange={(e) => updateField('shopify_client_id', e.target.value)}
           style={inputStyle}
-          placeholder="Ex: a1b2c3d4e5f6g7h8i9j0..."
+          placeholder="Ex: 6ad456138185c8e4038116b809ac870e"
         />
       </div>
 
+      {/* Client Secret */}
       <div>
-        <label style={labelStyle}>Client Secret</label>
+        <label style={labelStyle}>Client Secret *</label>
         <div style={{ position: 'relative' }}>
           <input
             type={showShopifyToken ? 'text' : 'password'}
@@ -648,6 +624,9 @@ export default function ShopSetup() {
             {showShopifyToken ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+          Começa com shpss_
+        </p>
       </div>
 
       {shopData.shopify_domain && shopData.shopify_client_id && shopData.shopify_client_secret && (
@@ -1018,7 +997,7 @@ export default function ShopSetup() {
               borderRadius: '50%',
               backgroundColor: '#22c55e'
             }} />
-            <span style={{ color: 'var(--text-primary)' }}>{shopData.shopify_domain}.myshopify.com</span>
+            <span style={{ color: 'var(--text-primary)' }}>{shopData.shopify_domain}</span>
           </div>
         ) : (
           <span style={{ color: 'var(--text-secondary)' }}>Não configurado</span>
