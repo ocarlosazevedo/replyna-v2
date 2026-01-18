@@ -2,16 +2,34 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 /**
  * Cron endpoint que chama a Edge Function process-emails do Supabase
- * Configurado para rodar a cada 15 minutos via vercel.json
+ * Suporta:
+ * - GET ou POST requests
+ * - Autenticação via header (Bearer token) ou query parameter (?secret=xxx)
+ *
+ * Para usar com cron-job.org:
+ * URL: https://seu-dominio.vercel.app/api/cron/process-emails?secret=SEU_CRON_SECRET
+ * Método: GET
+ * Intervalo: 15 minutos
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Verificar se é uma chamada do cron do Vercel
+  // Aceitar GET ou POST
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  // Verificar autenticação: header OU query parameter
   const authHeader = req.headers.authorization
+  const querySecret = req.query.secret as string | undefined
   const cronSecret = process.env.CRON_SECRET
 
   // Se CRON_SECRET estiver configurado, validar
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return res.status(401).json({ error: 'Unauthorized' })
+  if (cronSecret) {
+    const headerValid = authHeader === `Bearer ${cronSecret}`
+    const queryValid = querySecret === cronSecret
+
+    if (!headerValid && !queryValid) {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
   }
 
   try {
