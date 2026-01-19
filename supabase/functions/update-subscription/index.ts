@@ -180,6 +180,7 @@ serve(async (req) => {
       .from('users')
       .update({
         plan_id: new_plan_id,
+        plan: newPlan.name, // Campo texto com nome do plano
         emails_limit: newPlan.emails_limit,
         shops_limit: newPlan.shops_limit,
       })

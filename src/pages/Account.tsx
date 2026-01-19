@@ -89,6 +89,8 @@ export default function Account() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [plansLoading, setPlansLoading] = useState(false)
   const [changingPlanId, setChangingPlanId] = useState<string | null>(null)
+  const [selectedPlanToChange, setSelectedPlanToChange] = useState<Plan | null>(null)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -292,9 +294,15 @@ export default function Account() {
     }
   }
 
-  const handleChangePlan = async (plan: Plan) => {
-    if (!user) return
+  const handleSelectPlan = (plan: Plan) => {
+    setSelectedPlanToChange(plan)
+    setShowConfirmModal(true)
+  }
 
+  const handleConfirmChangePlan = async () => {
+    if (!user || !selectedPlanToChange) return
+
+    const plan = selectedPlanToChange
     setChangingPlanId(plan.id)
     setNotice(null)
 
@@ -332,7 +340,9 @@ export default function Account() {
           : prev
       )
 
+      setShowConfirmModal(false)
       setShowPlanModal(false)
+      setSelectedPlanToChange(null)
 
       if (result.proration_amount > 0) {
         setNotice({
@@ -357,6 +367,11 @@ export default function Account() {
       setChangingPlanId(null)
     }
   }
+
+  // Encontrar plano atual para calcular diferença
+  const currentPlanData = useMemo(() => {
+    return plans.find(p => p.name === planName) || null
+  }, [plans, planName])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px' }}>
@@ -799,7 +814,7 @@ export default function Account() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleChangePlan(plan)}
+                            onClick={() => handleSelectPlan(plan)}
                             disabled={isCurrentPlan || changingPlanId !== null}
                             style={{
                               borderRadius: '8px',
@@ -849,6 +864,163 @@ export default function Account() {
             type="button"
             onClick={() => setShowPlanModal(false)}
             style={{ position: 'fixed', inset: 0, background: 'rgba(14, 23, 41, 0.35)', border: 'none', zIndex: 60 }}
+          />
+        </div>
+      )}
+
+      {showConfirmModal && selectedPlanToChange && (
+        <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 70 }}>
+          <div
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '16px',
+              padding: '24px',
+              border: '1px solid var(--border-color)',
+              width: 'min(420px, 92vw)',
+              zIndex: 71,
+            }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: '16px', color: 'var(--text-primary)', fontSize: '18px' }}>
+              Confirmar alteração de plano
+            </h3>
+
+            {/* Comparação de planos */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr auto 1fr',
+              gap: '12px',
+              alignItems: 'center',
+              marginBottom: '20px',
+              padding: '16px',
+              backgroundColor: 'var(--bg-primary)',
+              borderRadius: '12px',
+            }}>
+              {/* Plano atual */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Plano atual</div>
+                <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>{planName}</div>
+                {currentPlanData && (
+                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    R$ {currentPlanData.price_monthly.toFixed(2).replace('.', ',')}/mês
+                  </div>
+                )}
+              </div>
+
+              {/* Seta */}
+              <div style={{ fontSize: '20px', color: 'var(--accent)' }}>→</div>
+
+              {/* Novo plano */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Novo plano</div>
+                <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--accent)' }}>{selectedPlanToChange.name}</div>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  R$ {selectedPlanToChange.price_monthly.toFixed(2).replace('.', ',')}/mês
+                </div>
+              </div>
+            </div>
+
+            {/* Diferença de preço */}
+            {currentPlanData && (
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: '10px',
+                marginBottom: '16px',
+                backgroundColor: selectedPlanToChange.price_monthly > currentPlanData.price_monthly
+                  ? 'rgba(239, 68, 68, 0.1)'
+                  : selectedPlanToChange.price_monthly < currentPlanData.price_monthly
+                  ? 'rgba(34, 197, 94, 0.1)'
+                  : 'var(--bg-primary)',
+                border: `1px solid ${selectedPlanToChange.price_monthly > currentPlanData.price_monthly
+                  ? 'rgba(239, 68, 68, 0.3)'
+                  : selectedPlanToChange.price_monthly < currentPlanData.price_monthly
+                  ? 'rgba(34, 197, 94, 0.3)'
+                  : 'var(--border-color)'}`,
+              }}>
+                {selectedPlanToChange.price_monthly > currentPlanData.price_monthly ? (
+                  <p style={{ margin: 0, fontSize: '13px', color: '#ef4444' }}>
+                    <strong>Upgrade:</strong> Você pagará R$ {(selectedPlanToChange.price_monthly - currentPlanData.price_monthly).toFixed(2).replace('.', ',')} a mais por mês.
+                    Um ajuste proporcional será cobrado agora.
+                  </p>
+                ) : selectedPlanToChange.price_monthly < currentPlanData.price_monthly ? (
+                  <p style={{ margin: 0, fontSize: '13px', color: '#22c55e' }}>
+                    <strong>Downgrade:</strong> Você economizará R$ {(currentPlanData.price_monthly - selectedPlanToChange.price_monthly).toFixed(2).replace('.', ',')} por mês.
+                    Um crédito proporcional será aplicado na sua conta.
+                  </p>
+                ) : (
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    O valor mensal permanece o mesmo.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Mudanças nos limites */}
+            <div style={{
+              padding: '12px 16px',
+              borderRadius: '10px',
+              marginBottom: '20px',
+              backgroundColor: 'var(--bg-primary)',
+              fontSize: '13px',
+              color: 'var(--text-secondary)',
+            }}>
+              <div style={{ marginBottom: '6px' }}>
+                <strong>Novos limites:</strong>
+              </div>
+              <div>• {formatNumber(selectedPlanToChange.emails_limit)} emails/mês</div>
+              <div>• {formatNumber(selectedPlanToChange.shops_limit)} {selectedPlanToChange.shops_limit === 1 ? 'loja' : 'lojas'}</div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirmModal(false)
+                  setSelectedPlanToChange(null)
+                }}
+                disabled={changingPlanId !== null}
+                style={{
+                  flex: 1,
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  padding: '12px',
+                  fontWeight: 600,
+                  cursor: changingPlanId !== null ? 'not-allowed' : 'pointer',
+                  opacity: changingPlanId !== null ? 0.6 : 1,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmChangePlan}
+                disabled={changingPlanId !== null}
+                style={{
+                  flex: 1,
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'var(--accent)',
+                  color: '#fff',
+                  padding: '12px',
+                  fontWeight: 600,
+                  cursor: changingPlanId !== null ? 'not-allowed' : 'pointer',
+                  opacity: changingPlanId !== null ? 0.7 : 1,
+                }}
+              >
+                {changingPlanId !== null ? 'Alterando...' : 'Confirmar alteração'}
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (changingPlanId === null) {
+                setShowConfirmModal(false)
+                setSelectedPlanToChange(null)
+              }
+            }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(14, 23, 41, 0.5)', border: 'none', zIndex: 70 }}
           />
         </div>
       )}
