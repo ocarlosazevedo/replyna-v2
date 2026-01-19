@@ -3,6 +3,7 @@ import type { DateRange } from 'react-day-picker'
 import { DayPicker } from 'react-day-picker'
 import { ptBR } from 'date-fns/locale'
 import { endOfMonth, startOfMonth, subDays, subMonths } from 'date-fns'
+import { ChevronDown } from 'lucide-react'
 
 const formatDate = (date?: Date) => {
   if (!date) return '--/--/----'
@@ -42,7 +43,7 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
           to: endOfMonth(subMonths(today, 1)),
         },
       },
-      { label: 'Últimos 90 dias', range: { from: subDays(today, 90), to: today } },
+      { label: 'Últimos 90 dias', range: { from: subDays(today, 89), to: today } },
     ]
   }, [today])
 
@@ -74,53 +75,41 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
     <div style={{ position: 'relative' }}>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          color: 'var(--text-primary)',
-          borderRadius: '10px',
-          border: '1px solid var(--border-color)',
-          padding: '10px 14px',
-          fontSize: '14px',
-          fontWeight: 600,
-          cursor: 'pointer',
-          minWidth: '220px',
-        }}
+        onClick={() => setOpen(!open)}
+        className="replyna-date-trigger"
       >
-        {rangeLabel}
+        <span>{rangeLabel}</span>
+        <ChevronDown size={16} style={{ opacity: 0.6 }} />
       </button>
 
       {open && (
-        <div className="replyna-date-overlay">
-          <div className="replyna-date-popover">
-            <div className="replyna-date-header">
-              <div className="replyna-date-inputs">
-                <div className="replyna-date-input">{formatDate(tempRange?.from)}</div>
-                <span className="replyna-date-separator">→</span>
-                <div className="replyna-date-input">{formatDate(tempRange?.to)}</div>
+        <>
+          <div className="replyna-date-dropdown">
+            <div className="replyna-date-dropdown-header">
+              <div className="replyna-date-dropdown-inputs">
+                <div className="replyna-date-dropdown-input">{formatDate(tempRange?.from)}</div>
+                <span style={{ color: 'var(--text-secondary)' }}>→</span>
+                <div className="replyna-date-dropdown-input">{formatDate(tempRange?.to)}</div>
               </div>
             </div>
 
-            <div className="replyna-date-body">
-              <div className="replyna-date-shortcuts">
-                <div className="replyna-date-shortcuts-title">Atalhos</div>
-                <div className="replyna-date-shortcuts-list">
-                  {shortcuts.map((shortcut) => (
-                    <button
-                      key={shortcut.label}
-                      type="button"
-                      onClick={() => setTempRange(shortcut.range)}
-                      className={`replyna-date-shortcut ${
-                        isActiveShortcut(shortcut.range) ? 'active' : ''
-                      }`}
-                    >
-                      {shortcut.label}
-                    </button>
-                  ))}
-                </div>
+            <div className="replyna-date-dropdown-body">
+              <div className="replyna-date-dropdown-shortcuts">
+                {shortcuts.map((shortcut) => (
+                  <button
+                    key={shortcut.label}
+                    type="button"
+                    onClick={() => setTempRange(shortcut.range)}
+                    className={`replyna-date-dropdown-shortcut ${
+                      isActiveShortcut(shortcut.range) ? 'active' : ''
+                    }`}
+                  >
+                    {shortcut.label}
+                  </button>
+                ))}
               </div>
 
-              <div className="replyna-date-calendar">
+              <div className="replyna-date-dropdown-calendar">
                 <DayPicker
                   mode="range"
                   selected={tempRange}
@@ -139,22 +128,22 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
                   weekStartsOn={1}
                   showOutsideDays
                   disabled={{ after: today }}
-                  className="replyna-day-picker"
+                  className="replyna-dropdown-day-picker"
                 />
               </div>
             </div>
 
-            <div className="replyna-date-footer">
-              <button type="button" className="replyna-date-cancel" onClick={handleCancel}>
+            <div className="replyna-date-dropdown-footer">
+              <button type="button" className="replyna-date-dropdown-cancel" onClick={handleCancel}>
                 Cancelar
               </button>
-              <button type="button" className="replyna-date-apply" onClick={handleApply}>
+              <button type="button" className="replyna-date-dropdown-apply" onClick={handleApply}>
                 Aplicar
               </button>
             </div>
           </div>
-          <button type="button" className="replyna-date-backdrop" onClick={handleCancel} />
-        </div>
+          <div className="replyna-date-dropdown-backdrop" onClick={handleCancel} />
+        </>
       )}
     </div>
   )
