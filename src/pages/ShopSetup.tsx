@@ -637,23 +637,6 @@ export default function ShopSetup() {
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
             <span style={{ color: 'var(--accent)' }}>→</span>
-            <div>
-              <span>Em <strong>Scopes</strong>, adicione: </span>
-              <code
-                onClick={() => copyToClipboard('read_orders, read_products, read_customers, read_inventory, read_fulfillments', 'Escopos copiados!')}
-                style={{
-                  backgroundColor: 'rgba(70, 114, 236, 0.15)',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  display: 'inline-block',
-                  marginTop: '4px'
-                }}>read_orders, read_products, read_customers, read_inventory, read_fulfillments</code>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-            <span style={{ color: 'var(--accent)' }}>→</span>
             <span>Em <strong>App URL</strong>, adicione: <code
               onClick={() => copyToClipboard('https://app.replyna.me', 'URL copiada!')}
               style={{
@@ -669,6 +652,23 @@ export default function ShopSetup() {
             <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
               <strong>Não</strong> marque a opção "Embed app in Shopify admin" abaixo de App URL
             </span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+            <span style={{ color: 'var(--accent)' }}>→</span>
+            <div>
+              <span>Em <strong>Scopes</strong>, adicione: </span>
+              <code
+                onClick={() => copyToClipboard('read_orders, read_products, read_customers, read_inventory, read_fulfillments', 'Escopos copiados!')}
+                style={{
+                  backgroundColor: 'rgba(70, 114, 236, 0.15)',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  display: 'inline-block',
+                  marginTop: '4px'
+                }}>read_orders, read_products, read_customers, read_inventory, read_fulfillments</code>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
             <span style={{ color: 'var(--accent)' }}>→</span>
