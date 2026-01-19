@@ -9,6 +9,12 @@ interface Shop {
   is_active: boolean
 }
 
+interface Subscription {
+  stripe_subscription_id: string
+  status: string
+  current_period_end: string
+}
+
 interface Client {
   id: string
   email: string
@@ -21,6 +27,7 @@ interface Client {
   created_at: string
   last_login_at: string | null
   shops: Shop[]
+  subscription: Subscription | null
 }
 
 interface Plan {
@@ -137,17 +144,49 @@ export default function AdminClients() {
     return plan?.name || planSlug.charAt(0).toUpperCase() + planSlug.slice(1)
   }
 
-  const getStatusBadge = (status: string | null) => {
+  const getEffectiveStatus = (client: Client): string => {
+    // Prioridade: status da subscription > status do usuário
+    if (client.subscription) {
+      const subStatus = client.subscription.status
+      if (subStatus === 'canceled') return 'canceled'
+      if (subStatus === 'past_due') return 'past_due'
+      if (subStatus === 'unpaid') return 'suspended'
+      if (subStatus === 'active') return 'active'
+      if (subStatus === 'trialing') return 'trialing'
+    }
+    // Se não tem subscription, usar status do usuário
+    return client.status || 'inactive'
+  }
+
+  const getStatusBadge = (status: string) => {
     const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
     switch (status) {
       case 'active':
         return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#22c55e' }
+      case 'trialing':
+        return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#3b82f6' }
+      case 'past_due':
+        return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.16)', color: '#f59e0b' }
+      case 'canceled':
+        return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#ef4444' }
       case 'inactive':
         return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' }
       case 'suspended':
         return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#ef4444' }
       default:
-        return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#22c55e' }
+        return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' }
+    }
+  }
+
+  const getStatusLabel = (status: string): string => {
+    switch (status) {
+      case 'active': return 'Ativo'
+      case 'trialing': return 'Trial'
+      case 'past_due': return 'Pendente'
+      case 'canceled': return 'Cancelado'
+      case 'inactive': return 'Inativo'
+      case 'suspended': return 'Suspenso'
+      default: return 'Inativo'
     }
   }
 
@@ -337,8 +376,8 @@ export default function AdminClients() {
                     </div>
                   </td>
                   <td style={{ padding: '16px' }}>
-                    <span style={getStatusBadge(client.status)}>
-                      {client.status === 'active' ? 'Ativo' : client.status === 'inactive' ? 'Inativo' : client.status === 'suspended' ? 'Suspenso' : 'Ativo'}
+                    <span style={getStatusBadge(getEffectiveStatus(client))}>
+                      {getStatusLabel(getEffectiveStatus(client))}
                     </span>
                   </td>
                   <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '13px' }}>
