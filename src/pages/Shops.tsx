@@ -108,11 +108,11 @@ export default function Shops() {
   }
 
   const buttonIcon = {
-    backgroundColor: 'var(--bg-primary)',
+    backgroundColor: 'transparent',
     color: 'var(--text-secondary)',
     padding: '10px',
     borderRadius: '10px',
-    border: 'none',
+    border: '1px solid var(--border-color)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -169,8 +169,8 @@ export default function Shops() {
                     {shop.name}
                   </h3>
                   <span style={{
-                    backgroundColor: shop.is_active ? '#dcfce7' : 'var(--bg-primary)',
-                    color: shop.is_active ? '#15803d' : 'var(--text-secondary)',
+                    backgroundColor: shop.is_active ? 'rgba(34, 197, 94, 0.16)' : 'rgba(107, 114, 128, 0.16)',
+                    color: shop.is_active ? '#22c55e' : 'var(--text-secondary)',
                     padding: '4px 12px',
                     borderRadius: '9999px',
                     fontSize: '12px',
@@ -238,9 +238,10 @@ export default function Shops() {
                   display: 'flex',
                   gap: '16px',
                   padding: '16px',
-                  backgroundColor: 'var(--bg-primary)',
+                  backgroundColor: 'rgba(70, 114, 236, 0.06)',
                   borderRadius: '12px',
-                  marginBottom: '20px'
+                  marginBottom: '20px',
+                  border: '1px solid var(--border-color)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                     <Mail size={16} style={{ color: emailStatus.color }} />
