@@ -1,57 +1,24 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react'
-import { useAuth } from '../hooks/useAuth'
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams()
   const sessionId = searchParams.get('session_id')
-  const { signUp } = useAuth()
 
-  const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
-  const [errorMessage, setErrorMessage] = useState('')
+  const [status, setStatus] = useState<'processing' | 'success'>('processing')
 
   useEffect(() => {
-    completeRegistration()
-  }, [])
+    // Limpar dados temporários do registro
+    localStorage.removeItem('pending_registration')
 
-  const completeRegistration = async () => {
-    try {
-      // Recuperar dados do registro pendente
-      const pendingData = localStorage.getItem('pending_registration')
-
-      if (!pendingData) {
-        // Sem dados pendentes - usuário provavelmente já completou o registro
-        // ou veio de outra sessão. O webhook já deve ter criado a conta.
-        setStatus('success')
-        return
-      }
-
-      const { email, password, name } = JSON.parse(pendingData)
-
-      // Criar conta no Supabase Auth
-      await signUp(email, password, name)
-
-      // Limpar dados temporários
-      localStorage.removeItem('pending_registration')
-
+    // Mostrar sucesso após pequeno delay para UX
+    const timer = setTimeout(() => {
       setStatus('success')
-    } catch (err: unknown) {
-      console.error('Erro ao completar registro:', err)
+    }, 1500)
 
-      // Se o erro for "User already registered", significa que o webhook já criou
-      const errorMsg = err instanceof Error ? err.message : ''
-      if (errorMsg.includes('already registered') || errorMsg.includes('already exists')) {
-        // Usuário já existe - isso é esperado se o webhook rodou primeiro
-        localStorage.removeItem('pending_registration')
-        setStatus('success')
-        return
-      }
-
-      setErrorMessage(errorMsg || 'Erro ao finalizar cadastro')
-      setStatus('error')
-    }
-  }
+    return () => clearTimeout(timer)
+  }, [])
 
   if (status === 'processing') {
     return (
@@ -85,100 +52,16 @@ export default function CheckoutSuccess() {
             color: 'var(--text-primary)',
             marginBottom: '8px',
           }}>
-            Finalizando seu cadastro...
+            Confirmando pagamento...
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-            Aguarde enquanto confirmamos seu pagamento
+            Aguarde um momento
           </p>
           <style>{`
             @keyframes spin {
               to { transform: rotate(360deg); }
             }
           `}</style>
-        </div>
-      </div>
-    )
-  }
-
-  if (status === 'error') {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'var(--bg-primary)',
-      }}>
-        <div style={{
-          maxWidth: '400px',
-          width: '100%',
-          backgroundColor: 'var(--bg-card)',
-          borderRadius: '16px',
-          padding: '40px',
-          textAlign: 'center',
-          border: '1px solid var(--border-color)',
-        }}>
-          <div style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 24px',
-          }}>
-            <span style={{ fontSize: '32px' }}>!</span>
-          </div>
-
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            marginBottom: '8px',
-          }}>
-            Ocorreu um problema
-          </h2>
-
-          <p style={{
-            color: 'var(--text-secondary)',
-            fontSize: '14px',
-            marginBottom: '24px',
-          }}>
-            {errorMessage || 'Nao foi possivel finalizar seu cadastro. Seu pagamento foi processado com sucesso, entre em contato com o suporte.'}
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <Link
-              to="/login"
-              style={{
-                backgroundColor: 'var(--accent)',
-                color: '#fff',
-                padding: '12px 24px',
-                borderRadius: '10px',
-                fontWeight: 600,
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-            >
-              Tentar fazer login
-              <ArrowRight size={18} />
-            </Link>
-
-            <a
-              href="mailto:suporte@replyna.com"
-              style={{
-                color: 'var(--text-secondary)',
-                fontSize: '14px',
-                textDecoration: 'none',
-              }}
-            >
-              Precisa de ajuda? Entre em contato
-            </a>
-          </div>
         </div>
       </div>
     )

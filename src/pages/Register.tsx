@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Sun, Moon, Eye, EyeOff, Check, Star, ArrowRight, ArrowLeft, MessageCircle, Tag, X, Loader2 } from 'lucide-react'
+import { Sun, Moon, Check, Star, ArrowRight, ArrowLeft, MessageCircle, Tag, X, Loader2 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { supabase } from '../lib/supabase'
 
@@ -40,10 +40,6 @@ export default function Register() {
   // Form
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -157,16 +153,6 @@ export default function Register() {
       return
     }
 
-    if (password !== confirmPassword) {
-      setError('As senhas nao coincidem')
-      return
-    }
-
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres')
-      return
-    }
-
     if (!selectedPlan.stripe_price_monthly_id) {
       setError('Este plano ainda nao esta configurado para pagamento. Entre em contato com o suporte.')
       return
@@ -203,7 +189,6 @@ export default function Register() {
       localStorage.setItem('pending_registration', JSON.stringify({
         email,
         name,
-        password,
         plan_id: selectedPlan.id,
         plan_name: selectedPlan.name,
       }))
@@ -914,106 +899,20 @@ export default function Register() {
               />
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
+            <div style={{
+              padding: '16px',
+              backgroundColor: 'rgba(70, 114, 236, 0.06)',
+              borderRadius: '12px',
+              marginBottom: '24px',
+            }}>
+              <p style={{
                 fontSize: '14px',
-                fontWeight: '500',
                 color: 'var(--text-secondary)',
-                marginBottom: '8px',
+                lineHeight: 1.5,
+                margin: 0,
               }}>
-                Senha
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 48px 12px 16px',
-                    border: '1px solid var(--input-border)',
-                    borderRadius: '10px',
-                    fontSize: '16px',
-                    boxSizing: 'border-box',
-                    backgroundColor: 'var(--input-bg)',
-                    color: 'var(--text-primary)',
-                  }}
-                  placeholder="Minimo 6 caracteres"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: 'var(--text-secondary)',
-                marginBottom: '8px',
-              }}>
-                Confirmar senha
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 48px 12px 16px',
-                    border: '1px solid var(--input-border)',
-                    borderRadius: '10px',
-                    fontSize: '16px',
-                    boxSizing: 'border-box',
-                    backgroundColor: 'var(--input-bg)',
-                    color: 'var(--text-primary)',
-                  }}
-                  placeholder="Repita a senha"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
+                Apos o pagamento, enviaremos um email para voce definir sua senha de acesso.
+              </p>
             </div>
 
             <button
