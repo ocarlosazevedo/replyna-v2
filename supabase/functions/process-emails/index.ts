@@ -11,6 +11,13 @@
  * 4. Processa emails pendentes (classificação, resposta, envio)
  */
 
+// deno-lint-ignore-file no-explicit-any
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+};
+
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import {
   getSupabaseClient,
@@ -646,8 +653,11 @@ async function processMessage(
     replied_at: new Date().toISOString(),
   });
 
-  // 11. Incrementar contador de emails usados
+  // 11. Incrementar contador de emails usados e verificar cobrança de extras
   await incrementEmailsUsed(user.id);
+
+  // 11.1 Verificar se usuário excedeu o limite e precisa cobrar extras
+  await checkAndChargeExtraEmails(user.id, shop.id);
 
   // 12. Atualizar status da conversation se foi para humano
   if (finalStatus === 'pending_human') {
@@ -795,4 +805,97 @@ Replyna - Atendimento Inteligente
       emails_limit: user.emails_limit,
     },
   });
+}
+
+/**
+ * Verifica se o usuário excedeu o limite do plano e precisa cobrar pacote de emails extras
+ */
+async function checkAndChargeExtraEmails(userId: string, shopId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  // Verificar se usuário excedeu o limite do plano
+  const { data: user } = await supabase
+    .from('users')
+    .select('id, emails_used, emails_limit, extra_emails_purchased, extra_emails_used, pending_extra_emails')
+    .eq('id', userId)
+    .single();
+
+  if (!user) return;
+
+  // Se ainda está dentro do limite do plano, não fazer nada
+  if (user.emails_used <= user.emails_limit) {
+    // Ainda dentro do limite do plano, não precisa contar como extra
+    return;
+  }
+
+  // Usuário excedeu o limite do plano - incrementar contador de extras pendentes
+  const { data: billingCheck } = await supabase.rpc('increment_pending_extra_email', {
+    p_user_id: userId,
+  });
+
+  if (!billingCheck || billingCheck.length === 0) return;
+
+  const result = billingCheck[0];
+
+  // Se atingiu o tamanho do pacote, cobrar automaticamente
+  if (result.needs_billing) {
+    console.log(`Usuário ${userId} atingiu ${result.new_pending_count} emails extras - cobrando pacote`);
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+    try {
+      // Chamar Edge Function de cobrança
+      const chargeResponse = await fetch(
+        `${supabaseUrl}/functions/v1/charge-extra-emails`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${serviceRoleKey}`,
+          },
+          body: JSON.stringify({ user_id: userId }),
+        }
+      );
+
+      const chargeResult = await chargeResponse.json();
+
+      if (chargeResult.success) {
+        console.log(`Pacote de emails extras cobrado com sucesso: ${chargeResult.invoice_id}`);
+
+        await logProcessingEvent({
+          shop_id: shopId,
+          event_type: 'extra_emails_charged',
+          event_data: {
+            user_id: userId,
+            package_size: result.package_size,
+            amount: result.total_amount,
+            invoice_id: chargeResult.invoice_id,
+          },
+        });
+      } else {
+        console.error('Erro ao cobrar emails extras:', chargeResult.error);
+
+        await logProcessingEvent({
+          shop_id: shopId,
+          event_type: 'extra_emails_charge_failed',
+          error_message: chargeResult.error,
+          event_data: {
+            user_id: userId,
+            package_size: result.package_size,
+            amount: result.total_amount,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao chamar charge-extra-emails:', error);
+
+      await logProcessingEvent({
+        shop_id: shopId,
+        event_type: 'extra_emails_charge_error',
+        error_message: error instanceof Error ? error.message : 'Erro desconhecido',
+        event_data: { user_id: userId },
+      });
+    }
+  }
 }

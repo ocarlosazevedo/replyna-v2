@@ -14,6 +14,9 @@ interface Plan {
   stripe_product_id: string | null
   stripe_price_monthly_id: string | null
   stripe_price_yearly_id: string | null
+  extra_email_price: number | null
+  extra_email_package_size: number | null
+  stripe_extra_email_price_id: string | null
   is_active: boolean
   is_popular: boolean
   sort_order: number
@@ -36,6 +39,9 @@ export default function AdminPlans() {
     stripe_product_id: '',
     stripe_price_monthly_id: '',
     stripe_price_yearly_id: '',
+    extra_email_price: 1.0,
+    extra_email_package_size: 100,
+    stripe_extra_email_price_id: '',
     is_active: true,
     is_popular: false,
     sort_order: 0,
@@ -76,6 +82,9 @@ export default function AdminPlans() {
         stripe_product_id: plan.stripe_product_id || '',
         stripe_price_monthly_id: plan.stripe_price_monthly_id || '',
         stripe_price_yearly_id: plan.stripe_price_yearly_id || '',
+        extra_email_price: plan.extra_email_price || 1.0,
+        extra_email_package_size: plan.extra_email_package_size || 100,
+        stripe_extra_email_price_id: plan.stripe_extra_email_price_id || '',
         is_active: plan.is_active,
         is_popular: plan.is_popular,
         sort_order: plan.sort_order,
@@ -93,6 +102,9 @@ export default function AdminPlans() {
         stripe_product_id: '',
         stripe_price_monthly_id: '',
         stripe_price_yearly_id: '',
+        extra_email_price: 1.0,
+        extra_email_package_size: 100,
+        stripe_extra_email_price_id: '',
         is_active: true,
         is_popular: false,
         sort_order: plans.length,
@@ -114,6 +126,9 @@ export default function AdminPlans() {
         stripe_product_id: formData.stripe_product_id || null,
         stripe_price_monthly_id: formData.stripe_price_monthly_id || null,
         stripe_price_yearly_id: formData.stripe_price_yearly_id || null,
+        extra_email_price: formData.extra_email_price || null,
+        extra_email_package_size: formData.extra_email_package_size || null,
+        stripe_extra_email_price_id: formData.stripe_extra_email_price_id || null,
         is_active: formData.is_active,
         is_popular: formData.is_popular,
         sort_order: formData.sort_order,
@@ -300,12 +315,20 @@ export default function AdminPlans() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Emails/mes</span>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{plan.emails_limit}</span>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{plan.emails_limit.toLocaleString('pt-BR')}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Lojas</span>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{plan.shops_limit}</span>
               </div>
+              {plan.extra_email_price && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Email extra</span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#f59e0b' }}>
+                    R$ {plan.extra_email_price.toFixed(2)} ({plan.extra_email_package_size || 100}/pacote)
+                  </span>
+                </div>
+              )}
             </div>
 
             {plan.features && plan.features.length > 0 && (
@@ -557,7 +580,47 @@ export default function AdminPlans() {
               </div>
 
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                <label style={labelStyle}>Stripe IDs (opcional)</label>
+                <label style={{ ...labelStyle, marginBottom: '12px' }}>Emails Extras</label>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                  Configure a cobranca automatica quando o usuario exceder o limite do plano
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '12px', color: 'var(--text-secondary)' }}>Preco por Email Extra (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.extra_email_price}
+                      onChange={(e) => setFormData({ ...formData, extra_email_price: parseFloat(e.target.value) })}
+                      style={inputStyle}
+                      placeholder="1.00"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '12px', color: 'var(--text-secondary)' }}>Tamanho do Pacote</label>
+                    <input
+                      type="number"
+                      value={formData.extra_email_package_size}
+                      onChange={(e) => setFormData({ ...formData, extra_email_package_size: parseInt(e.target.value) })}
+                      style={inputStyle}
+                      placeholder="100"
+                    />
+                  </div>
+                </div>
+                <div style={{ marginTop: '12px' }}>
+                  <label style={{ ...labelStyle, fontSize: '12px', color: 'var(--text-secondary)' }}>Stripe Price ID (Pacote Extra)</label>
+                  <input
+                    type="text"
+                    value={formData.stripe_extra_email_price_id}
+                    onChange={(e) => setFormData({ ...formData, stripe_extra_email_price_id: e.target.value })}
+                    style={inputStyle}
+                    placeholder="price_..."
+                  />
+                </div>
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                <label style={labelStyle}>Stripe IDs - Assinatura (opcional)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                   <input
                     type="text"
