@@ -26,6 +26,18 @@ interface UserProfile {
   created_at: string | null
 }
 
+interface Plan {
+  id: string
+  name: string
+  description: string | null
+  price_monthly: number
+  price_yearly: number | null
+  emails_limit: number
+  shops_limit: number
+  features: string[]
+  is_popular: boolean
+}
+
 const formatNumber = (value: number) =>
   new Intl.NumberFormat('pt-BR').format(value)
 
@@ -68,12 +80,15 @@ export default function Account() {
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
   const [isEditing, setIsEditing] = useState(false)
+  const [shopsCount, setShopsCount] = useState<number>(0)
 
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [showPlanModal, setShowPlanModal] = useState(false)
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [plansLoading, setPlansLoading] = useState(false)
+  const [changingPlanId, setChangingPlanId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -119,13 +134,19 @@ export default function Account() {
           })
           setName(newUserData.name || '')
           setEmail(newUserData.email || '')
-          setPhone((user.user_metadata?.phone as string | undefined) || '')
         } else {
           setProfile(data)
           setName(data.name || user.user_metadata?.name || '')
           setEmail(data.email || user.email || '')
-          setPhone((user.user_metadata?.phone as string | undefined) || '')
         }
+
+        // Buscar quantidade de lojas integradas
+        const { count: shopsIntegrated } = await supabase
+          .from('shops')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+
+        setShopsCount(shopsIntegrated || 0)
       } catch (err) {
         console.error('Erro ao carregar perfil:', err)
         setNotice({ type: 'error', message: 'Não foi possível carregar suas informações.' })
@@ -166,7 +187,7 @@ export default function Account() {
       if (profileError) throw profileError
 
       const { error: metaError } = await supabase.auth.updateUser({
-        data: { name: name.trim(), phone: phone.trim() || null },
+        data: { name: name.trim() },
       })
       if (metaError) throw metaError
 
@@ -236,16 +257,105 @@ export default function Account() {
     if (isEditing) {
       setName(profile?.name || user?.user_metadata?.name || '')
       setEmail(profile?.email || user?.email || '')
-      setPhone((user?.user_metadata?.phone as string | undefined) || '')
       setNotice(null)
     }
     setIsEditing((prev) => !prev)
   }
 
   const handleCancelPlan = () => {
+    const whatsappNumber = '5531973210191' // Número WhatsApp da Replyna
+    const message = encodeURIComponent(
+      `Olá! Gostaria de solicitar o cancelamento do meu plano.\n\nEmail: ${email}\nPlano atual: ${planName}${cancelReason ? `\nMotivo: ${cancelReason}` : ''}`
+    )
+    window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank')
     setShowCancelModal(false)
     setCancelReason('')
-    setNotice({ type: 'info', message: 'Solicitação de cancelamento registrada.' })
+  }
+
+  const handleOpenPlanModal = async () => {
+    setShowPlanModal(true)
+    setPlansLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('plans')
+        .select('id, name, description, price_monthly, price_yearly, emails_limit, shops_limit, features, is_popular')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+
+      if (error) throw error
+      setPlans(data || [])
+    } catch (err) {
+      console.error('Erro ao carregar planos:', err)
+      setNotice({ type: 'error', message: 'Não foi possível carregar os planos disponíveis.' })
+    } finally {
+      setPlansLoading(false)
+    }
+  }
+
+  const handleChangePlan = async (plan: Plan) => {
+    if (!user) return
+
+    setChangingPlanId(plan.id)
+    setNotice(null)
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subscription`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            new_plan_id: plan.id,
+          }),
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao alterar plano')
+      }
+
+      // Atualizar o profile local com os novos dados
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              plan: result.new_plan.name,
+              emails_limit: result.new_plan.emails_limit,
+              shops_limit: result.new_plan.shops_limit,
+            }
+          : prev
+      )
+
+      setShowPlanModal(false)
+
+      if (result.proration_amount > 0) {
+        setNotice({
+          type: 'success',
+          message: `Plano alterado para ${plan.name} com sucesso! Um ajuste de R$ ${result.proration_amount.toFixed(2).replace('.', ',')} será aplicado na próxima fatura.`,
+        })
+      } else if (result.proration_amount < 0) {
+        setNotice({
+          type: 'success',
+          message: `Plano alterado para ${plan.name} com sucesso! Um crédito de R$ ${Math.abs(result.proration_amount).toFixed(2).replace('.', ',')} foi aplicado à sua conta.`,
+        })
+      } else {
+        setNotice({
+          type: 'success',
+          message: `Plano alterado para ${plan.name} com sucesso!`,
+        })
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao alterar plano. Tente novamente.'
+      setNotice({ type: 'error', message })
+    } finally {
+      setChangingPlanId(null)
+    }
   }
 
   return (
@@ -299,8 +409,8 @@ export default function Account() {
             <div style={{ marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                 <div>
-                  <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Informações pessoais</h2>
-                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px' }}>Seus dados básicos de cadastro</p>
+                  <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Informações da conta</h2>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px' }}>Seus dados e configurações de segurança</p>
                 </div>
                 <button
                   type="button"
@@ -329,128 +439,105 @@ export default function Account() {
                 <Skeleton height={44} />
               </div>
             ) : (
-              <form id="account-profile-form" onSubmit={handleSave} style={{ display: 'grid', gap: '16px' }}>
-                <label style={{ display: 'grid', gap: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Nome completo</span>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    disabled={!isEditing}
-                    style={{
-                      border: `1px solid ${isEditing ? 'var(--input-border)' : 'var(--border-color)'}`,
-                      borderRadius: '10px',
-                      padding: '12px',
-                      fontSize: '14px',
-                      backgroundColor: isEditing ? 'var(--input-bg)' : 'var(--bg-primary)',
-                      color: isEditing ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      cursor: isEditing ? 'text' : 'not-allowed',
-                    }}
-                  />
-                </label>
-                <label style={{ display: 'grid', gap: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Email</span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    disabled={!isEditing}
-                    style={{
-                      border: `1px solid ${isEditing ? 'var(--input-border)' : 'var(--border-color)'}`,
-                      borderRadius: '10px',
-                      padding: '12px',
-                      fontSize: '14px',
-                      backgroundColor: isEditing ? 'var(--input-bg)' : 'var(--bg-primary)',
-                      color: isEditing ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      cursor: isEditing ? 'text' : 'not-allowed',
-                    }}
-                  />
-                </label>
-                <label style={{ display: 'grid', gap: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Telefone</span>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder="(00) 00000-0000"
-                    disabled={!isEditing}
-                    style={{
-                      border: `1px solid ${isEditing ? 'var(--input-border)' : 'var(--border-color)'}`,
-                      borderRadius: '10px',
-                      padding: '12px',
-                      fontSize: '14px',
-                      backgroundColor: isEditing ? 'var(--input-bg)' : 'var(--bg-primary)',
-                      color: isEditing ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      cursor: isEditing ? 'text' : 'not-allowed',
-                    }}
-                  />
-                </label>
-              </form>
-            )}
-          </section>
+              <div style={{ display: 'grid', gap: '20px' }}>
+                <form id="account-profile-form" onSubmit={handleSave} style={{ display: 'grid', gap: '16px' }}>
+                  <label style={{ display: 'grid', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Nome completo</span>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      disabled={!isEditing}
+                      style={{
+                        border: `1px solid ${isEditing ? 'var(--input-border)' : 'var(--border-color)'}`,
+                        borderRadius: '10px',
+                        padding: '12px',
+                        fontSize: '14px',
+                        backgroundColor: isEditing ? 'var(--input-bg)' : 'var(--bg-primary)',
+                        color: isEditing ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        cursor: isEditing ? 'text' : 'not-allowed',
+                      }}
+                    />
+                  </label>
+                  <label style={{ display: 'grid', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Email</span>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      disabled={!isEditing}
+                      style={{
+                        border: `1px solid ${isEditing ? 'var(--input-border)' : 'var(--border-color)'}`,
+                        borderRadius: '10px',
+                        padding: '12px',
+                        fontSize: '14px',
+                        backgroundColor: isEditing ? 'var(--input-bg)' : 'var(--bg-primary)',
+                        color: isEditing ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        cursor: isEditing ? 'text' : 'not-allowed',
+                      }}
+                    />
+                  </label>
+                </form>
 
-          <section style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-            <div style={{ marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Segurança</h2>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px' }}>Mantenha sua conta protegida</p>
-            </div>
+                <div style={{ height: '1px', backgroundColor: 'var(--border-color)' }} />
 
-            <div style={{ display: 'grid', gap: '16px' }}>
-              <div style={{ display: 'grid', gap: '10px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Alterar email</span>
-                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px' }}>
-                  Edite o campo de email acima e clique para enviar o link de confirmação ao novo endereço.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleEmailChange}
-                  disabled={emailChangeLoading}
-                  style={{
-                    width: '100%',
-                    backgroundColor: 'var(--accent)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '10px',
-                    padding: '12px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    cursor: emailChangeLoading ? 'not-allowed' : 'pointer',
-                    opacity: emailChangeLoading ? 0.7 : 1,
-                  }}
-                >
-                  {emailChangeLoading ? 'Enviando...' : 'Enviar link de confirmação'}
-                </button>
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  <div style={{ display: 'grid', gap: '10px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Alterar email</span>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px' }}>
+                      Edite o campo de email acima e clique para enviar o link de confirmação ao novo endereço.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleEmailChange}
+                      disabled={emailChangeLoading}
+                      style={{
+                        width: '100%',
+                        backgroundColor: 'var(--accent)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '12px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: emailChangeLoading ? 'not-allowed' : 'pointer',
+                        opacity: emailChangeLoading ? 0.7 : 1,
+                      }}
+                    >
+                      {emailChangeLoading ? 'Enviando...' : 'Enviar link de confirmação'}
+                    </button>
+                  </div>
+
+                  <div style={{ height: '1px', backgroundColor: 'var(--border-color)' }} />
+
+                  <div style={{ display: 'grid', gap: '10px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Alterar senha</span>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px' }}>
+                      Para alterar sua senha, enviaremos um link de redefinição para seu email cadastrado.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleResetPassword}
+                      disabled={resetLoading}
+                      style={{
+                        width: '100%',
+                        backgroundColor: 'var(--accent)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '12px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: resetLoading ? 'not-allowed' : 'pointer',
+                        opacity: resetLoading ? 0.7 : 1,
+                      }}
+                    >
+                      {resetLoading ? 'Enviando...' : 'Enviar link de redefinição'}
+                    </button>
+                  </div>
+                </div>
               </div>
-
-              <div style={{ height: '1px', backgroundColor: 'var(--border-color)' }} />
-
-              <div style={{ display: 'grid', gap: '10px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Alterar senha</span>
-                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px' }}>
-                  Para alterar sua senha, enviaremos um link de redefinição para seu email cadastrado.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleResetPassword}
-                  disabled={resetLoading}
-                  style={{
-                    width: '100%',
-                    backgroundColor: 'var(--accent)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '10px',
-                    padding: '12px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    cursor: resetLoading ? 'not-allowed' : 'pointer',
-                    opacity: resetLoading ? 0.7 : 1,
-                  }}
-                >
-                  {resetLoading ? 'Enviando...' : 'Enviar link de redefinição'}
-                </button>
-              </div>
-            </div>
-          </section>
+            )}</section>
 
         </div>
 
@@ -466,55 +553,95 @@ export default function Account() {
                 <Skeleton height={120} />
               </div>
             ) : (
-              <div style={{ borderRadius: '14px', border: '1px solid var(--border-color)', padding: '16px', backgroundColor: 'var(--bg-primary)' }}>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
-                  Plano {planName}
-                </div>
-                <ul style={{ paddingLeft: '16px', margin: 0, color: 'var(--text-secondary)', fontSize: '13px', display: 'grid', gap: '6px' }}>
-                  <li>
-                    Até {emailsLimit !== null && emailsLimit !== undefined ? formatNumber(emailsLimit) : '--'} emails mensais
-                  </li>
-                  <li>
-                    Até {shopsLimit !== null && shopsLimit !== undefined ? formatNumber(shopsLimit) : '--'} lojas
-                  </li>
-                </ul>
-                <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  Renova em {renewalDate ? formatDate(renewalDate) : '--'}
+              <div style={{ display: 'grid', gap: '16px' }}>
+                <div style={{ borderRadius: '14px', border: '1px solid var(--border-color)', padding: '16px', backgroundColor: 'var(--bg-primary)' }}>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
+                    Plano {planName}
+                  </div>
+                  <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    Renova em {renewalDate ? formatDate(renewalDate) : '--'}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '16px' }}>
+                    <button
+                      type="button"
+                      onClick={handleOpenPlanModal}
+                      style={{
+                        borderRadius: '10px',
+                        border: '1px solid var(--accent)',
+                        color: 'var(--accent)',
+                        padding: '10px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        background: 'var(--bg-card)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Alterar plano
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCancelModal(true)}
+                      style={{
+                        borderRadius: '10px',
+                        border: '1px solid #ef4444',
+                        color: '#ef4444',
+                        padding: '10px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        background: 'var(--bg-card)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Cancelar plano
+                    </button>
+                  </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '16px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowPlanModal(true)}
-                    style={{
-                      borderRadius: '10px',
-                      border: '1px solid var(--accent)',
-                      color: 'var(--accent)',
-                      padding: '10px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      background: 'var(--bg-card)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Alterar plano
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowCancelModal(true)}
-                    style={{
-                      borderRadius: '10px',
-                      border: '1px solid #ef4444',
-                      color: '#ef4444',
-                      padding: '10px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      background: 'var(--bg-card)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Cancelar plano
-                  </button>
+                <div style={{ borderRadius: '14px', border: '1px solid var(--border-color)', padding: '16px', backgroundColor: 'var(--bg-primary)' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
+                    Uso do plano
+                  </div>
+                  <div style={{ display: 'grid', gap: '12px' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Lojas integradas</span>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {shopsCount} / {shopsLimit !== null && shopsLimit !== undefined ? formatNumber(shopsLimit) : '--'}
+                        </span>
+                      </div>
+                      <div style={{ height: '8px', backgroundColor: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${shopsLimit ? Math.min((shopsCount / shopsLimit) * 100, 100) : 0}%`,
+                            backgroundColor: shopsLimit && shopsCount >= shopsLimit ? '#ef4444' : 'var(--accent)',
+                            borderRadius: '4px',
+                            transition: 'width 0.3s ease',
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Emails enviados</span>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {profile?.emails_used !== null && profile?.emails_used !== undefined ? formatNumber(profile.emails_used) : '0'} / {emailsLimit !== null && emailsLimit !== undefined ? formatNumber(emailsLimit) : '--'}
+                        </span>
+                      </div>
+                      <div style={{ height: '8px', backgroundColor: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${emailsLimit && profile?.emails_used !== null && profile?.emails_used !== undefined ? Math.min((profile.emails_used / emailsLimit) * 100, 100) : 0}%`,
+                            backgroundColor: emailsLimit && profile?.emails_used !== null && profile.emails_used >= emailsLimit ? '#ef4444' : 'var(--accent)',
+                            borderRadius: '4px',
+                            transition: 'width 0.3s ease',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -588,19 +715,123 @@ export default function Account() {
               borderRadius: '16px',
               padding: '24px',
               border: '1px solid var(--border-color)',
-              width: 'min(420px, 90vw)',
+              width: 'min(600px, 94vw)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
               zIndex: 61,
             }}
           >
             <h3 style={{ marginTop: 0, marginBottom: '8px', color: 'var(--text-primary)' }}>Alterar plano</h3>
-            <p style={{ marginTop: 0, color: 'var(--text-secondary)' }}>
-              Em breve você poderá comparar e escolher novos planos.
+            <p style={{ marginTop: 0, marginBottom: '20px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+              Selecione o novo plano. A diferença será ajustada automaticamente na sua próxima fatura.
             </p>
+
+            {plansLoading ? (
+              <div style={{ display: 'grid', gap: '12px' }}>
+                <Skeleton height={120} />
+                <Skeleton height={120} />
+              </div>
+            ) : plans.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>
+                Nenhum plano disponível no momento.
+              </p>
+            ) : (
+              <div style={{ display: 'grid', gap: '12px' }}>
+                {plans.map((plan) => {
+                  const isCurrentPlan = plan.name === planName
+                  return (
+                    <div
+                      key={plan.id}
+                      style={{
+                        borderRadius: '12px',
+                        border: `1px solid ${plan.is_popular ? 'var(--accent)' : 'var(--border-color)'}`,
+                        padding: '16px',
+                        backgroundColor: 'var(--bg-primary)',
+                        position: 'relative',
+                      }}
+                    >
+                      {plan.is_popular && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '-10px',
+                            right: '16px',
+                            backgroundColor: 'var(--accent)',
+                            color: '#fff',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                          }}
+                        >
+                          Popular
+                        </span>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                            {plan.name}
+                            {isCurrentPlan && (
+                              <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: 500, color: 'var(--accent)' }}>
+                                (Atual)
+                              </span>
+                            )}
+                          </div>
+                          {plan.description && (
+                            <p style={{ margin: '0 0 8px 0', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                              {plan.description}
+                            </p>
+                          )}
+                          <ul style={{ paddingLeft: '16px', margin: 0, color: 'var(--text-secondary)', fontSize: '12px', display: 'grid', gap: '2px' }}>
+                            <li>{formatNumber(plan.emails_limit)} emails/mês</li>
+                            <li>{formatNumber(plan.shops_limit)} {plan.shops_limit === 1 ? 'loja' : 'lojas'}</li>
+                            {Array.isArray(plan.features) && plan.features.slice(0, 3).map((feature, idx) => (
+                              <li key={idx}>{feature}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              R$ {plan.price_monthly.toFixed(2).replace('.', ',')}
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>por mês</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleChangePlan(plan)}
+                            disabled={isCurrentPlan || changingPlanId !== null}
+                            style={{
+                              borderRadius: '8px',
+                              border: 'none',
+                              backgroundColor: isCurrentPlan ? 'var(--border-color)' : 'var(--accent)',
+                              color: isCurrentPlan ? 'var(--text-secondary)' : '#fff',
+                              padding: '8px 16px',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              cursor: isCurrentPlan || changingPlanId !== null ? 'not-allowed' : 'pointer',
+                              opacity: changingPlanId !== null && changingPlanId !== plan.id ? 0.6 : 1,
+                            }}
+                          >
+                            {isCurrentPlan
+                              ? 'Plano atual'
+                              : changingPlanId === plan.id
+                              ? 'Alterando...'
+                              : 'Selecionar'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() => setShowPlanModal(false)}
               style={{
-                marginTop: '12px',
+                marginTop: '16px',
                 width: '100%',
                 borderRadius: '10px',
                 border: '1px solid var(--border-color)',
