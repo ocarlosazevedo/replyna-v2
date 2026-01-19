@@ -824,22 +824,37 @@ export default function Account() {
                               </div>
                             ) : (
                               <>
-                                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                  R$ {plan.price_monthly.toFixed(2).replace('.', ',')}
-                                </div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>por mês</div>
-                                {/* Mostrar diferença de preço */}
-                                {!isCurrentPlan && currentPlanData && (
-                                  <div style={{
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                    marginTop: '4px',
-                                    color: plan.price_monthly > currentPlanData.price_monthly ? '#ef4444' : '#22c55e',
-                                  }}>
-                                    {plan.price_monthly > currentPlanData.price_monthly
-                                      ? `+R$ ${(plan.price_monthly - currentPlanData.price_monthly).toFixed(2).replace('.', ',')}/mês`
-                                      : `-R$ ${(currentPlanData.price_monthly - plan.price_monthly).toFixed(2).replace('.', ',')}/mês`}
-                                  </div>
+                                {/* Se não é o plano atual e tem diferença, mostra preço cortado + diferença */}
+                                {!isCurrentPlan && currentPlanData && plan.price_monthly !== currentPlanData.price_monthly ? (
+                                  <>
+                                    <div style={{
+                                      fontSize: '14px',
+                                      color: 'var(--text-secondary)',
+                                      textDecoration: 'line-through',
+                                      opacity: 0.7,
+                                    }}>
+                                      R$ {plan.price_monthly.toFixed(2).replace('.', ',')}
+                                    </div>
+                                    <div style={{
+                                      fontSize: '18px',
+                                      fontWeight: 700,
+                                      color: 'var(--accent)',
+                                    }}>
+                                      {plan.price_monthly > currentPlanData.price_monthly
+                                        ? `+R$ ${(plan.price_monthly - currentPlanData.price_monthly).toFixed(2).replace('.', ',')}`
+                                        : `-R$ ${(currentPlanData.price_monthly - plan.price_monthly).toFixed(2).replace('.', ',')}`}
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                      {plan.price_monthly > currentPlanData.price_monthly ? 'a mais por mês' : 'de economia por mês'}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                      R$ {plan.price_monthly.toFixed(2).replace('.', ',')}
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>por mês</div>
+                                  </>
                                 )}
                               </>
                             )}
