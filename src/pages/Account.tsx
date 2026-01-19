@@ -850,9 +850,16 @@ export default function Account() {
                           <ul style={{ paddingLeft: '16px', margin: 0, color: 'var(--text-secondary)', fontSize: '12px', display: 'grid', gap: '2px' }}>
                             <li>{isEnterprise || plan.emails_limit >= 999999 ? 'Emails ilimitados' : `${formatNumber(plan.emails_limit)} emails/mês`}</li>
                             <li>{isEnterprise || plan.shops_limit >= 999 ? 'Lojas ilimitadas' : `${formatNumber(plan.shops_limit)} ${plan.shops_limit === 1 ? 'loja' : 'lojas'}`}</li>
-                            {Array.isArray(plan.features) && plan.features.slice(0, 3).map((feature, idx) => (
-                              <li key={idx}>{feature}</li>
-                            ))}
+                            {Array.isArray(plan.features) && plan.features
+                              .filter((f) => {
+                                const lower = f.toLowerCase()
+                                // Filtra features que mencionam emails ou lojas (já exibidos acima)
+                                return !lower.includes('email') && !lower.includes('e-mail') && !lower.includes('loja')
+                              })
+                              .slice(0, 3)
+                              .map((feature, idx) => (
+                                <li key={idx}>{feature}</li>
+                              ))}
                           </ul>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
