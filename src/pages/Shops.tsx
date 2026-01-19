@@ -97,12 +97,12 @@ export default function Shops() {
   }
 
   const buttonPrimary = {
-    backgroundColor: 'var(--accent)',
-    color: '#ffffff',
+    backgroundColor: 'transparent',
+    color: 'var(--text-primary)',
     padding: '10px 20px',
     borderRadius: '10px',
     fontWeight: '600',
-    border: 'none',
+    border: '1px solid var(--border-color)',
     cursor: 'pointer',
     fontSize: '14px',
   }
