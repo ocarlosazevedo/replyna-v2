@@ -46,36 +46,25 @@ export default function AdminClients() {
 
   const loadData = async () => {
     try {
-      const [usersResult, shopsResult, plansResult] = await Promise.all([
-        supabase.from('users').select('*').order('created_at', { ascending: false }),
-        supabase.from('shops').select('id, name, shopify_domain, is_active, user_id'),
-        supabase.from('plans').select('id, name, emails_limit, shops_limit, is_active').eq('is_active', true).order('sort_order')
-      ])
-
-      if (usersResult.error) throw usersResult.error
-
-      // Agrupar lojas por usuário
-      const shopsByUser: Record<string, Shop[]> = {}
-      ;(shopsResult.data || []).forEach((shop) => {
-        if (!shopsByUser[shop.user_id]) {
-          shopsByUser[shop.user_id] = []
+      // Usar Edge Function que bypassa RLS
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-get-clients`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
         }
-        shopsByUser[shop.user_id].push({
-          id: shop.id,
-          name: shop.name,
-          shopify_domain: shop.shopify_domain,
-          is_active: shop.is_active
-        })
-      })
+      )
 
-      // Combinar dados
-      const clientsWithShops = (usersResult.data || []).map((client) => ({
-        ...client,
-        shops: shopsByUser[client.id] || [],
-      }))
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao carregar clientes')
+      }
 
-      setClients(clientsWithShops as Client[])
-      setPlans((plansResult.data || []) as Plan[])
+      const data = await response.json()
+
+      setClients(data.clients as Client[])
+      setPlans(data.plans as Plan[])
     } catch (err) {
       console.error('Erro ao carregar clientes:', err)
     } finally {
