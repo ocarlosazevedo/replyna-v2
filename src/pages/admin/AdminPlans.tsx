@@ -2,6 +2,18 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { Plus, Edit2, Trash2, Star, Check } from 'lucide-react'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isMobile
+}
+
 interface Plan {
   id: string
   name: string
@@ -24,6 +36,7 @@ interface Plan {
 }
 
 export default function AdminPlans() {
+  const isMobile = useIsMobile()
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -182,7 +195,7 @@ export default function AdminPlans() {
   const cardStyle = {
     backgroundColor: 'var(--bg-card)',
     borderRadius: '16px',
-    padding: '24px',
+    padding: isMobile ? '16px' : '24px',
     border: '1px solid var(--border-color)',
   }
 
@@ -222,12 +235,12 @@ export default function AdminPlans() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: isMobile ? '24px' : '32px', gap: isMobile ? '16px' : '0' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
             Planos
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: isMobile ? '14px' : '15px' }}>
             Gerencie os planos de assinatura
           </p>
         </div>
@@ -243,7 +256,9 @@ export default function AdminPlans() {
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '8px',
+            width: isMobile ? '100%' : 'auto',
           }}
         >
           <Plus size={18} />
@@ -251,7 +266,7 @@ export default function AdminPlans() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: isMobile ? '16px' : '24px' }}>
         {plans.map((plan) => (
           <div key={plan.id} style={{ ...cardStyle, position: 'relative' }}>
             {plan.is_popular && (
@@ -440,7 +455,7 @@ export default function AdminPlans() {
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={labelStyle}>Nome do Plano</label>
                   <input
@@ -473,7 +488,7 @@ export default function AdminPlans() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={labelStyle}>Preco Mensal (R$)</label>
                   <input
@@ -496,7 +511,7 @@ export default function AdminPlans() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={labelStyle}>Limite de Emails/mes</label>
                   <input
@@ -584,7 +599,7 @@ export default function AdminPlans() {
                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
                   Configure a cobranca automatica quando o usuario exceder o limite do plano
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                   <div>
                     <label style={{ ...labelStyle, fontSize: '12px', color: 'var(--text-secondary)' }}>Preco por Email Extra (R$)</label>
                     <input
@@ -621,7 +636,7 @@ export default function AdminPlans() {
 
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
                 <label style={labelStyle}>Stripe IDs - Assinatura (opcional)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '12px' }}>
                   <input
                     type="text"
                     value={formData.stripe_product_id}
@@ -646,7 +661,7 @@ export default function AdminPlans() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '24px' }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '12px' : '24px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
@@ -666,7 +681,7 @@ export default function AdminPlans() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowModal(false)}
                 style={{
@@ -677,6 +692,7 @@ export default function AdminPlans() {
                   color: 'var(--text-primary)',
                   fontWeight: 600,
                   cursor: 'pointer',
+                  width: isMobile ? '100%' : 'auto',
                 }}
               >
                 Cancelar
@@ -691,6 +707,7 @@ export default function AdminPlans() {
                   color: '#fff',
                   fontWeight: 600,
                   cursor: 'pointer',
+                  width: isMobile ? '100%' : 'auto',
                 }}
               >
                 {editingPlan ? 'Salvar' : 'Criar Plano'}

@@ -2,6 +2,18 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { Search, Edit2, Mail, Store, Calendar, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isMobile
+}
+
 interface Shop {
   id: string
   name: string
@@ -46,6 +58,7 @@ export default function AdminClients() {
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [expandedClient, setExpandedClient] = useState<string | null>(null)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     loadData()
@@ -193,7 +206,7 @@ export default function AdminClients() {
   const cardStyle = {
     backgroundColor: 'var(--bg-card)',
     borderRadius: '16px',
-    padding: '24px',
+    padding: isMobile ? '16px' : '24px',
     border: '1px solid var(--border-color)',
   }
 
@@ -239,43 +252,118 @@ export default function AdminClients() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: isMobile ? '20px' : '32px', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
             Clientes
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
             Gerencie todos os usuarios da plataforma
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ position: 'relative' }}>
-            <Search
-              size={18}
-              style={{
-                position: 'absolute',
-                left: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--text-secondary)',
-              }}
-            />
-            <input
-              type="text"
-              placeholder="Buscar cliente ou loja..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                ...inputStyle,
-                paddingLeft: '40px',
-                width: '280px',
-              }}
-            />
-          </div>
+        <div style={{ position: 'relative' }}>
+          <Search
+            size={18}
+            style={{
+              position: 'absolute',
+              left: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--text-secondary)',
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Buscar cliente ou loja..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              ...inputStyle,
+              paddingLeft: '40px',
+              width: isMobile ? '100%' : '280px',
+            }}
+          />
         </div>
       </div>
 
       <div style={cardStyle}>
+        {isMobile ? (
+          /* Mobile: Card Layout */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {filteredClients.map((client) => (
+              <div
+                key={client.id}
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      backgroundColor: 'rgba(70, 114, 236, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <Mail size={16} style={{ color: 'var(--accent)' }} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>
+                        {client.name || 'Sem nome'}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {client.email}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleEditClient(client)}
+                    style={{
+                      padding: '8px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'transparent',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                  <span style={{
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    color: '#8b5cf6',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                  }}>
+                    {getPlanDisplayName(client.plan)}
+                  </span>
+                  <span style={getStatusBadge(getEffectiveStatus(client))}>
+                    {getStatusLabel(getEffectiveStatus(client))}
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Store size={12} /> {client.shops.length}/{client.shops_limit}
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    {client.emails_used}/{client.emails_limit} emails
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+        /* Desktop: Table Layout */
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700 }}>
@@ -493,6 +581,7 @@ export default function AdminClients() {
             ))}
           </tbody>
         </table>
+        )}
 
         {filteredClients.length === 0 && (
           <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>

@@ -16,6 +16,18 @@ import {
   ChevronDown,
 } from 'lucide-react'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isMobile
+}
+
 type Period = '7days' | '30days' | '3months' | '6months' | '12months' | 'all' | 'custom'
 
 const periodOptions: { value: Period; label: string }[] = [
@@ -84,6 +96,7 @@ interface FinancialStats {
 }
 
 export default function AdminFinancial() {
+  const isMobile = useIsMobile()
   const [stats, setStats] = useState<FinancialStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -152,7 +165,7 @@ export default function AdminFinancial() {
   const cardStyle = {
     backgroundColor: 'var(--bg-card)',
     borderRadius: '16px',
-    padding: '24px',
+    padding: isMobile ? '16px' : '24px',
     border: '1px solid var(--border-color)',
   }
 
@@ -164,8 +177,8 @@ export default function AdminFinancial() {
   }
 
   const iconBoxStyle = (color: string) => ({
-    width: '48px',
-    height: '48px',
+    width: isMobile ? '40px' : '48px',
+    height: isMobile ? '40px' : '48px',
     borderRadius: '12px',
     backgroundColor: `${color}15`,
     display: 'flex',
@@ -230,12 +243,12 @@ export default function AdminFinancial() {
           marginBottom: '32px',
           animation: 'replyna-pulse 1.6s ease-in-out infinite',
         }} />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px' }}>
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
               style={{
-                height: '120px',
+                height: isMobile ? '100px' : '120px',
                 backgroundColor: 'var(--border-color)',
                 borderRadius: '16px',
                 animation: 'replyna-pulse 1.6s ease-in-out infinite',
@@ -299,16 +312,16 @@ export default function AdminFinancial() {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ marginBottom: isMobile ? '24px' : '32px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-start', gap: isMobile ? '16px' : '0' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
             Financeiro
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: isMobile ? '14px' : '15px' }}>
             Dados em tempo real do Stripe
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
           {/* Period selector */}
           <div style={{ position: 'relative' }}>
             <button
@@ -533,56 +546,56 @@ export default function AdminFinancial() {
 
       {/* Metricas do Periodo Selecionado */}
       <div style={{ ...cardStyle, marginBottom: '24px', background: 'linear-gradient(135deg, rgba(70, 114, 236, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)' }}>
-        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--accent)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Calendar size={18} />
+        <div style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 600, color: 'var(--accent)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Calendar size={isMobile ? 16 : 18} />
           Metricas do Periodo Selecionado
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '16px' : '24px' }}>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: '#22c55e' }}>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: '#22c55e' }}>
               {formatCurrency(stats?.periodMetrics?.revenueInPeriod || 0)}
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Faturamento</div>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)' }}>Faturamento</div>
           </div>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: '#3b82f6' }}>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: '#3b82f6' }}>
               {stats?.periodMetrics?.newSubscriptionsInPeriod || 0}
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Novas Assinaturas</div>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)' }}>Novas Assinaturas</div>
           </div>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: '#ef4444' }}>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: '#ef4444' }}>
               {stats?.periodMetrics?.canceledSubscriptionsInPeriod || 0}
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Cancelamentos</div>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)' }}>Cancelamentos</div>
           </div>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: '#8b5cf6' }}>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: '#8b5cf6' }}>
               {stats?.periodMetrics?.chargesInPeriod || 0}
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Cobrancas</div>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)' }}>Cobrancas</div>
           </div>
         </div>
       </div>
 
       {/* Saldo Stripe */}
-      <div style={{ ...cardStyle, marginBottom: '24px', display: 'flex', gap: '32px', alignItems: 'center' }}>
+      <div style={{ ...cardStyle, marginBottom: '24px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '16px' : '32px', alignItems: isMobile ? 'flex-start' : 'center' }}>
         <div style={iconBoxStyle('#635bff')}>
-          <Wallet size={24} style={{ color: '#635bff' }} />
+          <Wallet size={isMobile ? 20 : 24} style={{ color: '#635bff' }} />
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, width: '100%' }}>
           <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
             Saldo Stripe
           </div>
-          <div style={{ display: 'flex', gap: '32px' }}>
+          <div style={{ display: 'flex', gap: isMobile ? '24px' : '32px', flexWrap: 'wrap' }}>
             <div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#22c55e' }}>
+              <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 700, color: '#22c55e' }}>
                 {formatCurrency(stats?.balance.available || 0)}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Disponivel para saque</div>
             </div>
             <div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#f59e0b' }}>
+              <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 700, color: '#f59e0b' }}>
                 {formatCurrency(stats?.balance.pending || 0)}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Pendente</div>
@@ -592,19 +605,19 @@ export default function AdminFinancial() {
       </div>
 
       {/* Metricas principais */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px', marginBottom: '24px' }}>
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#22c55e')}>
-            <DollarSign size={24} style={{ color: '#22c55e' }} />
+            <DollarSign size={isMobile ? 20 : 24} style={{ color: '#22c55e' }} />
           </div>
           <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
               MRR
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: isMobile ? '18px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {formatCurrency(stats?.mrr || 0)}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
               Receita recorrente mensal
             </div>
           </div>
@@ -612,24 +625,24 @@ export default function AdminFinancial() {
 
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#3b82f6')}>
-            <Calendar size={24} style={{ color: '#3b82f6' }} />
+            <Calendar size={isMobile ? 20 : 24} style={{ color: '#3b82f6' }} />
           </div>
           <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
               Receita do Mes
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: isMobile ? '18px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {formatCurrency(stats?.revenueThisMonth || 0)}
             </div>
             <div style={{
-              fontSize: '12px',
+              fontSize: isMobile ? '10px' : '12px',
               color: (stats?.revenueGrowth || 0) >= 0 ? '#22c55e' : '#ef4444',
               marginTop: '4px',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
             }}>
-              {(stats?.revenueGrowth || 0) >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+              {(stats?.revenueGrowth || 0) >= 0 ? <TrendingUp size={isMobile ? 12 : 14} /> : <TrendingDown size={isMobile ? 12 : 14} />}
               {(stats?.revenueGrowth || 0).toFixed(1)}% vs mes anterior
             </div>
           </div>
@@ -637,16 +650,16 @@ export default function AdminFinancial() {
 
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#8b5cf6')}>
-            <Users size={24} style={{ color: '#8b5cf6' }} />
+            <Users size={isMobile ? 20 : 24} style={{ color: '#8b5cf6' }} />
           </div>
           <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
               Assinaturas Ativas
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: isMobile ? '18px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {stats?.activeSubscriptions || 0}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
               {stats?.totalCustomers || 0} clientes no total
             </div>
           </div>
@@ -654,16 +667,16 @@ export default function AdminFinancial() {
 
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#f59e0b')}>
-            <Receipt size={24} style={{ color: '#f59e0b' }} />
+            <Receipt size={isMobile ? 20 : 24} style={{ color: '#f59e0b' }} />
           </div>
           <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
               Ticket Medio
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: isMobile ? '18px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {formatCurrency(stats?.averageTicket || 0)}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
               por transacao
             </div>
           </div>
@@ -671,19 +684,19 @@ export default function AdminFinancial() {
       </div>
 
       {/* Segunda linha de metricas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px', marginBottom: '24px' }}>
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#3b82f6')}>
-            <TrendingUp size={24} style={{ color: '#3b82f6' }} />
+            <TrendingUp size={isMobile ? 20 : 24} style={{ color: '#3b82f6' }} />
           </div>
           <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
               ARR
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: isMobile ? '18px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {formatCurrency(stats?.arr || 0)}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
               Receita recorrente anual
             </div>
           </div>
@@ -691,16 +704,16 @@ export default function AdminFinancial() {
 
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#ef4444')}>
-            <ArrowDownRight size={24} style={{ color: '#ef4444' }} />
+            <ArrowDownRight size={isMobile ? 20 : 24} style={{ color: '#ef4444' }} />
           </div>
           <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
               Churn Rate
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: isMobile ? '18px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {(stats?.churnRate || 0).toFixed(1)}%
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
               taxa de cancelamento
             </div>
           </div>
@@ -708,20 +721,20 @@ export default function AdminFinancial() {
 
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#22c55e')}>
-            <ArrowUpRight size={24} style={{ color: '#22c55e' }} />
+            <ArrowUpRight size={isMobile ? 20 : 24} style={{ color: '#22c55e' }} />
           </div>
           <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
               Assinaturas por Status
             </div>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
-              <span style={{ ...getStatusBadge('active'), fontSize: '12px' }}>
+            <div style={{ display: 'flex', gap: isMobile ? '6px' : '12px', marginTop: '8px', flexWrap: 'wrap' }}>
+              <span style={{ ...getStatusBadge('active'), fontSize: isMobile ? '10px' : '12px' }}>
                 {stats?.subscriptionsByStatus.active || 0} ativos
               </span>
-              <span style={{ ...getStatusBadge('past_due'), fontSize: '12px' }}>
+              <span style={{ ...getStatusBadge('past_due'), fontSize: isMobile ? '10px' : '12px' }}>
                 {stats?.subscriptionsByStatus.past_due || 0} atrasados
               </span>
-              <span style={{ ...getStatusBadge('trialing'), fontSize: '12px' }}>
+              <span style={{ ...getStatusBadge('trialing'), fontSize: isMobile ? '10px' : '12px' }}>
                 {stats?.subscriptionsByStatus.trialing || 0} trial
               </span>
             </div>
@@ -730,16 +743,16 @@ export default function AdminFinancial() {
 
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#6b7280')}>
-            <CreditCard size={24} style={{ color: '#6b7280' }} />
+            <CreditCard size={isMobile ? 20 : 24} style={{ color: '#6b7280' }} />
           </div>
           <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
               Mes Anterior
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: isMobile ? '18px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {formatCurrency(stats?.revenueLastMonth || 0)}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
               receita total
             </div>
           </div>
@@ -747,27 +760,27 @@ export default function AdminFinancial() {
       </div>
 
       {/* Grafico de receita e tabelas */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
         {/* Grafico de receita mensal */}
         <div style={cardStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-            <BarChart3 size={20} style={{ color: 'var(--accent)' }} />
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <BarChart3 size={isMobile ? 18 : 20} style={{ color: 'var(--accent)' }} />
+            <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
               Receita Mensal
             </h2>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '200px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: isMobile ? '4px' : '8px', height: isMobile ? '160px' : '200px', overflowX: isMobile ? 'auto' : 'visible' }}>
             {stats?.monthlyRevenue.map((item, index) => (
-              <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div key={index} style={{ flex: isMobile ? '0 0 auto' : 1, minWidth: isMobile ? '40px' : 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{
                   width: '100%',
                   backgroundColor: index === (stats?.monthlyRevenue?.length ?? 0) - 1 ? 'var(--accent)' : 'rgba(70, 114, 236, 0.3)',
                   borderRadius: '6px 6px 0 0',
-                  height: `${Math.max((item.revenue / maxRevenue) * 160, 4)}px`,
+                  height: `${Math.max((item.revenue / maxRevenue) * (isMobile ? 120 : 160), 4)}px`,
                   transition: 'height 0.3s ease',
                 }} />
                 <div style={{
-                  fontSize: '10px',
+                  fontSize: isMobile ? '9px' : '10px',
                   color: 'var(--text-secondary)',
                   marginTop: '8px',
                   textTransform: 'capitalize',
@@ -775,7 +788,7 @@ export default function AdminFinancial() {
                   {item.month}
                 </div>
                 <div style={{
-                  fontSize: '11px',
+                  fontSize: isMobile ? '9px' : '11px',
                   color: 'var(--text-primary)',
                   fontWeight: 600,
                 }}>
@@ -789,8 +802,8 @@ export default function AdminFinancial() {
         {/* Pagamentos recentes */}
         <div style={cardStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-            <CreditCard size={20} style={{ color: '#22c55e' }} />
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <CreditCard size={isMobile ? 18 : 20} style={{ color: '#22c55e' }} />
+            <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
               Pagamentos Recentes
             </h2>
           </div>
@@ -838,44 +851,44 @@ export default function AdminFinancial() {
       {/* Faturas recentes */}
       <div style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-          <Receipt size={20} style={{ color: '#f59e0b' }} />
-          <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <Receipt size={isMobile ? 18 : 20} style={{ color: '#f59e0b' }} />
+          <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
             Faturas Recentes
           </h2>
         </div>
         {stats?.recentInvoices && stats.recentInvoices.length > 0 ? (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700 }}>
-                <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Fatura</th>
-                <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Cliente</th>
-                <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Valor</th>
-                <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Status</th>
-                <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Data</th>
-                <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}></th>
-              </tr>
-            </thead>
-            <tbody>
+          isMobile ? (
+            /* Mobile: Card Layout */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {stats.recentInvoices.map((invoice) => (
-                <tr key={invoice.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
-                    {invoice.number || invoice.id.slice(-8)}
-                  </td>
-                  <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-primary)' }}>
-                    {invoice.customer_name || invoice.customer_email || 'N/A'}
-                  </td>
-                  <td style={{ padding: '12px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {formatCurrency(invoice.amount_due)}
-                  </td>
-                  <td style={{ padding: '12px' }}>
+                <div key={invoice.id} style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  borderRadius: '10px',
+                  padding: '12px',
+                  border: '1px solid var(--border-color)',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--text-primary)', fontWeight: 600 }}>
+                        {invoice.number || invoice.id.slice(-8)}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        {invoice.customer_name || invoice.customer_email || 'N/A'}
+                      </div>
+                    </div>
                     <span style={getStatusBadge(invoice.status || 'draft')}>
                       {getStatusLabel(invoice.status || 'draft')}
                     </span>
-                  </td>
-                  <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    {formatDateShort(invoice.created)}
-                  </td>
-                  <td style={{ padding: '12px' }}>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {formatCurrency(invoice.amount_due)}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        {formatDateShort(invoice.created)}
+                      </div>
+                    </div>
                     {invoice.hosted_invoice_url && (
                       <a
                         href={invoice.hosted_invoice_url}
@@ -884,7 +897,7 @@ export default function AdminFinancial() {
                         style={{
                           padding: '6px 10px',
                           borderRadius: '6px',
-                          backgroundColor: 'var(--bg-primary)',
+                          backgroundColor: 'var(--bg-card)',
                           color: 'var(--accent)',
                           textDecoration: 'none',
                           fontSize: '12px',
@@ -896,11 +909,70 @@ export default function AdminFinancial() {
                         Ver <ExternalLink size={12} />
                       </a>
                     )}
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          ) : (
+            /* Desktop: Table Layout */
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700 }}>
+                  <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Fatura</th>
+                  <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Cliente</th>
+                  <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Valor</th>
+                  <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Status</th>
+                  <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Data</th>
+                  <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.recentInvoices.map((invoice) => (
+                  <tr key={invoice.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                      {invoice.number || invoice.id.slice(-8)}
+                    </td>
+                    <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-primary)' }}>
+                      {invoice.customer_name || invoice.customer_email || 'N/A'}
+                    </td>
+                    <td style={{ padding: '12px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {formatCurrency(invoice.amount_due)}
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      <span style={getStatusBadge(invoice.status || 'draft')}>
+                        {getStatusLabel(invoice.status || 'draft')}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      {formatDateShort(invoice.created)}
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      {invoice.hosted_invoice_url && (
+                        <a
+                          href={invoice.hosted_invoice_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--accent)',
+                            textDecoration: 'none',
+                            fontSize: '12px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          Ver <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
         ) : (
           <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
             Nenhuma fatura registrada

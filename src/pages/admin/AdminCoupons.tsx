@@ -2,6 +2,18 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { Plus, Edit2, Trash2, Tag, Percent, DollarSign, Calendar, RefreshCw, Check } from 'lucide-react'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isMobile
+}
+
 interface Coupon {
   id: string
   code: string
@@ -22,6 +34,7 @@ interface Coupon {
 }
 
 export default function AdminCoupons() {
+  const isMobile = useIsMobile()
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -246,7 +259,7 @@ export default function AdminCoupons() {
   const cardStyle = {
     backgroundColor: 'var(--bg-card)',
     borderRadius: '16px',
-    padding: '24px',
+    padding: isMobile ? '16px' : '24px',
     border: '1px solid var(--border-color)',
   }
 
@@ -286,12 +299,12 @@ export default function AdminCoupons() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: isMobile ? '24px' : '32px', gap: isMobile ? '16px' : '0' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
             Cupons
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: isMobile ? '14px' : '15px' }}>
             Gerencie cupons de desconto
           </p>
         </div>
@@ -307,7 +320,9 @@ export default function AdminCoupons() {
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '8px',
+            width: isMobile ? '100%' : 'auto',
           }}
         >
           <Plus size={18} />
@@ -316,21 +331,17 @@ export default function AdminCoupons() {
       </div>
 
       <div style={cardStyle}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700 }}>
-              <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Cupom</th>
-              <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Desconto</th>
-              <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Usos</th>
-              <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Validade</th>
-              <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Status</th>
-              <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}></th>
-            </tr>
-          </thead>
-          <tbody>
+        {isMobile ? (
+          /* Mobile: Card Layout */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {coupons.map((coupon) => (
-              <tr key={coupon.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <td style={{ padding: '16px' }}>
+              <div key={coupon.id} style={{
+                backgroundColor: 'var(--bg-primary)',
+                borderRadius: '12px',
+                padding: '16px',
+                border: '1px solid var(--border-color)',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
                       width: '40px',
@@ -352,160 +363,344 @@ export default function AdminCoupons() {
                       }}>
                         {coupon.code}
                       </div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                         {coupon.description || 'Sem descricao'}
                       </div>
                     </div>
                   </div>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {coupon.discount_type === 'percentage' ? (
-                      <>
-                        <Percent size={14} style={{ color: '#22c55e' }} />
-                        <span style={{ fontWeight: 600, color: '#22c55e' }}>{coupon.discount_value}%</span>
-                      </>
-                    ) : (
-                      <>
-                        <DollarSign size={14} style={{ color: '#22c55e' }} />
-                        <span style={{ fontWeight: 600, color: '#22c55e' }}>R$ {coupon.discount_value.toFixed(2)}</span>
-                      </>
-                    )}
-                  </div>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <span style={{ color: 'var(--text-primary)' }}>
-                    {coupon.usage_count} / {coupon.usage_limit || '∞'}
+                  <span style={{
+                    padding: '4px 10px',
+                    borderRadius: '999px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    backgroundColor: coupon.is_active && !isExpired(coupon.valid_until)
+                      ? 'rgba(34, 197, 94, 0.16)'
+                      : 'rgba(107, 114, 128, 0.16)',
+                    color: coupon.is_active && !isExpired(coupon.valid_until) ? '#22c55e' : '#6b7280',
+                  }}>
+                    {isExpired(coupon.valid_until) ? 'Expirado' : coupon.is_active ? 'Ativo' : 'Inativo'}
                   </span>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                    <Calendar size={14} />
-                    {coupon.valid_until ? (
-                      <span style={{ color: isExpired(coupon.valid_until) ? '#ef4444' : 'var(--text-secondary)' }}>
-                        {formatDate(coupon.valid_until)}
-                      </span>
-                    ) : (
-                      <span>Sem validade</span>
-                    )}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '2px' }}>Desconto</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {coupon.discount_type === 'percentage' ? (
+                        <>
+                          <Percent size={14} style={{ color: '#22c55e' }} />
+                          <span style={{ fontWeight: 600, color: '#22c55e' }}>{coupon.discount_value}%</span>
+                        </>
+                      ) : (
+                        <>
+                          <DollarSign size={14} style={{ color: '#22c55e' }} />
+                          <span style={{ fontWeight: 600, color: '#22c55e' }}>R$ {coupon.discount_value.toFixed(2)}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span style={{
-                      padding: '4px 10px',
-                      borderRadius: '999px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      backgroundColor: coupon.is_active && !isExpired(coupon.valid_until)
-                        ? 'rgba(34, 197, 94, 0.16)'
-                        : 'rgba(107, 114, 128, 0.16)',
-                      color: coupon.is_active && !isExpired(coupon.valid_until) ? '#22c55e' : '#6b7280',
-                      display: 'inline-block',
-                      width: 'fit-content',
-                    }}>
-                      {isExpired(coupon.valid_until) ? 'Expirado' : coupon.is_active ? 'Ativo' : 'Inativo'}
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '2px' }}>Usos</div>
+                    <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: '14px' }}>
+                      {coupon.usage_count} / {coupon.usage_limit || '∞'}
                     </span>
-                    {!coupon.stripe_coupon_id && (
-                      <span style={{
-                        fontSize: '11px',
-                        color: '#f59e0b',
-                      }}>
-                        Sem Stripe ID
-                      </span>
-                    )}
                   </div>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {!coupon.stripe_coupon_id && (
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '12px' }}>
+                  <Calendar size={14} />
+                  {coupon.valid_until ? (
+                    <span style={{ color: isExpired(coupon.valid_until) ? '#ef4444' : 'var(--text-secondary)' }}>
+                      Valido ate {formatDate(coupon.valid_until)}
+                    </span>
+                  ) : (
+                    <span>Sem validade</span>
+                  )}
+                  {!coupon.stripe_coupon_id && (
+                    <span style={{ fontSize: '11px', color: '#f59e0b', marginLeft: 'auto' }}>
+                      Sem Stripe ID
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {!coupon.stripe_coupon_id && (
+                    <button
+                      onClick={async () => {
+                        setSyncing(true)
+                        try {
+                          await syncCouponWithStripe(coupon.id, 'create')
+                          loadCoupons()
+                        } catch (err) {
+                          console.error('Erro ao sincronizar:', err)
+                        } finally {
+                          setSyncing(false)
+                        }
+                      }}
+                      disabled={syncing}
+                      title="Sincronizar com Stripe"
+                      style={{
+                        padding: '8px',
+                        borderRadius: '8px',
+                        border: '1px solid #f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        color: '#f59e0b',
+                        cursor: syncing ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <RefreshCw size={14} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleToggleActive(coupon.id, coupon.is_active)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'transparent',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                    }}
+                  >
+                    {coupon.is_active ? 'Desativar' : 'Ativar'}
+                  </button>
+                  <button
+                    onClick={() => handleOpenModal(coupon)}
+                    style={{
+                      padding: '8px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'transparent',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCoupon(coupon.id)}
+                    disabled={deleting === coupon.id}
+                    style={{
+                      padding: '8px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: deleting === coupon.id ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+                      color: '#ef4444',
+                      cursor: deleting === coupon.id ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: deleting === coupon.id ? 0.7 : 1,
+                    }}
+                  >
+                    {deleting === coupon.id ? (
+                      <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                    ) : (
+                      <Trash2 size={14} />
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Desktop: Table Layout */
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700 }}>
+                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Cupom</th>
+                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Desconto</th>
+                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Usos</th>
+                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Validade</th>
+                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Status</th>
+                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {coupons.map((coupon) => (
+                <tr key={coupon.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Tag size={18} style={{ color: '#f59e0b' }} />
+                      </div>
+                      <div>
+                        <div style={{
+                          fontWeight: 700,
+                          color: 'var(--text-primary)',
+                          fontFamily: 'monospace',
+                          fontSize: '15px',
+                        }}>
+                          {coupon.code}
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                          {coupon.description || 'Sem descricao'}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {coupon.discount_type === 'percentage' ? (
+                        <>
+                          <Percent size={14} style={{ color: '#22c55e' }} />
+                          <span style={{ fontWeight: 600, color: '#22c55e' }}>{coupon.discount_value}%</span>
+                        </>
+                      ) : (
+                        <>
+                          <DollarSign size={14} style={{ color: '#22c55e' }} />
+                          <span style={{ fontWeight: 600, color: '#22c55e' }}>R$ {coupon.discount_value.toFixed(2)}</span>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{ color: 'var(--text-primary)' }}>
+                      {coupon.usage_count} / {coupon.usage_limit || '∞'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                      <Calendar size={14} />
+                      {coupon.valid_until ? (
+                        <span style={{ color: isExpired(coupon.valid_until) ? '#ef4444' : 'var(--text-secondary)' }}>
+                          {formatDate(coupon.valid_until)}
+                        </span>
+                      ) : (
+                        <span>Sem validade</span>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{
+                        padding: '4px 10px',
+                        borderRadius: '999px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        backgroundColor: coupon.is_active && !isExpired(coupon.valid_until)
+                          ? 'rgba(34, 197, 94, 0.16)'
+                          : 'rgba(107, 114, 128, 0.16)',
+                        color: coupon.is_active && !isExpired(coupon.valid_until) ? '#22c55e' : '#6b7280',
+                        display: 'inline-block',
+                        width: 'fit-content',
+                      }}>
+                        {isExpired(coupon.valid_until) ? 'Expirado' : coupon.is_active ? 'Ativo' : 'Inativo'}
+                      </span>
+                      {!coupon.stripe_coupon_id && (
+                        <span style={{
+                          fontSize: '11px',
+                          color: '#f59e0b',
+                        }}>
+                          Sem Stripe ID
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {!coupon.stripe_coupon_id && (
+                        <button
+                          onClick={async () => {
+                            setSyncing(true)
+                            try {
+                              await syncCouponWithStripe(coupon.id, 'create')
+                              loadCoupons()
+                            } catch (err) {
+                              console.error('Erro ao sincronizar:', err)
+                            } finally {
+                              setSyncing(false)
+                            }
+                          }}
+                          disabled={syncing}
+                          title="Sincronizar com Stripe"
+                          style={{
+                            padding: '8px',
+                            borderRadius: '8px',
+                            border: '1px solid #f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            color: '#f59e0b',
+                            cursor: syncing ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <RefreshCw size={14} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
+                        </button>
+                      )}
                       <button
-                        onClick={async () => {
-                          setSyncing(true)
-                          try {
-                            await syncCouponWithStripe(coupon.id, 'create')
-                            loadCoupons()
-                          } catch (err) {
-                            console.error('Erro ao sincronizar:', err)
-                          } finally {
-                            setSyncing(false)
-                          }
+                        onClick={() => handleToggleActive(coupon.id, coupon.is_active)}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'transparent',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontSize: '12px',
                         }}
-                        disabled={syncing}
-                        title="Sincronizar com Stripe"
+                      >
+                        {coupon.is_active ? 'Desativar' : 'Ativar'}
+                      </button>
+                      <button
+                        onClick={() => handleOpenModal(coupon)}
                         style={{
                           padding: '8px',
                           borderRadius: '8px',
-                          border: '1px solid #f59e0b',
-                          backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                          color: '#f59e0b',
-                          cursor: syncing ? 'not-allowed' : 'pointer',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'transparent',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
                       >
-                        <RefreshCw size={14} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
+                        <Edit2 size={14} />
                       </button>
-                    )}
-                    <button
-                      onClick={() => handleToggleActive(coupon.id, coupon.is_active)}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'transparent',
-                        color: 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                      }}
-                    >
-                      {coupon.is_active ? 'Desativar' : 'Ativar'}
-                    </button>
-                    <button
-                      onClick={() => handleOpenModal(coupon)}
-                      style={{
-                        padding: '8px',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'transparent',
-                        color: 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCoupon(coupon.id)}
-                      disabled={deleting === coupon.id}
-                      style={{
-                        padding: '8px',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: deleting === coupon.id ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
-                        color: '#ef4444',
-                        cursor: deleting === coupon.id ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: deleting === coupon.id ? 0.7 : 1,
-                      }}
-                    >
-                      {deleting === coupon.id ? (
-                        <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                      ) : (
-                        <Trash2 size={14} />
-                      )}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      <button
+                        onClick={() => handleDeleteCoupon(coupon.id)}
+                        disabled={deleting === coupon.id}
+                        style={{
+                          padding: '8px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: deleting === coupon.id ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+                          color: '#ef4444',
+                          cursor: deleting === coupon.id ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: deleting === coupon.id ? 0.7 : 1,
+                        }}
+                      >
+                        {deleting === coupon.id ? (
+                          <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                        ) : (
+                          <Trash2 size={14} />
+                        )}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
 
         {coupons.length === 0 && (
           <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
@@ -567,7 +762,7 @@ export default function AdminCoupons() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={labelStyle}>Tipo de Desconto</label>
                   <select
@@ -591,7 +786,7 @@ export default function AdminCoupons() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={labelStyle}>Limite de Usos (total)</label>
                   <input
@@ -613,7 +808,7 @@ export default function AdminCoupons() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={labelStyle}>Valido a partir de</label>
                   <input
@@ -675,7 +870,7 @@ export default function AdminCoupons() {
               </span>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginTop: '16px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', gap: '12px', marginTop: '16px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowModal(false)}
                 disabled={saving}
@@ -688,6 +883,7 @@ export default function AdminCoupons() {
                   fontWeight: 600,
                   cursor: saving ? 'not-allowed' : 'pointer',
                   opacity: saving ? 0.5 : 1,
+                  width: isMobile ? '100%' : 'auto',
                 }}
               >
                 Cancelar
@@ -706,7 +902,9 @@ export default function AdminCoupons() {
                   opacity: saving || !formData.code.trim() ? 0.7 : 1,
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '8px',
+                  width: isMobile ? '100%' : 'auto',
                 }}
               >
                 {saving ? (

@@ -3,6 +3,18 @@ import { supabase } from '../../lib/supabase'
 import { useAdmin } from '../../context/AdminContext'
 import { Search, Plus, Trash2, Shield, ShieldCheck } from 'lucide-react'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isMobile
+}
+
 interface Administrator {
   id: string
   email: string
@@ -14,6 +26,7 @@ interface Administrator {
 }
 
 export default function AdminAdministrators() {
+  const isMobile = useIsMobile()
   const { admin: currentAdmin, isSuperAdmin } = useAdmin()
   const [admins, setAdmins] = useState<Administrator[]>([])
   const [loading, setLoading] = useState(true)
@@ -135,7 +148,7 @@ export default function AdminAdministrators() {
   const cardStyle = {
     backgroundColor: 'var(--bg-card)',
     borderRadius: '16px',
-    padding: '24px',
+    padding: isMobile ? '16px' : '24px',
     border: '1px solid var(--border-color)',
   }
 
@@ -175,16 +188,16 @@ export default function AdminAdministrators() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: isMobile ? '24px' : '32px', gap: isMobile ? '16px' : '0' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
             Administradores
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: isMobile ? '14px' : '15px' }}>
             Gerencie os administradores do sistema
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: '12px' }}>
           <div style={{ position: 'relative' }}>
             <Search
               size={18}
@@ -204,7 +217,7 @@ export default function AdminAdministrators() {
               style={{
                 ...inputStyle,
                 paddingLeft: '40px',
-                width: '240px',
+                width: isMobile ? '100%' : '240px',
               }}
             />
           </div>
@@ -226,7 +239,9 @@ export default function AdminAdministrators() {
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '8px',
+                width: isMobile ? '100%' : 'auto',
               }}
             >
               <Plus size={18} />
@@ -237,20 +252,17 @@ export default function AdminAdministrators() {
       </div>
 
       <div style={cardStyle}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700 }}>
-              <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Administrador</th>
-              <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Funcao</th>
-              <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Status</th>
-              <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Ultimo Login</th>
-              <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}></th>
-            </tr>
-          </thead>
-          <tbody>
+        {isMobile ? (
+          /* Mobile: Card Layout */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {filteredAdmins.map((admin) => (
-              <tr key={admin.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <td style={{ padding: '16px' }}>
+              <div key={admin.id} style={{
+                backgroundColor: 'var(--bg-primary)',
+                borderRadius: '12px',
+                padding: '16px',
+                border: '1px solid var(--border-color)',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
                       width: '40px',
@@ -268,60 +280,58 @@ export default function AdminAdministrators() {
                       )}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>
                         {admin.name}
                         {admin.id === currentAdmin?.id && (
-                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '8px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '6px' }}>
                             (voce)
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                         {admin.email}
                       </div>
                     </div>
                   </div>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <span style={{
-                    padding: '4px 12px',
-                    borderRadius: '6px',
-                    backgroundColor: admin.role === 'super_admin' ? 'rgba(70, 114, 236, 0.15)' : 'rgba(139, 92, 246, 0.1)',
-                    color: admin.role === 'super_admin' ? 'var(--accent)' : '#8b5cf6',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                  }}>
-                    {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
-                  </span>
-                </td>
-                <td style={{ padding: '16px' }}>
                   <span style={{
                     padding: '4px 10px',
                     borderRadius: '999px',
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fontWeight: 600,
                     backgroundColor: admin.is_active ? 'rgba(34, 197, 94, 0.16)' : 'rgba(107, 114, 128, 0.16)',
                     color: admin.is_active ? '#22c55e' : '#6b7280',
                   }}>
                     {admin.is_active ? 'Ativo' : 'Inativo'}
                   </span>
-                </td>
-                <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                  {admin.last_login_at ? formatDate(admin.last_login_at) : 'Nunca'}
-                </td>
-                <td style={{ padding: '16px' }}>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      backgroundColor: admin.role === 'super_admin' ? 'rgba(70, 114, 236, 0.15)' : 'rgba(139, 92, 246, 0.1)',
+                      color: admin.role === 'super_admin' ? 'var(--accent)' : '#8b5cf6',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                    }}>
+                      {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                      {admin.last_login_at ? formatDate(admin.last_login_at) : 'Nunca logou'}
+                    </span>
+                  </div>
                   {isSuperAdmin && admin.id !== currentAdmin?.id && (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
                         onClick={() => handleToggleActive(admin.id, admin.is_active)}
                         style={{
-                          padding: '8px 12px',
+                          padding: '6px 12px',
                           borderRadius: '8px',
                           border: '1px solid var(--border-color)',
                           backgroundColor: 'transparent',
                           color: 'var(--text-secondary)',
                           cursor: 'pointer',
-                          fontSize: '12px',
+                          fontSize: '11px',
                         }}
                       >
                         {admin.is_active ? 'Desativar' : 'Ativar'}
@@ -329,26 +339,140 @@ export default function AdminAdministrators() {
                       <button
                         onClick={() => handleDeleteAdmin(admin.id)}
                         style={{
-                          padding: '8px',
+                          padding: '6px',
                           borderRadius: '8px',
                           border: '1px solid var(--border-color)',
                           backgroundColor: 'transparent',
-                          color: 'var(--text-secondary)',
+                          color: '#ef4444',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   )}
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        ) : (
+          /* Desktop: Table Layout */
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700 }}>
+                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Administrador</th>
+                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Funcao</th>
+                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Status</th>
+                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Ultimo Login</th>
+                <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAdmins.map((admin) => (
+                <tr key={admin.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        backgroundColor: admin.role === 'super_admin' ? 'rgba(70, 114, 236, 0.15)' : 'rgba(139, 92, 246, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        {admin.role === 'super_admin' ? (
+                          <ShieldCheck size={18} style={{ color: 'var(--accent)' }} />
+                        ) : (
+                          <Shield size={18} style={{ color: '#8b5cf6' }} />
+                        )}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {admin.name}
+                          {admin.id === currentAdmin?.id && (
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '8px' }}>
+                              (voce)
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                          {admin.email}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      backgroundColor: admin.role === 'super_admin' ? 'rgba(70, 114, 236, 0.15)' : 'rgba(139, 92, 246, 0.1)',
+                      color: admin.role === 'super_admin' ? 'var(--accent)' : '#8b5cf6',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                    }}>
+                      {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{
+                      padding: '4px 10px',
+                      borderRadius: '999px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      backgroundColor: admin.is_active ? 'rgba(34, 197, 94, 0.16)' : 'rgba(107, 114, 128, 0.16)',
+                      color: admin.is_active ? '#22c55e' : '#6b7280',
+                    }}>
+                      {admin.is_active ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                    {admin.last_login_at ? formatDate(admin.last_login_at) : 'Nunca'}
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    {isSuperAdmin && admin.id !== currentAdmin?.id && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => handleToggleActive(admin.id, admin.is_active)}
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'transparent',
+                            color: 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                          }}
+                        >
+                          {admin.is_active ? 'Desativar' : 'Ativar'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAdmin(admin.id)}
+                          style={{
+                            padding: '8px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'transparent',
+                            color: 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Modal de Criacao */}
@@ -441,7 +565,7 @@ export default function AdminAdministrators() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowModal(false)}
                 style={{
@@ -452,6 +576,7 @@ export default function AdminAdministrators() {
                   color: 'var(--text-primary)',
                   fontWeight: 600,
                   cursor: 'pointer',
+                  width: isMobile ? '100%' : 'auto',
                 }}
               >
                 Cancelar
@@ -466,6 +591,7 @@ export default function AdminAdministrators() {
                   color: '#fff',
                   fontWeight: 600,
                   cursor: 'pointer',
+                  width: isMobile ? '100%' : 'auto',
                 }}
               >
                 Criar Admin

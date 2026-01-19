@@ -61,7 +61,7 @@ export default function AdminLogin() {
           maxWidth: '400px',
           backgroundColor: 'var(--bg-card)',
           borderRadius: '16px',
-          padding: '40px',
+          padding: '24px',
           boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
         }}
       >

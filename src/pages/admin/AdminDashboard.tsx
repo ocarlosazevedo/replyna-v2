@@ -21,6 +21,18 @@ import {
 } from 'lucide-react'
 import DateRangePicker from '../../components/DateRangePicker'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isMobile
+}
+
 interface DashboardStats {
   totalUsers: number
   activeUsers: number
@@ -103,6 +115,7 @@ export default function AdminDashboard() {
   const [planDistribution, setPlanDistribution] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [range, setRange] = useState<DateRange>(getDefaultRange())
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     loadStats()
@@ -244,7 +257,7 @@ export default function AdminDashboard() {
   const cardStyle = {
     backgroundColor: 'var(--bg-card)',
     borderRadius: '16px',
-    padding: '24px',
+    padding: isMobile ? '16px' : '24px',
     border: '1px solid var(--border-color)',
   }
 
@@ -252,7 +265,7 @@ export default function AdminDashboard() {
     ...cardStyle,
     display: 'flex',
     alignItems: 'flex-start',
-    gap: '16px',
+    gap: '12px',
   }
 
   const iconBoxStyle = (color: string) => ({
@@ -319,18 +332,18 @@ export default function AdminDashboard() {
       <div
         style={{
           display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
           justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: '32px',
-          flexWrap: 'wrap',
+          alignItems: isMobile ? 'stretch' : 'flex-start',
+          marginBottom: isMobile ? '20px' : '32px',
           gap: '16px',
         }}
       >
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
             Painel de Controle
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
             Visao geral de todas as metricas da Replyna
           </p>
         </div>
@@ -338,45 +351,45 @@ export default function AdminDashboard() {
       </div>
 
       {/* Metricas principais - Linha 1 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px', marginBottom: isMobile ? '12px' : '24px' }}>
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#3b82f6')}>
-            <Users size={24} style={{ color: '#3b82f6' }} />
+            <Users size={isMobile ? 20 : 24} style={{ color: '#3b82f6' }} />
           </div>
-          <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Total de Clientes</div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Total de Clientes</div>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {stats?.totalUsers || 0}
             </div>
-            <div style={{ fontSize: '12px', color: '#22c55e', marginTop: '4px' }}>{stats?.activeUsers || 0} ativos</div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: '#22c55e', marginTop: '4px' }}>{stats?.activeUsers || 0} ativos</div>
           </div>
         </div>
 
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#8b5cf6')}>
-            <Store size={24} style={{ color: '#8b5cf6' }} />
+            <Store size={isMobile ? 20 : 24} style={{ color: '#8b5cf6' }} />
           </div>
-          <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Total de Lojas</div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Total de Lojas</div>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {stats?.totalShops || 0}
             </div>
-            <div style={{ fontSize: '12px', color: '#22c55e', marginTop: '4px' }}>{stats?.activeShops || 0} ativas</div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: '#22c55e', marginTop: '4px' }}>{stats?.activeShops || 0} ativas</div>
           </div>
         </div>
 
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#f59e0b')}>
-            <MessageSquare size={24} style={{ color: '#f59e0b' }} />
+            <MessageSquare size={isMobile ? 20 : 24} style={{ color: '#f59e0b' }} />
           </div>
-          <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Conversas no Periodo
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+              Conversas
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {stats?.totalConversations || 0}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
               {stats?.totalMessages || 0} mensagens
             </div>
           </div>
@@ -384,81 +397,81 @@ export default function AdminDashboard() {
 
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#22c55e')}>
-            <CheckCircle size={24} style={{ color: '#22c55e' }} />
+            <CheckCircle size={isMobile ? 20 : 24} style={{ color: '#22c55e' }} />
           </div>
-          <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Taxa de Automacao</div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Taxa Automacao</div>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {stats?.automationRate || 0}%
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              no periodo selecionado
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              no periodo
             </div>
           </div>
         </div>
       </div>
 
       {/* Metricas secundarias - Linha 2 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px', marginBottom: isMobile ? '12px' : '24px' }}>
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#10b981')}>
-            <UserPlus size={24} style={{ color: '#10b981' }} />
+            <UserPlus size={isMobile ? 20 : 24} style={{ color: '#10b981' }} />
           </div>
-          <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Novos Cadastros</div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Novos Cadastros</div>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {stats?.newUsersInPeriod || 0}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>no periodo</div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>no periodo</div>
           </div>
         </div>
 
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#06b6d4')}>
-            <Mail size={24} style={{ color: '#06b6d4' }} />
+            <Mail size={isMobile ? 20 : 24} style={{ color: '#06b6d4' }} />
           </div>
-          <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
               Emails Recebidos
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {stats?.emailsProcessed || 0}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>no periodo</div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>no periodo</div>
           </div>
         </div>
 
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#ef4444')}>
-            <AlertTriangle size={24} style={{ color: '#ef4444' }} />
+            <AlertTriangle size={isMobile ? 20 : 24} style={{ color: '#ef4444' }} />
           </div>
-          <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Clientes no Limite</div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>No Limite</div>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {stats?.usersAtLimit || 0}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>sem creditos</div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>sem creditos</div>
           </div>
         </div>
 
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#a855f7')}>
-            <TrendingUp size={24} style={{ color: '#a855f7' }} />
+            <TrendingUp size={isMobile ? 20 : 24} style={{ color: '#a855f7' }} />
           </div>
-          <div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Media Emails/Cliente
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+              Media/Cliente
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {stats?.totalUsers ? Math.round((stats?.emailsProcessed || 0) / stats.totalUsers) : 0}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>no periodo</div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>no periodo</div>
           </div>
         </div>
       </div>
 
       {/* Grid de 2 colunas - Distribuição por categoria e Distribuição por plano */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '24px', marginBottom: isMobile ? '12px' : '24px' }}>
         {/* Distribuição por categoria */}
         <div style={cardStyle}>
           <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px' }}>

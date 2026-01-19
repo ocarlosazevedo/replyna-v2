@@ -4,6 +4,18 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { ChevronLeft, Eye, EyeOff, Save, Store, ShoppingBag, Mail, Settings, Check, X, Edit3 } from 'lucide-react'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isMobile
+}
+
 interface ShopData {
   id: string
   name: string
@@ -41,6 +53,7 @@ export default function ShopDetails() {
   useAuth() // Ensures user is authenticated
   const navigate = useNavigate()
   const { shopId } = useParams()
+  const isMobile = useIsMobile()
 
   const [shop, setShop] = useState<ShopData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -202,15 +215,17 @@ export default function ShopDetails() {
     backgroundColor: 'var(--bg-card)',
     borderRadius: '16px',
     border: '1px solid var(--border-color)',
-    padding: '24px',
-    marginBottom: '24px',
+    padding: isMobile ? '16px' : '24px',
+    marginBottom: '20px',
   }
 
   const sectionHeaderStyle = {
     display: 'flex',
+    flexDirection: isMobile ? 'column' as const : 'row' as const,
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: isMobile ? 'flex-start' : 'center',
     marginBottom: '20px',
+    gap: isMobile ? '12px' : '0',
   }
 
   const sectionTitleStyle = {
@@ -310,7 +325,7 @@ export default function ShopDetails() {
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
+      <div style={{ marginBottom: isMobile ? '20px' : '32px' }}>
         <button
           onClick={() => navigate('/shops')}
           style={{
@@ -322,7 +337,7 @@ export default function ShopDetails() {
             border: 'none',
             cursor: 'pointer',
             fontSize: '14px',
-            marginBottom: '16px',
+            marginBottom: '12px',
             padding: 0,
           }}
         >
@@ -330,12 +345,12 @@ export default function ShopDetails() {
           Voltar para Minhas Lojas
         </button>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '12px' : '0' }}>
           <div>
-            <h1 style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>
+            <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>
               {shop.name}
             </h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
               Gerencie as configurações da sua loja
             </p>
           </div>
@@ -408,7 +423,7 @@ export default function ShopDetails() {
           )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
           <div>
             <label style={labelStyle}>Nome da loja</label>
             {editingSection === 'basic' ? (
@@ -435,7 +450,7 @@ export default function ShopDetails() {
               <div style={valueStyle}>{shop.attendant_name || '-'}</div>
             )}
           </div>
-          <div style={{ gridColumn: '1 / -1' }}>
+          <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
             <label style={labelStyle}>Email para escalonamento humano</label>
             {editingSection === 'basic' ? (
               <input
@@ -535,7 +550,7 @@ export default function ShopDetails() {
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
             <div>
               <label style={labelStyle}>Store Domain</label>
               <div style={valueStyle}>{shop.shopify_domain || '-'}</div>
@@ -581,7 +596,7 @@ export default function ShopDetails() {
 
         {editingSection === 'email' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Usuário do email</label>
                 <input
@@ -625,7 +640,7 @@ export default function ShopDetails() {
                 </div>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 120px', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Host IMAP</label>
                 <input
@@ -645,7 +660,7 @@ export default function ShopDetails() {
                 />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 120px', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Host SMTP</label>
                 <input
@@ -674,7 +689,7 @@ export default function ShopDetails() {
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
             <div>
               <label style={labelStyle}>Usuário</label>
               <div style={valueStyle}>{shop.imap_user || '-'}</div>
@@ -723,7 +738,7 @@ export default function ShopDetails() {
 
         {editingSection === 'custom' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Prazo de entrega</label>
                 <input
@@ -778,7 +793,7 @@ export default function ShopDetails() {
             </div>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
             <div>
               <label style={labelStyle}>Prazo de entrega</label>
               <div style={valueStyle}>{shop.delivery_time || '-'}</div>
@@ -797,7 +812,7 @@ export default function ShopDetails() {
                 {toneOptions.find(t => t.value === shop.tone_of_voice)?.label || 'Profissional'}
               </div>
             </div>
-            <div style={{ gridColumn: '1 / -1' }}>
+            <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
               <label style={labelStyle}>Descrição da loja</label>
               <div style={valueStyle}>{shop.store_description || '-'}</div>
             </div>

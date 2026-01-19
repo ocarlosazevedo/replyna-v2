@@ -28,13 +28,14 @@ export default function CheckoutSuccess() {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'var(--bg-primary)',
+        padding: '20px',
       }}>
         <div style={{
           maxWidth: '400px',
           width: '100%',
           backgroundColor: 'var(--bg-card)',
           borderRadius: '16px',
-          padding: '40px',
+          padding: '32px',
           textAlign: 'center',
           border: '1px solid var(--border-color)',
         }}>
@@ -74,13 +75,14 @@ export default function CheckoutSuccess() {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'var(--bg-primary)',
+      padding: '20px',
     }}>
       <div style={{
         maxWidth: '400px',
         width: '100%',
         backgroundColor: 'var(--bg-card)',
         borderRadius: '16px',
-        padding: '40px',
+        padding: '32px',
         textAlign: 'center',
         border: '1px solid var(--border-color)',
       }}>

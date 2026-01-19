@@ -3,6 +3,18 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isMobile
+}
+
 interface Message {
   id: string
   direction: 'inbound' | 'outbound'
@@ -68,6 +80,7 @@ export default function ConversationDetails() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { conversationId } = useParams<{ conversationId: string }>()
+  const isMobile = useIsMobile()
 
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -213,9 +226,9 @@ export default function ConversationDetails() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: '12px' }}>
         <button
           type="button"
           onClick={() => navigate('/dashboard')}
@@ -235,11 +248,11 @@ export default function ConversationDetails() {
           <span style={{ fontSize: '18px' }}>&larr;</span> Voltar
         </button>
 
-        <div style={{ flex: 1 }}>
-          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 style={{ fontSize: isMobile ? '18px' : '20px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, wordBreak: 'break-word' }}>
             {conversation.subject || 'Sem assunto'}
           </h1>
-          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
             {conversation.customer_name || conversation.customer_email} &bull; {conversation.shops?.[0]?.name}
           </div>
         </div>
@@ -260,13 +273,13 @@ export default function ConversationDetails() {
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
+        <div style={{ padding: isMobile ? '12px 16px' : '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
           <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
             Mensagens ({messages.length})
           </h2>
         </div>
 
-        <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
+        <div style={{ maxHeight: isMobile ? '400px' : '600px', overflowY: 'auto' }}>
           {messages.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
               Nenhuma mensagem nesta conversa
@@ -276,12 +289,12 @@ export default function ConversationDetails() {
               <div
                 key={message.id}
                 style={{
-                  padding: '16px 20px',
+                  padding: isMobile ? '12px 16px' : '16px 20px',
                   borderBottom: '1px solid var(--border-color)',
                   backgroundColor: message.direction === 'outbound' ? 'rgba(59, 130, 246, 0.04)' : 'transparent',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: '8px', gap: isMobile ? '4px' : '0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span
                       style={{

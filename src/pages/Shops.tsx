@@ -4,6 +4,18 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User, Store, Plus } from 'lucide-react'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isMobile
+}
+
 interface Shop {
   id: string
   name: string
@@ -21,6 +33,7 @@ export default function Shops() {
   const navigate = useNavigate()
   const [shops, setShops] = useState<Shop[]>([])
   const [loading, setLoading] = useState(true)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     loadShops()
@@ -91,7 +104,7 @@ export default function Shops() {
   const cardStyle = {
     backgroundColor: 'var(--bg-card)',
     borderRadius: '16px',
-    padding: '24px',
+    padding: isMobile ? '16px' : '24px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
     border: '1px solid var(--border-color)',
   }
@@ -132,16 +145,16 @@ export default function Shops() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: '24px', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>
             Minhas Lojas
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
             Gerencie suas lojas e integrações
           </p>
         </div>
-        <button onClick={() => navigate('/shops/setup')} style={buttonPrimary}>
+        <button onClick={() => navigate('/shops/setup')} style={{ ...buttonPrimary, whiteSpace: 'nowrap', width: isMobile ? '100%' : 'auto' }}>
           + Integrar nova loja
         </button>
       </div>
@@ -186,7 +199,7 @@ export default function Shops() {
           </button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px' }}>
           {shops.map((shop) => {
             const emailStatus = getStatusIcon(shop.mail_status)
             const shopifyStatus = getStatusIcon(shop.shopify_status)

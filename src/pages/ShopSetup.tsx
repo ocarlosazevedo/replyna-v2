@@ -4,6 +4,18 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Check, ChevronLeft, ChevronRight, Store, ShoppingBag, Mail, Settings, Rocket, Eye, EyeOff } from 'lucide-react'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isMobile
+}
+
 interface ShopData {
   // Step 1 - Basic Info
   name: string
@@ -76,6 +88,7 @@ export default function ShopSetup() {
   const { shopId } = useParams()
   const [searchParams] = useSearchParams()
   const isEditing = !!shopId
+  const isMobile = useIsMobile()
 
   const [currentStep, setCurrentStep] = useState(1)
   const [shopData, setShopData] = useState<ShopData>(initialShopData)
@@ -459,8 +472,8 @@ export default function ShopSetup() {
   }
 
   const renderStepIndicator = () => (
-    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: isMobile ? '24px' : '32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '8px' }}>
         {steps.map((step, index) => (
           <div key={step.id} style={{ display: 'flex', alignItems: 'center' }}>
             <button
@@ -470,8 +483,8 @@ export default function ShopSetup() {
                 }
               }}
               style={{
-                width: '44px',
-                height: '44px',
+                width: isMobile ? '36px' : '44px',
+                height: isMobile ? '36px' : '44px',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -484,15 +497,15 @@ export default function ShopSetup() {
               }}
             >
               {currentStep > step.id ? (
-                <Check size={20} />
+                <Check size={isMobile ? 16 : 20} />
               ) : (
-                <step.icon size={20} />
+                <step.icon size={isMobile ? 16 : 20} />
               )}
             </button>
             {index < steps.length - 1 && (
               <div
                 style={{
-                  width: '60px',
+                  width: isMobile ? '20px' : '60px',
                   height: '2px',
                   backgroundColor: currentStep > step.id ? 'var(--accent)' : 'var(--border-color)',
                   margin: '0 4px',
@@ -967,7 +980,7 @@ export default function ShopSetup() {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
         <div>
           <label style={labelStyle}>Tempo de entrega</label>
           <input
@@ -1012,7 +1025,7 @@ export default function ShopSetup() {
 
       <div>
         <label style={labelStyle}>Tom de voz</label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px' }}>
           {toneOptions.map((tone) => (
             <button
               key={tone.value}
@@ -1200,7 +1213,7 @@ export default function ShopSetup() {
   return (
     <div style={{ maxWidth: '720px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
+      <div style={{ marginBottom: isMobile ? '20px' : '32px' }}>
         <button
           onClick={() => navigate('/shops')}
           style={{
@@ -1212,13 +1225,13 @@ export default function ShopSetup() {
             border: 'none',
             cursor: 'pointer',
             fontSize: '14px',
-            marginBottom: '16px',
+            marginBottom: '12px',
           }}
         >
           <ChevronLeft size={18} />
           Voltar para Minhas Lojas
         </button>
-        <h1 style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
+        <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
           {isEditing ? 'Configurar Loja' : 'Integrar Nova Loja'}
         </h1>
       </div>
@@ -1227,7 +1240,7 @@ export default function ShopSetup() {
       {renderStepIndicator()}
 
       {/* Step Content */}
-      <div style={{ ...cardStyle, padding: '32px', marginBottom: '24px' }}>
+      <div style={{ ...cardStyle, padding: isMobile ? '20px' : '32px', marginBottom: '20px' }}>
         {error && (
           <div style={{
             backgroundColor: '#fef2f2',
@@ -1245,7 +1258,7 @@ export default function ShopSetup() {
       </div>
 
       {/* Navigation */}
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile && currentStep === 5 ? 'column' : 'row', justifyContent: 'space-between', gap: isMobile ? '12px' : '0' }}>
         <button
           onClick={handlePrevious}
           disabled={currentStep === 1}
@@ -1253,41 +1266,46 @@ export default function ShopSetup() {
             ...buttonSecondary,
             opacity: currentStep === 1 ? 0.5 : 1,
             cursor: currentStep === 1 ? 'not-allowed' : 'pointer',
+            order: isMobile && currentStep === 5 ? 3 : 0,
           }}
         >
           <ChevronLeft size={18} />
           Anterior
         </button>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '12px' }}>
           {currentStep === 5 ? (
             <>
-              <button
-                onClick={() => handleSave(false)}
-                disabled={saving}
-                style={{
-                  ...buttonSecondary,
-                  opacity: saving ? 0.7 : 1,
-                }}
-              >
-                {saving ? 'Salvando...' : 'Salvar rascunho'}
-              </button>
               <button
                 onClick={() => handleSave(true)}
                 disabled={saving}
                 style={{
                   ...buttonPrimary,
                   opacity: saving ? 0.7 : 1,
+                  width: isMobile ? '100%' : 'auto',
+                  justifyContent: 'center',
                 }}
               >
                 <Rocket size={18} />
                 {saving ? 'Ativando...' : 'Ativar loja'}
               </button>
+              <button
+                onClick={() => handleSave(false)}
+                disabled={saving}
+                style={{
+                  ...buttonSecondary,
+                  opacity: saving ? 0.7 : 1,
+                  width: isMobile ? '100%' : 'auto',
+                  justifyContent: 'center',
+                }}
+              >
+                {saving ? 'Salvando...' : 'Salvar rascunho'}
+              </button>
             </>
           ) : (
             <button
               onClick={handleNext}
-              style={buttonPrimary}
+              style={{ ...buttonPrimary, width: isMobile ? '100%' : 'auto', justifyContent: 'center' }}
             >
               Próximo
               <ChevronRight size={18} />

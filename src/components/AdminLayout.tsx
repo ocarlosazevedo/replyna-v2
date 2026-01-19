@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Users, Shield, CreditCard, Tag, DollarSign, LogOut } from 'lucide-react'
+import { LayoutGrid, Users, Shield, CreditCard, Tag, DollarSign, LogOut, Menu, X } from 'lucide-react'
 import { useAdmin } from '../context/AdminContext'
 
 interface AdminLayoutProps {
@@ -9,6 +10,35 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const { admin, signOut } = useAdmin()
   const location = useLocation()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detectar se é mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Fechar menu ao mudar de página
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+  }, [location.pathname])
+
+  // Prevenir scroll quando menu está aberto
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isMobileMenuOpen])
 
   const menuItems = [
     { path: '/admin', label: 'Painel de Controle', icon: LayoutGrid },
@@ -30,9 +60,192 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return location.pathname.startsWith(path)
   }
 
+  const sidebarContent = (
+    <>
+      {/* Logo */}
+      <div style={{
+        padding: isMobile ? '16px 20px' : '24px',
+        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img
+            src="/replyna-logo.webp"
+            alt="Replyna"
+            style={{ width: isMobile ? '100px' : '140px', height: 'auto' }}
+          />
+          <span style={{
+            backgroundColor: 'var(--accent)',
+            color: '#fff',
+            fontSize: '10px',
+            fontWeight: 700,
+            padding: '2px 6px',
+            borderRadius: '4px',
+            textTransform: 'uppercase',
+          }}>
+            Admin
+          </span>
+        </div>
+        {isMobile && (
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <X size={24} />
+          </button>
+        )}
+      </div>
+
+      {/* Menu */}
+      <nav style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          {menuItems.map((item) => (
+            <li key={item.path}>
+              <Link
+                to={item.path}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                  color: isActive(item.path) ? '#fff' : 'rgba(255,255,255,0.7)',
+                  backgroundColor: isActive(item.path) ? 'var(--accent)' : 'transparent',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <item.icon size={18} />
+                <span>{item.label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      {/* Admin Info & Logout */}
+      <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{
+          padding: '12px 16px',
+          marginBottom: '8px',
+          backgroundColor: 'rgba(255,255,255,0.05)',
+          borderRadius: '8px',
+        }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>
+            {admin?.name}
+          </div>
+          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+            {admin?.role === 'super_admin' ? 'Super Admin' : 'Administrador'}
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 500,
+            backgroundColor: 'transparent',
+            color: 'rgba(255,255,255,0.7)',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <LogOut size={18} />
+          Sair do Painel Admin
+        </button>
+      </div>
+    </>
+  )
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--bg-primary)' }}>
-      {/* Sidebar */}
+      {/* Mobile Header */}
+      {isMobile && (
+        <header
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '60px',
+            backgroundColor: '#1a1a2e',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 16px',
+            zIndex: 1000,
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Menu size={24} />
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img
+              src="/replyna-logo.webp"
+              alt="Replyna"
+              style={{ height: '28px', width: 'auto' }}
+            />
+            <span style={{
+              backgroundColor: 'var(--accent)',
+              color: '#fff',
+              fontSize: '9px',
+              fontWeight: 700,
+              padding: '2px 5px',
+              borderRadius: '4px',
+              textTransform: 'uppercase',
+            }}>
+              Admin
+            </span>
+          </div>
+          <div style={{ width: '40px' }} /> {/* Spacer para centralizar */}
+        </header>
+      )}
+
+      {/* Mobile Menu Overlay */}
+      {isMobile && isMobileMenuOpen && (
+        <div
+          onClick={() => setIsMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1001,
+          }}
+        />
+      )}
+
+      {/* Sidebar - Desktop fixo, Mobile slide-in */}
       <aside
         style={{
           width: '264px',
@@ -41,108 +254,26 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           display: 'flex',
           flexDirection: 'column',
           position: 'fixed',
-          inset: '0 auto 0 0',
+          top: 0,
+          left: isMobile ? (isMobileMenuOpen ? 0 : '-264px') : 0,
+          bottom: 0,
           height: '100vh',
           overflow: 'hidden',
+          zIndex: 1002,
+          transition: isMobile ? 'left 0.3s ease' : 'none',
         }}
       >
-        {/* Logo */}
-        <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
-            <img
-              src="/replyna-logo.webp"
-              alt="Replyna"
-              style={{ width: '140px', height: 'auto' }}
-            />
-            <span style={{
-              backgroundColor: 'var(--accent)',
-              color: '#fff',
-              fontSize: '10px',
-              fontWeight: 700,
-              padding: '2px 6px',
-              borderRadius: '4px',
-              textTransform: 'uppercase',
-            }}>
-              Admin
-            </span>
-          </div>
-        </div>
-
-        {/* Menu */}
-        <nav style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {menuItems.map((item) => (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    textDecoration: 'none',
-                    fontWeight: 500,
-                    color: isActive(item.path) ? '#fff' : 'rgba(255,255,255,0.7)',
-                    backgroundColor: isActive(item.path) ? 'var(--accent)' : 'transparent',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <item.icon size={18} />
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        {/* Admin Info & Logout */}
-        <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{
-            padding: '12px 16px',
-            marginBottom: '8px',
-            backgroundColor: 'rgba(255,255,255,0.05)',
-            borderRadius: '8px',
-          }}>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>
-              {admin?.name}
-            </div>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
-              {admin?.role === 'super_admin' ? 'Super Admin' : 'Administrador'}
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 500,
-              backgroundColor: 'transparent',
-              color: 'rgba(255,255,255,0.7)',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <LogOut size={18} />
-            Sair do Painel Admin
-          </button>
-        </div>
+        {sidebarContent}
       </aside>
 
       {/* Main Content */}
       <main
         style={{
           flex: 1,
-          padding: '32px 40px',
+          padding: isMobile ? '76px 16px 24px' : '32px 40px',
           backgroundColor: 'var(--bg-primary)',
-          marginLeft: '264px',
-          width: 'calc(100% - 264px)',
+          marginLeft: isMobile ? 0 : '264px',
+          width: isMobile ? '100%' : 'calc(100% - 264px)',
           minHeight: '100vh',
         }}
       >

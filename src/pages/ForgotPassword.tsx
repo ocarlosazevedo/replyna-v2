@@ -34,14 +34,14 @@ export default function ForgotPassword() {
 
   if (success) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)', position: 'relative' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)', position: 'relative', padding: '20px' }}>
         {/* Toggle de tema */}
         <button
           onClick={toggleTheme}
           style={{
             position: 'absolute',
-            top: '20px',
-            right: '20px',
+            top: '16px',
+            right: '16px',
             backgroundColor: 'var(--bg-card)',
             border: '1px solid var(--border-color)',
             borderRadius: '10px',
@@ -57,7 +57,7 @@ export default function ForgotPassword() {
           {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
         </button>
 
-        <div style={{ maxWidth: '400px', width: '100%', backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '32px', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)' }}>
+        <div style={{ maxWidth: '400px', width: '100%', backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '24px', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)' }}>
           <div style={{
             width: '72px',
             height: '72px',
@@ -87,14 +87,14 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)', position: 'relative' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)', position: 'relative', padding: '20px' }}>
       {/* Toggle de tema */}
       <button
         onClick={toggleTheme}
         style={{
           position: 'absolute',
-          top: '20px',
-          right: '20px',
+          top: '16px',
+          right: '16px',
           backgroundColor: 'var(--bg-card)',
           border: '1px solid var(--border-color)',
           borderRadius: '10px',
@@ -110,7 +110,7 @@ export default function ForgotPassword() {
         {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
       </button>
 
-      <div style={{ maxWidth: '400px', width: '100%', backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)' }}>
+      <div style={{ maxWidth: '400px', width: '100%', backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <img
             src="/replyna-logo.webp"

@@ -581,7 +581,7 @@ export default function Register() {
           margin: '0 auto',
           backgroundColor: 'var(--bg-card)',
           borderRadius: '16px',
-          padding: '32px',
+          padding: '24px',
           border: '1px solid var(--border-color)',
         }}>
           {/* Back button */}

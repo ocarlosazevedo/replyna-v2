@@ -4,6 +4,18 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isMobile
+}
+
 interface UserProfile {
   name: string | null
   email: string | null
@@ -46,6 +58,7 @@ const Skeleton = ({ height = 16 }: { height?: number }) => (
 export default function Account() {
   const { user } = useAuth()
   const { theme, setTheme } = useTheme()
+  const isMobile = useIsMobile()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -236,11 +249,11 @@ export default function Account() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>Minha Conta</h1>
-          <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Gerencie suas informações pessoais</p>
+          <h1 style={{ fontSize: isMobile ? '22px' : '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>Minha Conta</h1>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Gerencie suas informações pessoais</p>
         </div>
         <button
           type="submit"
@@ -257,6 +270,8 @@ export default function Account() {
             cursor: saving ? 'not-allowed' : 'pointer',
             opacity: !isEditing || saving ? 0.6 : 1,
             display: isEditing ? 'inline-flex' : 'none',
+            width: isMobile ? '100%' : 'auto',
+            justifyContent: 'center',
           }}
         >
           {saving ? 'Salvando...' : 'Salvar alterações'}
