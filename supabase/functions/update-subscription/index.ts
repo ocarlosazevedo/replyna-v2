@@ -186,18 +186,17 @@ serve(async (req) => {
 
     console.log('Atualizando usuário na tabela users:', {
       user_id,
-      plan_id: new_plan_id,
       plan: newPlan.name,
       emails_limit: newPlan.emails_limit,
       shops_limit: newPlan.shops_limit,
     });
 
     // Atualizar plano do usuário na tabela users
+    // NOTA: A tabela users NÃO tem coluna plan_id, apenas o campo texto 'plan'
     const { data: updatedUserData, error: userUpdateError } = await supabase
       .from('users')
       .update({
-        plan_id: new_plan_id,
-        plan: newPlan.name, // Campo texto com nome do plano
+        plan: newPlan.name,
         emails_limit: newPlan.emails_limit,
         shops_limit: newPlan.shops_limit,
       })
