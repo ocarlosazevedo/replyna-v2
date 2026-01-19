@@ -26,6 +26,8 @@ interface Client {
 interface Plan {
   id: string
   name: string
+  emails_limit: number
+  shops_limit: number
   is_active: boolean
 }
 
@@ -47,7 +49,7 @@ export default function AdminClients() {
       const [usersResult, shopsResult, plansResult] = await Promise.all([
         supabase.from('users').select('*').order('created_at', { ascending: false }),
         supabase.from('shops').select('id, name, shopify_domain, is_active, user_id'),
-        supabase.from('plans').select('id, name, is_active').eq('is_active', true).order('sort_order')
+        supabase.from('plans').select('id, name, emails_limit, shops_limit, is_active').eq('is_active', true).order('sort_order')
       ])
 
       if (usersResult.error) throw usersResult.error
@@ -90,13 +92,24 @@ export default function AdminClients() {
     if (!editingClient) return
 
     try {
+      // Buscar os limites do plano selecionado
+      const selectedPlan = plans.find(p => p.name.toLowerCase() === editingClient.plan)
+
+      const updateData: Record<string, unknown> = {
+        name: editingClient.name,
+        plan: editingClient.plan,
+        status: editingClient.status,
+      }
+
+      // Se encontrou o plano, atualizar os limites
+      if (selectedPlan) {
+        updateData.emails_limit = selectedPlan.emails_limit
+        updateData.shops_limit = selectedPlan.shops_limit
+      }
+
       const { error } = await supabase
         .from('users')
-        .update({
-          name: editingClient.name,
-          plan: editingClient.plan,
-          status: editingClient.status,
-        })
+        .update(updateData)
         .eq('id', editingClient.id)
 
       if (error) throw error
