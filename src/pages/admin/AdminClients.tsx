@@ -142,6 +142,12 @@ export default function AdminClients() {
       year: 'numeric',
     }).format(new Date(date))
 
+  const getPlanDisplayName = (planSlug: string | null) => {
+    if (!planSlug) return 'Free'
+    const plan = plans.find(p => p.name.toLowerCase() === planSlug.toLowerCase())
+    return plan?.name || planSlug.charAt(0).toUpperCase() + planSlug.slice(1)
+  }
+
   const getStatusBadge = (status: string | null) => {
     const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
     switch (status) {
@@ -310,9 +316,8 @@ export default function AdminClients() {
                       color: '#8b5cf6',
                       fontSize: '13px',
                       fontWeight: 600,
-                      textTransform: 'capitalize',
                     }}>
-                      {client.plan || 'free'}
+                      {getPlanDisplayName(client.plan)}
                     </span>
                   </td>
                   <td style={{ padding: '16px' }}>
