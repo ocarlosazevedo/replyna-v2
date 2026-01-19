@@ -534,7 +534,7 @@ export default function ShopSetup() {
           value={shopData.attendant_name}
           onChange={(e) => updateField('attendant_name', e.target.value)}
           style={inputStyle}
-          placeholder="Ex: Ana, Carlos, Suporte"
+          placeholder="Ex: Ana, Suporte, Atendimento"
         />
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
           Este nome será usado nas respostas automáticas aos clientes

@@ -97,6 +97,17 @@ export default function Shops() {
   }
 
   const buttonPrimary = {
+    backgroundColor: 'var(--accent)',
+    color: '#ffffff',
+    padding: '10px 20px',
+    borderRadius: '10px',
+    fontWeight: '600',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '14px',
+  }
+
+  const buttonSecondary = {
     backgroundColor: 'transparent',
     color: 'var(--text-primary)',
     padding: '10px 20px',
@@ -273,7 +284,7 @@ export default function Shops() {
                   <button
                     onClick={() => navigate(`/shops/${shop.id}`)}
                     style={{
-                      ...buttonPrimary,
+                      ...buttonSecondary,
                       flex: 1,
                       display: 'flex',
                       alignItems: 'center',
