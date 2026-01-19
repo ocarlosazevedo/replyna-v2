@@ -295,10 +295,12 @@ export default function Account() {
   const handleChangePlan = async (plan: Plan) => {
     if (!user) return
 
+    console.log('handleChangePlan chamado:', { planId: plan.id, planName: plan.name, userId: user.id })
     setChangingPlanId(plan.id)
     setNotice(null)
 
     try {
+      console.log('Enviando requisição para update-subscription...')
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subscription`,
         {
@@ -314,21 +316,25 @@ export default function Account() {
         }
       )
 
+      console.log('Response status:', response.status, response.statusText)
       const result = await response.json()
+      console.log('Resposta update-subscription:', result)
 
       if (!response.ok) {
         throw new Error(result.error || 'Erro ao alterar plano')
       }
 
       // Aguardar um pouco para garantir que o banco foi sincronizado
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Recarregar profile do banco para garantir dados sincronizados
-      const { data: updatedProfile } = await supabase
+      const { data: updatedProfile, error: profileError } = await supabase
         .from('users')
         .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at')
         .eq('id', user.id)
         .single()
+
+      console.log('Profile recarregado:', { updatedProfile, profileError })
 
       if (updatedProfile) {
         setProfile(updatedProfile)
@@ -374,6 +380,7 @@ export default function Account() {
         })
       }
     } catch (err: unknown) {
+      console.error('Erro no handleChangePlan:', err)
       const message = err instanceof Error ? err.message : 'Erro ao alterar plano. Tente novamente.'
       setNotice({ type: 'error', message })
     } finally {

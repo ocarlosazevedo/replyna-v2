@@ -199,6 +199,7 @@ serve(async (req) => {
         plan: newPlan.name,
         emails_limit: newPlan.emails_limit,
         shops_limit: newPlan.shops_limit,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', user_id)
       .select();
