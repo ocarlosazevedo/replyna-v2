@@ -27,15 +27,15 @@ export function getStripeClient(): Stripe {
 }
 
 /**
- * Verifica assinatura do webhook Stripe
+ * Verifica assinatura do webhook Stripe (async para Deno)
  */
-export function verifyWebhookSignature(
+export async function verifyWebhookSignature(
   payload: string,
   signature: string,
   webhookSecret: string
-): Stripe.Event {
+): Promise<Stripe.Event> {
   const stripe = getStripeClient();
-  return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+  return await stripe.webhooks.constructEventAsync(payload, signature, webhookSecret);
 }
 
 export { Stripe };

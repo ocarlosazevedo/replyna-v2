@@ -40,7 +40,7 @@ serve(async (req) => {
     }
 
     const body = await req.text();
-    const event = verifyWebhookSignature(body, signature, webhookSecret);
+    const event = await verifyWebhookSignature(body, signature, webhookSecret);
 
     console.log(`Webhook recebido: ${event.type}`);
 
