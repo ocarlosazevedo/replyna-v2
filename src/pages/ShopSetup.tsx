@@ -21,6 +21,7 @@ interface ShopData {
   name: string
   attendant_name: string
   support_email: string
+  is_cod: boolean
 
   // Step 2 - Shopify
   shopify_domain: string
@@ -36,6 +37,8 @@ interface ShopData {
   smtp_port: string
   smtp_user: string
   smtp_password: string
+  email_start_mode: 'all_unread' | 'from_integration_date'
+  email_start_date: string
 
   // Step 4 - Customizations
   delivery_time: string
@@ -49,6 +52,7 @@ const initialShopData: ShopData = {
   name: '',
   attendant_name: '',
   support_email: '',
+  is_cod: false,
   shopify_domain: '',
   shopify_client_id: '',
   shopify_client_secret: '',
@@ -60,6 +64,8 @@ const initialShopData: ShopData = {
   smtp_port: '587',
   smtp_user: '',
   smtp_password: '',
+  email_start_mode: 'from_integration_date',
+  email_start_date: '',
   delivery_time: '',
   dispatch_time: '',
   warranty_info: '',
@@ -162,6 +168,7 @@ export default function ShopSetup() {
           name: shop.name || '',
           attendant_name: shop.attendant_name || '',
           support_email: shop.support_email || '',
+          is_cod: shop.is_cod || false,
           shopify_domain: shop.shopify_domain || '',
           shopify_client_id: shop.shopify_client_id || '',
           shopify_client_secret: shop.shopify_client_secret || '',
@@ -173,6 +180,8 @@ export default function ShopSetup() {
           smtp_port: shop.smtp_port || '587',
           smtp_user: shop.smtp_user || '',
           smtp_password: shop.smtp_password || '',
+          email_start_mode: shop.email_start_mode || 'from_integration_date',
+          email_start_date: shop.email_start_date || '',
           delivery_time: shop.delivery_time || '',
           dispatch_time: shop.dispatch_time || '',
           warranty_info: shop.warranty_info || '',
@@ -186,7 +195,7 @@ export default function ShopSetup() {
     }
   }
 
-  const updateField = (field: keyof ShopData, value: string) => {
+  const updateField = (field: keyof ShopData, value: string | boolean) => {
     setShopData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -333,6 +342,7 @@ export default function ShopSetup() {
         name: shopData.name,
         attendant_name: shopData.attendant_name,
         support_email: shopData.support_email,
+        is_cod: shopData.is_cod,
         shopify_domain: shopData.shopify_domain || null,
         shopify_client_id: shopData.shopify_client_id || null,
         shopify_client_secret: shopData.shopify_client_secret || null,
@@ -346,6 +356,8 @@ export default function ShopSetup() {
         smtp_user: shopData.smtp_user || null,
         smtp_password: shopData.smtp_password || null,
         mail_status: hasEmailConfig && emailTestResult === 'success' ? 'ok' : null,
+        email_start_mode: shopData.email_start_mode,
+        email_start_date: shopData.email_start_mode === 'from_integration_date' ? new Date().toISOString() : null,
         delivery_time: shopData.delivery_time || null,
         dispatch_time: shopData.dispatch_time || null,
         warranty_info: shopData.warranty_info || null,
@@ -612,6 +624,46 @@ export default function ShopSetup() {
             automaticamente encaminhado para este endereço para atendimento humano.
           </p>
         </div>
+      </div>
+
+      {/* Cash on Delivery Option */}
+      <div style={{
+        backgroundColor: 'var(--bg-primary)',
+        padding: '20px',
+        borderRadius: '12px',
+        border: '1px solid var(--border-color)'
+      }}>
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            cursor: 'pointer',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={shopData.is_cod}
+            onChange={(e) => updateField('is_cod', e.target.checked)}
+            style={{
+              width: '20px',
+              height: '20px',
+              marginTop: '2px',
+              accentColor: 'var(--accent)',
+              cursor: 'pointer',
+            }}
+          />
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+              Modelo Cash on Delivery (COD)
+            </div>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.5' }}>
+              Marque esta opção se sua loja opera no modelo de pagamento na entrega.
+              A Replyna irá adaptar as respostas para o contexto COD, considerando
+              confirmações de pedido, tentativas de entrega e recusas.
+            </p>
+          </div>
+        </label>
       </div>
     </div>
   )
@@ -988,6 +1040,100 @@ export default function ShopSetup() {
                 <p style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>
                   {emailTestError || 'Falha na conexão. Verifique as credenciais.'}
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Email Start Mode Option */}
+          {emailTestResult === 'success' && (
+            <div style={{
+              backgroundColor: 'var(--bg-primary)',
+              padding: '20px',
+              borderRadius: '12px',
+              border: '1px solid var(--border-color)'
+            }}>
+              <label style={{ ...labelStyle, marginBottom: '16px' }}>
+                Quando a Replyna deve começar a responder?
+              </label>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    cursor: 'pointer',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    backgroundColor: shopData.email_start_mode === 'from_integration_date' ? 'rgba(70, 114, 236, 0.08)' : 'transparent',
+                    border: shopData.email_start_mode === 'from_integration_date' ? '1px solid var(--accent)' : '1px solid var(--border-color)',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="email_start_mode"
+                    value="from_integration_date"
+                    checked={shopData.email_start_mode === 'from_integration_date'}
+                    onChange={() => updateField('email_start_mode', 'from_integration_date')}
+                    style={{ marginTop: '3px', accentColor: 'var(--accent)' }}
+                  />
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                      A partir da data de integração (Recomendado)
+                    </div>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+                      A Replyna só responderá emails recebidos após a ativação da loja.
+                      Emails antigos não serão processados.
+                    </p>
+                  </div>
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    cursor: 'pointer',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    backgroundColor: shopData.email_start_mode === 'all_unread' ? 'rgba(70, 114, 236, 0.08)' : 'transparent',
+                    border: shopData.email_start_mode === 'all_unread' ? '1px solid var(--accent)' : '1px solid var(--border-color)',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="email_start_mode"
+                    value="all_unread"
+                    checked={shopData.email_start_mode === 'all_unread'}
+                    onChange={() => updateField('email_start_mode', 'all_unread')}
+                    style={{ marginTop: '3px', accentColor: 'var(--accent)' }}
+                  />
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                      Responder todos os emails não lidos
+                    </div>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+                      A Replyna processará e responderá todos os emails não lidos na caixa de entrada,
+                      independente da data.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              {shopData.email_start_mode === 'all_unread' && (
+                <div style={{
+                  marginTop: '12px',
+                  backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(245, 158, 11, 0.2)'
+                }}>
+                  <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
+                    <strong>Atenção:</strong> Esta opção pode gerar um grande volume de respostas automáticas
+                    se houver muitos emails não lidos. Recomendamos limpar a caixa de entrada antes ou usar
+                    a opção "A partir da data de integração".
+                  </p>
+                </div>
               )}
             </div>
           )}

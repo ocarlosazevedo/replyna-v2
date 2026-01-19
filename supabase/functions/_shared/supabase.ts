@@ -13,6 +13,7 @@ export interface Shop {
   attendant_name: string;
   support_email: string;
   is_active: boolean;
+  is_cod: boolean;
 
   // Shopify
   shopify_domain: string | null;
@@ -42,6 +43,10 @@ export interface Shop {
   tone_of_voice: string;
   fallback_message_template: string | null;
   signature_html: string | null;
+
+  // Email processing options
+  email_start_mode: 'all_unread' | 'from_integration_date';
+  email_start_date: string | null;
 
   // Sync
   last_email_sync_at: string | null;
