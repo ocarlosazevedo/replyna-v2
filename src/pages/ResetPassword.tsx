@@ -16,7 +16,7 @@ export default function ResetPassword() {
   // Verificar se chegou com o token de recuperacao
   useEffect(() => {
     // O Supabase automaticamente processa o token da URL e cria uma sessao
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, _session) => {
       if (event === 'PASSWORD_RECOVERY') {
         // Usuario chegou pelo link de recuperacao
         console.log('Password recovery event detected')
