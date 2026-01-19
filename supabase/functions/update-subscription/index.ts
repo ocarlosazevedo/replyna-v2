@@ -159,8 +159,15 @@ serve(async (req) => {
       }
     );
 
+    console.log('Atualizando subscription no banco:', {
+      subscription_id: subscription.id,
+      plan_id: new_plan_id,
+      stripe_price_id: newStripePriceId,
+      billing_cycle: finalBillingCycle,
+    });
+
     // Atualizar subscription no banco de dados
-    const { error: updateError } = await supabase
+    const { data: updatedSubData, error: updateError } = await supabase
       .from('subscriptions')
       .update({
         plan_id: new_plan_id,
@@ -168,15 +175,25 @@ serve(async (req) => {
         billing_cycle: finalBillingCycle,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', subscription.id);
+      .eq('id', subscription.id)
+      .select();
+
+    console.log('Resultado update subscriptions:', { updatedSubData, updateError });
 
     if (updateError) {
       console.error('Erro ao atualizar subscription no banco:', updateError);
-      // Não retorna erro pois o Stripe já foi atualizado - o webhook irá sincronizar
     }
 
+    console.log('Atualizando usuário na tabela users:', {
+      user_id,
+      plan_id: new_plan_id,
+      plan: newPlan.name,
+      emails_limit: newPlan.emails_limit,
+      shops_limit: newPlan.shops_limit,
+    });
+
     // Atualizar plano do usuário na tabela users
-    const { error: userUpdateError } = await supabase
+    const { data: updatedUserData, error: userUpdateError } = await supabase
       .from('users')
       .update({
         plan_id: new_plan_id,
@@ -184,10 +201,48 @@ serve(async (req) => {
         emails_limit: newPlan.emails_limit,
         shops_limit: newPlan.shops_limit,
       })
-      .eq('id', user_id);
+      .eq('id', user_id)
+      .select();
+
+    console.log('Resultado update users:', { updatedUserData, userUpdateError });
 
     if (userUpdateError) {
       console.error('Erro ao atualizar usuário:', userUpdateError);
+      // Retornar erro parcial mas informar que o Stripe foi atualizado
+      return new Response(
+        JSON.stringify({
+          success: true,
+          partial_error: true,
+          message: 'Plano atualizado no Stripe, mas houve erro ao sincronizar banco de dados. Recarregue a página.',
+          error_detail: userUpdateError.message,
+          new_plan: {
+            id: newPlan.id,
+            name: newPlan.name,
+            emails_limit: newPlan.emails_limit,
+            shops_limit: newPlan.shops_limit,
+          },
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verificar se o update realmente afetou alguma linha
+    if (!updatedUserData || updatedUserData.length === 0) {
+      console.error('Update executou mas não afetou nenhuma linha. User ID:', user_id);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          partial_error: true,
+          message: 'Plano atualizado no Stripe, mas usuário não encontrado no banco. Recarregue a página.',
+          new_plan: {
+            id: newPlan.id,
+            name: newPlan.name,
+            emails_limit: newPlan.emails_limit,
+            shops_limit: newPlan.shops_limit,
+          },
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Buscar informações de proration para informar o cliente

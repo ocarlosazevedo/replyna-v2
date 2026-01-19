@@ -320,6 +320,9 @@ export default function Account() {
         throw new Error(result.error || 'Erro ao alterar plano')
       }
 
+      // Aguardar um pouco para garantir que o banco foi sincronizado
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       // Recarregar profile do banco para garantir dados sincronizados
       const { data: updatedProfile } = await supabase
         .from('users')
@@ -344,6 +347,15 @@ export default function Account() {
       }
 
       setShowPlanModal(false)
+
+      // Verificar se houve erro parcial (Stripe atualizado mas banco falhou)
+      if (result.partial_error) {
+        setNotice({
+          type: 'warning',
+          message: result.message || 'Plano atualizado parcialmente. Por favor recarregue a página.',
+        })
+        return
+      }
 
       if (result.proration_amount > 0) {
         setNotice({
