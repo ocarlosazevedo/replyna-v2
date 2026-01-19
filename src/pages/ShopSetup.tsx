@@ -64,7 +64,7 @@ const initialShopData: ShopData = {
   smtp_port: '587',
   smtp_user: '',
   smtp_password: '',
-  email_start_mode: 'from_integration_date',
+  email_start_mode: 'all_unread',
   email_start_date: '',
   delivery_time: '',
   dispatch_time: '',
@@ -1065,37 +1065,6 @@ export default function ShopSetup() {
                     cursor: 'pointer',
                     padding: '12px',
                     borderRadius: '10px',
-                    backgroundColor: shopData.email_start_mode === 'from_integration_date' ? 'rgba(70, 114, 236, 0.08)' : 'transparent',
-                    border: shopData.email_start_mode === 'from_integration_date' ? '1px solid var(--accent)' : '1px solid var(--border-color)',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="email_start_mode"
-                    value="from_integration_date"
-                    checked={shopData.email_start_mode === 'from_integration_date'}
-                    onChange={() => updateField('email_start_mode', 'from_integration_date')}
-                    style={{ marginTop: '3px', accentColor: 'var(--accent)' }}
-                  />
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>
-                      A partir da data de integração (Recomendado)
-                    </div>
-                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-                      A Replyna só responderá emails recebidos após a ativação da loja.
-                      Emails antigos não serão processados.
-                    </p>
-                  </div>
-                </label>
-
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    cursor: 'pointer',
-                    padding: '12px',
-                    borderRadius: '10px',
                     backgroundColor: shopData.email_start_mode === 'all_unread' ? 'rgba(70, 114, 236, 0.08)' : 'transparent',
                     border: shopData.email_start_mode === 'all_unread' ? '1px solid var(--accent)' : '1px solid var(--border-color)',
                   }}
@@ -1110,28 +1079,59 @@ export default function ShopSetup() {
                   />
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>
-                      Responder todos os emails não lidos
+                      Responder todos os emails não lidos (Recomendado)
                     </div>
                     <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-                      A Replyna processará e responderá todos os emails não lidos na caixa de entrada,
-                      independente da data.
+                      A Replyna processará e responderá todos os emails não lidos na caixa de entrada.
+                      Garante que nenhum cliente fique sem resposta.
+                    </p>
+                  </div>
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    cursor: 'pointer',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    backgroundColor: shopData.email_start_mode === 'from_integration_date' ? 'rgba(70, 114, 236, 0.08)' : 'transparent',
+                    border: shopData.email_start_mode === 'from_integration_date' ? '1px solid var(--accent)' : '1px solid var(--border-color)',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="email_start_mode"
+                    value="from_integration_date"
+                    checked={shopData.email_start_mode === 'from_integration_date'}
+                    onChange={() => updateField('email_start_mode', 'from_integration_date')}
+                    style={{ marginTop: '3px', accentColor: 'var(--accent)' }}
+                  />
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                      A partir da data de integração
+                    </div>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+                      A Replyna só responderá emails recebidos após a ativação da loja.
+                      Emails antigos não serão processados.
                     </p>
                   </div>
                 </label>
               </div>
 
-              {shopData.email_start_mode === 'all_unread' && (
+              {shopData.email_start_mode === 'from_integration_date' && (
                 <div style={{
                   marginTop: '12px',
-                  backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
                   padding: '12px',
                   borderRadius: '8px',
-                  border: '1px solid rgba(245, 158, 11, 0.2)'
+                  border: '1px solid rgba(239, 68, 68, 0.2)'
                 }}>
                   <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
-                    <strong>Atenção:</strong> Esta opção pode gerar um grande volume de respostas automáticas
-                    se houver muitos emails não lidos. Recomendamos limpar a caixa de entrada antes ou usar
-                    a opção "A partir da data de integração".
+                    <strong style={{ color: '#ef4444' }}>⚠️ Atenção:</strong> Com esta opção, emails anteriores à integração
+                    não serão respondidos. Clientes que já enviaram mensagens podem ficar sem resposta,
+                    aumentando o risco de reclamações e chargebacks.
                   </p>
                 </div>
               )}
