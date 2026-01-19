@@ -172,6 +172,8 @@ serve(async (req) => {
           .single();
 
         if (coupon?.stripe_coupon_id) {
+          // Stripe não permite discounts + allow_promotion_codes juntos
+          delete checkoutParams.allow_promotion_codes;
           checkoutParams.discounts = [{ coupon: coupon.stripe_coupon_id }];
           checkoutParams.metadata!.coupon_id = couponValidation[0].coupon_id;
           checkoutParams.metadata!.coupon_code = coupon_code.toUpperCase();

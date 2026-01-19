@@ -42,6 +42,7 @@ export default function AdminCoupons() {
   })
   const [syncing, setSyncing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
     loadCoupons()
@@ -189,6 +190,8 @@ export default function AdminCoupons() {
   const handleDeleteCoupon = async (couponId: string) => {
     if (!confirm('Tem certeza que deseja excluir este cupom? Isso também vai deletar do Stripe.')) return
 
+    setDeleting(couponId)
+
     try {
       // Deletar do Stripe primeiro
       try {
@@ -197,11 +200,20 @@ export default function AdminCoupons() {
         console.warn('Erro ao deletar do Stripe, continuando com exclusão local')
       }
 
+      // Aguardar um momento para garantir que o Stripe processou
+      await new Promise(resolve => setTimeout(resolve, 300))
+
       const { error } = await supabase.from('coupons').delete().eq('id', couponId)
       if (error) throw error
-      loadCoupons()
+
+      // Remover da lista local imediatamente para feedback visual
+      setCoupons(prev => prev.filter(c => c.id !== couponId))
     } catch (err) {
       console.error('Erro ao excluir cupom:', err)
+      // Recarregar caso tenha dado erro para garantir consistência
+      loadCoupons()
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -468,19 +480,25 @@ export default function AdminCoupons() {
                     </button>
                     <button
                       onClick={() => handleDeleteCoupon(coupon.id)}
+                      disabled={deleting === coupon.id}
                       style={{
                         padding: '8px',
                         borderRadius: '8px',
                         border: '1px solid var(--border-color)',
-                        backgroundColor: 'transparent',
+                        backgroundColor: deleting === coupon.id ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
                         color: '#ef4444',
-                        cursor: 'pointer',
+                        cursor: deleting === coupon.id ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        opacity: deleting === coupon.id ? 0.7 : 1,
                       }}
                     >
-                      <Trash2 size={14} />
+                      {deleting === coupon.id ? (
+                        <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                      ) : (
+                        <Trash2 size={14} />
+                      )}
                     </button>
                   </div>
                 </td>

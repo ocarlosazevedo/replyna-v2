@@ -83,7 +83,7 @@ serve(async (req) => {
       redeem_by?: number;
     } = {
       name: coupon.description || coupon.code,
-      duration: 'forever', // Desconto permanente na assinatura
+      duration: 'once', // Desconto apenas na primeira mensalidade
     };
 
     // Configurar tipo de desconto
@@ -166,6 +166,41 @@ serve(async (req) => {
         } else {
           throw stripeError;
         }
+      }
+    }
+
+    // Criar Promotion Code (código que o cliente digita no checkout)
+    // O Promotion Code é diferente do Coupon - é o código público
+    if (stripeCouponId) {
+      try {
+        // Verificar se já existe um promotion code com esse código
+        const existingPromoCodes = await stripe.promotionCodes.list({
+          code: coupon.code.toUpperCase(),
+          limit: 1,
+        });
+
+        if (existingPromoCodes.data.length === 0) {
+          // Criar novo promotion code
+          await stripe.promotionCodes.create({
+            coupon: stripeCouponId,
+            code: coupon.code.toUpperCase(),
+            active: coupon.is_active,
+            max_redemptions: coupon.usage_limit || undefined,
+            expires_at: coupon.valid_until
+              ? Math.floor(new Date(coupon.valid_until).getTime() / 1000)
+              : undefined,
+          });
+          console.log(`Promotion Code criado: ${coupon.code.toUpperCase()}`);
+        } else {
+          // Atualizar promotion code existente (apenas active pode ser atualizado)
+          await stripe.promotionCodes.update(existingPromoCodes.data[0].id, {
+            active: coupon.is_active,
+          });
+          console.log(`Promotion Code atualizado: ${coupon.code.toUpperCase()}`);
+        }
+      } catch (promoError: unknown) {
+        console.error('Erro ao criar/atualizar Promotion Code:', promoError);
+        // Não falhar a operação toda por causa do promotion code
       }
     }
 
