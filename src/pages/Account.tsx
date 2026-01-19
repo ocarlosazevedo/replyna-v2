@@ -351,7 +351,7 @@ export default function Account() {
       // Verificar se houve erro parcial (Stripe atualizado mas banco falhou)
       if (result.partial_error) {
         setNotice({
-          type: 'warning',
+          type: 'info',
           message: result.message || 'Plano atualizado parcialmente. Por favor recarregue a página.',
         })
         return
