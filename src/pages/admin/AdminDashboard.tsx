@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 import { subDays } from 'date-fns'
 import { supabase } from '../../lib/supabase'
-import { MessageSquare, Users, Store, CheckCircle, CreditCard } from 'lucide-react'
+import { MessageSquare, Users, Store, CheckCircle, CreditCard, TrendingUp } from 'lucide-react'
 import DateRangePicker from '../../components/DateRangePicker'
 
 interface DashboardStats {
