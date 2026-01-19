@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Sun, Moon, Eye, EyeOff, Check, Star, ArrowRight, ArrowLeft, MessageCircle } from 'lucide-react'
+import { Sun, Moon, Eye, EyeOff, Check, Star, ArrowRight, ArrowLeft, MessageCircle, Tag, X, Loader2 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { supabase } from '../lib/supabase'
+
+interface CouponValidation {
+  is_valid: boolean
+  coupon_id: string | null
+  discount_type: 'percentage' | 'fixed_amount' | null
+  discount_value: number | null
+  error_message: string | null
+}
 
 interface Plan {
   id: string
@@ -38,6 +46,12 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Coupon
+  const [couponCode, setCouponCode] = useState('')
+  const [couponValidation, setCouponValidation] = useState<CouponValidation | null>(null)
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [showCouponField, setShowCouponField] = useState(false)
 
   useEffect(() => {
     loadPlans()
@@ -84,6 +98,56 @@ export default function Register() {
     setStep('account')
   }
 
+  const validateCoupon = async () => {
+    if (!couponCode.trim()) return
+
+    setValidatingCoupon(true)
+    setCouponValidation(null)
+
+    try {
+      const { data, error } = await supabase.rpc('validate_coupon', {
+        p_code: couponCode.toUpperCase(),
+        p_user_id: '00000000-0000-0000-0000-000000000000',
+        p_plan_id: selectedPlan?.id || null,
+      })
+
+      if (error) throw error
+
+      if (data && data[0]) {
+        setCouponValidation(data[0] as CouponValidation)
+      }
+    } catch (err) {
+      console.error('Erro ao validar cupom:', err)
+      setCouponValidation({
+        is_valid: false,
+        coupon_id: null,
+        discount_type: null,
+        discount_value: null,
+        error_message: 'Erro ao validar cupom',
+      })
+    } finally {
+      setValidatingCoupon(false)
+    }
+  }
+
+  const clearCoupon = () => {
+    setCouponCode('')
+    setCouponValidation(null)
+    setShowCouponField(false)
+  }
+
+  const getDiscountedPrice = () => {
+    if (!selectedPlan || !couponValidation?.is_valid) return null
+
+    if (couponValidation.discount_type === 'percentage') {
+      const discount = (selectedPlan.price_monthly * (couponValidation.discount_value || 0)) / 100
+      return selectedPlan.price_monthly - discount
+    } else if (couponValidation.discount_type === 'fixed_amount') {
+      return Math.max(0, selectedPlan.price_monthly - (couponValidation.discount_value || 0))
+    }
+    return null
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -123,6 +187,7 @@ export default function Register() {
           user_email: email,
           user_name: name,
           billing_cycle: 'monthly',
+          coupon_code: couponValidation?.is_valid ? couponCode.toUpperCase() : undefined,
           success_url: `${window.location.origin}/checkout/success`,
           cancel_url: `${window.location.origin}/register?plan=${selectedPlan.name.toLowerCase()}`,
         }),
@@ -472,7 +537,7 @@ export default function Register() {
             padding: '16px',
             backgroundColor: 'rgba(70, 114, 236, 0.06)',
             borderRadius: '12px',
-            marginBottom: '24px',
+            marginBottom: '16px',
           }}>
             <div style={{
               display: 'flex',
@@ -491,15 +556,190 @@ export default function Register() {
                   {selectedPlan.emails_limit.toLocaleString('pt-BR')} emails/mes
                 </div>
               </div>
-              <div style={{
-                fontSize: '20px',
-                fontWeight: 700,
-                color: 'var(--accent)',
-              }}>
-                {formatPrice(selectedPlan.price_monthly)}/mes
+              <div style={{ textAlign: 'right' }}>
+                {couponValidation?.is_valid && getDiscountedPrice() !== null ? (
+                  <>
+                    <div style={{
+                      fontSize: '13px',
+                      color: 'var(--text-secondary)',
+                      textDecoration: 'line-through',
+                    }}>
+                      {formatPrice(selectedPlan.price_monthly)}
+                    </div>
+                    <div style={{
+                      fontSize: '20px',
+                      fontWeight: 700,
+                      color: '#22c55e',
+                    }}>
+                      {formatPrice(getDiscountedPrice()!)}/mes
+                    </div>
+                  </>
+                ) : (
+                  <div style={{
+                    fontSize: '20px',
+                    fontWeight: 700,
+                    color: 'var(--accent)',
+                  }}>
+                    {formatPrice(selectedPlan.price_monthly)}/mes
+                  </div>
+                )}
               </div>
             </div>
+
+            {couponValidation?.is_valid && (
+              <div style={{
+                marginTop: '12px',
+                paddingTop: '12px',
+                borderTop: '1px solid var(--border-color)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Tag size={14} style={{ color: '#22c55e' }} />
+                  <span style={{ fontSize: '13px', color: '#22c55e', fontWeight: 600 }}>
+                    {couponCode.toUpperCase()}
+                  </span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    ({couponValidation.discount_type === 'percentage'
+                      ? `${couponValidation.discount_value}% off`
+                      : `R$ ${couponValidation.discount_value?.toFixed(2)} off`})
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearCoupon}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* Coupon field */}
+          {!couponValidation?.is_valid && (
+            <div style={{ marginBottom: '24px' }}>
+              {!showCouponField ? (
+                <button
+                  type="button"
+                  onClick={() => setShowCouponField(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontSize: '14px',
+                    color: 'var(--accent)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Tag size={14} />
+                  Tem um cupom de desconto?
+                </button>
+              ) : (
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '8px',
+                  }}>
+                    Cupom de desconto
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => {
+                        setCouponCode(e.target.value.toUpperCase())
+                        setCouponValidation(null)
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '12px 16px',
+                        border: couponValidation?.is_valid === false
+                          ? '1px solid #ef4444'
+                          : '1px solid var(--input-border)',
+                        borderRadius: '10px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box',
+                        backgroundColor: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                        textTransform: 'uppercase',
+                        fontFamily: 'monospace',
+                      }}
+                      placeholder="CODIGO"
+                    />
+                    <button
+                      type="button"
+                      onClick={validateCoupon}
+                      disabled={validatingCoupon || !couponCode.trim()}
+                      style={{
+                        padding: '12px 20px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        backgroundColor: 'var(--accent)',
+                        color: '#fff',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        cursor: validatingCoupon || !couponCode.trim() ? 'not-allowed' : 'pointer',
+                        opacity: validatingCoupon || !couponCode.trim() ? 0.7 : 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      {validatingCoupon ? (
+                        <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                      ) : (
+                        'Aplicar'
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCouponField(false)
+                        setCouponCode('')
+                        setCouponValidation(null)
+                      }}
+                      style={{
+                        padding: '12px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'transparent',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  {couponValidation?.is_valid === false && (
+                    <p style={{
+                      marginTop: '8px',
+                      fontSize: '13px',
+                      color: '#ef4444',
+                    }}>
+                      {couponValidation.error_message || 'Cupom invalido'}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             {error && (
