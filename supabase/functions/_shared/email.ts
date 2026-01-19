@@ -318,12 +318,36 @@ class SimpleImapClient {
     // Decodificar =?UTF-8?B?...?= ou =?UTF-8?Q?...?=
     return subject.replace(/=\?([^?]+)\?([BQ])\?([^?]+)\?=/gi, (_, charset, encoding, text) => {
       try {
+        const normalizedCharset = charset.toLowerCase().replace(/[^a-z0-9]/g, '');
         if (encoding.toUpperCase() === 'B') {
-          return atob(text);
+          // Base64 decode - converter para bytes e depois para string UTF-8
+          const binaryString = atob(text);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          // Usar TextDecoder para decodificar corretamente UTF-8
+          const decoder = new TextDecoder(normalizedCharset === 'utf8' || normalizedCharset === 'utf-8' ? 'utf-8' : charset);
+          return decoder.decode(bytes);
         } else {
-          return text.replace(/=([0-9A-F]{2})/gi, (__, hex) =>
-            String.fromCharCode(parseInt(hex, 16))
-          ).replace(/_/g, ' ');
+          // Quoted-Printable - converter bytes hex para UTF-8
+          const processedText = text.replace(/_/g, ' ');
+          const bytes: number[] = [];
+          let i = 0;
+          while (i < processedText.length) {
+            if (processedText[i] === '=' && i + 2 < processedText.length) {
+              const hex = processedText.substring(i + 1, i + 3);
+              if (/^[0-9A-Fa-f]{2}$/.test(hex)) {
+                bytes.push(parseInt(hex, 16));
+                i += 3;
+                continue;
+              }
+            }
+            bytes.push(processedText.charCodeAt(i));
+            i++;
+          }
+          const decoder = new TextDecoder(normalizedCharset === 'utf8' || normalizedCharset === 'utf-8' ? 'utf-8' : charset);
+          return decoder.decode(new Uint8Array(bytes));
         }
       } catch {
         return text;
@@ -484,12 +508,77 @@ export async function fetchUnreadEmails(
 }
 
 /**
- * Decodifica quoted-printable
+ * Decodifica quoted-printable para UTF-8
  */
-function decodeQuotedPrintable(text: string): string {
-  return text
-    .replace(/=\r?\n/g, '') // Soft line breaks
-    .replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+function decodeQuotedPrintable(text: string, charset: string = 'utf-8'): string {
+  // Remover soft line breaks primeiro
+  const withoutSoftBreaks = text.replace(/=\r?\n/g, '');
+
+  // Coletar todos os bytes (hex sequences viram bytes, resto vira ASCII)
+  const bytes: number[] = [];
+  let i = 0;
+  while (i < withoutSoftBreaks.length) {
+    if (withoutSoftBreaks[i] === '=' && i + 2 < withoutSoftBreaks.length) {
+      const hex = withoutSoftBreaks.substring(i + 1, i + 3);
+      if (/^[0-9A-Fa-f]{2}$/.test(hex)) {
+        bytes.push(parseInt(hex, 16));
+        i += 3;
+        continue;
+      }
+    }
+    bytes.push(withoutSoftBreaks.charCodeAt(i));
+    i++;
+  }
+
+  // Decodificar bytes usando o charset correto
+  try {
+    const normalizedCharset = charset.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const decoder = new TextDecoder(normalizedCharset === 'utf8' ? 'utf-8' : normalizedCharset);
+    return decoder.decode(new Uint8Array(bytes));
+  } catch {
+    // Fallback para UTF-8
+    try {
+      return new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+    } catch {
+      return text;
+    }
+  }
+}
+
+/**
+ * Decodifica Base64 para UTF-8 corretamente
+ */
+function decodeBase64ToUtf8(base64: string, charset: string = 'utf-8'): string {
+  try {
+    const binaryString = atob(base64.replace(/\s/g, ''));
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const normalizedCharset = charset.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const decoder = new TextDecoder(normalizedCharset === 'utf8' ? 'utf-8' : normalizedCharset);
+    return decoder.decode(bytes);
+  } catch {
+    // Fallback para UTF-8
+    try {
+      const binaryString = atob(base64.replace(/\s/g, ''));
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return new TextDecoder('utf-8').decode(bytes);
+    } catch {
+      return base64;
+    }
+  }
+}
+
+/**
+ * Extrai o charset de um header Content-Type
+ */
+function extractCharset(contentTypeHeader: string): string {
+  const charsetMatch = contentTypeHeader.match(/charset=["']?([^"';\s]+)/i);
+  return charsetMatch ? charsetMatch[1] : 'utf-8';
 }
 
 /**
@@ -514,6 +603,10 @@ function extractTextFromMime(body: string): string {
   for (const part of parts) {
     // Procurar parte text/plain
     if (part.includes('Content-Type: text/plain') || part.includes('content-type: text/plain')) {
+      // Extrair charset do Content-Type
+      const contentTypeMatch = part.match(/Content-Type:\s*text\/plain[^\r\n]*/i);
+      const charset = contentTypeMatch ? extractCharset(contentTypeMatch[0]) : 'utf-8';
+
       // Verificar encoding
       const isQuotedPrintable = part.toLowerCase().includes('quoted-printable');
       const isBase64 = part.toLowerCase().includes('base64');
@@ -525,13 +618,9 @@ function extractTextFromMime(body: string): string {
 
         // Decodificar se necessário
         if (isQuotedPrintable) {
-          content = decodeQuotedPrintable(content);
+          content = decodeQuotedPrintable(content, charset);
         } else if (isBase64) {
-          try {
-            content = atob(content.replace(/\s/g, ''));
-          } catch {
-            // Manter original se falhar
-          }
+          content = decodeBase64ToUtf8(content, charset);
         }
 
         console.log('Conteúdo text/plain extraído do MIME:', content.substring(0, 200));
@@ -598,16 +687,12 @@ function decodeEmailBody(body: string): string {
 
   // 2. Se não era multipart, tentar decodificar base64
   if (decoded === body && /^[A-Za-z0-9+/=\s]+$/.test(body.trim())) {
-    try {
-      decoded = atob(body.replace(/\s/g, ''));
-    } catch {
-      // Não é base64 válido
-    }
+    decoded = decodeBase64ToUtf8(body, 'utf-8');
   }
 
   // 3. Decodificar quoted-printable (pode ter escapado do MIME)
   if (decoded === body) {
-    decoded = decodeQuotedPrintable(body);
+    decoded = decodeQuotedPrintable(body, 'utf-8');
   }
 
   // 4. Remover citações de mensagens anteriores
