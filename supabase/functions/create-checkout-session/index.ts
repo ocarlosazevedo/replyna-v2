@@ -156,29 +156,50 @@ serve(async (req) => {
 
     // Aplicar cupom se fornecido
     if (coupon_code) {
+      console.log('Cupom recebido:', coupon_code);
+
       // Validar cupom no banco
-      const { data: couponValidation } = await supabase.rpc('validate_coupon', {
+      const { data: couponValidation, error: couponError } = await supabase.rpc('validate_coupon', {
         p_code: coupon_code.toUpperCase(),
         p_user_id: user_id || '00000000-0000-0000-0000-000000000000',
         p_plan_id: plan_id,
       });
 
+      console.log('Validação do cupom:', JSON.stringify(couponValidation));
+      if (couponError) {
+        console.error('Erro ao validar cupom:', couponError);
+      }
+
       if (couponValidation && couponValidation[0]?.is_valid && couponValidation[0]?.coupon_id) {
+        console.log('Cupom válido, buscando stripe_coupon_id para:', couponValidation[0].coupon_id);
+
         // Buscar stripe_coupon_id
-        const { data: coupon } = await supabase
+        const { data: coupon, error: couponFetchError } = await supabase
           .from('coupons')
           .select('stripe_coupon_id')
           .eq('id', couponValidation[0].coupon_id)
           .single();
 
+        console.log('Cupom do banco:', JSON.stringify(coupon));
+        if (couponFetchError) {
+          console.error('Erro ao buscar cupom:', couponFetchError);
+        }
+
         if (coupon?.stripe_coupon_id) {
+          console.log('Aplicando cupom Stripe:', coupon.stripe_coupon_id);
           // Stripe não permite discounts + allow_promotion_codes juntos
           delete checkoutParams.allow_promotion_codes;
           checkoutParams.discounts = [{ coupon: coupon.stripe_coupon_id }];
           checkoutParams.metadata!.coupon_id = couponValidation[0].coupon_id;
           checkoutParams.metadata!.coupon_code = coupon_code.toUpperCase();
+        } else {
+          console.log('Cupom não tem stripe_coupon_id configurado');
         }
+      } else {
+        console.log('Cupom inválido ou não encontrado');
       }
+    } else {
+      console.log('Nenhum cupom fornecido');
     }
 
     // Criar sessão de checkout

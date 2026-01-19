@@ -53,7 +53,8 @@ export default function ResetPassword() {
 
       setSuccess(true)
 
-      // Redirecionar para login apos 3 segundos
+      // Fazer logout e redirecionar para login apos 3 segundos
+      await supabase.auth.signOut()
       setTimeout(() => {
         navigate('/login')
       }, 3000)
