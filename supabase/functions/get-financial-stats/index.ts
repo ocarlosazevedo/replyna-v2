@@ -74,23 +74,59 @@ serve(async (req) => {
   try {
     const stripe = getStripeClient();
 
+    // Pegar período da query string
+    const url = new URL(req.url);
+    const period = url.searchParams.get('period') || '6months'; // 7days, 30days, 3months, 6months, 12months, all
+
+    // Calcular datas base
+    const now = new Date();
+    let periodStart: Date;
+    let monthsToShow: number;
+
+    switch (period) {
+      case '7days':
+        periodStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        monthsToShow = 1;
+        break;
+      case '30days':
+        periodStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        monthsToShow = 1;
+        break;
+      case '3months':
+        periodStart = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+        monthsToShow = 3;
+        break;
+      case '12months':
+        periodStart = new Date(now.getFullYear(), now.getMonth() - 12, 1);
+        monthsToShow = 12;
+        break;
+      case 'all':
+        periodStart = new Date(2020, 0, 1); // Data bem antiga
+        monthsToShow = 12;
+        break;
+      case '6months':
+      default:
+        periodStart = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+        monthsToShow = 6;
+        break;
+    }
+
+    const periodStartTimestamp = Math.floor(periodStart.getTime() / 1000);
+
     // Buscar dados em paralelo para performance
     const [
       balance,
       subscriptions,
       charges,
       invoices,
-      customers,
     ] = await Promise.all([
       stripe.balance.retrieve(),
       stripe.subscriptions.list({ limit: 100, status: 'all' }),
-      stripe.charges.list({ limit: 100 }),
-      stripe.invoices.list({ limit: 50 }),
-      stripe.customers.list({ limit: 1 }), // Só para pegar o total
+      stripe.charges.list({ limit: 100, created: { gte: periodStartTimestamp } }),
+      stripe.invoices.list({ limit: 50, created: { gte: periodStartTimestamp } }),
     ]);
 
-    // Calcular datas
-    const now = new Date();
+    // Calcular datas para comparação
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
@@ -208,24 +244,66 @@ serve(async (req) => {
       hosted_invoice_url: invoice.hosted_invoice_url,
     }));
 
-    // Receita mensal dos últimos 6 meses
+    // Receita por período
     const monthlyRevenue: { month: string; revenue: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
 
-      let monthRevenue = 0;
-      for (const charge of successfulCharges) {
-        const chargeDate = new Date(charge.created * 1000);
-        if (chargeDate >= monthStart && chargeDate <= monthEnd) {
-          monthRevenue += charge.amount;
+    if (period === '7days') {
+      // Mostrar por dia nos últimos 7 dias
+      for (let i = 6; i >= 0; i--) {
+        const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i + 1);
+
+        let dayRevenue = 0;
+        for (const charge of successfulCharges) {
+          const chargeDate = new Date(charge.created * 1000);
+          if (chargeDate >= dayStart && chargeDate < dayEnd) {
+            dayRevenue += charge.amount;
+          }
         }
-      }
 
-      monthlyRevenue.push({
-        month: monthStart.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
-        revenue: monthRevenue / 100,
-      });
+        monthlyRevenue.push({
+          month: dayStart.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit' }),
+          revenue: dayRevenue / 100,
+        });
+      }
+    } else if (period === '30days') {
+      // Mostrar por semana nos últimos 30 dias
+      for (let i = 3; i >= 0; i--) {
+        const weekStart = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
+        const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+
+        let weekRevenue = 0;
+        for (const charge of successfulCharges) {
+          const chargeDate = new Date(charge.created * 1000);
+          if (chargeDate >= weekStart && chargeDate < weekEnd) {
+            weekRevenue += charge.amount;
+          }
+        }
+
+        monthlyRevenue.push({
+          month: `${weekStart.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
+          revenue: weekRevenue / 100,
+        });
+      }
+    } else {
+      // Mostrar por mês
+      for (let i = monthsToShow - 1; i >= 0; i--) {
+        const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+
+        let monthRevenue = 0;
+        for (const charge of successfulCharges) {
+          const chargeDate = new Date(charge.created * 1000);
+          if (chargeDate >= monthStart && chargeDate <= monthEnd) {
+            monthRevenue += charge.amount;
+          }
+        }
+
+        monthlyRevenue.push({
+          month: monthStart.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+          revenue: monthRevenue / 100,
+        });
+      }
     }
 
     // Saldo

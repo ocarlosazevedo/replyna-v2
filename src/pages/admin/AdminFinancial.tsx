@@ -13,7 +13,19 @@ import {
   Wallet,
   Calendar,
   BarChart3,
+  ChevronDown,
 } from 'lucide-react'
+
+type Period = '7days' | '30days' | '3months' | '6months' | '12months' | 'all'
+
+const periodOptions: { value: Period; label: string }[] = [
+  { value: '7days', label: 'Ultimos 7 dias' },
+  { value: '30days', label: 'Ultimos 30 dias' },
+  { value: '3months', label: 'Ultimos 3 meses' },
+  { value: '6months', label: 'Ultimos 6 meses' },
+  { value: '12months', label: 'Ultimos 12 meses' },
+  { value: 'all', label: 'Todo o periodo' },
+]
 
 interface FinancialStats {
   balance: {
@@ -68,10 +80,12 @@ export default function AdminFinancial() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [period, setPeriod] = useState<Period>('6months')
+  const [showPeriodDropdown, setShowPeriodDropdown] = useState(false)
 
   useEffect(() => {
     loadStats()
-  }, [])
+  }, [period])
 
   const loadStats = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -80,7 +94,7 @@ export default function AdminFinancial() {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-financial-stats`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-financial-stats?period=${period}`,
         {
           headers: {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
@@ -272,7 +286,89 @@ export default function AdminFinancial() {
             Dados em tempo real do Stripe
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {/* Period selector */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '10px',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+                fontWeight: 500,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '14px',
+                minWidth: '180px',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={16} />
+                {periodOptions.find(p => p.value === period)?.label}
+              </div>
+              <ChevronDown size={16} style={{
+                transform: showPeriodDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+              }} />
+            </button>
+            {showPeriodDropdown && (
+              <>
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 10,
+                  }}
+                  onClick={() => setShowPeriodDropdown(false)}
+                />
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '4px',
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  zIndex: 20,
+                  minWidth: '180px',
+                  overflow: 'hidden',
+                }}>
+                  {periodOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setPeriod(option.value)
+                        setShowPeriodDropdown(false)
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 16px',
+                        border: 'none',
+                        backgroundColor: period === option.value ? 'rgba(70, 114, 236, 0.1)' : 'transparent',
+                        color: period === option.value ? 'var(--accent)' : 'var(--text-primary)',
+                        fontWeight: period === option.value ? 600 : 400,
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'block',
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
           <button
             onClick={() => loadStats(true)}
             disabled={refreshing}
