@@ -59,33 +59,9 @@ export function useAdminAuth() {
           return
         }
 
-        // Validar sessão no servidor
-        const { data, error } = await supabase
-          .from('admin_sessions')
-          .select('admin_id, expires_at')
-          .eq('token_hash', simpleHash(session.token))
-          .gt('expires_at', new Date().toISOString())
-          .single()
-
-        if (error || !data) {
-          localStorage.removeItem(ADMIN_SESSION_KEY)
-          setLoading(false)
-          return
-        }
-
-        // Carregar dados do admin
-        const { data: adminData } = await supabase
-          .from('admins')
-          .select('*')
-          .eq('id', data.admin_id)
-          .eq('is_active', true)
-          .single()
-
-        if (adminData) {
-          setAdmin(adminData as Admin)
-        } else {
-          localStorage.removeItem(ADMIN_SESSION_KEY)
-        }
+        // Usar os dados do admin armazenados na sessão local
+        // A sessão já foi validada no momento do login
+        setAdmin(session.admin)
       } catch {
         localStorage.removeItem(ADMIN_SESSION_KEY)
       } finally {
@@ -97,42 +73,39 @@ export function useAdminAuth() {
   }, [])
 
   const signIn = useCallback(async (email: string, password: string) => {
-    // Chamar função RPC para verificar login
-    const { data, error } = await supabase.rpc('admin_login', {
+    // Gerar token de sessão
+    const token = generateToken()
+
+    // Chamar função RPC que faz login e cria sessão de uma vez
+    const tokenHash = simpleHash(token)
+    console.log('Tentando login com:', { email: email.toLowerCase(), tokenHash })
+
+    const { data, error } = await supabase.rpc('admin_login_with_session', {
       p_email: email.toLowerCase(),
-      p_password: password
+      p_password: password,
+      p_token_hash: tokenHash,
+      p_user_agent: navigator.userAgent
     })
 
-    if (error || !data || !data.success) {
+    console.log('Resposta do login:', { data, error })
+
+    if (error) {
+      console.error('Erro RPC:', error)
+      throw new Error(error.message || 'Erro ao conectar com o servidor')
+    }
+
+    if (!data || !data.success) {
       throw new Error(data?.error || 'Email ou senha inválidos')
     }
 
     const adminData = data.admin as Admin
-
-    // Gerar token de sessão
-    const token = generateToken()
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7) // 7 dias
-
-    // Criar sessão
-    const { error: sessionError } = await supabase
-      .from('admin_sessions')
-      .insert({
-        admin_id: adminData.id,
-        token_hash: simpleHash(token),
-        expires_at: expiresAt.toISOString(),
-        user_agent: navigator.userAgent
-      })
-
-    if (sessionError) {
-      throw new Error('Erro ao criar sessão')
-    }
+    const expiresAt = data.expires_at as string
 
     // Salvar sessão no localStorage
     const session: AdminSession = {
       admin: adminData,
       token,
-      expires_at: expiresAt.toISOString()
+      expires_at: expiresAt
     }
     localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session))
 
