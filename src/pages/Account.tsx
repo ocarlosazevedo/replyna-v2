@@ -320,17 +320,28 @@ export default function Account() {
         throw new Error(result.error || 'Erro ao alterar plano')
       }
 
-      // Atualizar o profile local com os novos dados
-      setProfile((prev) =>
-        prev
-          ? {
-              ...prev,
-              plan: result.new_plan.name,
-              emails_limit: result.new_plan.emails_limit,
-              shops_limit: result.new_plan.shops_limit,
-            }
-          : prev
-      )
+      // Recarregar profile do banco para garantir dados sincronizados
+      const { data: updatedProfile } = await supabase
+        .from('users')
+        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at')
+        .eq('id', user.id)
+        .single()
+
+      if (updatedProfile) {
+        setProfile(updatedProfile)
+      } else {
+        // Fallback: atualizar localmente se não conseguir recarregar
+        setProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                plan: result.new_plan.name,
+                emails_limit: result.new_plan.emails_limit,
+                shops_limit: result.new_plan.shops_limit,
+              }
+            : prev
+        )
+      }
 
       setShowPlanModal(false)
 
