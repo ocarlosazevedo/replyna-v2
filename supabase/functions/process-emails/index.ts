@@ -67,6 +67,7 @@ interface ProcessingStats {
   emails_replied: number;
   emails_pending_credits: number;
   emails_forwarded_human: number;
+  emails_spam: number;
   errors: number;
 }
 
@@ -98,6 +99,7 @@ serve(async (req) => {
     emails_replied: 0,
     emails_pending_credits: 0,
     emails_forwarded_human: 0,
+    emails_spam: 0,
     errors: 0,
   };
 
@@ -224,6 +226,7 @@ async function processShop(shop: Shop, stats: ProcessingStats): Promise<void> {
       if (result === 'replied') stats.emails_replied++;
       else if (result === 'pending_credits') stats.emails_pending_credits++;
       else if (result === 'forwarded_human') stats.emails_forwarded_human++;
+      else if (result === 'spam') stats.emails_spam++;
     } catch (error) {
       console.error(`Erro ao processar mensagem ${message.id}:`, error);
       stats.errors++;
@@ -265,6 +268,13 @@ async function saveIncomingEmail(shopId: string, email: IncomingEmail): Promise<
     email.in_reply_to || undefined
   );
 
+  // Atualizar nome do cliente na conversation se disponível
+  if (email.from_name) {
+    await updateConversation(conversationId, {
+      customer_name: email.from_name,
+    });
+  }
+
   // Salvar mensagem
   await saveMessage({
     conversation_id: conversationId,
@@ -303,11 +313,40 @@ async function processMessage(
   shop: Shop,
   message: Message & { conversation?: Conversation },
   emailCredentials: Awaited<ReturnType<typeof decryptEmailCredentials>>
-): Promise<'replied' | 'pending_credits' | 'forwarded_human' | 'skipped'> {
+): Promise<'replied' | 'pending_credits' | 'forwarded_human' | 'spam' | 'skipped'> {
   if (!emailCredentials) return 'skipped';
 
   const conversation = message.conversation as Conversation | undefined;
   if (!conversation) return 'skipped';
+
+  // Validar from_email antes de processar
+  if (!message.from_email || !message.from_email.includes('@')) {
+    console.log(`Pulando mensagem ${message.id}: from_email inválido (${message.from_email})`);
+    await updateMessage(message.id, {
+      status: 'failed',
+      error_message: 'Email do remetente inválido ou ausente',
+    });
+    return 'skipped';
+  }
+
+  // Ignorar emails de sistemas de entrega (bounces, notificações)
+  const systemEmailPatterns = [
+    'mailer-daemon@',
+    'postmaster@',
+    'mail-delivery-subsystem@',
+    'noreply@',
+    'no-reply@',
+    'donotreply@',
+  ];
+  const fromLower = message.from_email.toLowerCase();
+  if (systemEmailPatterns.some(pattern => fromLower.includes(pattern))) {
+    console.log(`Pulando mensagem ${message.id}: email de sistema (${message.from_email})`);
+    await updateMessage(message.id, {
+      status: 'failed',
+      error_message: 'Email de sistema (bounce/notificação) ignorado',
+    });
+    return 'skipped';
+  }
 
   // Marcar como processando
   await updateMessage(message.id, { status: 'processing' });
@@ -335,7 +374,23 @@ async function processMessage(
   // TODO: Implementar detecção de spam via análise de conteúdo/frequência
 
   // 3. Limpar corpo do email
-  const cleanBody = cleanEmailBody(message.body_text || message.body_html || '');
+  let cleanBody = cleanEmailBody(message.body_text || message.body_html || '');
+
+  // Se o corpo está vazio mas o assunto tem conteúdo, usar o assunto como corpo
+  if ((!cleanBody || cleanBody.trim().length < 3) && message.subject && message.subject.trim().length > 3) {
+    console.log(`Corpo vazio, usando assunto como contexto: "${message.subject}"`);
+    cleanBody = message.subject;
+  }
+
+  // Validar que temos algum conteúdo para processar
+  if (!cleanBody || cleanBody.trim().length < 3) {
+    console.log(`Pulando mensagem ${message.id}: corpo e assunto vazios ou muito curtos`);
+    await updateMessage(message.id, {
+      status: 'failed',
+      error_message: 'Corpo e assunto do email vazios',
+    });
+    return 'skipped';
+  }
 
   // 4. Buscar histórico da conversa
   const history = await getConversationHistory(conversation.id, 3);
@@ -368,6 +423,36 @@ async function processMessage(
     event_type: 'email_classified',
     event_data: classification,
   });
+
+  // 5.1 Se for spam, marcar e não responder
+  if (classification.category === 'spam') {
+    console.log(`Email ${message.id} classificado como SPAM - não será respondido`);
+
+    await updateMessage(message.id, {
+      status: 'failed',
+      category: 'spam',
+      category_confidence: classification.confidence,
+      error_message: 'Email classificado como spam - não respondido',
+    });
+
+    await updateConversation(conversation.id, {
+      category: 'spam',
+      status: 'closed',
+    });
+
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'spam_detected',
+      event_data: {
+        confidence: classification.confidence,
+        summary: classification.summary,
+      },
+    });
+
+    return 'spam';
+  }
 
   // 6. Buscar dados do Shopify
   let shopifyData: OrderSummary | null = null;
@@ -426,7 +511,8 @@ async function processMessage(
         tone_of_voice: shop.tone_of_voice,
         fallback_message_template: shop.fallback_message_template,
       },
-      shopifyData?.customer_name || conversation.customer_name
+      shopifyData?.customer_name || conversation.customer_name,
+      classification.language // Passar idioma detectado
     );
     finalStatus = 'pending_human';
 
@@ -469,7 +555,8 @@ async function processMessage(
         tone_of_voice: shop.tone_of_voice,
         fallback_message_template: shop.fallback_message_template,
       },
-      null
+      null,
+      classification.language // Passar idioma detectado
     );
     finalStatus = 'pending_human';
 

@@ -491,7 +491,6 @@ export default function Dashboard() {
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
         .order('created_at', { ascending: false })
-        .limit(10)
 
       const { data, error } =
         selectedShopId === 'all'
@@ -572,7 +571,7 @@ export default function Dashboard() {
             // Adicionar nova conversa no topo da lista
             setConversations((prev) => {
               const updated = [newConversation, ...prev.filter((c) => c.id !== newConversation.id)]
-              return updated.slice(0, 10) // Manter apenas 10
+              return updated
             })
             // Atualizar métricas
             setMetrics((prev) => ({
@@ -784,7 +783,7 @@ export default function Dashboard() {
       <div className="replyna-dashboard-bottom">
         <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
           <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
-            Últimas Conversas
+            Conversas do Período
           </div>
           {loadingConversations ? (
             <div style={{ display: 'grid', gap: '12px' }}>

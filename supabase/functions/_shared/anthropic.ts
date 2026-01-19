@@ -33,6 +33,7 @@ export interface ClassificationResult {
     | 'pagamento'
     | 'entrega'
     | 'suporte_humano'
+    | 'spam'
     | 'outros';
   confidence: number;
   language: string;
@@ -158,13 +159,39 @@ CATEGORIAS DISPONÍVEIS:
 - produto: Dúvidas sobre tamanho, cor, disponibilidade, especificações do produto
 - pagamento: Problemas com boleto, cartão recusado, parcelamento, nota fiscal
 - entrega: Endereço errado, ausente na entrega, problema com transportadora
-- suporte_humano: APENAS SE o cliente pedir EXPLICITAMENTE para falar com humano/atendente/gerente, OU fizer ameaça legal (advogado, Procon, processo)
+- suporte_humano: APENAS para casos GRAVÍSSIMOS com ameaça legal explícita (advogado, Procon, processo judicial, ação legal)
+- spam: Emails de agências, consultores ou desenvolvedores oferecendo serviços (ver lista abaixo)
 - outros: Não se encaixa em nenhuma categoria acima
 
+DETECÇÃO DE SPAM (MUITO IMPORTANTE):
+Classifique como "spam" emails que oferecem serviços NÃO SOLICITADOS de:
+- Marketing digital, SEO, tráfego pago, growth hacking
+- Desenvolvimento de sites/lojas Shopify
+- Consultoria de vendas, conversão, performance
+- Auditorias de loja, análise de crescimento
+- Parcerias de revenue share ou comissão
+- Ofertas de "aumentar vendas", "gerar tráfego", "melhorar conversão"
+
+Sinais de SPAM:
+- Remetentes como "Marketing Consultant", "Shopify Developer", "Growth Specialist"
+- Frases como "growth opportunity", "increase revenue", "boost sales", "performance audit"
+- Ofertas de "quick call", "schedule a meeting", "free consultation"
+- Menções a "Shopify partner", "certified developer", "agency"
+- Emails genéricos que não mencionam nenhum pedido específico
+- Templates óbvios com [placeholders] ou texto genérico
+
+NÃO é spam se:
+- Cliente pergunta sobre SEU pedido existente
+- Cliente tem dúvida sobre produtos da loja
+- Cliente quer suporte sobre compra que fez
+
 IMPORTANTE:
-- Cliente irritado NÃO é suporte_humano (a menos que peça explicitamente)
+- Cliente irritado NÃO é suporte_humano
 - Reclamação sobre produto ou entrega NÃO é suporte_humano
-- Se tiver dúvida, escolha a categoria mais provável, não suporte_humano
+- Cliente pedindo para falar com dono/atendente/humano NÃO é suporte_humano - responda normalmente
+- SOMENTE classifique como suporte_humano se houver AMEAÇA LEGAL EXPLÍCITA (mencionar advogado, Procon, processo, ação judicial)
+- Se tiver dúvida, escolha a categoria mais provável (rastreio, reembolso, produto, etc), NUNCA suporte_humano
+- Se parecer spam de agência/consultor, classifique como "spam" com alta confiança
 
 Responda APENAS com o JSON, sem texto adicional.`;
 
@@ -205,6 +232,7 @@ Classifique este email e retorne o JSON.`;
       'pagamento',
       'entrega',
       'suporte_humano',
+      'spam',
       'outros',
     ];
     if (!validCategories.includes(result.category)) {
@@ -220,9 +248,9 @@ Classifique este email e retorne o JSON.`;
     return {
       category: 'outros',
       confidence: 0.5,
-      language: 'pt-BR',
+      language: 'en',
       order_id_found: null,
-      summary: 'Não foi possível classificar o email',
+      summary: 'Could not classify the email',
     };
   }
 }
@@ -256,7 +284,7 @@ export async function generateResponse(
     items: Array<{ name: string; quantity: number }>;
     customer_name: string | null;
   } | null,
-  language: string = 'pt-BR'
+  language: string = 'en'
 ): Promise<ResponseGenerationResult> {
   // Mapear tom de voz para instruções
   const toneInstructions: Record<string, string> = {
@@ -375,7 +403,7 @@ export async function generateDataRequestMessage(
   emailSubject: string,
   emailBody: string,
   attemptNumber: number,
-  language: string = 'pt-BR'
+  language: string = 'en'
 ): Promise<ResponseGenerationResult> {
   const toneInstructions: Record<string, string> = {
     professional:
@@ -457,7 +485,8 @@ export async function generateHumanFallbackMessage(
     tone_of_voice: string;
     fallback_message_template: string | null;
   },
-  customerName: string | null
+  customerName: string | null,
+  language: string = 'en'
 ): Promise<ResponseGenerationResult> {
   // Se tem template configurado, usar ele
   if (shopContext.fallback_message_template) {
@@ -474,32 +503,47 @@ export async function generateHumanFallbackMessage(
     };
   }
 
+  // Mapear idioma para instruções
+  const languageInstructions: Record<string, string> = {
+    'pt-BR': 'Responda em Português do Brasil.',
+    'pt': 'Responda em Português.',
+    'en': 'Respond in English.',
+    'es': 'Responde en Español.',
+    'fr': 'Répondez en Français.',
+    'de': 'Antworten Sie auf Deutsch.',
+    'it': 'Rispondi in Italiano.',
+  };
+
+  const languageInstruction = languageInstructions[language] || `Respond in the same language as the customer (${language}).`;
+
   // Gerar mensagem padrão
   const toneInstructions: Record<string, string> = {
-    professional: 'Use tom profissional e formal.',
-    friendly: 'Use tom amigável e empático.',
-    casual: 'Use tom casual mas respeitoso.',
-    enthusiastic: 'Use tom positivo e acolhedor.',
+    professional: 'Use a professional and formal tone.',
+    friendly: 'Use a friendly and empathetic tone.',
+    casual: 'Use a casual but respectful tone.',
+    enthusiastic: 'Use a positive and welcoming tone.',
   };
 
   const tone = toneInstructions[shopContext.tone_of_voice] || toneInstructions.friendly;
 
-  const systemPrompt = `Você é ${shopContext.attendant_name}, atendente virtual da loja ${shopContext.name}.
+  const systemPrompt = `You are ${shopContext.attendant_name}, virtual assistant for ${shopContext.name} store.
 
 ${tone}
 
-O caso do cliente será encaminhado para atendimento humano.
-Gere uma mensagem curta (máximo 80 palavras) informando que:
-1. Você recebeu a mensagem e entende a importância
-2. O caso foi encaminhado para a equipe especializada
-3. Eles receberão retorno em breve
+The customer's case will be forwarded to human support.
+Generate a short message (maximum 80 words) informing that:
+1. You received the message and understand its importance
+2. The case has been forwarded to a specialized team
+3. They will receive a response soon
 
-Não mencione prazos específicos (ex: "24 horas").
-Nome do cliente: ${customerName || 'Cliente'}`;
+Do not mention specific timeframes (e.g., "24 hours").
+Customer name: ${customerName || 'Customer'}
+
+IMPORTANT - LANGUAGE: ${languageInstruction}`;
 
   const response = await callClaude(
     systemPrompt,
-    [{ role: 'user', content: 'Gere a mensagem de encaminhamento para atendimento humano.' }],
+    [{ role: 'user', content: 'Generate the forwarding message to human support.' }],
     150
   );
 
