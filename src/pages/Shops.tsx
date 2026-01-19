@@ -33,11 +33,30 @@ export default function Shops() {
   const navigate = useNavigate()
   const [shops, setShops] = useState<Shop[]>([])
   const [loading, setLoading] = useState(true)
+  const [shopsLimit, setShopsLimit] = useState<number>(1)
   const isMobile = useIsMobile()
 
   useEffect(() => {
     loadShops()
+    loadUserLimit()
   }, [user])
+
+  const loadUserLimit = async () => {
+    if (!user) return
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('shops_limit')
+        .eq('id', user.id)
+        .single()
+
+      if (!error && data) {
+        setShopsLimit(data.shops_limit ?? 1)
+      }
+    } catch (err) {
+      console.error('Erro ao carregar limite de lojas:', err)
+    }
+  }
 
   const loadShops = async () => {
     if (!user) return
@@ -151,12 +170,27 @@ export default function Shops() {
             Minhas Lojas
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-            Gerencie suas lojas e integrações
+            Gerencie suas lojas e integrações ({shops.length}/{shopsLimit} lojas)
           </p>
         </div>
-        <button onClick={() => navigate('/shops/setup')} style={{ ...buttonPrimary, whiteSpace: 'nowrap', width: isMobile ? '100%' : 'auto' }}>
-          + Integrar nova loja
-        </button>
+        {shops.length >= shopsLimit ? (
+          <button
+            onClick={() => navigate('/account')}
+            style={{
+              ...buttonPrimary,
+              whiteSpace: 'nowrap',
+              width: isMobile ? '100%' : 'auto',
+              backgroundColor: '#f59e0b',
+            }}
+            title="Faça upgrade do seu plano para adicionar mais lojas"
+          >
+            Fazer upgrade
+          </button>
+        ) : (
+          <button onClick={() => navigate('/shops/setup')} style={{ ...buttonPrimary, whiteSpace: 'nowrap', width: isMobile ? '100%' : 'auto' }}>
+            + Integrar nova loja
+          </button>
+        )}
       </div>
 
       {loading ? (

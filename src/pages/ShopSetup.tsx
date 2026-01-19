@@ -275,6 +275,42 @@ export default function ShopSetup() {
     setSaving(true)
     setError('')
 
+    // Verificar limite de lojas do plano (apenas para criação, não edição)
+    if (!isEditing) {
+      try {
+        // Buscar limite do usuário
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('shops_limit')
+          .eq('id', user.id)
+          .single()
+
+        if (userError) throw userError
+
+        // Contar lojas atuais
+        const { count: currentShops, error: countError } = await supabase
+          .from('shops')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+
+        if (countError) throw countError
+
+        const shopsLimit = userData?.shops_limit ?? 1
+        const shopsCount = currentShops ?? 0
+
+        if (shopsCount >= shopsLimit) {
+          setError(`Você atingiu o limite de ${shopsLimit} loja${shopsLimit > 1 ? 's' : ''} do seu plano. Faça upgrade para adicionar mais lojas.`)
+          setSaving(false)
+          return
+        }
+      } catch (err) {
+        console.error('Erro ao verificar limite de lojas:', err)
+        setError('Erro ao verificar limite de lojas. Tente novamente.')
+        setSaving(false)
+        return
+      }
+    }
+
     // Verificar se as conexões foram validadas
     const hasShopifyConfig = shopData.shopify_domain && shopData.shopify_client_id && shopData.shopify_client_secret
     const hasEmailConfig = shopData.imap_host && shopData.smtp_host

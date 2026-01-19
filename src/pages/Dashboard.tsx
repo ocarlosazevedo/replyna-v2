@@ -175,23 +175,38 @@ const buildVolumeSeries = (messages: MessageRow[], granularity: 'day' | 'week' |
 const getCategoryBadge = (category: string | null) => {
   const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
   switch (category) {
+    case 'rastreio':
+      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#16a34a' } // Verde
     case 'duvidas_gerais':
-      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' }
-    case 'institucional':
-      return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' }
+      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' } // Azul
+    case 'produto':
+      return { ...base, backgroundColor: 'rgba(168, 85, 247, 0.16)', color: '#9333ea' } // Roxo
+    case 'pagamento':
+      return { ...base, backgroundColor: 'rgba(236, 72, 153, 0.16)', color: '#db2777' } // Rosa
+    case 'entrega':
+      return { ...base, backgroundColor: 'rgba(14, 165, 233, 0.16)', color: '#0284c7' } // Azul claro
     case 'reembolso':
-      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
+      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' } // Laranja
+    case 'troca':
+      return { ...base, backgroundColor: 'rgba(251, 146, 60, 0.16)', color: '#ea580c' } // Laranja escuro
+    case 'institucional':
+      return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' } // Cinza
     case 'suporte_humano':
-      return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' }
+      return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' } // Vermelho
+    case 'outros':
     default:
-      return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' }
+      return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' } // Cinza claro
   }
 }
 
 const categoryLabelMap: Record<string, string> = {
-  duvidas_gerais: 'Dúvidas gerais',
   rastreio: 'Rastreio',
+  duvidas_gerais: 'Dúvidas gerais',
+  produto: 'Produto',
+  pagamento: 'Pagamento',
+  entrega: 'Entrega',
   reembolso: 'Reembolso',
+  troca: 'Troca',
   institucional: 'Institucional',
   suporte_humano: 'Suporte humano',
   outros: 'Outros',
@@ -241,6 +256,7 @@ export default function Dashboard() {
   const [loadingConversations, setLoadingConversations] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
   const cacheFetch = useCallback(<T,>(key: string, fetcher: () => Promise<T>): Promise<T> => {
     const cached = cacheRef.current.get(key)
@@ -765,15 +781,46 @@ export default function Dashboard() {
       {/* Bottom */}
       <div className="replyna-dashboard-bottom">
         <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
               Conversas do Período
             </div>
-            {!loadingConversations && conversations.length > 0 && (
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                {conversations.length} {conversations.length === 1 ? 'conversa' : 'conversas'}
-              </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Filtro por categoria */}
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="all">Todas categorias</option>
+                <option value="rastreio">Rastreio</option>
+                <option value="duvidas_gerais">Dúvidas gerais</option>
+                <option value="produto">Produto</option>
+                <option value="pagamento">Pagamento</option>
+                <option value="entrega">Entrega</option>
+                <option value="reembolso">Reembolso</option>
+                <option value="troca">Troca</option>
+                <option value="institucional">Institucional</option>
+                <option value="suporte_humano">Suporte humano</option>
+                <option value="outros">Outros</option>
+              </select>
+              {!loadingConversations && conversations.length > 0 && (
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  {categoryFilter === 'all'
+                    ? `${conversations.length} ${conversations.length === 1 ? 'conversa' : 'conversas'}`
+                    : `${conversations.filter(c => (c.category || 'outros') === categoryFilter).length} de ${conversations.length}`}
+                </div>
+              )}
+            </div>
           </div>
           {loadingConversations ? (
             <div style={{ display: 'grid', gap: '12px' }}>
@@ -797,7 +844,9 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {conversations.map((conversation) => (
+                  {conversations
+                    .filter((c) => categoryFilter === 'all' || (c.category || 'outros') === categoryFilter)
+                    .map((conversation) => (
                     <tr
                       key={conversation.id}
                       onClick={() => handleConversationClick(conversation.id)}
@@ -839,7 +888,7 @@ export default function Dashboard() {
                         </span>
                       </td>
                       <td style={{ padding: '12px' }}>
-                        <span style={getCategoryBadge(conversation.category)}>{conversation.category || 'outros'}</span>
+                        <span style={getCategoryBadge(conversation.category)}>{formatCategoryLabel(conversation.category)}</span>
                       </td>
                       <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '13px' }}>
                         {formatDateTime(new Date(conversation.created_at))}
