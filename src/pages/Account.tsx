@@ -847,14 +847,9 @@ export default function Account() {
                               </span>
                             )}
                           </div>
-                          {plan.description && (
-                            <p style={{ margin: '0 0 8px 0', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                              {plan.description}
-                            </p>
-                          )}
                           <ul style={{ paddingLeft: '16px', margin: 0, color: 'var(--text-secondary)', fontSize: '12px', display: 'grid', gap: '2px' }}>
-                            <li>{formatNumber(plan.emails_limit)} emails/mês</li>
-                            <li>{formatNumber(plan.shops_limit)} {plan.shops_limit === 1 ? 'loja' : 'lojas'}</li>
+                            <li>{isEnterprise || plan.emails_limit >= 999999 ? 'Emails ilimitados' : `${formatNumber(plan.emails_limit)} emails/mês`}</li>
+                            <li>{isEnterprise || plan.shops_limit >= 999 ? 'Lojas ilimitadas' : `${formatNumber(plan.shops_limit)} ${plan.shops_limit === 1 ? 'loja' : 'lojas'}`}</li>
                             {Array.isArray(plan.features) && plan.features.slice(0, 3).map((feature, idx) => (
                               <li key={idx}>{feature}</li>
                             ))}
