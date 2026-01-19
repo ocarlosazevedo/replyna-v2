@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Sun, Moon, Eye, EyeOff, Check, Star, ArrowRight, ArrowLeft } from 'lucide-react'
+import { Sun, Moon, Eye, EyeOff, Check, Star, ArrowRight, ArrowLeft, MessageCircle } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { supabase } from '../lib/supabase'
 
@@ -70,7 +70,16 @@ export default function Register() {
     }
   }
 
+  const isEnterprisePlan = (plan: Plan) => {
+    return !plan.stripe_price_monthly_id || plan.price_monthly === 0
+  }
+
   const handleSelectPlan = (plan: Plan) => {
+    // If Enterprise plan, open WhatsApp instead of going to account form
+    if (isEnterprisePlan(plan)) {
+      window.open('https://wa.me/5531973210191?text=Olá! Tenho interesse no plano Enterprise da Replyna.', '_blank')
+      return
+    }
     setSelectedPlan(plan)
     setStep('account')
   }
@@ -289,20 +298,32 @@ export default function Register() {
                 )}
 
                 <div style={{ marginBottom: '20px' }}>
-                  <span style={{
-                    fontSize: '36px',
-                    fontWeight: 700,
-                    color: 'var(--text-primary)',
-                  }}>
-                    {formatPrice(plan.price_monthly)}
-                  </span>
-                  <span style={{
-                    fontSize: '14px',
-                    color: 'var(--text-secondary)',
-                    marginLeft: '4px',
-                  }}>
-                    /mes
-                  </span>
+                  {isEnterprisePlan(plan) ? (
+                    <span style={{
+                      fontSize: '28px',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                    }}>
+                      Personalizado
+                    </span>
+                  ) : (
+                    <>
+                      <span style={{
+                        fontSize: '36px',
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                      }}>
+                        {formatPrice(plan.price_monthly)}
+                      </span>
+                      <span style={{
+                        fontSize: '14px',
+                        color: 'var(--text-secondary)',
+                        marginLeft: '4px',
+                      }}>
+                        /mes
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 <div style={{
@@ -324,7 +345,7 @@ export default function Register() {
                       fontWeight: 600,
                       color: 'var(--text-primary)',
                     }}>
-                      {plan.emails_limit.toLocaleString('pt-BR')}
+                      {isEnterprisePlan(plan) ? 'Personalizado' : plan.emails_limit.toLocaleString('pt-BR')}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -336,7 +357,7 @@ export default function Register() {
                       fontWeight: 600,
                       color: 'var(--text-primary)',
                     }}>
-                      {plan.shops_limit}
+                      {isEnterprisePlan(plan) ? 'Ilimitado' : plan.shops_limit}
                     </span>
                   </div>
                 </div>
@@ -368,8 +389,12 @@ export default function Register() {
                     padding: '12px',
                     borderRadius: '10px',
                     border: 'none',
-                    backgroundColor: plan.is_popular ? 'var(--accent)' : 'var(--bg-primary)',
-                    color: plan.is_popular ? '#fff' : 'var(--text-primary)',
+                    backgroundColor: isEnterprisePlan(plan)
+                      ? '#25D366'
+                      : plan.is_popular
+                        ? 'var(--accent)'
+                        : 'var(--bg-primary)',
+                    color: isEnterprisePlan(plan) || plan.is_popular ? '#fff' : 'var(--text-primary)',
                     fontWeight: 600,
                     fontSize: '14px',
                     cursor: 'pointer',
@@ -379,8 +404,17 @@ export default function Register() {
                     gap: '8px',
                   }}
                 >
-                  Selecionar
-                  <ArrowRight size={16} />
+                  {isEnterprisePlan(plan) ? (
+                    <>
+                      <MessageCircle size={16} />
+                      Fale conosco
+                    </>
+                  ) : (
+                    <>
+                      Selecionar
+                      <ArrowRight size={16} />
+                    </>
+                  )}
                 </button>
               </div>
             ))}
