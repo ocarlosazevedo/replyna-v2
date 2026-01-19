@@ -251,30 +251,58 @@ serve(async (req) => {
     });
 
     // Definir comportamento de proration baseado em upgrade/downgrade
-    // Upgrade: cobra a diferença imediatamente (always_invoice)
-    // Downgrade: novo valor só na próxima fatura (none)
-    const prorationBehavior = isUpgrade ? 'always_invoice' : 'none';
+    // UPGRADE: Reseta o ciclo de cobrança e cobra o valor cheio do novo plano imediatamente
+    // DOWNGRADE: Mantém o ciclo atual, novo valor só na próxima fatura
 
-    console.log('Proration behavior:', prorationBehavior);
+    console.log('Tipo de alteração:', isUpgrade ? 'UPGRADE' : isDowngrade ? 'DOWNGRADE' : 'MESMO_PRECO');
 
-    // Atualizar subscription no Stripe
-    const updatedSubscription = await stripe.subscriptions.update(
-      subscription.stripe_subscription_id,
-      {
-        items: [
-          {
-            id: currentItem.id,
-            price: newStripePriceId,
+    let updatedSubscription;
+
+    if (isUpgrade) {
+      // Para UPGRADE: reseta o billing cycle e cobra o novo plano imediatamente
+      // Isso garante que o cliente pague o valor cheio do novo plano (não proporcional)
+      updatedSubscription = await stripe.subscriptions.update(
+        subscription.stripe_subscription_id,
+        {
+          items: [
+            {
+              id: currentItem.id,
+              price: newStripePriceId,
+            },
+          ],
+          // 'none' não gera créditos/débitos proporcionais
+          proration_behavior: 'none',
+          // Reseta o ciclo de cobrança para agora, cobrando o novo valor imediatamente
+          billing_cycle_anchor: 'now',
+          // Necessário quando billing_cycle_anchor é 'now'
+          payment_behavior: 'allow_incomplete',
+          metadata: {
+            plan_id: new_plan_id,
+            plan_name: newPlan.name,
+            user_id: user_id,
           },
-        ],
-        proration_behavior: prorationBehavior,
-        metadata: {
-          plan_id: new_plan_id,
-          plan_name: newPlan.name,
-          user_id: user_id,
-        },
-      }
-    );
+        }
+      );
+    } else {
+      // Para DOWNGRADE ou mesmo preço: mantém o ciclo atual
+      updatedSubscription = await stripe.subscriptions.update(
+        subscription.stripe_subscription_id,
+        {
+          items: [
+            {
+              id: currentItem.id,
+              price: newStripePriceId,
+            },
+          ],
+          proration_behavior: 'none',
+          metadata: {
+            plan_id: new_plan_id,
+            plan_name: newPlan.name,
+            user_id: user_id,
+          },
+        }
+      );
+    }
 
     console.log('Atualizando subscription no banco:', {
       subscription_id: subscription.id,
