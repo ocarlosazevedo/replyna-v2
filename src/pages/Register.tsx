@@ -591,22 +591,24 @@ export default function Register() {
                 marginTop: '12px',
                 paddingTop: '12px',
                 borderTop: '1px solid var(--border-color)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Tag size={14} style={{ color: '#22c55e' }} />
-                  <span style={{ fontSize: '13px', color: '#22c55e', fontWeight: 600 }}>
-                    {couponCode.toUpperCase()}
-                  </span>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    ({couponValidation.discount_type === 'percentage'
-                      ? `${couponValidation.discount_value}% off`
-                      : `R$ ${couponValidation.discount_value?.toFixed(2)} off`})
-                  </span>
-                </div>
-                <button
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Tag size={14} style={{ color: '#22c55e' }} />
+                    <span style={{ fontSize: '13px', color: '#22c55e', fontWeight: 600 }}>
+                      {couponCode.toUpperCase()}
+                    </span>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      ({couponValidation.discount_type === 'percentage'
+                        ? `${couponValidation.discount_value}% off`
+                        : `R$ ${couponValidation.discount_value?.toFixed(2)} off`})
+                    </span>
+                  </div>
+                  <button
                   type="button"
                   onClick={clearCoupon}
                   style={{
@@ -620,6 +622,18 @@ export default function Register() {
                 >
                   <X size={16} />
                 </button>
+                </div>
+                <div style={{
+                  marginTop: '8px',
+                  fontSize: '12px',
+                  color: 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}>
+                  <Check size={12} style={{ color: '#22c55e' }} />
+                  Cupom sera aplicado automaticamente no checkout
+                </div>
               </div>
             )}
           </div>
