@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Sun, Moon } from 'lucide-react'
+import { Sun, Moon, Mail } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../context/ThemeContext'
 
@@ -58,7 +58,18 @@ export default function ForgotPassword() {
         </button>
 
         <div style={{ maxWidth: '400px', width: '100%', backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '32px', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📧</div>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(70, 114, 236, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px',
+          }}>
+            <Mail size={36} style={{ color: 'var(--accent)' }} />
+          </div>
           <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '8px' }}>Email enviado!</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
             Enviamos um link para <strong>{email}</strong>.
