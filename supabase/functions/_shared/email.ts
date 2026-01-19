@@ -211,6 +211,7 @@ class SimpleImapClient {
     envelope: {
       messageId: string;
       from: string;
+      fromName: string | null;
       to: string;
       subject: string;
       date: string;
@@ -228,6 +229,7 @@ class SimpleImapClient {
 
     let messageId = '';
     let from = '';
+    let fromName: string | null = null;
     let to = '';
     let subject = '';
     let date = '';
@@ -250,7 +252,14 @@ class SimpleImapClient {
         if (emailMatch) {
           from = emailMatch[1].toLowerCase();
         }
-        console.log('From extraído:', from, 'do valor:', fromValue);
+        // Extrair nome do remetente
+        // Formatos: "Nome Sobrenome" <email>, Nome Sobrenome <email>, =?UTF-8?B?...?= <email>
+        const nameMatch = fromValue.match(/^"?([^"<]+)"?\s*</);
+        if (nameMatch && nameMatch[1].trim()) {
+          // Decodificar nome se estiver em MIME encoding
+          fromName = this.decodeSubject(nameMatch[1].trim());
+        }
+        console.log('From extraído:', from, 'Nome:', fromName, 'do valor:', fromValue);
       }
 
       // To
@@ -304,6 +313,7 @@ class SimpleImapClient {
       envelope: {
         messageId: messageId || `<${Date.now()}.${Math.random()}@generated>`,
         from,
+        fromName,
         to,
         subject,
         date: date || new Date().toISOString(),
@@ -481,7 +491,7 @@ export async function fetchUnreadEmails(
         emails.push({
           message_id: msg.envelope.messageId,
           from_email: msg.envelope.from,
-          from_name: null,
+          from_name: msg.envelope.fromName,
           to_email: credentials.imap_user,
           subject: msg.envelope.subject || null,
           body_text: bodyText || null,
