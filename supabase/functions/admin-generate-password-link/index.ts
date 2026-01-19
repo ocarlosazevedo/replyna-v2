@@ -1,8 +1,8 @@
 /**
- * Edge Function: Admin Send Reset Password
+ * Edge Function: Admin Generate Password Link
  *
- * Envia email de reset de senha para um usuário.
- * Usa service role key para poder gerar o link.
+ * Gera um link direto para o usuário definir/resetar sua senha.
+ * Retorna o link para ser enviado manualmente ou exibido.
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
@@ -40,9 +40,9 @@ serve(async (req) => {
       );
     }
 
-    console.log('Enviando email de reset para:', email);
+    console.log('Gerando link de reset para:', email);
 
-    // Gerar link de recuperação
+    // Gerar link de recuperação (magic link)
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
       email: email,
@@ -58,20 +58,17 @@ serve(async (req) => {
 
     console.log('Link gerado com sucesso');
 
-    // Também podemos usar o método resetPasswordForEmail que envia o email automaticamente
-    const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://app.replyna.me/reset-password',
-    });
-
-    if (resetError) {
-      console.error('Erro ao enviar email:', resetError);
-      throw new Error(`Erro ao enviar email: ${resetError.message}`);
-    }
+    // O link gerado precisa ser formatado corretamente
+    // data.properties.action_link contém o link completo
+    const actionLink = data.properties?.action_link;
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Email de recuperação enviado para ${email}`,
+        email: email,
+        link: actionLink,
+        message: 'Link gerado. O usuário pode usar este link para definir sua senha.',
+        expires_in: '24 horas',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

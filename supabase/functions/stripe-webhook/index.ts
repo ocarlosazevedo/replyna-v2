@@ -278,7 +278,7 @@ async function handleCheckoutCompleted(
         // Enviar email de reset de senha para o usuário definir sua senha
         try {
           const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-            redirectTo: 'https://app.replyna.com/reset-password',
+            redirectTo: 'https://app.replyna.me/reset-password',
           });
           if (resetError) {
             console.error('Erro ao enviar email de reset:', resetError);

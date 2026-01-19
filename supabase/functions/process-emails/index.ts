@@ -779,7 +779,7 @@ Plano: ${user.plan}
 • Faça upgrade do seu plano
 • Compre créditos avulsos
 
-Acesse: https://app.replyna.com/account
+Acesse: https://app.replyna.me/account
 
 —
 Replyna - Atendimento Inteligente
