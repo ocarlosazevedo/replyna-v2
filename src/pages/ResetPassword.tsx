@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react'
+import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -12,14 +12,75 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [isReady, setIsReady] = useState(false)
+  const [sessionError, setSessionError] = useState(false)
 
-  // Verificar se chegou com o token de recuperacao
+  // Processar o token da URL e verificar sessao
   useEffect(() => {
-    // O Supabase automaticamente processa o token da URL e cria uma sessao
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, _session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        // Usuario chegou pelo link de recuperacao
+    const handleRecovery = async () => {
+      // Verificar se há hash params na URL (formato antigo)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken = hashParams.get('access_token')
+      const type = hashParams.get('type')
+
+      // Verificar query params também (formato PKCE)
+      const queryParams = new URLSearchParams(window.location.search)
+      const code = queryParams.get('code')
+
+      if (code) {
+        // Fluxo PKCE - trocar code por sessão
+        try {
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          if (error) {
+            console.error('Erro ao trocar code:', error)
+            setSessionError(true)
+            setError('Link expirado ou inválido. Solicite um novo link de recuperação.')
+            return
+          }
+          setIsReady(true)
+        } catch (err) {
+          console.error('Exceção ao trocar code:', err)
+          setSessionError(true)
+          setError('Erro ao processar link. Tente novamente.')
+        }
+      } else if (accessToken && type === 'recovery') {
+        // Fluxo antigo com access_token no hash
+        try {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: hashParams.get('refresh_token') || '',
+          })
+          if (error) {
+            console.error('Erro ao definir sessão:', error)
+            setSessionError(true)
+            setError('Link expirado ou inválido. Solicite um novo link de recuperação.')
+            return
+          }
+          setIsReady(true)
+        } catch (err) {
+          console.error('Exceção ao definir sessão:', err)
+          setSessionError(true)
+          setError('Erro ao processar link. Tente novamente.')
+        }
+      } else {
+        // Verificar se já tem uma sessão válida
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          setIsReady(true)
+        } else {
+          setSessionError(true)
+          setError('Nenhum token de recuperação encontrado. Use o link enviado por email.')
+        }
+      }
+    }
+
+    handleRecovery()
+
+    // Listener para mudanças de auth
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) {
         console.log('Password recovery event detected')
+        setIsReady(true)
       }
     })
 
@@ -90,6 +151,126 @@ export default function ResetPassword() {
     fontWeight: 600,
     cursor: loading ? 'not-allowed' : 'pointer',
     opacity: loading ? 0.7 : 1,
+  }
+
+  // Loading enquanto processa o token
+  if (!isReady && !sessionError) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'var(--bg-primary)',
+        padding: '20px',
+      }}>
+        <div style={{
+          maxWidth: '400px',
+          width: '100%',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: '16px',
+          padding: '40px',
+          textAlign: 'center',
+          border: '1px solid var(--border-color)',
+        }}>
+          <Loader2
+            size={48}
+            style={{
+              color: 'var(--accent)',
+              animation: 'spin 1s linear infinite',
+              marginBottom: '24px',
+            }}
+          />
+          <h2 style={{
+            fontSize: '20px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginBottom: '8px',
+          }}>
+            Verificando link...
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+            Aguarde um momento
+          </p>
+          <style>{`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      </div>
+    )
+  }
+
+  // Erro de sessão - link inválido ou expirado
+  if (sessionError) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'var(--bg-primary)',
+        padding: '20px',
+      }}>
+        <div style={{
+          maxWidth: '400px',
+          width: '100%',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: '16px',
+          padding: '40px',
+          textAlign: 'center',
+          border: '1px solid var(--border-color)',
+        }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 24px',
+          }}>
+            <AlertCircle size={40} style={{ color: '#ef4444' }} />
+          </div>
+
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginBottom: '8px',
+          }}>
+            Link inválido
+          </h2>
+
+          <p style={{
+            color: 'var(--text-secondary)',
+            fontSize: '15px',
+            marginBottom: '24px',
+          }}>
+            {error || 'O link de recuperação expirou ou é inválido. Solicite um novo link.'}
+          </p>
+
+          <button
+            onClick={() => navigate('/forgot-password')}
+            style={{
+              width: '100%',
+              padding: '14px',
+              borderRadius: '10px',
+              border: 'none',
+              backgroundColor: 'var(--accent)',
+              color: '#fff',
+              fontSize: '15px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Solicitar novo link
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (success) {
