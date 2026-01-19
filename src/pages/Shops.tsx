@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User } from 'lucide-react'
+import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User, Store, Plus } from 'lucide-react'
 
 interface Shop {
   id: string
@@ -151,19 +151,38 @@ export default function Shops() {
           <div style={{ color: 'var(--text-secondary)' }}>Carregando...</div>
         </div>
       ) : shops.length === 0 ? (
-        <div style={{ ...cardStyle, textAlign: 'center', padding: '64px 48px' }}>
-          <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏪</div>
-          <h2 style={{ fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' }}>
-            Nenhuma loja cadastrada
+        <div style={{ ...cardStyle, textAlign: 'center', padding: '80px 48px' }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '20px',
+            backgroundColor: 'rgba(70, 114, 236, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 24px',
+          }}>
+            <Store size={40} style={{ color: 'var(--accent)' }} />
+          </div>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '12px' }}>
+            Integre sua primeira loja
           </h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', maxWidth: '400px', margin: '0 auto 24px' }}>
-            Crie sua primeira loja para começar a usar o atendimento automático com IA.
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', maxWidth: '420px', margin: '0 auto 32px', lineHeight: '1.6' }}>
+            Configure sua loja para ativar o atendimento automatizado. A Replyna vai responder seus clientes com inteligência artificial.
           </p>
           <button
             onClick={() => navigate('/shops/setup')}
-            style={{ ...buttonPrimary, padding: '14px 28px', fontSize: '16px' }}
+            style={{
+              ...buttonPrimary,
+              padding: '14px 28px',
+              fontSize: '15px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
           >
-            Criar minha primeira loja
+            <Plus size={18} />
+            Integrar minha loja
           </button>
         </div>
       ) : (
