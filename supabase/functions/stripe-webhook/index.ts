@@ -275,12 +275,19 @@ async function handleCheckoutCompleted(
         newUserId = newAuthUser.user.id;
         console.log('Usuário criado no Auth:', newUserId);
 
-        // Enviar email de reset de senha
-        await supabaseAdmin.auth.admin.generateLink({
-          type: 'recovery',
-          email: email,
-        });
-        console.log('Link de recuperação gerado para:', email);
+        // Enviar email de reset de senha para o usuário definir sua senha
+        try {
+          const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+            redirectTo: 'https://app.replyna.com/reset-password',
+          });
+          if (resetError) {
+            console.error('Erro ao enviar email de reset:', resetError);
+          } else {
+            console.log('Email de definição de senha enviado para:', email);
+          }
+        } catch (resetErr) {
+          console.error('Exceção ao enviar email de reset:', resetErr);
+        }
       }
 
       // Agora criar na tabela users

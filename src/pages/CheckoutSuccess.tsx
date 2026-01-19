@@ -226,11 +226,35 @@ export default function CheckoutSuccess() {
         <p style={{
           color: 'var(--text-secondary)',
           fontSize: '15px',
-          marginBottom: '32px',
+          marginBottom: '24px',
           lineHeight: 1.6,
         }}>
-          Sua conta foi criada com sucesso. Enviamos um email de confirmacao para ativar sua conta.
+          Sua assinatura foi ativada com sucesso.
         </p>
+
+        <div style={{
+          padding: '20px',
+          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+          borderRadius: '12px',
+          marginBottom: '20px',
+          border: '1px solid rgba(245, 158, 11, 0.2)',
+        }}>
+          <p style={{
+            fontSize: '15px',
+            color: '#b45309',
+            fontWeight: 600,
+            marginBottom: '8px',
+          }}>
+            Importante: Defina sua senha
+          </p>
+          <p style={{
+            fontSize: '14px',
+            color: 'var(--text-secondary)',
+            lineHeight: 1.5,
+          }}>
+            Enviamos um email para voce definir sua senha de acesso. Verifique sua caixa de entrada (e spam) e clique no link para criar sua senha.
+          </p>
+        </div>
 
         <div style={{
           padding: '16px',
@@ -239,17 +263,10 @@ export default function CheckoutSuccess() {
           marginBottom: '24px',
         }}>
           <p style={{
-            fontSize: '14px',
-            color: 'var(--text-primary)',
-            marginBottom: '8px',
-          }}>
-            <strong>Proximo passo:</strong>
-          </p>
-          <p style={{
             fontSize: '13px',
             color: 'var(--text-secondary)',
           }}>
-            Verifique seu email e clique no link de confirmacao para ativar sua conta.
+            Nao recebeu o email? Acesse a pagina de login e clique em "Esqueci minha senha" para receber um novo link.
           </p>
         </div>
 
