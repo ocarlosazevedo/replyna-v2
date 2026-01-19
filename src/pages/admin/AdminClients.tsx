@@ -95,8 +95,6 @@ export default function AdminClients() {
         .update({
           name: editingClient.name,
           plan: editingClient.plan,
-          emails_limit: editingClient.emails_limit,
-          shops_limit: editingClient.shops_limit,
           status: editingClient.status,
         })
         .eq('id', editingClient.id)
@@ -512,27 +510,6 @@ export default function AdminClients() {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={labelStyle}>Limite de Emails</label>
-                  <input
-                    type="number"
-                    value={editingClient.emails_limit}
-                    onChange={(e) => setEditingClient({ ...editingClient, emails_limit: parseInt(e.target.value) })}
-                    style={inputStyle}
-                  />
-                </div>
-                <div>
-                  <label style={labelStyle}>Limite de Lojas</label>
-                  <input
-                    type="number"
-                    value={editingClient.shops_limit}
-                    onChange={(e) => setEditingClient({ ...editingClient, shops_limit: parseInt(e.target.value) })}
-                    style={inputStyle}
-                  />
-                </div>
               </div>
 
               <div>
