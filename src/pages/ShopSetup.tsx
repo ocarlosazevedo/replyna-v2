@@ -629,35 +629,11 @@ export default function ShopSetup() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '14px', color: 'var(--text-primary)' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
             <span style={{ color: 'var(--accent)' }}>→</span>
-            <span>Acesse o <a href="https://partners.shopify.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '600' }}>Dev Dashboard</a> da Shopify</span>
+            <span>Acesse o <a href="https://admin.shopify.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '600' }}>Admin da Shopify</a> e vá em <strong>Settings</strong> → <strong>Apps and sales channels</strong> → <strong>Develop apps</strong></span>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <span style={{ color: 'var(--accent)' }}>→</span>
-            <span>Clique em <strong>Create an app</strong> → Start from Dev Dashboard</span>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-            <span style={{ color: 'var(--accent)' }}>→</span>
-            <span>Em <strong>App URL</strong>, adicione: <code
-              onClick={() => copyToClipboard('https://app.replyna.me', 'URL copiada!')}
-              style={{
-                backgroundColor: 'rgba(70, 114, 236, 0.15)',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '13px'
-              }}>https://app.replyna.me</code></span>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-            <span style={{ color: 'var(--accent)' }}>→</span>
-            <span>Em <strong>Redirect URLs</strong>, adicione: <code
-              onClick={() => copyToClipboard('https://app.replyna.me/api/shopify-callback', 'URL copiada!')}
-              style={{
-                backgroundColor: 'rgba(70, 114, 236, 0.15)',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '13px'
-              }}>https://app.replyna.me/api/shopify-callback</code></span>
+            <span>Clique em <strong>Create an app</strong></span>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
             <span style={{ color: 'var(--accent)' }}>→</span>
@@ -676,9 +652,39 @@ export default function ShopSetup() {
                 }}>read_orders, read_products, read_customers, read_inventory, read_fulfillments</code>
             </div>
           </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+            <span style={{ color: 'var(--accent)' }}>→</span>
+            <span>Em <strong>App URL</strong>, adicione: <code
+              onClick={() => copyToClipboard('https://app.replyna.me', 'URL copiada!')}
+              style={{
+                backgroundColor: 'rgba(70, 114, 236, 0.15)',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '13px'
+              }}>https://app.replyna.me</code></span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginLeft: '20px' }}>
+            <span style={{ color: '#ef4444' }}>⚠</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+              <strong>Não</strong> marque a opção "Embed app in Shopify admin" abaixo de App URL
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+            <span style={{ color: 'var(--accent)' }}>→</span>
+            <span>Em <strong>Redirect URLs</strong>, adicione: <code
+              onClick={() => copyToClipboard('https://app.replyna.me/api/shopify-callback', 'URL copiada!')}
+              style={{
+                backgroundColor: 'rgba(70, 114, 236, 0.15)',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '13px'
+              }}>https://app.replyna.me/api/shopify-callback</code></span>
+          </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <span style={{ color: 'var(--accent)' }}>→</span>
-            <span>Clique em <strong>Release</strong> e depois <strong>Install</strong> na sua loja</span>
+            <span>Clique em <strong>Save</strong> e depois <strong>Install app</strong></span>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <span style={{ color: 'var(--accent)' }}>→</span>
