@@ -25,69 +25,42 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     try {
-      // Total de usuarios
-      const { count: totalUsers } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-
-      // Usuarios ativos
-      const { count: activeUsers } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active')
-
-      // Total de lojas
-      const { count: totalShops } = await supabase
-        .from('shops')
-        .select('*', { count: 'exact', head: true })
-
-      // Lojas ativas
-      const { count: activeShops } = await supabase
-        .from('shops')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true)
-
-      // Total de conversas
-      const { count: totalConversations } = await supabase
-        .from('conversations')
-        .select('*', { count: 'exact', head: true })
-
-      // Total de mensagens
-      const { count: totalMessages } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-
-      // Mensagens auto-respondidas
-      const { count: autoReplied } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('was_auto_replied', true)
-
-      // Conversas hoje
+      // Preparar datas para filtros
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      const { count: conversationsToday } = await supabase
-        .from('conversations')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', today.toISOString())
 
-      // Conversas esta semana
       const weekStart = new Date()
       weekStart.setDate(weekStart.getDate() - weekStart.getDay())
       weekStart.setHours(0, 0, 0, 0)
-      const { count: conversationsThisWeek } = await supabase
-        .from('conversations')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', weekStart.toISOString())
 
-      // Conversas este mes
       const monthStart = new Date()
       monthStart.setDate(1)
       monthStart.setHours(0, 0, 0, 0)
-      const { count: conversationsThisMonth } = await supabase
-        .from('conversations')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', monthStart.toISOString())
+
+      // Executar todas as queries em paralelo
+      const [
+        { count: totalUsers },
+        { count: activeUsers },
+        { count: totalShops },
+        { count: activeShops },
+        { count: totalConversations },
+        { count: totalMessages },
+        { count: autoReplied },
+        { count: conversationsToday },
+        { count: conversationsThisWeek },
+        { count: conversationsThisMonth },
+      ] = await Promise.all([
+        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase.from('users').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('shops').select('*', { count: 'exact', head: true }),
+        supabase.from('shops').select('*', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('conversations').select('*', { count: 'exact', head: true }),
+        supabase.from('messages').select('*', { count: 'exact', head: true }),
+        supabase.from('messages').select('*', { count: 'exact', head: true }).eq('was_auto_replied', true),
+        supabase.from('conversations').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
+        supabase.from('conversations').select('*', { count: 'exact', head: true }).gte('created_at', weekStart.toISOString()),
+        supabase.from('conversations').select('*', { count: 'exact', head: true }).gte('created_at', monthStart.toISOString()),
+      ])
 
       setStats({
         totalUsers: totalUsers || 0,

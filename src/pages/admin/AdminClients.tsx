@@ -29,27 +29,25 @@ export default function AdminClients() {
 
   const loadClients = async () => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false })
+      // Buscar usuários e lojas em paralelo
+      const [usersResult, shopsResult] = await Promise.all([
+        supabase.from('users').select('*').order('created_at', { ascending: false }),
+        supabase.from('shops').select('user_id')
+      ])
 
-      if (error) throw error
+      if (usersResult.error) throw usersResult.error
 
-      // Buscar contagem de lojas para cada cliente
-      const clientsWithShops = await Promise.all(
-        (data || []).map(async (client) => {
-          const { count } = await supabase
-            .from('shops')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', client.id)
+      // Contar lojas por usuário
+      const shopCountByUser: Record<string, number> = {}
+      ;(shopsResult.data || []).forEach((shop) => {
+        shopCountByUser[shop.user_id] = (shopCountByUser[shop.user_id] || 0) + 1
+      })
 
-          return {
-            ...client,
-            shops_count: count || 0,
-          }
-        })
-      )
+      // Combinar dados
+      const clientsWithShops = (usersResult.data || []).map((client) => ({
+        ...client,
+        shops_count: shopCountByUser[client.id] || 0,
+      }))
 
       setClients(clientsWithShops as Client[])
     } catch (err) {
