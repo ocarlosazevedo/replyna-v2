@@ -261,43 +261,130 @@ export default function Register() {
     <div style={{
       minHeight: '100vh',
       backgroundColor: 'var(--bg-primary)',
-      padding: '20px',
       position: 'relative',
     }}>
-      {/* Theme toggle */}
-      <button
-        onClick={toggleTheme}
-        style={{
-          position: 'absolute',
-          top: '20px',
-          right: '20px',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '10px',
-          padding: '10px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-secondary)',
-          zIndex: 10,
-        }}
-        title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
-      >
-        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-      </button>
-
-      {/* Header */}
-      <div style={{ textAlign: 'center', paddingTop: '40px', marginBottom: '40px' }}>
-        <img
-          src="/replyna-logo.webp"
-          alt="Replyna"
-          style={{ width: '160px', height: 'auto', marginBottom: '16px' }}
-        />
-        <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-          {step === 'plan' ? 'Escolha o plano ideal para seu negocio' : 'Finalize seu cadastro'}
-        </p>
+      {/* Top bar with logo and theme toggle */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '20px 24px',
+        maxWidth: '1200px',
+        margin: '0 auto',
+      }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
+          <img
+            src="/replyna-logo.webp"
+            alt="Replyna"
+            style={{ width: '120px', height: 'auto' }}
+          />
+        </Link>
+        <button
+          onClick={toggleTheme}
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '10px',
+            padding: '10px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-secondary)',
+          }}
+          title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
+        >
+          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+        </button>
       </div>
+
+      {/* Page content */}
+      <div style={{ padding: '0 20px 40px' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginBottom: '8px',
+          }}>
+            {step === 'plan' ? 'Escolha seu plano' : 'Finalize seu cadastro'}
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
+            {step === 'plan'
+              ? 'Selecione o plano ideal para o seu negocio'
+              : `Plano ${selectedPlan?.name} selecionado`}
+          </p>
+
+          {/* Step indicator */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            marginTop: '24px',
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--accent)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 600,
+              }}>
+                {step === 'account' ? <Check size={14} /> : '1'}
+              </div>
+              <span style={{
+                fontSize: '14px',
+                fontWeight: step === 'plan' ? 600 : 400,
+                color: 'var(--text-primary)',
+              }}>
+                Plano
+              </span>
+            </div>
+            <div style={{
+              width: '40px',
+              height: '2px',
+              backgroundColor: step === 'account' ? 'var(--accent)' : 'var(--border-color)',
+            }} />
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                backgroundColor: step === 'account' ? 'var(--accent)' : 'var(--border-color)',
+                color: step === 'account' ? '#fff' : 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 600,
+              }}>
+                2
+              </div>
+              <span style={{
+                fontSize: '14px',
+                fontWeight: step === 'account' ? 600 : 400,
+                color: step === 'account' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              }}>
+                Cadastro
+              </span>
+            </div>
+          </div>
+        </div>
 
       {/* Step: Select Plan */}
       {step === 'plan' && (
@@ -985,6 +1072,7 @@ export default function Register() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
