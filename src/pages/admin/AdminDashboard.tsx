@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
+import type { DateRange } from 'react-day-picker'
+import { subDays } from 'date-fns'
 import { supabase } from '../../lib/supabase'
-import { MessageSquare, Users, Store, TrendingUp, CheckCircle, CreditCard } from 'lucide-react'
+import { MessageSquare, Users, Store, CheckCircle, CreditCard } from 'lucide-react'
+import DateRangePicker from '../../components/DateRangePicker'
 
 interface DashboardStats {
   totalUsers: number
@@ -10,32 +13,42 @@ interface DashboardStats {
   totalConversations: number
   totalMessages: number
   automationRate: number
-  conversationsToday: number
-  conversationsThisWeek: number
-  conversationsThisMonth: number
+}
+
+const getDefaultRange = (): DateRange => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return { from: subDays(today, 29), to: today }
+}
+
+const startOfDay = (date: Date) => {
+  const next = new Date(date)
+  next.setHours(0, 0, 0, 0)
+  return next
+}
+
+const endOfDay = (date: Date) => {
+  const next = new Date(date)
+  next.setHours(23, 59, 59, 999)
+  return next
 }
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [range, setRange] = useState<DateRange>(getDefaultRange())
 
   useEffect(() => {
     loadStats()
-  }, [])
+  }, [range])
 
   const loadStats = async () => {
+    if (!range?.from || !range?.to) return
+
+    setLoading(true)
     try {
-      // Preparar datas para filtros
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-
-      const weekStart = new Date()
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay())
-      weekStart.setHours(0, 0, 0, 0)
-
-      const monthStart = new Date()
-      monthStart.setDate(1)
-      monthStart.setHours(0, 0, 0, 0)
+      const dateStart = startOfDay(range.from)
+      const dateEnd = endOfDay(range.to)
 
       // Executar todas as queries em paralelo
       const [
@@ -46,20 +59,21 @@ export default function AdminDashboard() {
         { count: totalConversations },
         { count: totalMessages },
         { count: autoReplied },
-        { count: conversationsToday },
-        { count: conversationsThisWeek },
-        { count: conversationsThisMonth },
       ] = await Promise.all([
         supabase.from('users').select('*', { count: 'exact', head: true }),
         supabase.from('users').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('shops').select('*', { count: 'exact', head: true }),
         supabase.from('shops').select('*', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('conversations').select('*', { count: 'exact', head: true }),
-        supabase.from('messages').select('*', { count: 'exact', head: true }),
-        supabase.from('messages').select('*', { count: 'exact', head: true }).eq('was_auto_replied', true),
-        supabase.from('conversations').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
-        supabase.from('conversations').select('*', { count: 'exact', head: true }).gte('created_at', weekStart.toISOString()),
-        supabase.from('conversations').select('*', { count: 'exact', head: true }).gte('created_at', monthStart.toISOString()),
+        supabase.from('conversations').select('*', { count: 'exact', head: true })
+          .gte('created_at', dateStart.toISOString())
+          .lte('created_at', dateEnd.toISOString()),
+        supabase.from('messages').select('*', { count: 'exact', head: true })
+          .gte('created_at', dateStart.toISOString())
+          .lte('created_at', dateEnd.toISOString()),
+        supabase.from('messages').select('*', { count: 'exact', head: true })
+          .eq('was_auto_replied', true)
+          .gte('created_at', dateStart.toISOString())
+          .lte('created_at', dateEnd.toISOString()),
       ])
 
       setStats({
@@ -70,9 +84,6 @@ export default function AdminDashboard() {
         totalConversations: totalConversations || 0,
         totalMessages: totalMessages || 0,
         automationRate: totalMessages && autoReplied ? Math.round((autoReplied / totalMessages) * 100) : 0,
-        conversationsToday: conversationsToday || 0,
-        conversationsThisWeek: conversationsThisWeek || 0,
-        conversationsThisMonth: conversationsThisMonth || 0,
       })
     } catch (err) {
       console.error('Erro ao carregar estatisticas:', err)
@@ -136,13 +147,16 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-          Painel de Controle
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
-          Visao geral de todas as metricas da Replyna
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+            Painel de Controle
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+            Visao geral de todas as metricas da Replyna
+          </p>
+        </div>
+        <DateRangePicker value={range} onChange={setRange} />
       </div>
 
       {/* Metricas principais */}
@@ -187,7 +201,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Total de Conversas
+              Conversas no Periodo
             </div>
             <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {stats?.totalConversations || 0}
@@ -210,57 +224,7 @@ export default function AdminDashboard() {
               {stats?.automationRate || 0}%
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              respostas automaticas
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Conversas por periodo */}
-      <div style={{ ...cardStyle, marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px' }}>
-          Conversas por Periodo
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
-          <div style={{
-            padding: '20px',
-            backgroundColor: 'rgba(59, 130, 246, 0.08)',
-            borderRadius: '12px',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-              Hoje
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: 700, color: '#3b82f6' }}>
-              {stats?.conversationsToday || 0}
-            </div>
-          </div>
-
-          <div style={{
-            padding: '20px',
-            backgroundColor: 'rgba(139, 92, 246, 0.08)',
-            borderRadius: '12px',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-              Esta Semana
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: 700, color: '#8b5cf6' }}>
-              {stats?.conversationsThisWeek || 0}
-            </div>
-          </div>
-
-          <div style={{
-            padding: '20px',
-            backgroundColor: 'rgba(34, 197, 94, 0.08)',
-            borderRadius: '12px',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-              Este Mes
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: 700, color: '#22c55e' }}>
-              {stats?.conversationsThisMonth || 0}
+              no periodo selecionado
             </div>
           </div>
         </div>
