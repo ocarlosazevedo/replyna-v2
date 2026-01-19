@@ -360,7 +360,7 @@ export default function Account() {
 
   // Encontrar plano atual para calcular diferença
   const currentPlanData = useMemo(() => {
-    return plans.find(p => p.name === planName) || null
+    return plans.find(p => p.name.toLowerCase().trim() === planName.toLowerCase().trim()) || null
   }, [plans, planName])
 
   return (
