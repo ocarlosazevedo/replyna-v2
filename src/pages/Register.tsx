@@ -388,12 +388,11 @@ export default function Register() {
 
       {/* Step: Select Plan */}
       {step === 'plan' && (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', overflowX: 'auto' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${plans.length}, minmax(240px, 1fr))`,
-            gap: '16px',
-            minWidth: plans.length > 3 ? `${plans.length * 260}px` : undefined,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '20px',
           }}>
             {plans.map((plan) => (
               <div
@@ -409,7 +408,6 @@ export default function Register() {
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   position: 'relative',
-                  minWidth: 0,
                 }}
               >
                 {plan.is_popular && (
