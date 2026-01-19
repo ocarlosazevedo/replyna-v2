@@ -215,7 +215,8 @@ serve(async (req) => {
       );
     }
 
-    // Atualizar subscription no Stripe com proration
+    // Atualizar subscription no Stripe SEM proration
+    // O novo preço será aplicado imediatamente, sem ajustes proporcionais
     const updatedSubscription = await stripe.subscriptions.update(
       subscription.stripe_subscription_id,
       {
@@ -225,7 +226,7 @@ serve(async (req) => {
             price: newStripePriceId,
           },
         ],
-        proration_behavior: 'create_prorations', // Aplica proration
+        proration_behavior: 'none', // Sem proration - preço cheio aplicado no próximo ciclo
         metadata: {
           plan_id: new_plan_id,
           plan_name: newPlan.name,
@@ -320,22 +321,6 @@ serve(async (req) => {
       );
     }
 
-    // Buscar informações de proration para informar o cliente
-    let prorationAmount = 0;
-    try {
-      const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
-        subscription: subscription.stripe_subscription_id,
-      });
-
-      // Calcular valor do proration
-      prorationAmount = upcomingInvoice.lines.data
-        .filter((line: { proration: boolean }) => line.proration)
-        .reduce((sum: number, line: { amount: number }) => sum + line.amount, 0);
-    } catch (invoiceError) {
-      console.error('Erro ao buscar proration:', invoiceError);
-      // Não bloqueia a operação se não conseguir buscar o proration
-    }
-
     return new Response(
       JSON.stringify({
         success: true,
@@ -345,8 +330,8 @@ serve(async (req) => {
           name: newPlan.name,
           emails_limit: newPlan.emails_limit,
           shops_limit: newPlan.shops_limit,
+          price_monthly: newPlan.price_monthly,
         },
-        proration_amount: prorationAmount / 100, // Converter de centavos para reais
         billing_cycle: finalBillingCycle,
         subscription_id: updatedSubscription.id,
       }),

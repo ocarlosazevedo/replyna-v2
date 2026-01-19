@@ -373,22 +373,14 @@ export default function Account() {
         return
       }
 
-      if (result.proration_amount > 0) {
-        setNotice({
-          type: 'success',
-          message: `Plano alterado para ${plan.name} com sucesso! Um ajuste de R$ ${result.proration_amount.toFixed(2).replace('.', ',')} será aplicado na próxima fatura.`,
-        })
-      } else if (result.proration_amount < 0) {
-        setNotice({
-          type: 'success',
-          message: `Plano alterado para ${plan.name} com sucesso! Um crédito de R$ ${Math.abs(result.proration_amount).toFixed(2).replace('.', ',')} foi aplicado à sua conta.`,
-        })
-      } else {
-        setNotice({
-          type: 'success',
-          message: `Plano alterado para ${plan.name} com sucesso!`,
-        })
-      }
+      // Mensagem de sucesso com o novo valor do plano
+      const priceFormatted = result.new_plan.price_monthly
+        ? `R$ ${result.new_plan.price_monthly.toFixed(2).replace('.', ',')}/mês`
+        : ''
+      setNotice({
+        type: 'success',
+        message: `Plano alterado para ${plan.name} com sucesso!${priceFormatted ? ` Novo valor: ${priceFormatted}` : ''}`,
+      })
     } catch (err: unknown) {
       console.error('Erro no handleChangePlan:', err)
       const message = err instanceof Error ? err.message : 'Erro ao alterar plano. Tente novamente.'
