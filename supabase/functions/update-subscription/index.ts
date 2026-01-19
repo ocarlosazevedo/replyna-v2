@@ -3,11 +3,13 @@
  *
  * Atualiza a subscription do Stripe para um novo plano,
  * aplicando proration (cliente paga apenas a diferença).
+ *
+ * Versão standalone - não depende de arquivos externos
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { getStripeClient } from '../_shared/stripe.ts';
-import { getSupabaseClient } from '../_shared/supabase.ts';
+import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,6 +21,30 @@ interface UpdateSubscriptionRequest {
   user_id: string;
   new_plan_id: string;
   billing_cycle?: 'monthly' | 'yearly';
+}
+
+// Função para obter cliente Stripe
+function getStripeClient(): Stripe {
+  const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+  if (!stripeSecretKey) {
+    throw new Error('STRIPE_SECRET_KEY é obrigatória');
+  }
+  return new Stripe(stripeSecretKey, {
+    apiVersion: '2024-11-20.acacia',
+    httpClient: Stripe.createFetchHttpClient(),
+  });
+}
+
+// Função para obter cliente Supabase
+function getSupabaseClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY são obrigatórios');
+  }
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 }
 
 serve(async (req) => {
@@ -164,14 +190,20 @@ serve(async (req) => {
     }
 
     // Buscar informações de proration para informar o cliente
-    const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
-      subscription: subscription.stripe_subscription_id,
-    });
+    let prorationAmount = 0;
+    try {
+      const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+        subscription: subscription.stripe_subscription_id,
+      });
 
-    // Calcular valor do proration
-    const prorationAmount = upcomingInvoice.lines.data
-      .filter((line: { proration: boolean }) => line.proration)
-      .reduce((sum: number, line: { amount: number }) => sum + line.amount, 0);
+      // Calcular valor do proration
+      prorationAmount = upcomingInvoice.lines.data
+        .filter((line: { proration: boolean }) => line.proration)
+        .reduce((sum: number, line: { amount: number }) => sum + line.amount, 0);
+    } catch (invoiceError) {
+      console.error('Erro ao buscar proration:', invoiceError);
+      // Não bloqueia a operação se não conseguir buscar o proration
+    }
 
     return new Response(
       JSON.stringify({
