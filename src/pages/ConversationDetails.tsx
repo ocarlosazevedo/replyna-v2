@@ -23,7 +23,6 @@ interface Conversation {
   customer_name: string | null
   subject: string | null
   category: string | null
-  status: string | null
   created_at: string
   shops: {
     name: string
@@ -51,13 +50,6 @@ const categoryLabelMap: Record<string, string> = {
   outros: 'Outros',
 }
 
-const statusLabelMap: Record<string, string> = {
-  open: 'Aberta',
-  resolved: 'Resolvida',
-  pending_human: 'Aguardando humano',
-  closed: 'Fechada',
-}
-
 const getCategoryBadge = (category: string | null) => {
   const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
   switch (category) {
@@ -67,22 +59,6 @@ const getCategoryBadge = (category: string | null) => {
       return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
     case 'suporte_humano':
       return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' }
-    default:
-      return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' }
-  }
-}
-
-const getStatusBadge = (status: string | null) => {
-  const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
-  switch (status) {
-    case 'open':
-      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' }
-    case 'resolved':
-      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#15803d' }
-    case 'pending_human':
-      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
-    case 'closed':
-      return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' }
     default:
       return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' }
   }
@@ -108,7 +84,7 @@ export default function ConversationDetails() {
       // Carregar conversa
       const { data: convData, error: convError } = await supabase
         .from('conversations')
-        .select('id, shop_id, customer_email, customer_name, subject, category, status, created_at, shops(name)')
+        .select('id, shop_id, customer_email, customer_name, subject, category, created_at, shops(name)')
         .eq('id', conversationId)
         .single()
 
@@ -271,9 +247,6 @@ export default function ConversationDetails() {
         <div style={{ display: 'flex', gap: '8px' }}>
           <span style={getCategoryBadge(conversation.category)}>
             {categoryLabelMap[conversation.category || 'outros'] || 'Outros'}
-          </span>
-          <span style={getStatusBadge(conversation.status)}>
-            {statusLabelMap[conversation.status || 'open'] || 'Aberta'}
           </span>
         </div>
       </div>

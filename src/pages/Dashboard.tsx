@@ -32,7 +32,6 @@ interface ConversationRow {
   customer_name: string | null
   subject: string | null
   category: string | null
-  status: string | null
   created_at: string
 }
 
@@ -201,22 +200,6 @@ const categoryLabelMap: Record<string, string> = {
 const formatCategoryLabel = (category: string | null) => {
   if (!category) return 'Outros'
   return categoryLabelMap[category] ?? 'Outros'
-}
-
-const getStatusBadge = (status: string | null) => {
-  const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
-  switch (status) {
-    case 'open':
-      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' }
-    case 'resolved':
-      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#15803d' }
-    case 'pending_human':
-      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
-    case 'closed':
-      return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' }
-    default:
-      return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' }
-  }
 }
 
 const Skeleton = ({ height = 16, width = '100%' }: { height?: number; width?: number | string }) => (
@@ -487,7 +470,7 @@ export default function Dashboard() {
     const loadConversationsList = async () => {
       const query = supabase
         .from('conversations')
-        .select('id, shop_id, customer_name, subject, category, status, created_at')
+        .select('id, shop_id, customer_name, subject, category, created_at')
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
         .order('created_at', { ascending: false })
@@ -810,7 +793,6 @@ export default function Dashboard() {
                     <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Cliente</th>
                     <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Assunto</th>
                     <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Categoria</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Status</th>
                     <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Data</th>
                   </tr>
                 </thead>
@@ -858,9 +840,6 @@ export default function Dashboard() {
                       </td>
                       <td style={{ padding: '12px' }}>
                         <span style={getCategoryBadge(conversation.category)}>{conversation.category || 'outros'}</span>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={getStatusBadge(conversation.status)}>{conversation.status || 'desconhecido'}</span>
                       </td>
                       <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '13px' }}>
                         {formatDateTime(new Date(conversation.created_at))}

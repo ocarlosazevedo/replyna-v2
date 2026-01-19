@@ -39,13 +39,6 @@ const categoryLabelMap: Record<string, string> = {
   outros: 'Outros',
 }
 
-const statusLabelMap: Record<string, string> = {
-  open: 'Aberta',
-  resolved: 'Resolvida',
-  pending_human: 'Aguardando humano',
-  closed: 'Fechada',
-}
-
 const getCategoryBadge = (category: string | null) => {
   const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
   switch (category) {
@@ -55,22 +48,6 @@ const getCategoryBadge = (category: string | null) => {
       return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
     case 'suporte_humano':
       return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' }
-    default:
-      return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' }
-  }
-}
-
-const getStatusBadge = (status: string | null) => {
-  const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
-  switch (status) {
-    case 'open':
-      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' }
-    case 'resolved':
-      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#15803d' }
-    case 'pending_human':
-      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
-    case 'closed':
-      return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' }
     default:
       return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' }
   }
@@ -127,7 +104,6 @@ export default function ConversationModal({ conversationId, onClose }: Conversat
     customer_name: string | null
     subject: string | null
     category: string | null
-    status: string | null
     created_at: string
   } | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -142,7 +118,7 @@ export default function ConversationModal({ conversationId, onClose }: Conversat
       // Carregar conversa
       const { data: convData, error: convError } = await supabase
         .from('conversations')
-        .select('id, customer_email, customer_name, subject, category, status, created_at')
+        .select('id, customer_email, customer_name, subject, category, created_at')
         .eq('id', conversationId)
         .single()
 
@@ -269,14 +245,9 @@ export default function ConversationModal({ conversationId, onClose }: Conversat
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {conversation && (
-              <>
-                <span style={getCategoryBadge(conversation.category)}>
-                  {categoryLabelMap[conversation.category || 'outros'] || 'Outros'}
-                </span>
-                <span style={getStatusBadge(conversation.status)}>
-                  {statusLabelMap[conversation.status || 'open'] || 'Aberta'}
-                </span>
-              </>
+              <span style={getCategoryBadge(conversation.category)}>
+                {categoryLabelMap[conversation.category || 'outros'] || 'Outros'}
+              </span>
             )}
             <button
               type="button"
