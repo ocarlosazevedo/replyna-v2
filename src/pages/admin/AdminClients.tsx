@@ -70,6 +70,14 @@ export default function AdminClients() {
 
       const data = await response.json()
 
+      // Debug: log para verificar dados da subscription
+      console.log('Clientes recebidos:', data.clients.map((c: Client) => ({
+        email: c.email,
+        status: c.status,
+        subscription: c.subscription,
+        effectiveStatus: c.subscription?.status || c.status
+      })))
+
       setClients(data.clients as Client[])
       setPlans(data.plans as Plan[])
     } catch (err) {
