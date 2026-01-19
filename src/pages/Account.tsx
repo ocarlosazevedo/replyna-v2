@@ -68,6 +68,7 @@ const Skeleton = ({ height = 16 }: { height?: number }) => (
 )
 
 export default function Account() {
+  console.log('🔄 Account.tsx carregado - versão 2')
   const { user } = useAuth()
   const { theme, setTheme } = useTheme()
   const isMobile = useIsMobile()
