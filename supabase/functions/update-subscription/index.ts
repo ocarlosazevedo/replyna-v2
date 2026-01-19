@@ -131,9 +131,84 @@ serve(async (req) => {
       );
     }
 
-    // Verificar se já está no mesmo plano/preço
+    // Verificar se já está no mesmo plano/preço no Stripe
     const currentItem = stripeSubscription.items.data[0];
-    if (currentItem.price.id === newStripePriceId) {
+    const alreadyOnPlanInStripe = currentItem.price.id === newStripePriceId;
+
+    // Se já está no plano no Stripe, verificar se o banco está sincronizado
+    if (alreadyOnPlanInStripe) {
+      console.log('Usuário já está no plano no Stripe. Verificando sincronização do banco...');
+
+      // Buscar dados atuais do usuário no banco
+      const { data: currentUser } = await supabase
+        .from('users')
+        .select('plan, emails_limit, shops_limit')
+        .eq('id', user_id)
+        .single();
+
+      console.log('Dados atuais do usuário no banco:', currentUser);
+      console.log('Plano esperado:', newPlan.name);
+
+      // Verificar se o banco precisa ser sincronizado
+      const needsSync = !currentUser ||
+        currentUser.plan?.toLowerCase() !== newPlan.name.toLowerCase() ||
+        currentUser.emails_limit !== newPlan.emails_limit ||
+        currentUser.shops_limit !== newPlan.shops_limit;
+
+      if (needsSync) {
+        console.log('Banco desatualizado. Sincronizando...');
+
+        // Atualizar tabela subscriptions
+        await supabase
+          .from('subscriptions')
+          .update({
+            plan_id: new_plan_id,
+            stripe_price_id: newStripePriceId,
+            billing_cycle: finalBillingCycle,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', subscription.id);
+
+        // Atualizar tabela users
+        const { data: syncedUserData, error: syncError } = await supabase
+          .from('users')
+          .update({
+            plan: newPlan.name,
+            emails_limit: newPlan.emails_limit,
+            shops_limit: newPlan.shops_limit,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user_id)
+          .select();
+
+        if (syncError) {
+          console.error('Erro ao sincronizar banco:', syncError);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao sincronizar banco de dados: ' + syncError.message }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log('Banco sincronizado com sucesso:', syncedUserData);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'Banco de dados sincronizado com o plano atual do Stripe.',
+            synced: true,
+            new_plan: {
+              id: newPlan.id,
+              name: newPlan.name,
+              emails_limit: newPlan.emails_limit,
+              shops_limit: newPlan.shops_limit,
+            },
+            billing_cycle: finalBillingCycle,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Banco já está sincronizado
       return new Response(
         JSON.stringify({ error: 'Você já está neste plano' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

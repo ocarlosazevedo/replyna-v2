@@ -68,7 +68,7 @@ const Skeleton = ({ height = 16 }: { height?: number }) => (
 )
 
 export default function Account() {
-  console.log('🔄 Account.tsx carregado - versão 2')
+  console.log('🔄 Account.tsx carregado - versão 3 (com sync fix)')
   const { user } = useAuth()
   const { theme, setTheme } = useTheme()
   const isMobile = useIsMobile()
@@ -360,6 +360,15 @@ export default function Account() {
         setNotice({
           type: 'info',
           message: result.message || 'Plano atualizado parcialmente. Por favor recarregue a página.',
+        })
+        return
+      }
+
+      // Verificar se foi uma sincronização (Stripe já estava no plano, banco foi atualizado)
+      if (result.synced) {
+        setNotice({
+          type: 'success',
+          message: `Seu plano ${plan.name} foi sincronizado com sucesso!`,
         })
         return
       }
