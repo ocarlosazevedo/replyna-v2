@@ -373,13 +373,25 @@ export default function Account() {
         return
       }
 
-      // Mensagem de sucesso com o novo valor do plano
+      // Mensagem de sucesso diferenciada para upgrade e downgrade
       const priceFormatted = result.new_plan.price_monthly
         ? `R$ ${result.new_plan.price_monthly.toFixed(2).replace('.', ',')}/mês`
         : ''
+
+      let successMessage = `Plano alterado para ${plan.name} com sucesso!`
+
+      if (result.is_upgrade && result.price_difference > 0) {
+        // Upgrade: cobrança imediata
+        const diffFormatted = `R$ ${result.price_difference.toFixed(2).replace('.', ',')}`
+        successMessage = `Upgrade para ${plan.name} realizado! A diferença de ${diffFormatted} foi cobrada.`
+      } else if (result.is_downgrade) {
+        // Downgrade: novo valor na próxima fatura
+        successMessage = `Downgrade para ${plan.name} realizado! ${priceFormatted ? `O novo valor de ${priceFormatted} será aplicado na próxima fatura.` : ''}`
+      }
+
       setNotice({
         type: 'success',
-        message: `Plano alterado para ${plan.name} com sucesso!${priceFormatted ? ` Novo valor: ${priceFormatted}` : ''}`,
+        message: successMessage,
       })
     } catch (err: unknown) {
       console.error('Erro no handleChangePlan:', err)

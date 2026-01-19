@@ -1,8 +1,11 @@
 /**
  * Edge Function: Update Subscription
  *
- * Atualiza a subscription do Stripe para um novo plano,
- * aplicando proration (cliente paga apenas a diferença).
+ * Atualiza a subscription do Stripe para um novo plano.
+ *
+ * Comportamento:
+ * - UPGRADE (novo plano mais caro): Cobra a diferença imediatamente
+ * - DOWNGRADE (novo plano mais barato): Novo valor só na próxima fatura
  *
  * Versão standalone - não depende de arquivos externos
  */
@@ -104,6 +107,17 @@ serve(async (req) => {
         JSON.stringify({ error: 'Plano não encontrado ou inativo' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Buscar plano atual para comparar preços
+    let currentPlan = null;
+    if (subscription.plan_id) {
+      const { data: currentPlanData } = await supabase
+        .from('plans')
+        .select('*')
+        .eq('id', subscription.plan_id)
+        .single();
+      currentPlan = currentPlanData;
     }
 
     // Determinar o ciclo de cobrança (manter o atual ou usar o novo)
@@ -215,8 +229,35 @@ serve(async (req) => {
       );
     }
 
-    // Atualizar subscription no Stripe SEM proration
-    // O novo preço será aplicado imediatamente, sem ajustes proporcionais
+    // Determinar se é upgrade ou downgrade baseado no preço
+    // Usar o preço baseado no ciclo de cobrança atual
+    const currentPlanPrice = finalBillingCycle === 'yearly'
+      ? (currentPlan?.price_yearly || 0)
+      : (currentPlan?.price_monthly || 0);
+    const newPlanPrice = finalBillingCycle === 'yearly'
+      ? (newPlan.price_yearly || 0)
+      : (newPlan.price_monthly || 0);
+
+    const isUpgrade = newPlanPrice > currentPlanPrice;
+    const isDowngrade = newPlanPrice < currentPlanPrice;
+
+    console.log('Comparação de planos:', {
+      currentPlan: currentPlan?.name,
+      currentPlanPrice,
+      newPlan: newPlan.name,
+      newPlanPrice,
+      isUpgrade,
+      isDowngrade,
+    });
+
+    // Definir comportamento de proration baseado em upgrade/downgrade
+    // Upgrade: cobra a diferença imediatamente (always_invoice)
+    // Downgrade: novo valor só na próxima fatura (none)
+    const prorationBehavior = isUpgrade ? 'always_invoice' : 'none';
+
+    console.log('Proration behavior:', prorationBehavior);
+
+    // Atualizar subscription no Stripe
     const updatedSubscription = await stripe.subscriptions.update(
       subscription.stripe_subscription_id,
       {
@@ -226,7 +267,7 @@ serve(async (req) => {
             price: newStripePriceId,
           },
         ],
-        proration_behavior: 'none', // Sem proration - preço cheio aplicado no próximo ciclo
+        proration_behavior: prorationBehavior,
         metadata: {
           plan_id: new_plan_id,
           plan_name: newPlan.name,
@@ -334,6 +375,9 @@ serve(async (req) => {
         },
         billing_cycle: finalBillingCycle,
         subscription_id: updatedSubscription.id,
+        is_upgrade: isUpgrade,
+        is_downgrade: isDowngrade,
+        price_difference: isUpgrade ? (newPlanPrice - currentPlanPrice) : 0,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
