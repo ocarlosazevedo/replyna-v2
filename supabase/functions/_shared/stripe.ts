@@ -1,0 +1,41 @@
+/**
+ * Cliente Stripe para Edge Functions
+ */
+
+import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno';
+
+let stripeClient: Stripe | null = null;
+
+/**
+ * Obtém o cliente Stripe
+ */
+export function getStripeClient(): Stripe {
+  if (stripeClient) return stripeClient;
+
+  const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+
+  if (!stripeSecretKey) {
+    throw new Error('STRIPE_SECRET_KEY é obrigatória. Configure nas variáveis de ambiente.');
+  }
+
+  stripeClient = new Stripe(stripeSecretKey, {
+    apiVersion: '2024-11-20.acacia',
+    httpClient: Stripe.createFetchHttpClient(),
+  });
+
+  return stripeClient;
+}
+
+/**
+ * Verifica assinatura do webhook Stripe
+ */
+export function verifyWebhookSignature(
+  payload: string,
+  signature: string,
+  webhookSecret: string
+): Stripe.Event {
+  const stripe = getStripeClient();
+  return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+}
+
+export { Stripe };

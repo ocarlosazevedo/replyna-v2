@@ -6,6 +6,7 @@ import { AdminProvider, useAdmin } from './context/AdminContext'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
+import CheckoutSuccess from './pages/CheckoutSuccess'
 import Dashboard from './pages/Dashboard'
 import Shops from './pages/Shops'
 import ShopSetup from './pages/ShopSetup'
@@ -133,6 +134,7 @@ function App() {
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          <Route path="/checkout/success" element={<CheckoutSuccess />} />
 
           {/* Rotas privadas */}
           <Route path="/dashboard" element={

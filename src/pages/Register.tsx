@@ -1,12 +1,35 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Sun, Moon, Eye, EyeOff } from 'lucide-react'
-import { useAuth } from '../hooks/useAuth'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { Sun, Moon, Eye, EyeOff, Check, Star, ArrowRight, ArrowLeft } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
+import { supabase } from '../lib/supabase'
+
+interface Plan {
+  id: string
+  name: string
+  description: string | null
+  price_monthly: number
+  emails_limit: number
+  shops_limit: number
+  features: string[]
+  is_popular: boolean
+  stripe_price_monthly_id: string | null
+}
 
 export default function Register() {
-  const { signUp } = useAuth()
   const { theme, setTheme } = useTheme()
+  const [searchParams] = useSearchParams()
+  const preselectedPlan = searchParams.get('plan')
+
+  // Step management
+  const [step, setStep] = useState<'plan' | 'account'>(preselectedPlan ? 'account' : 'plan')
+
+  // Plans
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
+  const [loadingPlans, setLoadingPlans] = useState(true)
+
+  // Form
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -15,14 +38,54 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    loadPlans()
+  }, [])
+
+  useEffect(() => {
+    if (preselectedPlan && plans.length > 0) {
+      const plan = plans.find(p => p.name.toLowerCase() === preselectedPlan.toLowerCase())
+      if (plan) {
+        setSelectedPlan(plan)
+        setStep('account')
+      }
+    }
+  }, [preselectedPlan, plans])
+
+  const loadPlans = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('plans')
+        .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, stripe_price_monthly_id')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+
+      if (error) throw error
+      setPlans(data || [])
+    } catch (err) {
+      console.error('Erro ao carregar planos:', err)
+    } finally {
+      setLoadingPlans(false)
+    }
+  }
+
+  const handleSelectPlan = (plan: Plan) => {
+    setSelectedPlan(plan)
+    setStep('account')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
+    if (!selectedPlan) {
+      setError('Selecione um plano')
+      return
+    }
+
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem')
+      setError('As senhas nao coincidem')
       return
     }
 
@@ -31,15 +94,52 @@ export default function Register() {
       return
     }
 
+    if (!selectedPlan.stripe_price_monthly_id) {
+      setError('Este plano ainda nao esta configurado para pagamento. Entre em contato com o suporte.')
+      return
+    }
+
     setLoading(true)
 
     try {
-      await signUp(email, password, name)
-      setSuccess(true)
+      // Chamar Edge Function para criar checkout session
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          plan_id: selectedPlan.id,
+          user_email: email,
+          user_name: name,
+          billing_cycle: 'monthly',
+          success_url: `${window.location.origin}/checkout/success`,
+          cancel_url: `${window.location.origin}/register?plan=${selectedPlan.name.toLowerCase()}`,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao criar sessao de pagamento')
+      }
+
+      // Salvar dados temporários no localStorage para recuperar após checkout
+      localStorage.setItem('pending_registration', JSON.stringify({
+        email,
+        name,
+        password,
+        plan_id: selectedPlan.id,
+        plan_name: selectedPlan.name,
+      }))
+
+      // Redirecionar para o Stripe Checkout
+      window.location.href = data.url
+
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao criar conta'
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao processar'
       setError(errorMessage)
-    } finally {
       setLoading(false)
     }
   }
@@ -48,50 +148,49 @@ export default function Register() {
     setTheme(theme === 'light' ? 'dark' : 'light')
   }
 
-  if (success) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)', position: 'relative' }}>
-        <button
-          onClick={toggleTheme}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '10px',
-            padding: '10px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-secondary)',
-          }}
-          title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
-        >
-          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-        </button>
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+    }).format(price)
+  }
 
-        <div style={{ maxWidth: '400px', width: '100%', backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '32px', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '8px' }}>Conta criada!</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
-            Enviamos um email de confirmação para <strong>{email}</strong>.
-            Clique no link para ativar sua conta.
-          </p>
-          <Link
-            to="/login"
-            style={{ display: 'inline-block', backgroundColor: 'var(--accent)', color: '#ffffff', padding: '12px 24px', borderRadius: '10px', fontWeight: '600', textDecoration: 'none' }}
-          >
-            Ir para login
-          </Link>
-        </div>
+  // Loading state
+  if (loadingPlans) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'var(--bg-primary)',
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid var(--border-color)',
+          borderTopColor: 'var(--accent)',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+        }} />
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)', position: 'relative' }}>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: 'var(--bg-primary)',
+      padding: '20px',
+      position: 'relative',
+    }}>
+      {/* Theme toggle */}
       <button
         onClick={toggleTheme}
         style={{
@@ -107,158 +206,497 @@ export default function Register() {
           alignItems: 'center',
           justifyContent: 'center',
           color: 'var(--text-secondary)',
+          zIndex: 10,
         }}
         title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
       >
         {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
       </button>
 
-      <div style={{ maxWidth: '400px', width: '100%', backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <img
-            src="/replyna-logo.webp"
-            alt="Replyna"
-            style={{ width: '180px', height: 'auto', display: 'block', margin: '0 auto 16px' }}
-          />
-          <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Crie sua conta</p>
+      {/* Header */}
+      <div style={{ textAlign: 'center', paddingTop: '40px', marginBottom: '40px' }}>
+        <img
+          src="/replyna-logo.webp"
+          alt="Replyna"
+          style={{ width: '160px', height: 'auto', marginBottom: '16px' }}
+        />
+        <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
+          {step === 'plan' ? 'Escolha o plano ideal para seu negocio' : 'Finalize seu cadastro'}
+        </p>
+      </div>
+
+      {/* Step: Select Plan */}
+      {step === 'plan' && (
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '24px',
+          }}>
+            {plans.map((plan) => (
+              <div
+                key={plan.id}
+                onClick={() => handleSelectPlan(plan)}
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  borderRadius: '16px',
+                  padding: '28px',
+                  border: plan.is_popular
+                    ? '2px solid var(--accent)'
+                    : '1px solid var(--border-color)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  position: 'relative',
+                }}
+              >
+                {plan.is_popular && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-12px',
+                    right: '16px',
+                    backgroundColor: '#f59e0b',
+                    color: '#fff',
+                    padding: '4px 12px',
+                    borderRadius: '999px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}>
+                    <Star size={12} />
+                    Popular
+                  </div>
+                )}
+
+                <h3 style={{
+                  fontSize: '22px',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  marginBottom: '8px',
+                }}>
+                  {plan.name}
+                </h3>
+
+                {plan.description && (
+                  <p style={{
+                    fontSize: '14px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '20px',
+                  }}>
+                    {plan.description}
+                  </p>
+                )}
+
+                <div style={{ marginBottom: '20px' }}>
+                  <span style={{
+                    fontSize: '36px',
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                  }}>
+                    {formatPrice(plan.price_monthly)}
+                  </span>
+                  <span style={{
+                    fontSize: '14px',
+                    color: 'var(--text-secondary)',
+                    marginLeft: '4px',
+                  }}>
+                    /mes
+                  </span>
+                </div>
+
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: 'rgba(70, 114, 236, 0.06)',
+                  borderRadius: '10px',
+                  marginBottom: '20px',
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: '8px',
+                  }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      Emails/mes
+                    </span>
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                    }}>
+                      {plan.emails_limit.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      Lojas
+                    </span>
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                    }}>
+                      {plan.shops_limit}
+                    </span>
+                  </div>
+                </div>
+
+                {plan.features && plan.features.length > 0 && (
+                  <div style={{ marginBottom: '20px' }}>
+                    {plan.features.slice(0, 4).map((feature, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
+                        <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                          {feature}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: plan.is_popular ? 'var(--accent)' : 'var(--bg-primary)',
+                    color: plan.is_popular ? '#fff' : 'var(--text-primary)',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  Selecionar
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            marginTop: '32px',
+            textAlign: 'center',
+            fontSize: '14px',
+            color: 'var(--text-secondary)',
+          }}>
+            Ja tem conta?{' '}
+            <Link
+              to="/login"
+              style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '500' }}
+            >
+              Fazer login
+            </Link>
+          </div>
         </div>
+      )}
 
-        <form onSubmit={handleSubmit}>
-          {error && (
-            <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px', borderRadius: '10px', fontSize: '14px', marginBottom: '16px' }}>
-              {error}
-            </div>
-          )}
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-              Nome completo
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              style={{ width: '100%', padding: '12px 16px', border: '1px solid var(--input-border)', borderRadius: '10px', fontSize: '16px', boxSizing: 'border-box', backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)' }}
-              placeholder="Seu nome"
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{ width: '100%', padding: '12px 16px', border: '1px solid var(--input-border)', borderRadius: '10px', fontSize: '16px', boxSizing: 'border-box', backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)' }}
-              placeholder="seu@email.com"
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-              Senha
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '12px 48px 12px 16px', border: '1px solid var(--input-border)', borderRadius: '10px', fontSize: '16px', boxSizing: 'border-box', backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)' }}
-                placeholder="••••••••"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--text-secondary)',
-                }}
-                title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-              Confirmar senha
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                style={{ width: '100%', padding: '12px 48px 12px 16px', border: '1px solid var(--input-border)', borderRadius: '10px', fontSize: '16px', boxSizing: 'border-box', backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)' }}
-                placeholder="••••••••"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--text-secondary)',
-                }}
-                title={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
-              >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
-
+      {/* Step: Account Details */}
+      {step === 'account' && selectedPlan && (
+        <div style={{
+          maxWidth: '480px',
+          margin: '0 auto',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: '16px',
+          padding: '32px',
+          border: '1px solid var(--border-color)',
+        }}>
+          {/* Back button */}
           <button
-            type="submit"
-            disabled={loading}
+            onClick={() => setStep('plan')}
             style={{
-              width: '100%',
-              backgroundColor: loading ? 'var(--accent-hover)' : 'var(--accent)',
-              color: '#ffffff',
-              padding: '12px',
-              borderRadius: '10px',
-              fontWeight: '600',
-              fontSize: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: 'none',
               border: 'none',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1,
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              marginBottom: '20px',
+              padding: 0,
+              fontSize: '14px',
             }}
           >
-            {loading ? 'Criando conta...' : 'Criar conta'}
+            <ArrowLeft size={16} />
+            Voltar para planos
           </button>
-        </form>
 
-        <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '14px', color: 'var(--text-secondary)' }}>
-          Já tem conta?{' '}
-          <Link to="/login" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '500' }}>
-            Fazer login
-          </Link>
+          {/* Selected plan summary */}
+          <div style={{
+            padding: '16px',
+            backgroundColor: 'rgba(70, 114, 236, 0.06)',
+            borderRadius: '12px',
+            marginBottom: '24px',
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div>
+                <div style={{
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                }}>
+                  Plano {selectedPlan.name}
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  {selectedPlan.emails_limit.toLocaleString('pt-BR')} emails/mes
+                </div>
+              </div>
+              <div style={{
+                fontSize: '20px',
+                fontWeight: 700,
+                color: 'var(--accent)',
+              }}>
+                {formatPrice(selectedPlan.price_monthly)}/mes
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            {error && (
+              <div style={{
+                backgroundColor: '#fef2f2',
+                color: '#dc2626',
+                padding: '12px',
+                borderRadius: '10px',
+                fontSize: '14px',
+                marginBottom: '16px',
+              }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: 'var(--text-secondary)',
+                marginBottom: '8px',
+              }}>
+                Nome completo
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid var(--input-border)',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                }}
+                placeholder="Seu nome"
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: 'var(--text-secondary)',
+                marginBottom: '8px',
+              }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid var(--input-border)',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                }}
+                placeholder="seu@email.com"
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: 'var(--text-secondary)',
+                marginBottom: '8px',
+              }}>
+                Senha
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 48px 12px 16px',
+                    border: '1px solid var(--input-border)',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    boxSizing: 'border-box',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                  }}
+                  placeholder="Minimo 6 caracteres"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: 'var(--text-secondary)',
+                marginBottom: '8px',
+              }}>
+                Confirmar senha
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 48px 12px 16px',
+                    border: '1px solid var(--input-border)',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    boxSizing: 'border-box',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                  }}
+                  placeholder="Repita a senha"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                backgroundColor: 'var(--accent)',
+                color: '#ffffff',
+                padding: '14px',
+                borderRadius: '10px',
+                fontWeight: '600',
+                fontSize: '16px',
+                border: 'none',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              {loading ? (
+                'Redirecionando para pagamento...'
+              ) : (
+                <>
+                  Continuar para pagamento
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+
+            <p style={{
+              marginTop: '16px',
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              textAlign: 'center',
+            }}>
+              Pagamento seguro processado pelo Stripe
+            </p>
+          </form>
+
+          <div style={{
+            marginTop: '24px',
+            textAlign: 'center',
+            fontSize: '14px',
+            color: 'var(--text-secondary)',
+          }}>
+            Ja tem conta?{' '}
+            <Link
+              to="/login"
+              style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '500' }}
+            >
+              Fazer login
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
