@@ -268,6 +268,7 @@ export async function generateResponse(
     dispatch_time: string | null;
     warranty_info: string | null;
     signature_html: string | null;
+    is_cod?: boolean;
   },
   emailSubject: string,
   emailBody: string,
@@ -343,10 +344,29 @@ INFORMAÇÕES DA LOJA:
 
   const languageInstruction = languageInstructions[language] || `Responda no mesmo idioma do cliente (${language}).`;
 
+  // Instruções específicas para Cash on Delivery (COD)
+  let codInstructions = '';
+  if (shopContext.is_cod) {
+    codInstructions = `
+IMPORTANTE - MODELO CASH ON DELIVERY (COD):
+Esta loja opera no modelo de pagamento na entrega (Cash on Delivery / COD).
+O cliente NÃO paga antecipadamente - ele paga apenas quando recebe o produto.
+
+Regras especiais para COD:
+- NUNCA mencione estorno, reembolso no cartão ou devolução de valores pagos
+- Para cancelamentos: o pedido simplesmente será cancelado (não há valor a devolver)
+- Para devoluções: explique que o cliente pode recusar na entrega ou devolver o produto
+- Para trocas: o cliente devolve o produto e faz um novo pedido
+- Se o cliente mencionar "reembolso", explique que como o pagamento é feito na entrega, não há valor a ser reembolsado
+- Foque em soluções práticas: cancelar pedido, recusar na entrega, devolver produto
+
+`;
+  }
+
   const systemPrompt = `Você é ${shopContext.attendant_name}, atendente virtual da loja ${shopContext.name}.
 
 ${tone}
-
+${codInstructions}
 ${storeInfo}
 ${shopifyContext}
 

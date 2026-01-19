@@ -453,10 +453,14 @@ class SimpleImapClient {
 
 /**
  * Busca emails não lidos via IMAP
+ * @param credentials - Credenciais de email
+ * @param maxEmails - Número máximo de emails a buscar
+ * @param emailStartDate - Data mínima para processar emails (opcional). Emails anteriores a esta data serão ignorados.
  */
 export async function fetchUnreadEmails(
   credentials: EmailCredentials,
-  maxEmails: number = 50
+  maxEmails: number = 50,
+  emailStartDate?: Date | null
 ): Promise<IncomingEmail[]> {
   const client = new SimpleImapClient(
     credentials.imap_host,
@@ -484,6 +488,15 @@ export async function fetchUnreadEmails(
     for (const uid of idsToFetch) {
       try {
         const msg = await client.fetchMessage(uid);
+        const receivedAt = new Date(msg.envelope.date);
+
+        // Filtrar por data se emailStartDate estiver definida
+        if (emailStartDate && receivedAt < emailStartDate) {
+          console.log(`Ignorando email ${uid} (${msg.envelope.subject}) - data ${receivedAt.toISOString()} anterior a ${emailStartDate.toISOString()}`);
+          // Marcar como lida para não processar novamente
+          await client.markAsSeen(uid);
+          continue;
+        }
 
         // Limpar o corpo
         const bodyText = cleanEmailBody(decodeEmailBody(msg.body));
@@ -498,7 +511,7 @@ export async function fetchUnreadEmails(
           body_html: null,
           in_reply_to: msg.inReplyTo || null,
           references: msg.references || null,
-          received_at: new Date(msg.envelope.date),
+          received_at: receivedAt,
           has_attachments: false,
           attachment_count: 0,
         });

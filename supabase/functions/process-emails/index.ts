@@ -192,10 +192,19 @@ async function processShop(shop: Shop, stats: ProcessingStats): Promise<void> {
   }
 
   // 2. Buscar emails não lidos via IMAP
+  // Determinar data de início baseada no email_start_mode
+  let emailStartDate: Date | null = null;
+  if (shop.email_start_mode === 'from_integration_date' && shop.email_start_date) {
+    emailStartDate = new Date(shop.email_start_date);
+    console.log(`Loja ${shop.id}: Modo from_integration_date, ignorando emails anteriores a ${emailStartDate.toISOString()}`);
+  } else {
+    console.log(`Loja ${shop.id}: Modo all_unread, processando todos os emails não lidos`);
+  }
+
   let incomingEmails: IncomingEmail[] = [];
   try {
-    incomingEmails = await fetchUnreadEmails(emailCredentials, MAX_EMAILS_PER_SHOP);
-    console.log(`Loja ${shop.id}: ${incomingEmails.length} emails não lidos`);
+    incomingEmails = await fetchUnreadEmails(emailCredentials, MAX_EMAILS_PER_SHOP, emailStartDate);
+    console.log(`Loja ${shop.id}: ${incomingEmails.length} emails não lidos (após filtro de data)`);
     stats.emails_received += incomingEmails.length;
   } catch (error) {
     console.error(`Erro ao buscar emails da loja ${shop.id}:`, error);
@@ -581,6 +590,7 @@ async function processMessage(
         dispatch_time: shop.dispatch_time,
         warranty_info: shop.warranty_info,
         signature_html: shop.signature_html,
+        is_cod: shop.is_cod,
       },
       message.subject || '',
       cleanBody,
