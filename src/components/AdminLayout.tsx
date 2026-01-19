@@ -55,7 +55,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               style={{ width: '140px', height: 'auto' }}
             />
             <span style={{
-              backgroundColor: '#ef4444',
+              backgroundColor: 'var(--accent)',
               color: '#fff',
               fontSize: '10px',
               fontWeight: 700,
@@ -84,7 +84,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     textDecoration: 'none',
                     fontWeight: 500,
                     color: isActive(item.path) ? '#fff' : 'rgba(255,255,255,0.7)',
-                    backgroundColor: isActive(item.path) ? '#ef4444' : 'transparent',
+                    backgroundColor: isActive(item.path) ? 'var(--accent)' : 'transparent',
                     transition: 'all 0.2s ease',
                   }}
                 >

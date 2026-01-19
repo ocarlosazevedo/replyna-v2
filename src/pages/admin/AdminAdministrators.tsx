@@ -220,7 +220,7 @@ export default function AdminAdministrators() {
                 padding: '12px 20px',
                 borderRadius: '10px',
                 border: 'none',
-                backgroundColor: '#ef4444',
+                backgroundColor: 'var(--accent)',
                 color: '#fff',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -256,13 +256,13 @@ export default function AdminAdministrators() {
                       width: '40px',
                       height: '40px',
                       borderRadius: '10px',
-                      backgroundColor: admin.role === 'super_admin' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                      backgroundColor: admin.role === 'super_admin' ? 'rgba(70, 114, 236, 0.15)' : 'rgba(139, 92, 246, 0.1)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}>
                       {admin.role === 'super_admin' ? (
-                        <ShieldCheck size={18} style={{ color: '#ef4444' }} />
+                        <ShieldCheck size={18} style={{ color: 'var(--accent)' }} />
                       ) : (
                         <Shield size={18} style={{ color: '#8b5cf6' }} />
                       )}
@@ -286,8 +286,8 @@ export default function AdminAdministrators() {
                   <span style={{
                     padding: '4px 12px',
                     borderRadius: '6px',
-                    backgroundColor: admin.role === 'super_admin' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(139, 92, 246, 0.1)',
-                    color: admin.role === 'super_admin' ? '#ef4444' : '#8b5cf6',
+                    backgroundColor: admin.role === 'super_admin' ? 'rgba(70, 114, 236, 0.15)' : 'rgba(139, 92, 246, 0.1)',
+                    color: admin.role === 'super_admin' ? 'var(--accent)' : '#8b5cf6',
                     fontSize: '13px',
                     fontWeight: 600,
                   }}>
@@ -333,7 +333,7 @@ export default function AdminAdministrators() {
                           borderRadius: '8px',
                           border: '1px solid var(--border-color)',
                           backgroundColor: 'transparent',
-                          color: '#ef4444',
+                          color: 'var(--text-secondary)',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -462,7 +462,7 @@ export default function AdminAdministrators() {
                   padding: '12px 24px',
                   borderRadius: '10px',
                   border: 'none',
-                  backgroundColor: '#ef4444',
+                  backgroundColor: 'var(--accent)',
                   color: '#fff',
                   fontWeight: 600,
                   cursor: 'pointer',

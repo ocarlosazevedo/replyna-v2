@@ -74,7 +74,7 @@ export default function AdminLogin() {
           <div
             style={{
               display: 'inline-block',
-              backgroundColor: '#ef4444',
+              backgroundColor: 'var(--accent)',
               color: '#fff',
               fontSize: '12px',
               fontWeight: 700,
@@ -136,7 +136,7 @@ export default function AdminLogin() {
               padding: '14px',
               borderRadius: '10px',
               border: 'none',
-              backgroundColor: '#ef4444',
+              backgroundColor: 'var(--accent)',
               color: '#fff',
               fontSize: '14px',
               fontWeight: 600,
