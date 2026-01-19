@@ -877,7 +877,7 @@ export default function Account() {
                                     <div style={{
                                       fontSize: '18px',
                                       fontWeight: 700,
-                                      color: 'var(--accent)',
+                                      color: plan.price_monthly > currentPlanData.price_monthly ? '#22c55e' : 'var(--accent)',
                                     }}>
                                       {plan.price_monthly > currentPlanData.price_monthly
                                         ? `+R$ ${(plan.price_monthly - currentPlanData.price_monthly).toFixed(2).replace('.', ',')}`
