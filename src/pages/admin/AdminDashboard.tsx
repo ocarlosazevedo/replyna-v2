@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { MessageSquare, Users, Store, TrendingUp, Mail, CheckCircle } from 'lucide-react'
+import { MessageSquare, Users, Store, TrendingUp, CheckCircle, CreditCard } from 'lucide-react'
 
 interface DashboardStats {
   totalUsers: number

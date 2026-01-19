@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAdmin } from '../../context/AdminContext'
-import { Search, Plus, Edit2, Trash2, Shield, ShieldCheck } from 'lucide-react'
+import { Search, Plus, Trash2, Shield, ShieldCheck } from 'lucide-react'
 
 interface Administrator {
   id: string
@@ -19,7 +19,7 @@ export default function AdminAdministrators() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
-  const [editingAdmin, setEditingAdmin] = useState<Administrator | null>(null)
+  const [_editingAdmin, setEditingAdmin] = useState<Administrator | null>(null)
   const [formData, setFormData] = useState({
     email: '',
     name: '',

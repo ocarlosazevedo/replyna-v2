@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Search, Edit2, MoreVertical, Mail, Store, Calendar } from 'lucide-react'
+import { Search, Edit2, Mail, Store, Calendar } from 'lucide-react'
 
 interface Client {
   id: string
