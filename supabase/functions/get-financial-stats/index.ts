@@ -64,6 +64,12 @@ interface FinancialStats {
     month: string;
     revenue: number;
   }[];
+  periodMetrics: {
+    revenueInPeriod: number;
+    newSubscriptionsInPeriod: number;
+    canceledSubscriptionsInPeriod: number;
+    chargesInPeriod: number;
+  };
 }
 
 serve(async (req) => {
@@ -76,44 +82,71 @@ serve(async (req) => {
 
     // Pegar período da query string
     const url = new URL(req.url);
-    const period = url.searchParams.get('period') || '6months'; // 7days, 30days, 3months, 6months, 12months, all
+    const period = url.searchParams.get('period') || '6months'; // 7days, 30days, 3months, 6months, 12months, all, custom
+    const customStartDate = url.searchParams.get('startDate');
+    const customEndDate = url.searchParams.get('endDate');
 
     // Calcular datas base
     const now = new Date();
     let periodStart: Date;
+    let periodEnd: Date = now;
     let monthsToShow: number;
 
-    switch (period) {
-      case '7days':
-        periodStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        monthsToShow = 1;
-        break;
-      case '30days':
-        periodStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        monthsToShow = 1;
-        break;
-      case '3months':
-        periodStart = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-        monthsToShow = 3;
-        break;
-      case '12months':
-        periodStart = new Date(now.getFullYear(), now.getMonth() - 12, 1);
-        monthsToShow = 12;
-        break;
-      case 'all':
-        periodStart = new Date(2020, 0, 1); // Data bem antiga
-        monthsToShow = 12;
-        break;
-      case '6months':
-      default:
-        periodStart = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-        monthsToShow = 6;
-        break;
+    if (period === 'custom' && customStartDate && customEndDate) {
+      periodStart = new Date(customStartDate);
+      periodEnd = new Date(customEndDate);
+      periodEnd.setHours(23, 59, 59, 999); // Fim do dia
+      const diffDays = Math.ceil((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24));
+      monthsToShow = Math.max(1, Math.ceil(diffDays / 30));
+    } else {
+      switch (period) {
+        case '7days':
+          periodStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          monthsToShow = 1;
+          break;
+        case '30days':
+          periodStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          monthsToShow = 1;
+          break;
+        case '3months':
+          periodStart = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+          monthsToShow = 3;
+          break;
+        case '12months':
+          periodStart = new Date(now.getFullYear(), now.getMonth() - 12, 1);
+          monthsToShow = 12;
+          break;
+        case 'all':
+          periodStart = new Date(2020, 0, 1); // Data bem antiga
+          monthsToShow = 12;
+          break;
+        case '6months':
+        default:
+          periodStart = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+          monthsToShow = 6;
+          break;
+      }
     }
 
     const periodStartTimestamp = Math.floor(periodStart.getTime() / 1000);
+    const periodEndTimestamp = Math.floor(periodEnd.getTime() / 1000);
 
     // Buscar dados em paralelo para performance
+    const chargesFilter: { limit: number; created: { gte: number; lte?: number } } = {
+      limit: 100,
+      created: { gte: periodStartTimestamp },
+    };
+    const invoicesFilter: { limit: number; created: { gte: number; lte?: number } } = {
+      limit: 50,
+      created: { gte: periodStartTimestamp },
+    };
+
+    // Aplicar filtro de data final para períodos customizados
+    if (period === 'custom' && periodEndTimestamp) {
+      chargesFilter.created.lte = periodEndTimestamp;
+      invoicesFilter.created.lte = periodEndTimestamp;
+    }
+
     const [
       balance,
       subscriptions,
@@ -122,8 +155,8 @@ serve(async (req) => {
     ] = await Promise.all([
       stripe.balance.retrieve(),
       stripe.subscriptions.list({ limit: 100, status: 'all' }),
-      stripe.charges.list({ limit: 100, created: { gte: periodStartTimestamp } }),
-      stripe.invoices.list({ limit: 50, created: { gte: periodStartTimestamp } }),
+      stripe.charges.list(chargesFilter),
+      stripe.invoices.list(invoicesFilter),
     ]);
 
     // Calcular datas para comparação
@@ -200,6 +233,40 @@ serve(async (req) => {
       ? (successfulCharges.reduce((sum, c) => sum + c.amount, 0) / successfulCharges.length) / 100
       : 0;
 
+    // === MÉTRICAS DO PERÍODO SELECIONADO ===
+    // Receita no período selecionado
+    let revenueInPeriod = 0;
+    for (const charge of successfulCharges) {
+      const chargeDate = new Date(charge.created * 1000);
+      if (chargeDate >= periodStart && chargeDate <= periodEnd) {
+        revenueInPeriod += charge.amount;
+      }
+    }
+    revenueInPeriod = revenueInPeriod / 100;
+
+    // Novas assinaturas no período
+    let newSubscriptionsInPeriod = 0;
+    let canceledSubscriptionsInPeriod = 0;
+    for (const sub of subscriptions.data) {
+      const createdDate = new Date(sub.created * 1000);
+      if (createdDate >= periodStart && createdDate <= periodEnd) {
+        newSubscriptionsInPeriod++;
+      }
+      // Assinaturas canceladas no período
+      if (sub.status === 'canceled' && sub.canceled_at) {
+        const canceledDate = new Date(sub.canceled_at * 1000);
+        if (canceledDate >= periodStart && canceledDate <= periodEnd) {
+          canceledSubscriptionsInPeriod++;
+        }
+      }
+    }
+
+    // Total de cobranças no período
+    const chargesInPeriod = successfulCharges.filter(c => {
+      const chargeDate = new Date(c.created * 1000);
+      return chargeDate >= periodStart && chargeDate <= periodEnd;
+    }).length;
+
     // Pagamentos recentes com detalhes do cliente
     const recentPayments = await Promise.all(
       charges.data.slice(0, 10).map(async (charge) => {
@@ -247,7 +314,76 @@ serve(async (req) => {
     // Receita por período
     const monthlyRevenue: { month: string; revenue: number }[] = [];
 
-    if (period === '7days') {
+    if (period === 'custom' && customStartDate && customEndDate) {
+      // Para período customizado, decidir granularidade baseado na diferença de dias
+      const diffDays = Math.ceil((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays <= 7) {
+        // Mostrar por dia
+        for (let d = new Date(periodStart); d <= periodEnd; d.setDate(d.getDate() + 1)) {
+          const dayStart = new Date(d);
+          const dayEnd = new Date(d);
+          dayEnd.setDate(dayEnd.getDate() + 1);
+
+          let dayRevenue = 0;
+          for (const charge of successfulCharges) {
+            const chargeDate = new Date(charge.created * 1000);
+            if (chargeDate >= dayStart && chargeDate < dayEnd) {
+              dayRevenue += charge.amount;
+            }
+          }
+
+          monthlyRevenue.push({
+            month: dayStart.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+            revenue: dayRevenue / 100,
+          });
+        }
+      } else if (diffDays <= 60) {
+        // Mostrar por semana
+        let weekStart = new Date(periodStart);
+        while (weekStart < periodEnd) {
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekEnd.getDate() + 7);
+          if (weekEnd > periodEnd) weekEnd.setTime(periodEnd.getTime());
+
+          let weekRevenue = 0;
+          for (const charge of successfulCharges) {
+            const chargeDate = new Date(charge.created * 1000);
+            if (chargeDate >= weekStart && chargeDate < weekEnd) {
+              weekRevenue += charge.amount;
+            }
+          }
+
+          monthlyRevenue.push({
+            month: `${weekStart.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
+            revenue: weekRevenue / 100,
+          });
+
+          weekStart = new Date(weekEnd);
+        }
+      } else {
+        // Mostrar por mês
+        let monthStart = new Date(periodStart.getFullYear(), periodStart.getMonth(), 1);
+        while (monthStart <= periodEnd) {
+          const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+
+          let monthRevenue = 0;
+          for (const charge of successfulCharges) {
+            const chargeDate = new Date(charge.created * 1000);
+            if (chargeDate >= monthStart && chargeDate <= monthEnd) {
+              monthRevenue += charge.amount;
+            }
+          }
+
+          monthlyRevenue.push({
+            month: monthStart.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+            revenue: monthRevenue / 100,
+          });
+
+          monthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+        }
+      }
+    } else if (period === '7days') {
       // Mostrar por dia nos últimos 7 dias
       for (let i = 6; i >= 0; i--) {
         const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
@@ -340,6 +476,12 @@ serve(async (req) => {
         trialing: trialingCount,
       },
       monthlyRevenue,
+      periodMetrics: {
+        revenueInPeriod,
+        newSubscriptionsInPeriod,
+        canceledSubscriptionsInPeriod,
+        chargesInPeriod,
+      },
     };
 
     return new Response(JSON.stringify(stats), {

@@ -16,7 +16,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 
-type Period = '7days' | '30days' | '3months' | '6months' | '12months' | 'all'
+type Period = '7days' | '30days' | '3months' | '6months' | '12months' | 'all' | 'custom'
 
 const periodOptions: { value: Period; label: string }[] = [
   { value: '7days', label: 'Ultimos 7 dias' },
@@ -25,6 +25,7 @@ const periodOptions: { value: Period; label: string }[] = [
   { value: '6months', label: 'Ultimos 6 meses' },
   { value: '12months', label: 'Ultimos 12 meses' },
   { value: 'all', label: 'Todo o periodo' },
+  { value: 'custom', label: 'Personalizado' },
 ]
 
 interface FinancialStats {
@@ -73,6 +74,13 @@ interface FinancialStats {
     month: string
     revenue: number
   }[]
+  // Metricas do periodo selecionado
+  periodMetrics?: {
+    revenueInPeriod: number
+    newSubscriptionsInPeriod: number
+    canceledSubscriptionsInPeriod: number
+    chargesInPeriod: number
+  }
 }
 
 export default function AdminFinancial() {
@@ -82,10 +90,21 @@ export default function AdminFinancial() {
   const [refreshing, setRefreshing] = useState(false)
   const [period, setPeriod] = useState<Period>('6months')
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false)
+  const [customStartDate, setCustomStartDate] = useState<string>('')
+  const [customEndDate, setCustomEndDate] = useState<string>('')
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false)
 
   useEffect(() => {
-    loadStats()
+    if (period !== 'custom') {
+      loadStats()
+    }
   }, [period])
+
+  useEffect(() => {
+    if (period === 'custom' && customStartDate && customEndDate) {
+      loadStats()
+    }
+  }, [customStartDate, customEndDate])
 
   const loadStats = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -93,14 +112,17 @@ export default function AdminFinancial() {
     setError(null)
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-financial-stats?period=${period}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-        }
-      )
+      let url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-financial-stats?period=${period}`
+
+      if (period === 'custom' && customStartDate && customEndDate) {
+        url += `&startDate=${customStartDate}&endDate=${customEndDate}`
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+      })
 
       if (!response.ok) {
         const data = await response.json()
@@ -309,7 +331,9 @@ export default function AdminFinancial() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Calendar size={16} />
-                {periodOptions.find(p => p.value === period)?.label}
+                {period === 'custom' && customStartDate && customEndDate
+                  ? `${new Date(customStartDate).toLocaleDateString('pt-BR')} - ${new Date(customEndDate).toLocaleDateString('pt-BR')}`
+                  : periodOptions.find(p => p.value === period)?.label}
               </div>
               <ChevronDown size={16} style={{
                 transform: showPeriodDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -327,7 +351,10 @@ export default function AdminFinancial() {
                     bottom: 0,
                     zIndex: 10,
                   }}
-                  onClick={() => setShowPeriodDropdown(false)}
+                  onClick={() => {
+                    setShowPeriodDropdown(false)
+                    setShowCustomDatePicker(false)
+                  }}
                 />
                 <div style={{
                   position: 'absolute',
@@ -342,12 +369,13 @@ export default function AdminFinancial() {
                   minWidth: '180px',
                   overflow: 'hidden',
                 }}>
-                  {periodOptions.map((option) => (
+                  {periodOptions.filter(o => o.value !== 'custom').map((option) => (
                     <button
                       key={option.value}
                       onClick={() => {
                         setPeriod(option.value)
                         setShowPeriodDropdown(false)
+                        setShowCustomDatePicker(false)
                       }}
                       style={{
                         width: '100%',
@@ -365,6 +393,97 @@ export default function AdminFinancial() {
                       {option.label}
                     </button>
                   ))}
+                  <div style={{ borderTop: '1px solid var(--border-color)', margin: '4px 0' }} />
+                  <button
+                    onClick={() => setShowCustomDatePicker(!showCustomDatePicker)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px',
+                      border: 'none',
+                      backgroundColor: period === 'custom' ? 'rgba(70, 114, 236, 0.1)' : 'transparent',
+                      color: period === 'custom' ? 'var(--accent)' : 'var(--text-primary)',
+                      fontWeight: period === 'custom' ? 600 : 400,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    Personalizado
+                    <ChevronDown size={14} style={{
+                      transform: showCustomDatePicker ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease',
+                    }} />
+                  </button>
+                  {showCustomDatePicker && (
+                    <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)' }}>
+                      <div style={{ marginBottom: '12px' }}>
+                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                          Data inicial
+                        </label>
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--text-primary)',
+                            fontSize: '13px',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+                      <div style={{ marginBottom: '12px' }}>
+                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                          Data final
+                        </label>
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--text-primary)',
+                            fontSize: '13px',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (customStartDate && customEndDate) {
+                            setPeriod('custom')
+                            setShowPeriodDropdown(false)
+                            setShowCustomDatePicker(false)
+                          }
+                        }}
+                        disabled={!customStartDate || !customEndDate}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          backgroundColor: customStartDate && customEndDate ? 'var(--accent)' : 'var(--border-color)',
+                          color: customStartDate && customEndDate ? '#fff' : 'var(--text-secondary)',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          cursor: customStartDate && customEndDate ? 'pointer' : 'not-allowed',
+                        }}
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -409,6 +528,40 @@ export default function AdminFinancial() {
             Stripe Dashboard
             <ExternalLink size={16} />
           </a>
+        </div>
+      </div>
+
+      {/* Metricas do Periodo Selecionado */}
+      <div style={{ ...cardStyle, marginBottom: '24px', background: 'linear-gradient(135deg, rgba(70, 114, 236, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)' }}>
+        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--accent)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Calendar size={18} />
+          Metricas do Periodo Selecionado
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+          <div>
+            <div style={{ fontSize: '28px', fontWeight: 700, color: '#22c55e' }}>
+              {formatCurrency(stats?.periodMetrics?.revenueInPeriod || 0)}
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Faturamento</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '28px', fontWeight: 700, color: '#3b82f6' }}>
+              {stats?.periodMetrics?.newSubscriptionsInPeriod || 0}
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Novas Assinaturas</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '28px', fontWeight: 700, color: '#ef4444' }}>
+              {stats?.periodMetrics?.canceledSubscriptionsInPeriod || 0}
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Cancelamentos</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '28px', fontWeight: 700, color: '#8b5cf6' }}>
+              {stats?.periodMetrics?.chargesInPeriod || 0}
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Cobrancas</div>
+          </div>
         </div>
       </div>
 

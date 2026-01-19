@@ -11,8 +11,24 @@
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { getStripeClient, verifyWebhookSignature, Stripe } from '../_shared/stripe.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
+
+/**
+ * Obtém o cliente Supabase com service role key para operações admin
+ */
+function getSupabaseAdminClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,18 +37,88 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('=== WEBHOOK STRIPE CHAMADO ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Endpoint de teste para verificar se o webhook está acessível
+  if (req.method === 'GET') {
+    const url = new URL(req.url);
+    const sessionId = url.searchParams.get('session_id');
+
+    // Se tiver session_id, reprocessar manualmente (para debug)
+    if (sessionId) {
+      try {
+        console.log('=== REPROCESSANDO SESSÃO MANUALMENTE ===');
+        console.log('Session ID:', sessionId);
+
+        const stripe = getStripeClient();
+        const supabase = getSupabaseClient();
+
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        console.log('Session status:', session.status);
+        console.log('Payment status:', session.payment_status);
+
+        if (session.status === 'complete' && session.payment_status === 'paid') {
+          await handleCheckoutCompleted(session as Stripe.Checkout.Session, supabase, stripe);
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: 'Sessão reprocessada com sucesso',
+              session_id: sessionId,
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'Sessão não está completa ou não foi paga',
+              status: session.status,
+              payment_status: session.payment_status,
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } catch (error) {
+        console.error('Erro ao reprocessar sessão:', error);
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        status: 'ok',
+        message: 'Webhook endpoint ativo',
+        timestamp: new Date().toISOString(),
+        hasSecret: !!Deno.env.get('STRIPE_WEBHOOK_SECRET'),
+        usage: 'Adicione ?session_id=cs_xxx para reprocessar uma sessão manualmente',
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+    console.log('Webhook Secret configurado:', !!webhookSecret);
+
     if (!webhookSecret) {
+      console.error('ERRO: STRIPE_WEBHOOK_SECRET não configurado!');
       throw new Error('STRIPE_WEBHOOK_SECRET não configurado');
     }
 
     const signature = req.headers.get('stripe-signature');
+    console.log('Stripe Signature presente:', !!signature);
+
     if (!signature) {
+      console.error('ERRO: stripe-signature header ausente');
       return new Response(
         JSON.stringify({ error: 'Missing stripe-signature header' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -40,9 +126,12 @@ serve(async (req) => {
     }
 
     const body = await req.text();
+    console.log('Body recebido (primeiros 200 chars):', body.substring(0, 200));
+
     const event = await verifyWebhookSignature(body, signature, webhookSecret);
 
-    console.log(`Webhook recebido: ${event.type}`);
+    console.log('=== Webhook verificado com sucesso ===');
+    console.log(`Evento recebido: ${event.type}`);
 
     const supabase = getSupabaseClient();
     const stripe = getStripeClient();
@@ -100,60 +189,125 @@ async function handleCheckoutCompleted(
   supabase: ReturnType<typeof getSupabaseClient>,
   stripe: Stripe
 ) {
-  console.log('Processando checkout.session.completed:', session.id);
+  console.log('=== Processando checkout.session.completed ===');
+  console.log('Session ID:', session.id);
+  console.log('Customer ID:', session.customer);
+  console.log('Subscription ID:', session.subscription);
+  console.log('Customer Email:', session.customer_email);
+  console.log('Customer Details:', JSON.stringify(session.customer_details));
+  console.log('Metadata:', JSON.stringify(session.metadata));
 
   const metadata = session.metadata || {};
   const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
 
+  if (!subscriptionId) {
+    console.error('ERRO: subscriptionId não encontrado na sessão');
+    throw new Error('Subscription ID não encontrado');
+  }
+
   // Buscar subscription para obter detalhes
+  console.log('Buscando subscription no Stripe:', subscriptionId);
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const priceId = subscription.items.data[0]?.price.id;
+  console.log('Price ID:', priceId);
 
   // Verificar se é novo usuário ou upgrade
   let userId = metadata.user_id;
+  console.log('User ID dos metadados:', userId);
 
   if (!userId || userId === 'pending') {
     // Novo usuário - criar conta
     const email = metadata.user_email || session.customer_email;
     const name = metadata.user_name || session.customer_details?.name;
 
+    console.log('Criando novo usuário - Email:', email, 'Nome:', name);
+
     if (!email) {
+      console.error('ERRO: Email do usuário não encontrado');
       throw new Error('Email do usuário não encontrado');
     }
 
     // Verificar se usuário já existe
-    const { data: existingUser } = await supabase
+    console.log('Verificando se usuário já existe no banco...');
+    const { data: existingUser, error: existingError } = await supabase
       .from('users')
       .select('id')
       .eq('email', email.toLowerCase())
       .single();
 
+    console.log('Resultado busca usuário existente:', { existingUser, error: existingError?.message });
+
     if (existingUser) {
       userId = existingUser.id;
+      console.log('Usuário já existe, usando ID:', userId);
     } else {
-      // Criar novo usuário
-      const { data: newUser, error: createError } = await supabase
+      // Usuário não existe no banco - vamos criar usando Admin API
+      console.log('Usuário não existe, criando via Admin API...');
+      const supabaseAdmin = getSupabaseAdminClient();
+
+      // Verificar se usuário já existe no Auth
+      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+      const existingAuthUser = authUsers?.users.find(u =>
+        u.email?.toLowerCase() === email.toLowerCase()
+      );
+
+      let newUserId: string;
+
+      if (existingAuthUser) {
+        console.log('Usuário já existe no Auth:', existingAuthUser.id);
+        newUserId = existingAuthUser.id;
+      } else {
+        // Criar usuário no Auth com senha temporária
+        const tempPassword = crypto.randomUUID().slice(0, 12) + 'Aa1!';
+        const { data: newAuthUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+          email: email,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { name: name || '' },
+        });
+
+        if (authError) {
+          console.error('ERRO ao criar usuário no Auth:', authError);
+          throw new Error(`Erro ao criar usuário no Auth: ${authError.message}`);
+        }
+
+        newUserId = newAuthUser.user.id;
+        console.log('Usuário criado no Auth:', newUserId);
+
+        // Enviar email de reset de senha
+        await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: email,
+        });
+        console.log('Link de recuperação gerado para:', email);
+      }
+
+      // Agora criar na tabela users
+      const userData = {
+        id: newUserId,
+        email: email.toLowerCase(),
+        name: name || null,
+        plan: metadata.plan_name?.toLowerCase() || 'starter',
+        emails_limit: parseInt(metadata.emails_limit || '500'),
+        shops_limit: parseInt(metadata.shops_limit || '1'),
+        emails_used: 0,
+        stripe_customer_id: customerId,
+        status: 'active',
+      };
+      console.log('Dados do usuário:', JSON.stringify(userData));
+
+      const { error: createError } = await supabaseAdmin
         .from('users')
-        .insert({
-          email: email.toLowerCase(),
-          name: name || null,
-          plan: metadata.plan_name?.toLowerCase() || 'starter',
-          emails_limit: parseInt(metadata.emails_limit || '500'),
-          shops_limit: parseInt(metadata.shops_limit || '1'),
-          emails_used: 0,
-          stripe_customer_id: customerId,
-          status: 'active',
-        })
-        .select('id')
-        .single();
+        .insert(userData);
 
       if (createError) {
+        console.error('ERRO ao criar usuário na tabela users:', createError);
         throw new Error(`Erro ao criar usuário: ${createError.message}`);
       }
 
-      userId = newUser.id;
-      console.log('Novo usuário criado:', userId);
+      userId = newUserId;
+      console.log('Novo usuário criado com sucesso! ID:', userId);
     }
   }
 
@@ -203,6 +357,7 @@ async function handleCheckoutCompleted(
 
   // Registrar uso de cupom se aplicável
   if (metadata.coupon_id) {
+    console.log('Registrando uso de cupom:', metadata.coupon_id);
     await supabase.rpc('use_coupon', {
       p_coupon_id: metadata.coupon_id,
       p_user_id: userId,
@@ -212,11 +367,12 @@ async function handleCheckoutCompleted(
   }
 
   // Atualizar metadata do customer no Stripe com user_id correto
+  console.log('Atualizando metadata do customer no Stripe com user_id:', userId);
   await stripe.customers.update(customerId, {
     metadata: { user_id: userId },
   });
 
-  console.log('Checkout processado com sucesso para usuário:', userId);
+  console.log('=== Checkout processado com SUCESSO para usuário:', userId, '===');
 }
 
 /**
