@@ -782,8 +782,15 @@ export default function Dashboard() {
       {/* Bottom */}
       <div className="replyna-dashboard-bottom">
         <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
-            Conversas do Período
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Conversas do Período
+            </div>
+            {!loadingConversations && conversations.length > 0 && (
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                {conversations.length} {conversations.length === 1 ? 'conversa' : 'conversas'}
+              </div>
+            )}
           </div>
           {loadingConversations ? (
             <div style={{ display: 'grid', gap: '12px' }}>
@@ -796,15 +803,15 @@ export default function Dashboard() {
               Nenhum dado encontrado para o período selecionado
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
+            <div style={{ maxHeight: '400px', overflowY: 'auto', overflowX: 'auto', scrollBehavior: 'smooth' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
-                <thead>
-                  <tr style={{ textAlign: 'left', backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', fontSize: '12px' }}>
-                    <th style={{ padding: '10px 12px', fontWeight: 700 }}>Cliente</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700 }}>Assunto</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700 }}>Categoria</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700 }}>Status</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700 }}>Data</th>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                  <tr style={{ textAlign: 'left', backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Cliente</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Assunto</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Categoria</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Status</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Data</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -815,7 +822,10 @@ export default function Dashboard() {
                       style={{
                         borderBottom: '1px solid var(--border-color)',
                         cursor: 'pointer',
+                        transition: 'background-color 0.15s ease',
                       }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-primary)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <td style={{ padding: '12px' }}>
                         <span
