@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Search, Edit2, Mail, Store, Calendar } from 'lucide-react'
+import { Search, Edit2, Mail, Store, Calendar, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
+
+interface Shop {
+  id: string
+  name: string
+  shopify_domain: string
+  is_active: boolean
+}
 
 interface Client {
   id: string
@@ -13,43 +20,60 @@ interface Client {
   status: string | null
   created_at: string
   last_login_at: string | null
-  shops_count: number
+  shops: Shop[]
+}
+
+interface Plan {
+  id: string
+  name: string
+  is_active: boolean
 }
 
 export default function AdminClients() {
   const [clients, setClients] = useState<Client[]>([])
+  const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [expandedClient, setExpandedClient] = useState<string | null>(null)
 
   useEffect(() => {
-    loadClients()
+    loadData()
   }, [])
 
-  const loadClients = async () => {
+  const loadData = async () => {
     try {
-      // Buscar usuários e lojas em paralelo
-      const [usersResult, shopsResult] = await Promise.all([
+      const [usersResult, shopsResult, plansResult] = await Promise.all([
         supabase.from('users').select('*').order('created_at', { ascending: false }),
-        supabase.from('shops').select('user_id')
+        supabase.from('shops').select('id, name, shopify_domain, is_active, user_id'),
+        supabase.from('plans').select('id, name, is_active').eq('is_active', true).order('sort_order')
       ])
 
       if (usersResult.error) throw usersResult.error
 
-      // Contar lojas por usuário
-      const shopCountByUser: Record<string, number> = {}
+      // Agrupar lojas por usuário
+      const shopsByUser: Record<string, Shop[]> = {}
       ;(shopsResult.data || []).forEach((shop) => {
-        shopCountByUser[shop.user_id] = (shopCountByUser[shop.user_id] || 0) + 1
+        if (!shopsByUser[shop.user_id]) {
+          shopsByUser[shop.user_id] = []
+        }
+        shopsByUser[shop.user_id].push({
+          id: shop.id,
+          name: shop.name,
+          shopify_domain: shop.shopify_domain,
+          is_active: shop.is_active
+        })
       })
 
       // Combinar dados
       const clientsWithShops = (usersResult.data || []).map((client) => ({
         ...client,
-        shops_count: shopCountByUser[client.id] || 0,
+        shops: shopsByUser[client.id] || [],
       }))
 
       setClients(clientsWithShops as Client[])
+      setPlans((plansResult.data || []) as Plan[])
     } catch (err) {
       console.error('Erro ao carregar clientes:', err)
     } finally {
@@ -80,16 +104,24 @@ export default function AdminClients() {
       if (error) throw error
 
       setShowModal(false)
-      loadClients()
+      loadData()
     } catch (err) {
       console.error('Erro ao salvar cliente:', err)
     }
   }
 
+  const toggleExpand = (clientId: string) => {
+    setExpandedClient(expandedClient === clientId ? null : clientId)
+  }
+
   const filteredClients = clients.filter(
     (client) =>
       client.email.toLowerCase().includes(search.toLowerCase()) ||
-      (client.name && client.name.toLowerCase().includes(search.toLowerCase()))
+      (client.name && client.name.toLowerCase().includes(search.toLowerCase())) ||
+      client.shops.some(shop =>
+        shop.name.toLowerCase().includes(search.toLowerCase()) ||
+        shop.shopify_domain.toLowerCase().includes(search.toLowerCase())
+      )
   )
 
   const formatDate = (date: string) =>
@@ -185,7 +217,7 @@ export default function AdminClients() {
             />
             <input
               type="text"
-              placeholder="Buscar cliente..."
+              placeholder="Buscar cliente ou loja..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -202,6 +234,7 @@ export default function AdminClients() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700 }}>
+              <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '40px' }}></th>
               <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Cliente</th>
               <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Plano</th>
               <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>Emails</th>
@@ -213,100 +246,206 @@ export default function AdminClients() {
           </thead>
           <tbody>
             {filteredClients.map((client) => (
-              <tr key={client.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <td style={{ padding: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(70, 114, 236, 0.1)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+              <>
+                <tr key={client.id} style={{ borderBottom: expandedClient === client.id ? 'none' : '1px solid var(--border-color)' }}>
+                  <td style={{ padding: '16px 8px 16px 16px' }}>
+                    {client.shops.length > 0 && (
+                      <button
+                        onClick={() => toggleExpand(client.id)}
+                        style={{
+                          padding: '4px',
+                          borderRadius: '4px',
+                          border: 'none',
+                          backgroundColor: 'transparent',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {expandedClient === client.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+                    )}
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        backgroundColor: 'rgba(70, 114, 236, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Mail size={18} style={{ color: 'var(--accent)' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {client.name || 'Sem nome'}
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                          {client.email}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                      color: '#8b5cf6',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      textTransform: 'capitalize',
                     }}>
-                      <Mail size={18} style={{ color: 'var(--accent)' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {client.name || 'Sem nome'}
-                      </div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                        {client.email}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <span style={{
-                    padding: '4px 12px',
-                    borderRadius: '6px',
-                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                    color: '#8b5cf6',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    textTransform: 'capitalize',
-                  }}>
-                    {client.plan || 'free'}
-                  </span>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <div style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
-                    {client.emails_used} / {client.emails_limit}
-                  </div>
-                  <div style={{
-                    width: '80px',
-                    height: '4px',
-                    backgroundColor: 'var(--border-color)',
-                    borderRadius: '2px',
-                    marginTop: '4px',
-                  }}>
-                    <div style={{
-                      width: `${Math.min((client.emails_used / client.emails_limit) * 100, 100)}%`,
-                      height: '100%',
-                      backgroundColor: client.emails_used >= client.emails_limit ? '#ef4444' : '#22c55e',
-                      borderRadius: '2px',
-                    }} />
-                  </div>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Store size={14} style={{ color: 'var(--text-secondary)' }} />
-                    <span style={{ color: 'var(--text-primary)' }}>
-                      {client.shops_count} / {client.shops_limit}
+                      {client.plan || 'free'}
                     </span>
-                  </div>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <span style={getStatusBadge(client.status)}>
-                    {client.status === 'active' ? 'Ativo' : client.status === 'inactive' ? 'Inativo' : client.status === 'suspended' ? 'Suspenso' : 'Ativo'}
-                  </span>
-                </td>
-                <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Calendar size={14} />
-                    {formatDate(client.created_at)}
-                  </div>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <button
-                    onClick={() => handleEditClient(client)}
-                    style={{
-                      padding: '8px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'transparent',
-                      color: 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                </td>
-              </tr>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
+                      {client.emails_used} / {client.emails_limit}
+                    </div>
+                    <div style={{
+                      width: '80px',
+                      height: '4px',
+                      backgroundColor: 'var(--border-color)',
+                      borderRadius: '2px',
+                      marginTop: '4px',
+                    }}>
+                      <div style={{
+                        width: `${Math.min((client.emails_used / client.emails_limit) * 100, 100)}%`,
+                        height: '100%',
+                        backgroundColor: client.emails_used >= client.emails_limit ? '#ef4444' : '#22c55e',
+                        borderRadius: '2px',
+                      }} />
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Store size={14} style={{ color: 'var(--text-secondary)' }} />
+                      <span style={{ color: 'var(--text-primary)' }}>
+                        {client.shops.length} / {client.shops_limit}
+                      </span>
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={getStatusBadge(client.status)}>
+                      {client.status === 'active' ? 'Ativo' : client.status === 'inactive' ? 'Inativo' : client.status === 'suspended' ? 'Suspenso' : 'Ativo'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Calendar size={14} />
+                      {formatDate(client.created_at)}
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <button
+                      onClick={() => handleEditClient(client)}
+                      style={{
+                        padding: '8px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'transparent',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+                {expandedClient === client.id && client.shops.length > 0 && (
+                  <tr key={`${client.id}-shops`}>
+                    <td colSpan={8} style={{ padding: '0 16px 16px 56px', borderBottom: '1px solid var(--border-color)' }}>
+                      <div style={{
+                        backgroundColor: 'var(--bg-primary)',
+                        borderRadius: '10px',
+                        padding: '12px',
+                      }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                          LOJAS CADASTRADAS
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {client.shops.map((shop) => (
+                            <div
+                              key={shop.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '10px 12px',
+                                backgroundColor: 'var(--bg-card)',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color)',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '8px',
+                                  backgroundColor: shop.is_active ? 'rgba(34, 197, 94, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}>
+                                  <Store size={16} style={{ color: shop.is_active ? '#22c55e' : '#6b7280' }} />
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
+                                    {shop.name}
+                                  </div>
+                                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                    {shop.shopify_domain}
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <span style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '999px',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  backgroundColor: shop.is_active ? 'rgba(34, 197, 94, 0.16)' : 'rgba(107, 114, 128, 0.16)',
+                                  color: shop.is_active ? '#22c55e' : '#6b7280',
+                                }}>
+                                  {shop.is_active ? 'Ativa' : 'Inativa'}
+                                </span>
+                                <a
+                                  href={`https://${shop.shopify_domain}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    padding: '6px',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-color)',
+                                    backgroundColor: 'transparent',
+                                    color: 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    textDecoration: 'none',
+                                  }}
+                                >
+                                  <ExternalLink size={14} />
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </>
             ))}
           </tbody>
         </table>
@@ -367,9 +506,11 @@ export default function AdminClients() {
                   style={inputStyle}
                 >
                   <option value="free">Free</option>
-                  <option value="starter">Starter</option>
-                  <option value="pro">Pro</option>
-                  <option value="enterprise">Enterprise</option>
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.name.toLowerCase()}>
+                      {plan.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
