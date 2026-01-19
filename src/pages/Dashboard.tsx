@@ -803,7 +803,7 @@ export default function Dashboard() {
               Nenhum dado encontrado para o período selecionado
             </div>
           ) : (
-            <div style={{ maxHeight: '400px', overflowY: 'auto', overflowX: 'auto', scrollBehavior: 'smooth' }}>
+            <div className="replyna-scrollbar" style={{ maxHeight: '400px', overflowY: 'auto', overflowX: 'auto', scrollBehavior: 'smooth' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr style={{ textAlign: 'left', backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', fontSize: '12px' }}>
