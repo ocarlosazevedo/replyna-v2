@@ -517,6 +517,11 @@ async function processMessage(
   let responseResult: { response: string; tokens_input: number; tokens_output: number };
   let finalStatus: 'replied' | 'pending_human' = 'replied';
 
+  // Categorias que NÃO precisam de dados do Shopify para responder
+  // (emails genéricos, dúvidas sobre produtos, etc.)
+  const categoriesWithoutOrderData = ['outros', 'produto'];
+  const needsOrderData = !categoriesWithoutOrderData.includes(classification.category);
+
   // Se categoria é suporte_humano
   if (classification.category === 'suporte_humano') {
     responseResult = await generateHumanFallbackMessage(
@@ -535,8 +540,8 @@ async function processMessage(
     // Encaminhar para suporte humano
     await forwardToHuman(shop, message, emailCredentials);
   }
-  // Se não tem dados do Shopify e ainda não pedimos muitas vezes
-  else if (!shopifyData && conversation.data_request_count < MAX_DATA_REQUESTS) {
+  // Se não tem dados do Shopify, precisa de dados de pedido, e ainda não pedimos muitas vezes
+  else if (!shopifyData && needsOrderData && conversation.data_request_count < MAX_DATA_REQUESTS) {
     responseResult = await generateDataRequestMessage(
       {
         name: shop.name,
@@ -561,8 +566,8 @@ async function processMessage(
       event_data: { attempt: conversation.data_request_count + 1 },
     });
   }
-  // Se já pedimos dados 3 vezes sem sucesso
-  else if (!shopifyData && conversation.data_request_count >= MAX_DATA_REQUESTS) {
+  // Se já pedimos dados 3 vezes sem sucesso (apenas para categorias que precisam de dados)
+  else if (!shopifyData && needsOrderData && conversation.data_request_count >= MAX_DATA_REQUESTS) {
     responseResult = await generateHumanFallbackMessage(
       {
         name: shop.name,
@@ -578,7 +583,7 @@ async function processMessage(
 
     await forwardToHuman(shop, message, emailCredentials);
   }
-  // Resposta normal com dados do Shopify
+  // Resposta normal (com ou sem dados do Shopify)
   else {
     responseResult = await generateResponse(
       {
