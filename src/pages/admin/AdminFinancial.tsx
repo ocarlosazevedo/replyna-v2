@@ -38,7 +38,6 @@ const getDefaultRange = (): DateRange => {
 interface SubscriptionByPlan {
   plan_name: string
   count: number
-  mrr: number
 }
 
 interface FinancialStats {
@@ -559,151 +558,119 @@ export default function AdminFinancial() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <Package size={isMobile ? 18 : 20} style={{ color: 'var(--accent)' }} />
           <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Assinaturas por Plano
+            Clientes Ativos por Plano
           </h2>
         </div>
         {stats?.subscriptionsByPlan && stats.subscriptionsByPlan.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
             {stats.subscriptionsByPlan.map((plan, index) => (
               <div
                 key={index}
                 style={{
                   backgroundColor: 'var(--bg-primary)',
                   borderRadius: '12px',
-                  padding: '20px',
+                  padding: '16px 24px',
                   border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  minWidth: isMobile ? '100%' : '180px',
                 }}
               >
-                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
-                  {plan.plan_name}
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(70, 114, 236, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--accent)' }}>{plan.count}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Assinaturas</span>
-                  <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>{plan.count}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>MRR</span>
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#22c55e' }}>{formatCurrency(plan.mrr)}</span>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {plan.plan_name}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    {plan.count === 1 ? 'cliente ativo' : 'clientes ativos'}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-            gap: '16px',
-          }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
             <div style={{
               backgroundColor: 'var(--bg-primary)',
               borderRadius: '12px',
-              padding: '20px',
+              padding: '16px 24px',
               border: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
             }}>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
-                Starter
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(70, 114, 236, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--accent)' }}>{stats?.activeSubscriptions || 0}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Assinaturas</span>
-                <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>
-                  {stats?.activeSubscriptions || 0}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>MRR</span>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: '#22c55e' }}>{formatCurrency(stats?.mrr || 0)}</span>
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Starter
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  clientes ativos
+                </div>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Grafico de receita e Pagamentos recentes */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-        {/* Grafico de receita mensal */}
-        <div style={cardStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-            <BarChart3 size={isMobile ? 18 : 20} style={{ color: 'var(--accent)' }} />
-            <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Receita Mensal
-            </h2>
-          </div>
-          <div className="replyna-scrollbar" style={{ display: 'flex', alignItems: 'flex-end', gap: isMobile ? '4px' : '8px', height: isMobile ? '160px' : '200px', overflowX: isMobile ? 'auto' : 'visible' }}>
-            {stats?.monthlyRevenue.map((item, index) => (
-              <div key={index} style={{ flex: isMobile ? '0 0 auto' : 1, minWidth: isMobile ? '40px' : 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{
-                  width: '100%',
-                  backgroundColor: index === (stats?.monthlyRevenue?.length ?? 0) - 1 ? 'var(--accent)' : 'rgba(70, 114, 236, 0.3)',
-                  borderRadius: '6px 6px 0 0',
-                  height: `${Math.max((item.revenue / maxRevenue) * (isMobile ? 120 : 160), 4)}px`,
-                  transition: 'height 0.3s ease',
-                }} />
-                <div style={{
-                  fontSize: isMobile ? '9px' : '10px',
-                  color: 'var(--text-secondary)',
-                  marginTop: '8px',
-                  textTransform: 'capitalize',
-                }}>
-                  {item.month}
-                </div>
-                <div style={{
-                  fontSize: isMobile ? '9px' : '11px',
-                  color: 'var(--text-primary)',
-                  fontWeight: 600,
-                }}>
-                  {formatCurrency(item.revenue)}
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Grafico de receita - Linha inteira */}
+      <div style={{ ...cardStyle, marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+          <BarChart3 size={isMobile ? 18 : 20} style={{ color: 'var(--accent)' }} />
+          <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            Receita no Periodo
+          </h2>
         </div>
-
-        {/* Pagamentos recentes */}
-        <div style={cardStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-            <CreditCard size={isMobile ? 18 : 20} style={{ color: '#22c55e' }} />
-            <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Pagamentos Recentes
-            </h2>
-          </div>
-          {stats?.recentPayments && stats.recentPayments.length > 0 ? (
-            <div className="replyna-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '240px', overflowY: 'auto' }}>
-              {stats.recentPayments.map((payment) => (
-                <div
-                  key={payment.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px',
-                    backgroundColor: 'var(--bg-primary)',
-                    borderRadius: '10px',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {payment.customer_name || payment.customer_email || 'Cliente'}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      {formatDateShort(payment.created)}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#22c55e' }}>
-                      {formatCurrency(payment.amount)}
-                    </div>
-                    <span style={getStatusBadge(payment.status)}>
-                      {getStatusLabel(payment.status)}
-                    </span>
-                  </div>
-                </div>
-              ))}
+        <div className="replyna-scrollbar" style={{ display: 'flex', alignItems: 'flex-end', gap: isMobile ? '6px' : '12px', height: isMobile ? '200px' : '280px', overflowX: 'auto', paddingBottom: '8px' }}>
+          {stats?.monthlyRevenue.map((item, index) => (
+            <div key={index} style={{ flex: '1 1 0', minWidth: isMobile ? '50px' : '60px', maxWidth: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{
+                width: '100%',
+                backgroundColor: index === (stats?.monthlyRevenue?.length ?? 0) - 1 ? 'var(--accent)' : 'rgba(70, 114, 236, 0.3)',
+                borderRadius: '8px 8px 0 0',
+                height: `${Math.max((item.revenue / maxRevenue) * (isMobile ? 140 : 220), 4)}px`,
+                transition: 'height 0.3s ease',
+              }} />
+              <div style={{
+                fontSize: isMobile ? '10px' : '12px',
+                color: 'var(--text-secondary)',
+                marginTop: '10px',
+                textTransform: 'capitalize',
+                textAlign: 'center',
+              }}>
+                {item.month}
+              </div>
+              <div style={{
+                fontSize: isMobile ? '10px' : '12px',
+                color: 'var(--text-primary)',
+                fontWeight: 600,
+                textAlign: 'center',
+              }}>
+                {formatCurrency(item.revenue)}
+              </div>
             </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
-              Nenhum pagamento registrado
-            </div>
-          )}
+          ))}
         </div>
       </div>
 

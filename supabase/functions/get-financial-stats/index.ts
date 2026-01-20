@@ -60,6 +60,10 @@ interface FinancialStats {
     canceled: number;
     trialing: number;
   };
+  subscriptionsByPlan: {
+    plan_name: string;
+    count: number;
+  }[];
   monthlyRevenue: {
     month: string;
     revenue: number;
@@ -170,6 +174,7 @@ serve(async (req) => {
     let pastDueCount = 0;
     let canceledCount = 0;
     let trialingCount = 0;
+    const planCounts: Record<string, number> = {};
 
     for (const sub of subscriptions.data) {
       if (sub.status === 'active' || sub.status === 'trialing') {
@@ -185,6 +190,10 @@ serve(async (req) => {
             }
             mrr += monthlyAmount;
           }
+
+          // Contar por plano (apenas ativos e trialing)
+          const planName = sub.metadata?.plan_name || price.nickname || 'Starter';
+          planCounts[planName] = (planCounts[planName] || 0) + 1;
         }
       }
 
@@ -196,6 +205,11 @@ serve(async (req) => {
         case 'trialing': trialingCount++; break;
       }
     }
+
+    // Converter contagem de planos para array
+    const subscriptionsByPlan = Object.entries(planCounts)
+      .map(([plan_name, count]) => ({ plan_name, count }))
+      .sort((a, b) => b.count - a.count);
 
     // MRR em reais (Stripe retorna em centavos)
     mrr = mrr / 100;
@@ -475,6 +489,7 @@ serve(async (req) => {
         canceled: canceledCount,
         trialing: trialingCount,
       },
+      subscriptionsByPlan,
       monthlyRevenue,
       periodMetrics: {
         revenueInPeriod,
