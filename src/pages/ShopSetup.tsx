@@ -1465,6 +1465,18 @@ export default function ShopSetup() {
           {currentStep === 5 ? (
             <>
               <button
+                onClick={() => handleSave(false)}
+                disabled={saving}
+                style={{
+                  ...buttonSecondary,
+                  opacity: saving ? 0.7 : 1,
+                  width: isMobile ? '100%' : 'auto',
+                  justifyContent: 'center',
+                }}
+              >
+                {saving ? 'Salvando...' : 'Salvar rascunho'}
+              </button>
+              <button
                 onClick={() => handleSave(true)}
                 disabled={saving}
                 style={{
@@ -1476,18 +1488,6 @@ export default function ShopSetup() {
               >
                 <Rocket size={18} />
                 {saving ? 'Ativando...' : 'Ativar loja'}
-              </button>
-              <button
-                onClick={() => handleSave(false)}
-                disabled={saving}
-                style={{
-                  ...buttonSecondary,
-                  opacity: saving ? 0.7 : 1,
-                  width: isMobile ? '100%' : 'auto',
-                  justifyContent: 'center',
-                }}
-              >
-                {saving ? 'Salvando...' : 'Salvar rascunho'}
               </button>
             </>
           ) : (

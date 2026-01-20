@@ -25,6 +25,7 @@ interface Shop {
   mail_status: string
   shopify_status: string
   is_active: boolean
+  is_cod: boolean
   created_at: string
 }
 
@@ -245,16 +246,32 @@ export default function Shops() {
                   <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
                     {shop.name}
                   </h3>
-                  <span style={{
-                    backgroundColor: shop.is_active ? 'rgba(34, 197, 94, 0.16)' : 'rgba(107, 114, 128, 0.16)',
-                    color: shop.is_active ? '#22c55e' : 'var(--text-secondary)',
-                    padding: '4px 12px',
-                    borderRadius: '9999px',
-                    fontSize: '12px',
-                    fontWeight: '600'
-                  }}>
-                    {shop.is_active ? 'Ativa' : 'Inativa'}
-                  </span>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {shop.is_cod && (
+                      <span style={{
+                        backgroundColor: 'rgba(139, 92, 246, 0.16)',
+                        color: '#8b5cf6',
+                        padding: '4px 10px',
+                        borderRadius: '9999px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        COD
+                      </span>
+                    )}
+                    <span style={{
+                      backgroundColor: shop.is_active ? 'rgba(34, 197, 94, 0.16)' : 'rgba(107, 114, 128, 0.16)',
+                      color: shop.is_active ? '#22c55e' : 'var(--text-secondary)',
+                      padding: '4px 12px',
+                      borderRadius: '9999px',
+                      fontSize: '12px',
+                      fontWeight: '600'
+                    }}>
+                      {shop.is_active ? 'Ativa' : 'Inativa'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Informações organizadas */}
