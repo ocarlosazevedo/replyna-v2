@@ -68,7 +68,9 @@ export default function AdminClients() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [sendingReset, setSendingReset] = useState(false)
+  const [savingClient, setSavingClient] = useState(false)
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [originalClient, setOriginalClient] = useState<Client | null>(null)
   const isMobile = useIsMobile()
 
   useEffect(() => {
@@ -104,38 +106,101 @@ export default function AdminClients() {
 
   const handleEditClient = (client: Client) => {
     setEditingClient(client)
+    setOriginalClient(client)
     setShowModal(true)
     setActionMessage(null)
   }
 
   const handleSaveClient = async () => {
-    if (!editingClient) return
+    if (!editingClient || !originalClient) return
+
+    setSavingClient(true)
+    setActionMessage(null)
 
     try {
       const selectedPlan = plans.find(p => p.name.toLowerCase() === editingClient.plan)
+      const planChanged = editingClient.plan !== originalClient.plan
 
-      const updateData: Record<string, unknown> = {
-        name: editingClient.name,
-        plan: editingClient.plan,
-        status: editingClient.status,
+      // Se o plano mudou e o cliente tem assinatura ativa, usar Edge Function para atualizar Stripe
+      if (planChanged && selectedPlan && editingClient.subscription) {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subscription`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              user_id: editingClient.id,
+              new_plan_id: selectedPlan.id,
+            }),
+          }
+        )
+
+        const result = await response.json()
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Erro ao atualizar plano no Stripe')
+        }
+
+        // Atualizar também nome e status no banco
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            name: editingClient.name,
+            status: editingClient.status,
+          })
+          .eq('id', editingClient.id)
+
+        if (updateError) {
+          console.error('Erro ao atualizar nome/status:', updateError)
+        }
+
+        setActionMessage({
+          type: 'success',
+          text: result.is_upgrade
+            ? `Upgrade realizado! Novo plano: ${result.new_plan?.name}`
+            : `Plano alterado para: ${result.new_plan?.name}`
+        })
+
+        // Aguardar um pouco para mostrar a mensagem antes de fechar
+        setTimeout(() => {
+          setShowModal(false)
+          loadData()
+        }, 1500)
+      } else {
+        // Sem mudança de plano ou sem assinatura ativa - atualizar apenas localmente
+        const updateData: Record<string, unknown> = {
+          name: editingClient.name,
+          status: editingClient.status,
+        }
+
+        // Se mudou o plano mas não tem assinatura (cliente free), atualizar manualmente
+        if (planChanged && selectedPlan) {
+          updateData.plan = editingClient.plan
+          updateData.emails_limit = selectedPlan.emails_limit
+          updateData.shops_limit = selectedPlan.shops_limit
+        }
+
+        const { error } = await supabase
+          .from('users')
+          .update(updateData)
+          .eq('id', editingClient.id)
+
+        if (error) throw error
+
+        setShowModal(false)
+        loadData()
       }
-
-      if (selectedPlan) {
-        updateData.emails_limit = selectedPlan.emails_limit
-        updateData.shops_limit = selectedPlan.shops_limit
-      }
-
-      const { error } = await supabase
-        .from('users')
-        .update(updateData)
-        .eq('id', editingClient.id)
-
-      if (error) throw error
-
-      setShowModal(false)
-      loadData()
     } catch (err) {
       console.error('Erro ao salvar cliente:', err)
+      setActionMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Erro ao salvar alterações'
+      })
+    } finally {
+      setSavingClient(false)
     }
   }
 
@@ -1010,6 +1075,7 @@ export default function AdminClients() {
             <div style={{ display: 'flex', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowModal(false)}
+                disabled={savingClient}
                 style={{
                   padding: '12px 24px',
                   borderRadius: '10px',
@@ -1017,13 +1083,15 @@ export default function AdminClients() {
                   backgroundColor: 'transparent',
                   color: 'var(--text-primary)',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: savingClient ? 'not-allowed' : 'pointer',
+                  opacity: savingClient ? 0.6 : 1,
                 }}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSaveClient}
+                disabled={savingClient}
                 style={{
                   padding: '12px 24px',
                   borderRadius: '10px',
@@ -1031,10 +1099,11 @@ export default function AdminClients() {
                   backgroundColor: 'var(--accent)',
                   color: '#fff',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: savingClient ? 'not-allowed' : 'pointer',
+                  opacity: savingClient ? 0.6 : 1,
                 }}
               >
-                Salvar
+                {savingClient ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
           </div>
