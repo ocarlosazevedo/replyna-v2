@@ -384,19 +384,6 @@ export default function AdminClients() {
     }
   }
 
-  // Ordem de prioridade dos planos para ordenação
-  const getPlanOrder = (planSlug: string | null): number => {
-    const slug = planSlug?.toLowerCase() || 'free'
-    switch (slug) {
-      case 'starter': return 1
-      case 'business': return 2
-      case 'scale': return 3
-      case 'high scale': return 4
-      case 'enterprise': return 5
-      default: return 0 // free ou outros
-    }
-  }
-
   const getStatusBadge = (status: string) => {
     const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
     switch (status) {
