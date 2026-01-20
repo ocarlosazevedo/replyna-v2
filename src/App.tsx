@@ -25,6 +25,7 @@ import AdminCoupons from './pages/admin/AdminCoupons'
 import AdminFinancial from './pages/admin/AdminFinancial'
 import AdminMigration from './pages/admin/AdminMigration'
 import MigrationAccept from './pages/MigrationAccept'
+import AuthConfirm from './pages/AuthConfirm'
 
 // Components
 import DashboardLayout from './components/DashboardLayout'
@@ -140,6 +141,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/migrate/:code" element={<MigrationAccept />} />
+          <Route path="/auth/confirm" element={<AuthConfirm />} />
 
           {/* Rotas privadas */}
           <Route path="/dashboard" element={

@@ -14,6 +14,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// URL da aplicação frontend
+const SITE_URL = 'https://replyna.com.br';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -70,7 +73,7 @@ serve(async (req) => {
       type: 'magiclink',
       email: user.email,
       options: {
-        redirectTo: `${supabaseUrl.replace('.supabase.co', '.vercel.app')}/dashboard`,
+        redirectTo: `${SITE_URL}/dashboard`,
       },
     });
 
@@ -82,9 +85,13 @@ serve(async (req) => {
       );
     }
 
-    // O link gerado contém um token que pode ser usado para login
-    // Precisamos extrair o token e construir a URL correta
+    // O generateLink retorna um link que aponta para o Supabase Auth
+    // Precisamos extrair o token_hash e tipo, e construir uma URL para o nosso site
     const actionLink = linkData.properties?.action_link;
+    const hashedToken = linkData.properties?.hashed_token;
+    const verificationToken = linkData.properties?.verification_token;
+
+    console.log('Link data:', JSON.stringify(linkData, null, 2));
 
     if (!actionLink) {
       console.error('Link de ação não encontrado na resposta');
@@ -94,12 +101,27 @@ serve(async (req) => {
       );
     }
 
+    // O actionLink está no formato:
+    // https://xxx.supabase.co/auth/v1/verify?token=TOKEN&type=magiclink&redirect_to=URL
+    // Precisamos transformar para:
+    // https://replyna.com.br/auth/confirm?token_hash=HASH&type=magiclink
+
+    // Extrair parâmetros do link original
+    const url = new URL(actionLink);
+    const token = url.searchParams.get('token');
+    const type = url.searchParams.get('type');
+
+    // Construir link que vai direto para o site e usa o fluxo de confirmação
+    // O Supabase processa isso automaticamente se configurado corretamente
+    const appLink = `${SITE_URL}/auth/confirm?token_hash=${hashedToken || token}&type=${type}`;
+
     console.log('Magic link gerado com sucesso para:', user.email);
+    console.log('App link:', appLink);
 
     return new Response(
       JSON.stringify({
         success: true,
-        link: actionLink,
+        link: appLink,
         user: {
           id: user.id,
           email: user.email,
