@@ -15,7 +15,7 @@ const corsHeaders = {
 };
 
 // URL da aplicação frontend
-const SITE_URL = 'https://replyna.com.br';
+const SITE_URL = 'https://app.replyna.me';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {

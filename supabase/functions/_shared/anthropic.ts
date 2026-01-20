@@ -136,64 +136,68 @@ export async function classifyEmail(
   emailBody: string,
   conversationHistory: Array<{ role: 'customer' | 'assistant'; content: string }>
 ): Promise<ClassificationResult> {
-  const systemPrompt = `Você é um classificador de emails de atendimento ao cliente para e-commerce.
+  const systemPrompt = `You are an email classifier for e-commerce customer support.
 
-Sua tarefa é analisar o email e retornar um JSON com:
-1. category: categoria do email (uma das opções abaixo)
-2. confidence: confiança na classificação (0.0 a 1.0)
-3. language: idioma EXATO do email do cliente (MUITO IMPORTANTE - detecte corretamente!)
-4. order_id_found: número do pedido se mencionado (ex: #12345, 12345), ou null
-5. summary: resumo de 1 linha do que o cliente quer
+Your task is to analyze the email and return a JSON with:
+1. category: email category (one of the options below)
+2. confidence: classification confidence (0.0 to 1.0)
+3. language: EXACT language of the customer's email (VERY IMPORTANT - detect correctly!)
+4. order_id_found: order number if mentioned (e.g., #12345, 12345), or null
+5. summary: 1-line summary of what the customer wants
 
-DETECÇÃO DE IDIOMA (CRÍTICO):
-- Analise o texto do cliente cuidadosamente
-- "es" para Espanhol (palavras como: hola, pedido, cancelar, gracias, quiero, donde, está)
-- "pt-BR" para Português do Brasil (palavras como: olá, obrigado, quero, onde, está, cancelamento)
-- "en" para Inglês (palavras como: hello, order, cancel, thanks, want, where, tracking)
-- Se o assunto menciona "cancelado/cancelar" em espanhol, o idioma é "es"
-- NUNCA assuma português por padrão - analise o texto real
+LANGUAGE DETECTION (CRITICAL):
+- Analyze the customer's text carefully
+- "es" for Spanish (words like: hola, pedido, cancelar, gracias, quiero, donde, está)
+- "pt-BR" for Brazilian Portuguese (words like: olá, obrigado, quero, onde, está, cancelamento)
+- "en" for English (words like: hello, order, cancel, thanks, want, where, tracking)
+- NEVER assume any language by default - analyze the actual text
 
-CATEGORIAS DISPONÍVEIS:
-- rastreio: Perguntas sobre onde está o pedido, código de rastreio, status de entrega
-- reembolso: Pedidos de devolução, cancelamento, estorno, troca de produto
-- produto: Dúvidas sobre tamanho, cor, disponibilidade, especificações do produto
-- pagamento: Problemas com boleto, cartão recusado, parcelamento, nota fiscal
-- entrega: Endereço errado, ausente na entrega, problema com transportadora
-- suporte_humano: APENAS para casos GRAVÍSSIMOS com ameaça legal explícita (advogado, Procon, processo judicial, ação legal)
-- spam: Emails de agências, consultores ou desenvolvedores oferecendo serviços (ver lista abaixo)
-- outros: Não se encaixa em nenhuma categoria acima
+AVAILABLE CATEGORIES:
+- rastreio: Questions about order location, tracking code, delivery status ("where is my order", "tracking", "when will it arrive")
+- reembolso: Return requests, cancellation, refund, product exchange ("refund", "cancel order", "return", "exchange")
+- produto: Questions about size, color, availability, product specs ("is it available", "what size", "product details", "in stock")
+- pagamento: Payment issues, declined card, invoice ("payment failed", "invoice", "payment problem")
+- entrega: Wrong address, missed delivery, shipping issues ("wrong address", "delivery problem", "shipping")
+- suporte_humano: ONLY for VERY SERIOUS cases with explicit legal threat (lawyer, lawsuit, legal action)
+- spam: Unsolicited service offers from agencies, consultants, or developers (see list below)
+- outros: Doesn't fit any category above
 
-DETECÇÃO DE SPAM (MUITO IMPORTANTE):
-Classifique como "spam" emails que oferecem serviços NÃO SOLICITADOS de:
-- Marketing digital, SEO, tráfego pago, growth hacking
-- Desenvolvimento de sites/lojas Shopify
-- Consultoria de vendas, conversão, performance
-- Auditorias de loja, análise de crescimento
-- Parcerias de revenue share ou comissão
-- Ofertas de "aumentar vendas", "gerar tráfego", "melhorar conversão"
+SPAM DETECTION (VERY IMPORTANT):
+Classify as "spam" emails offering UNSOLICITED services such as:
+- Digital marketing, SEO, paid traffic, growth hacking
+- Website/Shopify store development
+- Sales consulting, conversion optimization, performance audits
+- Store audits, growth analysis
+- Revenue share or commission partnerships
+- Offers to "increase sales", "generate traffic", "improve conversion", "boost revenue"
 
-Sinais de SPAM:
-- Remetentes como "Marketing Consultant", "Shopify Developer", "Growth Specialist"
-- Frases como "growth opportunity", "increase revenue", "boost sales", "performance audit"
-- Ofertas de "quick call", "schedule a meeting", "free consultation"
-- Menções a "Shopify partner", "certified developer", "agency"
-- Emails genéricos que não mencionam nenhum pedido específico
-- Templates óbvios com [placeholders] ou texto genérico
+SPAM signals - classify as SPAM with HIGH confidence (0.9+):
+- Senders like "Marketing Consultant", "Shopify Developer", "Growth Specialist", "Expert", "Agency"
+- Phrases like "growth opportunity", "increase revenue", "boost sales", "performance audit", "results-first"
+- Offers of "quick call", "schedule a meeting", "free consultation", "no upfront fees"
+- Mentions of "Shopify partner", "certified developer", "agency", "affiliate marketing"
+- GENERIC emails that don't mention any specific order or product purchase
+- Emails asking generic questions like "Is your store active?", "Are you accepting orders?", "Can I ask you something?"
+- Templates with [placeholders] or generic text
+- Emails from people introducing themselves as consultants, developers, or specialists
+- Cold outreach emails trying to sell services
 
-NÃO é spam se:
-- Cliente pergunta sobre SEU pedido existente
-- Cliente tem dúvida sobre produtos da loja
-- Cliente quer suporte sobre compra que fez
+REAL CUSTOMERS (NOT spam):
+- Customer asking about THEIR existing order (mentions order number, tracking, specific purchase)
+- Customer with questions about products they want to BUY from the store
+- Customer needing support for a purchase THEY made
+- Shopify system emails (order confirmations, email verifications)
 
-IMPORTANTE:
-- Cliente irritado NÃO é suporte_humano
-- Reclamação sobre produto ou entrega NÃO é suporte_humano
-- Cliente pedindo para falar com dono/atendente/humano NÃO é suporte_humano - responda normalmente
-- SOMENTE classifique como suporte_humano se houver AMEAÇA LEGAL EXPLÍCITA (mencionar advogado, Procon, processo, ação judicial)
-- Se tiver dúvida, escolha a categoria mais provável (rastreio, reembolso, produto, etc), NUNCA suporte_humano
-- Se parecer spam de agência/consultor, classifique como "spam" com alta confiança
+IMPORTANT RULES:
+- Angry customer is NOT suporte_humano
+- Complaint about product or delivery is NOT suporte_humano
+- Customer asking to speak with owner/human is NOT suporte_humano - respond normally
+- ONLY classify as suporte_humano if there's EXPLICIT LEGAL THREAT (mentioning lawyer, lawsuit, legal action)
+- When in doubt, choose the most likely category (rastreio, reembolso, produto, etc), NEVER suporte_humano
+- If it looks like agency/consultant spam, classify as "spam" with high confidence (0.9+)
+- Generic "is your store active?" type emails are SPAM - they're from service sellers, not real customers
 
-Responda APENAS com o JSON, sem texto adicional.`;
+Respond ONLY with the JSON, no additional text.`;
 
   // Montar histórico para contexto
   let historyText = '';

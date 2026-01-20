@@ -47,6 +47,7 @@ interface MessageRow {
   created_at: string
   direction: string
   was_auto_replied: boolean | null
+  category: string | null
   conversations: { shop_id: string }[]
 }
 
@@ -439,7 +440,7 @@ export default function Dashboard() {
     const loadMessages = async () => {
       const query = supabase
         .from('messages')
-        .select('created_at, direction, was_auto_replied, conversations!inner(shop_id)')
+        .select('created_at, direction, was_auto_replied, category, conversations!inner(shop_id)')
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
 
@@ -520,10 +521,13 @@ export default function Dashboard() {
 
         if (!isActive) return
 
+        // Filtrar mensagens inbound excluindo spam para cálculo da taxa de automação
         const inboundMessages = messageRows.filter((message) => message.direction === 'inbound')
-        const automatedInbound = inboundMessages.filter((message) => message.was_auto_replied).length
-        const automationRate = inboundMessages.length
-          ? (automatedInbound / inboundMessages.length) * 100
+        const inboundExcludingSpam = inboundMessages.filter((message) => message.category !== 'spam')
+        const automatedInbound = inboundExcludingSpam.filter((message) => message.was_auto_replied).length
+        // Taxa de automação = emails respondidos automaticamente / (total - spam)
+        const automationRate = inboundExcludingSpam.length
+          ? (automatedInbound / inboundExcludingSpam.length) * 100
           : 0
 
         setMetrics({

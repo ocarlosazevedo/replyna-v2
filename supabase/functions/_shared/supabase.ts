@@ -175,6 +175,7 @@ export function getSupabaseClient(): SupabaseClient {
 
 /**
  * Busca lojas ativas com email configurado
+ * Ordena por last_email_sync_at (nulls first) para priorizar lojas que nunca sincronizaram
  */
 export async function getActiveShopsWithEmail(): Promise<Shop[]> {
   const supabase = getSupabaseClient();
@@ -184,7 +185,8 @@ export async function getActiveShopsWithEmail(): Promise<Shop[]> {
     .select('*')
     .eq('is_active', true)
     .eq('mail_status', 'ok')
-    .not('imap_host', 'is', null);
+    .not('imap_host', 'is', null)
+    .order('last_email_sync_at', { ascending: true, nullsFirst: true });
 
   if (error) throw error;
   return (data || []) as Shop[];

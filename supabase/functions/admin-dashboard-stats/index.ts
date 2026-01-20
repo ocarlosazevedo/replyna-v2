@@ -67,10 +67,13 @@ serve(async (req) => {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
+      // Mensagens inbound que foram auto-respondidas (excluindo spam)
       supabase
         .from('messages')
         .select('*', { count: 'exact', head: true })
+        .eq('direction', 'inbound')
         .eq('was_auto_replied', true)
+        .neq('category', 'spam')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
       supabase
@@ -78,10 +81,12 @@ serve(async (req) => {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
+      // Mensagens inbound excluindo spam (base para cálculo da taxa de automação)
       supabase
         .from('messages')
         .select('*', { count: 'exact', head: true })
         .eq('direction', 'inbound')
+        .neq('category', 'spam')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
       supabase
@@ -131,6 +136,10 @@ serve(async (req) => {
       planDistribution[plan] = (planDistribution[plan] || 0) + 1;
     });
 
+    // Taxa de automação = emails inbound auto-respondidos / emails inbound (excluindo spam)
+    const inboundExcludingSpam = emailsProcessedRes.count || 0;
+    const autoRepliedCount = autoRepliedRes.count || 0;
+
     const stats = {
       totalUsers: totalUsersRes.count || 0,
       activeUsers: activeUsersRes.count || 0,
@@ -138,11 +147,11 @@ serve(async (req) => {
       activeShops: activeShopsRes.count || 0,
       totalConversations: conversationsRes.count || 0,
       totalMessages: totalMessagesRes.count || 0,
-      automationRate: totalMessagesRes.count && autoRepliedRes.count
-        ? Math.round((autoRepliedRes.count / totalMessagesRes.count) * 100)
+      automationRate: inboundExcludingSpam > 0
+        ? Math.round((autoRepliedCount / inboundExcludingSpam) * 100)
         : 0,
       newUsersInPeriod: newUsersInPeriodRes.count || 0,
-      emailsProcessed: emailsProcessedRes.count || 0,
+      emailsProcessed: inboundExcludingSpam,
       usersAtLimit: usersAtLimitCount,
       categories,
     };
