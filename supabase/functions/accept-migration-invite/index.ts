@@ -99,10 +99,12 @@ serve(async (req) => {
         );
       }
 
-      // Calcular dias de trial
+      // Calcular dias de trial (diferença em dias completos)
       const billingStartDate = new Date(invite.billing_start_date);
+      billingStartDate.setHours(0, 0, 0, 0);
       const now = new Date();
-      const trialDays = Math.max(0, Math.ceil((billingStartDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      now.setHours(0, 0, 0, 0);
+      const trialDays = Math.max(0, Math.round((billingStartDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 
       return new Response(
         JSON.stringify({
