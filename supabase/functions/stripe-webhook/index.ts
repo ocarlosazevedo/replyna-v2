@@ -376,20 +376,40 @@ async function handleCheckoutCompleted(
   // Marcar convite de migração como aceito se aplicável
   if (metadata.migration_invite_id) {
     console.log('Marcando convite de migração como aceito:', metadata.migration_invite_id);
-    const { error: inviteError } = await supabase
-      .from('migration_invites')
-      .update({
-        status: 'accepted',
-        accepted_by_user_id: userId,
-        accepted_at: new Date().toISOString(),
-      })
-      .eq('id', metadata.migration_invite_id)
-      .eq('status', 'pending');
 
-    if (inviteError) {
-      console.error('Erro ao atualizar convite de migração:', inviteError);
+    // Primeiro, verificar o status atual do convite
+    const { data: currentInvite, error: checkError } = await supabase
+      .from('migration_invites')
+      .select('id, status, code')
+      .eq('id', metadata.migration_invite_id)
+      .single();
+
+    if (checkError) {
+      console.error('Erro ao buscar convite de migração:', checkError);
+    } else if (!currentInvite) {
+      console.error('Convite de migração não encontrado com ID:', metadata.migration_invite_id);
     } else {
-      console.log('Convite de migração marcado como aceito');
+      console.log('Status atual do convite:', currentInvite.status, '- Código:', currentInvite.code);
+
+      // Atualizar independente do status atual (exceto se já estiver 'accepted')
+      if (currentInvite.status !== 'accepted') {
+        const { error: inviteError, count } = await supabase
+          .from('migration_invites')
+          .update({
+            status: 'accepted',
+            accepted_by_user_id: userId,
+            accepted_at: new Date().toISOString(),
+          })
+          .eq('id', metadata.migration_invite_id);
+
+        if (inviteError) {
+          console.error('Erro ao atualizar convite de migração:', inviteError);
+        } else {
+          console.log('Convite de migração atualizado. Linhas afetadas:', count);
+        }
+      } else {
+        console.log('Convite já estava marcado como aceito');
+      }
     }
   }
 
