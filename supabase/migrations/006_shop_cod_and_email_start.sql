@@ -7,7 +7,8 @@ ALTER TABLE shops ADD COLUMN IF NOT EXISTS is_cod BOOLEAN DEFAULT FALSE;
 
 -- Add email_start_mode column
 -- Options: 'all_unread' (process all unread emails) or 'from_integration_date' (only emails after integration)
-ALTER TABLE shops ADD COLUMN IF NOT EXISTS email_start_mode TEXT DEFAULT 'from_integration_date';
+-- Default is 'all_unread' to ensure no customer is left without a response
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS email_start_mode TEXT DEFAULT 'all_unread';
 
 -- Add email_start_date column
 -- Stores the date from which Replyna should start processing emails
