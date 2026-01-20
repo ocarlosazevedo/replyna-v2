@@ -99,12 +99,15 @@ serve(async (req) => {
         );
       }
 
-      // Calcular dias de trial (diferença em dias completos)
-      const billingStartDate = new Date(invite.billing_start_date);
-      billingStartDate.setHours(0, 0, 0, 0);
-      const now = new Date();
-      now.setHours(0, 0, 0, 0);
-      const trialDays = Math.max(0, Math.round((billingStartDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      // Calcular dias de trial (diferença em dias completos usando UTC)
+      const billingDate = new Date(invite.billing_start_date);
+      const todayUTC = new Date();
+
+      // Extrair apenas ano, mês, dia em UTC
+      const billingUTC = Date.UTC(billingDate.getUTCFullYear(), billingDate.getUTCMonth(), billingDate.getUTCDate());
+      const nowUTC = Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate());
+
+      const trialDays = Math.max(0, Math.floor((billingUTC - nowUTC) / (1000 * 60 * 60 * 24)));
 
       return new Response(
         JSON.stringify({
