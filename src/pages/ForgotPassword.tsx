@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Sun, Moon, Mail } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
@@ -11,14 +11,31 @@ export default function ForgotPassword() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
+
+  // Contador regressivo do cooldown
+  useEffect(() => {
+    if (cooldownSeconds > 0) {
+      const timer = setTimeout(() => setCooldownSeconds(s => s - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [cooldownSeconds])
+
+  const formatCooldown = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (cooldownSeconds > 0) return
     setError('')
     setLoading(true)
 
     try {
       await resetPassword(email)
+      setCooldownSeconds(120) // 2 minutos de cooldown
       setSuccess(true)
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao enviar email'
@@ -147,21 +164,25 @@ export default function ForgotPassword() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || cooldownSeconds > 0}
             style={{
               width: '100%',
-              backgroundColor: loading ? 'var(--accent-hover)' : 'var(--accent)',
+              backgroundColor: (loading || cooldownSeconds > 0) ? 'var(--accent-hover)' : 'var(--accent)',
               color: 'white',
               padding: '12px',
               borderRadius: '10px',
               fontWeight: '600',
               fontSize: '16px',
               border: 'none',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1,
+              cursor: (loading || cooldownSeconds > 0) ? 'not-allowed' : 'pointer',
+              opacity: (loading || cooldownSeconds > 0) ? 0.7 : 1,
             }}
           >
-            {loading ? 'Enviando...' : 'Enviar link'}
+            {cooldownSeconds > 0
+              ? `Aguarde ${formatCooldown(cooldownSeconds)}`
+              : loading
+                ? 'Enviando...'
+                : 'Enviar link'}
           </button>
         </form>
 
