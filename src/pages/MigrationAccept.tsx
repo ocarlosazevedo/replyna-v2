@@ -13,7 +13,6 @@ interface InviteData {
     shops_limit: number
     emails_limit: number
   }
-  shops_limit: number
   billing_start_date: string
   trial_days: number
 }
@@ -110,7 +109,7 @@ export default function MigrationAccept() {
         plan_id: invite.plan.id,
         plan_name: invite.plan.name,
         emails_limit: invite.plan.emails_limit,
-        shops_limit: invite.shops_limit,
+        shops_limit: invite.plan.shops_limit,
         migration_invite_code: invite.code,
       }))
 
@@ -305,7 +304,7 @@ export default function MigrationAccept() {
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Limite de lojas</div>
                 <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {invite.shops_limit} loja{invite.shops_limit > 1 ? 's' : ''}
+                  {invite.plan.shops_limit} loja{invite.plan.shops_limit > 1 ? 's' : ''}
                 </div>
               </div>
             </div>

@@ -26,7 +26,6 @@ interface MigrationInvite {
   customer_email: string
   customer_name: string | null
   plan_id: string
-  shops_limit: number
   billing_start_date: string
   status: 'pending' | 'accepted' | 'expired' | 'cancelled'
   expires_at: string
@@ -46,7 +45,6 @@ export default function AdminMigration() {
     customer_email: '',
     customer_name: '',
     plan_id: '',
-    shops_limit: 1,
     billing_start_date: '',
   })
   const [saving, setSaving] = useState(false)
@@ -91,7 +89,6 @@ export default function AdminMigration() {
       customer_email: '',
       customer_name: '',
       plan_id: plans[0]?.id || '',
-      shops_limit: plans[0]?.shops_limit || 1,
       billing_start_date: new Date().toISOString().split('T')[0],
     })
     setCreatedInviteUrl(null)
@@ -441,7 +438,7 @@ export default function AdminMigration() {
                       </span>
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                      {invite.shops_limit} loja(s)
+                      {invite.plan?.shops_limit || 1} loja(s)
                     </div>
                   </td>
                   <td style={{ padding: '16px' }}>
@@ -683,14 +680,7 @@ export default function AdminMigration() {
                     </label>
                     <select
                       value={formData.plan_id}
-                      onChange={(e) => {
-                        const plan = plans.find(p => p.id === e.target.value)
-                        setFormData({
-                          ...formData,
-                          plan_id: e.target.value,
-                          shops_limit: plan?.shops_limit || 1,
-                        })
-                      }}
+                      onChange={(e) => setFormData({ ...formData, plan_id: e.target.value })}
                       style={inputStyle}
                     >
                       {plans.map((plan) => (
@@ -699,20 +689,6 @@ export default function AdminMigration() {
                         </option>
                       ))}
                     </select>
-                  </div>
-
-                  <div>
-                    <label style={labelStyle}>Limite de Lojas</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={formData.shops_limit}
-                      onChange={(e) => setFormData({ ...formData, shops_limit: parseInt(e.target.value) })}
-                      style={inputStyle}
-                    />
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                      Pode ser diferente do padrão do plano se o cliente tinha mais lojas na V1
-                    </div>
                   </div>
 
                   <div>

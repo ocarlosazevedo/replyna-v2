@@ -75,7 +75,6 @@ serve(async (req) => {
         customer_email,
         customer_name,
         plan_id,
-        shops_limit,
         billing_start_date,
         admin_id,
       } = body;
@@ -103,13 +102,6 @@ serve(async (req) => {
         );
       }
 
-      // Buscar dados do plano
-      const { data: plan } = await supabase
-        .from('plans')
-        .select('shops_limit')
-        .eq('id', plan_id)
-        .single();
-
       // Gerar código único
       let code = generateInviteCode();
       let attempts = 0;
@@ -133,7 +125,6 @@ serve(async (req) => {
           customer_email: customer_email.toLowerCase(),
           customer_name,
           plan_id,
-          shops_limit: shops_limit || plan?.shops_limit || 1,
           billing_start_date: new Date(billing_start_date).toISOString(),
           created_by_admin_id: admin_id,
         })
