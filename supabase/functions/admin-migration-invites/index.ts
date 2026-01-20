@@ -42,15 +42,16 @@ serve(async (req) => {
       },
     });
 
-    // GET - Listar convites
+    // GET - Listar convites (exceto cancelados)
     if (req.method === 'GET') {
       const { data: invites, error } = await supabase
         .from('migration_invites')
         .select(`
           *,
-          plan:plans(id, name, price_monthly),
+          plan:plans(id, name, price_monthly, shops_limit),
           admin:admins(id, name, email)
         `)
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
