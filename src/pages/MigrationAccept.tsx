@@ -246,7 +246,7 @@ export default function MigrationAccept() {
           <img
             src="/replyna-logo.webp"
             alt="Replyna"
-            style={{ height: '48px', marginBottom: '24px' }}
+            style={{ height: '48px', marginBottom: '24px', display: 'block', margin: '0 auto 24px' }}
           />
           <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
             Bem-vindo de volta!
