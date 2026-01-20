@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 import { subDays, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { supabase } from '../../lib/supabase'
 import {
   MessageSquare,
   Users,
@@ -129,123 +128,31 @@ export default function AdminDashboard() {
       const dateStart = startOfDay(range.from)
       const dateEnd = endOfDay(range.to)
 
-      // Executar todas as queries em paralelo
-      const [
-        totalUsersRes,
-        activeUsersRes,
-        totalShopsRes,
-        activeShopsRes,
-        totalConversationsRes,
-        totalMessagesRes,
-        autoRepliedRes,
-        newUsersInPeriodRes,
-        emailsProcessedRes,
-        categoriesRes,
-        recentUsersRes,
-        shopsRes,
-        allUsersForPlansRes,
-        usersWithLimitsRes,
-      ] = await Promise.all([
-        supabase.from('users').select('*', { count: 'exact', head: true }),
-        supabase.from('users').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('shops').select('*', { count: 'exact', head: true }),
-        supabase.from('shops').select('*', { count: 'exact', head: true }).eq('is_active', true),
-        supabase
-          .from('conversations')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', dateStart.toISOString())
-          .lte('created_at', dateEnd.toISOString()),
-        supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', dateStart.toISOString())
-          .lte('created_at', dateEnd.toISOString()),
-        supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('was_auto_replied', true)
-          .gte('created_at', dateStart.toISOString())
-          .lte('created_at', dateEnd.toISOString()),
-        supabase
-          .from('users')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', dateStart.toISOString())
-          .lte('created_at', dateEnd.toISOString()),
-        supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('direction', 'inbound')
-          .gte('created_at', dateStart.toISOString())
-          .lte('created_at', dateEnd.toISOString()),
-        supabase
-          .from('conversations')
-          .select('category')
-          .gte('created_at', dateStart.toISOString())
-          .lte('created_at', dateEnd.toISOString()),
-        supabase
-          .from('users')
-          .select('id, name, email, plan, created_at')
-          .order('created_at', { ascending: false })
-          .limit(5),
-        supabase.from('shops').select('user_id'),
-        supabase.from('users').select('plan'),
-        supabase.from('users').select('emails_used, emails_limit'),
-      ])
-
-      // Contar usuários no limite (emails_used >= emails_limit)
-      const usersAtLimitCount = (usersWithLimitsRes.data || []).filter(
-        (u) => u.emails_used >= u.emails_limit && u.emails_limit > 0
-      ).length
-
-      // Processar categorias
-      const categories: Record<string, number> = {}
-      ;(categoriesRes.data || []).forEach((conv: { category?: string }) => {
-        const cat = conv.category || 'outros'
-        categories[cat] = (categories[cat] || 0) + 1
-      })
-
-      // Processar usuários recentes com contagem de lojas
-      const shopCountByUser: Record<string, number> = {}
-      ;(shopsRes.data || []).forEach((shop: { user_id: string }) => {
-        shopCountByUser[shop.user_id] = (shopCountByUser[shop.user_id] || 0) + 1
-      })
-
-      const processedRecentUsers: RecentUser[] = (recentUsersRes.data || []).map(
-        (user: { id: string; name: string | null; email: string; plan: string; created_at: string }) => ({
-          ...user,
-          shops_count: shopCountByUser[user.id] || 0,
-        })
+      // Usar Edge Function que bypassa RLS
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-dashboard-stats?dateStart=${dateStart.toISOString()}&dateEnd=${dateEnd.toISOString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        }
       )
 
-      // Processar distribuição por plano
-      const planCounts: Record<string, number> = {}
-      ;(allUsersForPlansRes.data || []).forEach((user: { plan?: string }) => {
-        const plan = user.plan || 'free'
-        planCounts[plan] = (planCounts[plan] || 0) + 1
-      })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao carregar estatísticas')
+      }
 
-      const planDist: Plan[] = Object.entries(planCounts)
-        .map(([name, count]) => ({ name, count }))
+      const data = await response.json()
+
+      setStats(data.stats)
+      setRecentUsers(data.recentUsers || [])
+
+      // Processar distribuição por plano
+      const planDist: Plan[] = Object.entries(data.planDistribution || {})
+        .map(([name, count]) => ({ name, count: count as number }))
         .sort((a, b) => b.count - a.count)
 
-      setStats({
-        totalUsers: totalUsersRes.count || 0,
-        activeUsers: activeUsersRes.count || 0,
-        totalShops: totalShopsRes.count || 0,
-        activeShops: activeShopsRes.count || 0,
-        totalConversations: totalConversationsRes.count || 0,
-        totalMessages: totalMessagesRes.count || 0,
-        automationRate:
-          totalMessagesRes.count && autoRepliedRes.count
-            ? Math.round((autoRepliedRes.count / totalMessagesRes.count) * 100)
-            : 0,
-        newUsersInPeriod: newUsersInPeriodRes.count || 0,
-        emailsProcessed: emailsProcessedRes.count || 0,
-        usersAtLimit: usersAtLimitCount,
-        categories,
-      })
-
-      setRecentUsers(processedRecentUsers)
       setPlanDistribution(planDist)
     } catch (err) {
       console.error('Erro ao carregar estatisticas:', err)
