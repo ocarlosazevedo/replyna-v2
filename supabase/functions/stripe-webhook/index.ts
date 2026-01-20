@@ -373,6 +373,26 @@ async function handleCheckoutCompleted(
     });
   }
 
+  // Marcar convite de migração como aceito se aplicável
+  if (metadata.migration_invite_id) {
+    console.log('Marcando convite de migração como aceito:', metadata.migration_invite_id);
+    const { error: inviteError } = await supabase
+      .from('migration_invites')
+      .update({
+        status: 'accepted',
+        accepted_by_user_id: userId,
+        accepted_at: new Date().toISOString(),
+      })
+      .eq('id', metadata.migration_invite_id)
+      .eq('status', 'pending');
+
+    if (inviteError) {
+      console.error('Erro ao atualizar convite de migração:', inviteError);
+    } else {
+      console.log('Convite de migração marcado como aceito');
+    }
+  }
+
   // Atualizar metadata do customer no Stripe com user_id correto
   console.log('Atualizando metadata do customer no Stripe com user_id:', userId);
   await stripe.customers.update(customerId, {

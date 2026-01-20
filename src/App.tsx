@@ -23,6 +23,8 @@ import AdminAdministrators from './pages/admin/AdminAdministrators'
 import AdminPlans from './pages/admin/AdminPlans'
 import AdminCoupons from './pages/admin/AdminCoupons'
 import AdminFinancial from './pages/admin/AdminFinancial'
+import AdminMigration from './pages/admin/AdminMigration'
+import MigrationAccept from './pages/MigrationAccept'
 
 // Components
 import DashboardLayout from './components/DashboardLayout'
@@ -137,6 +139,7 @@ function App() {
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
+          <Route path="/migrate/:code" element={<MigrationAccept />} />
 
           {/* Rotas privadas */}
           <Route path="/dashboard" element={
@@ -227,6 +230,13 @@ function App() {
             <AdminRoute>
               <AdminLayout>
                 <AdminFinancial />
+              </AdminLayout>
+            </AdminRoute>
+          } />
+          <Route path="/admin/migration" element={
+            <AdminRoute>
+              <AdminLayout>
+                <AdminMigration />
               </AdminLayout>
             </AdminRoute>
           } />
