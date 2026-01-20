@@ -521,13 +521,14 @@ export default function Dashboard() {
 
         if (!isActive) return
 
-        // Filtrar mensagens inbound excluindo spam para cálculo da taxa de automação
+        // Taxa de automação = emails respondidos automaticamente / (respondidos + enviados para humano)
+        // Ignora emails sem resposta (spam antigo classificado como "outros")
         const inboundMessages = messageRows.filter((message) => message.direction === 'inbound')
-        const inboundExcludingSpam = inboundMessages.filter((message) => message.category !== 'spam')
-        const automatedInbound = inboundExcludingSpam.filter((message) => message.was_auto_replied).length
-        // Taxa de automação = emails respondidos automaticamente / (total - spam)
-        const automationRate = inboundExcludingSpam.length
-          ? (automatedInbound / inboundExcludingSpam.length) * 100
+        const autoReplied = inboundMessages.filter((message) => message.was_auto_replied === true).length
+        const sentToHuman = inboundMessages.filter((message) => message.category === 'suporte_humano').length
+        const totalHandled = autoReplied + sentToHuman
+        const automationRate = totalHandled > 0
+          ? (autoReplied / totalHandled) * 100
           : 0
 
         setMetrics({
