@@ -117,7 +117,11 @@ serve(async (req) => {
         attempts++;
       }
 
-      // Criar convite
+      // Criar convite - adiciona T12:00:00 para evitar problemas de timezone
+      const billingDateStr = billing_start_date.includes('T')
+        ? billing_start_date
+        : `${billing_start_date}T12:00:00.000Z`;
+
       const { data: invite, error } = await supabase
         .from('migration_invites')
         .insert({
@@ -125,7 +129,7 @@ serve(async (req) => {
           customer_email: customer_email.toLowerCase(),
           customer_name,
           plan_id,
-          billing_start_date: new Date(billing_start_date).toISOString(),
+          billing_start_date: billingDateStr,
           created_by_admin_id: admin_id,
         })
         .select()
