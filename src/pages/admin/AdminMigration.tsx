@@ -160,12 +160,8 @@ export default function AdminMigration() {
         throw new Error('Erro ao cancelar convite')
       }
 
-      // Atualiza estado local imediatamente (optimistic update)
-      setInvites(prev => prev.map(invite =>
-        invite.id === inviteId
-          ? { ...invite, status: 'cancelled' as const }
-          : invite
-      ))
+      // Remove o convite da lista imediatamente
+      setInvites(prev => prev.filter(invite => invite.id !== inviteId))
     } catch (err) {
       console.error('Erro ao cancelar convite:', err)
       // Em caso de erro, recarrega a lista para garantir consistência
