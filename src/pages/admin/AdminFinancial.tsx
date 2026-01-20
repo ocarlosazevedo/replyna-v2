@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 import { subDays } from 'date-fns'
 import {
@@ -12,10 +12,23 @@ import {
   ExternalLink,
   Receipt,
   Calendar,
-  BarChart3,
   Package,
 } from 'lucide-react'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+import { Line } from 'react-chartjs-2'
 import DateRangePicker from '../../components/DateRangePicker'
+import { useTheme } from '../../context/ThemeContext'
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend)
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -97,6 +110,7 @@ interface FinancialStats {
 
 export default function AdminFinancial() {
   const isMobile = useIsMobile()
+  const { theme } = useTheme()
   const [stats, setStats] = useState<FinancialStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -216,9 +230,88 @@ export default function AdminFinancial() {
     return labels[status] || status
   }
 
+  const chartColors = useMemo(() => {
+    if (typeof document === 'undefined') {
+      return {
+        text: '#42506a',
+        grid: 'rgba(215, 222, 239, 0.6)',
+      }
+    }
+    const styles = getComputedStyle(document.documentElement)
+    const text = styles.getPropertyValue('--text-secondary').trim() || '#42506a'
+    const grid = styles.getPropertyValue('--border-color').trim() || 'rgba(215, 222, 239, 0.6)'
+    return { text, grid }
+  }, [theme])
+
   const maxRevenue = stats?.monthlyRevenue
     ? Math.max(...stats.monthlyRevenue.map(m => m.revenue), 1)
     : 1
+
+  const chartData = useMemo(() => ({
+    labels: stats?.monthlyRevenue.map((item) => item.month) || [],
+    datasets: [
+      {
+        label: 'Receita',
+        data: stats?.monthlyRevenue.map((item) => item.revenue) || [],
+        borderColor: '#4672ec',
+        backgroundColor: 'rgba(70, 114, 236, 0.18)',
+        tension: 0.3,
+        fill: true,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        pointBackgroundColor: '#4672ec',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+      },
+    ],
+  }), [stats?.monthlyRevenue])
+
+  const chartOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: '#0e1729',
+        titleColor: '#f5fafe',
+        bodyColor: '#f5fafe',
+        padding: 12,
+        callbacks: {
+          label: (context: { parsed: { y: number | null } }) => {
+            return formatCurrency(context.parsed.y ?? 0)
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          color: chartColors.grid,
+        },
+        ticks: {
+          color: chartColors.text,
+        },
+      },
+      y: {
+        grid: {
+          color: chartColors.grid,
+        },
+        ticks: {
+          color: chartColors.text,
+          callback: (value: number | string) => {
+            if (typeof value === 'number') {
+              return formatCurrency(value)
+            }
+            return value
+          },
+        },
+        min: 0,
+        suggestedMax: Math.ceil(maxRevenue * 1.2),
+      },
+    },
+  }), [chartColors, maxRevenue])
 
   if (loading) {
     return (
@@ -637,40 +730,13 @@ export default function AdminFinancial() {
       {/* Grafico de receita - Linha inteira */}
       <div style={{ ...cardStyle, marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-          <BarChart3 size={isMobile ? 18 : 20} style={{ color: 'var(--accent)' }} />
+          <TrendingUp size={isMobile ? 18 : 20} style={{ color: 'var(--accent)' }} />
           <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
             Receita no Periodo
           </h2>
         </div>
-        <div className="replyna-scrollbar" style={{ display: 'flex', alignItems: 'flex-end', gap: isMobile ? '6px' : '12px', height: isMobile ? '200px' : '280px', overflowX: 'auto', paddingBottom: '8px' }}>
-          {stats?.monthlyRevenue.map((item, index) => (
-            <div key={index} style={{ flex: '1 1 0', minWidth: isMobile ? '50px' : '60px', maxWidth: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{
-                width: '100%',
-                backgroundColor: index === (stats?.monthlyRevenue?.length ?? 0) - 1 ? 'var(--accent)' : 'rgba(70, 114, 236, 0.3)',
-                borderRadius: '8px 8px 0 0',
-                height: `${Math.max((item.revenue / maxRevenue) * (isMobile ? 140 : 220), 4)}px`,
-                transition: 'height 0.3s ease',
-              }} />
-              <div style={{
-                fontSize: isMobile ? '10px' : '12px',
-                color: 'var(--text-secondary)',
-                marginTop: '10px',
-                textTransform: 'capitalize',
-                textAlign: 'center',
-              }}>
-                {item.month}
-              </div>
-              <div style={{
-                fontSize: isMobile ? '10px' : '12px',
-                color: 'var(--text-primary)',
-                fontWeight: 600,
-                textAlign: 'center',
-              }}>
-                {formatCurrency(item.revenue)}
-              </div>
-            </div>
-          ))}
+        <div style={{ height: isMobile ? '250px' : '320px' }}>
+          <Line data={chartData} options={chartOptions} />
         </div>
       </div>
 
