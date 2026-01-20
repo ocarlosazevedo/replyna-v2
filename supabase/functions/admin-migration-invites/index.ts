@@ -139,7 +139,7 @@ serve(async (req) => {
       if (error) throw error;
 
       // Gerar URL do convite
-      const inviteUrl = `${Deno.env.get('SITE_URL') || 'https://replyna.me'}/migrate/${code}`;
+      const inviteUrl = `${Deno.env.get('SITE_URL') || 'https://app.replyna.me'}/migrate/${code}`;
 
       return new Response(
         JSON.stringify({
