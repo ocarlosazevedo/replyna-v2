@@ -71,6 +71,22 @@ function parseEmailError(error: string): { message: string; help: string } {
     }
   }
 
+  // Account temporarily unavailable (common with GoDaddy, Office 365, etc.)
+  if (errorLower.includes('temporarily unavailable') || errorLower.includes('temporarily disabled') || errorLower.includes('try again later')) {
+    return {
+      message: 'Conta temporariamente indisponível',
+      help: 'O provedor de email bloqueou temporariamente o acesso. Isso pode ocorrer por: muitas tentativas de login, conta inativa, ou limite de conexões atingido. Aguarde alguns minutos e tente novamente, ou verifique o status da conta no painel do provedor (GoDaddy, etc.).'
+    }
+  }
+
+  // Account locked/blocked
+  if (errorLower.includes('locked') || errorLower.includes('blocked') || errorLower.includes('disabled') || errorLower.includes('suspended')) {
+    return {
+      message: 'Conta bloqueada ou suspensa',
+      help: 'A conta de email está bloqueada ou suspensa. Acesse o painel do seu provedor de email para verificar o status e desbloquear a conta.'
+    }
+  }
+
   // Generic error - return original with generic help
   return {
     message: error,
