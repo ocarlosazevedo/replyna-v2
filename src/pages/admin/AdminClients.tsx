@@ -330,7 +330,19 @@ export default function AdminClients() {
           comparison = aRenewal - bRenewal
           break
         case 'plan':
-          comparison = (a.plan || '').localeCompare(b.plan || '')
+          // Ordenar por prioridade do plano: Starter, Business, Scale, High Scale, Enterprise
+          const getPlanOrderLocal = (slug: string | null): number => {
+            const s = slug?.toLowerCase() || 'free'
+            switch (s) {
+              case 'starter': return 1
+              case 'business': return 2
+              case 'scale': return 3
+              case 'high scale': return 4
+              case 'enterprise': return 5
+              default: return 0
+            }
+          }
+          comparison = getPlanOrderLocal(a.plan) - getPlanOrderLocal(b.plan)
           break
       }
 
@@ -355,18 +367,33 @@ export default function AdminClients() {
     const slug = planSlug?.toLowerCase() || 'free'
     switch (slug) {
       case 'starter':
-        return { bg: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }
-      case 'growth':
-        return { bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }
+        return { bg: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' } // Verde
+      case 'business':
+        return { bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' } // Azul
       case 'scale':
-        return { bg: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }
+        return { bg: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' } // Roxo
       case 'high scale':
-        return { bg: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' }
+        return { bg: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' } // Rosa
       case 'enterprise':
-        return { bg: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }
+        return { bg: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' } // Laranja
       case 'free':
+        return { bg: 'rgba(107, 114, 128, 0.1)', color: '#6b7280' } // Cinza
       default:
-        return { bg: 'rgba(107, 114, 128, 0.1)', color: '#6b7280' }
+        // Para qualquer outro plano não mapeado, usar cyan
+        return { bg: 'rgba(6, 182, 212, 0.1)', color: '#06b6d4' }
+    }
+  }
+
+  // Ordem de prioridade dos planos para ordenação
+  const getPlanOrder = (planSlug: string | null): number => {
+    const slug = planSlug?.toLowerCase() || 'free'
+    switch (slug) {
+      case 'starter': return 1
+      case 'business': return 2
+      case 'scale': return 3
+      case 'high scale': return 4
+      case 'enterprise': return 5
+      default: return 0 // free ou outros
     }
   }
 
