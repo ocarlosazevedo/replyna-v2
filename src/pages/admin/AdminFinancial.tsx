@@ -1,20 +1,21 @@
 import { useEffect, useState } from 'react'
+import type { DateRange } from 'react-day-picker'
+import { subDays } from 'date-fns'
 import {
   DollarSign,
   TrendingUp,
   TrendingDown,
   Users,
   CreditCard,
-  ArrowUpRight,
   ArrowDownRight,
   RefreshCw,
   ExternalLink,
   Receipt,
-  Wallet,
   Calendar,
   BarChart3,
-  ChevronDown,
+  Package,
 } from 'lucide-react'
+import DateRangePicker from '../../components/DateRangePicker'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -28,17 +29,17 @@ function useIsMobile() {
   return isMobile
 }
 
-type Period = '7days' | '30days' | '3months' | '6months' | '12months' | 'all' | 'custom'
+const getDefaultRange = (): DateRange => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return { from: subDays(today, 179), to: today }
+}
 
-const periodOptions: { value: Period; label: string }[] = [
-  { value: '7days', label: 'Ultimos 7 dias' },
-  { value: '30days', label: 'Ultimos 30 dias' },
-  { value: '3months', label: 'Ultimos 3 meses' },
-  { value: '6months', label: 'Ultimos 6 meses' },
-  { value: '12months', label: 'Ultimos 12 meses' },
-  { value: 'all', label: 'Todo o periodo' },
-  { value: 'custom', label: 'Personalizado' },
-]
+interface SubscriptionByPlan {
+  plan_name: string
+  count: number
+  mrr: number
+}
 
 interface FinancialStats {
   balance: {
@@ -82,11 +83,11 @@ interface FinancialStats {
     canceled: number
     trialing: number
   }
+  subscriptionsByPlan?: SubscriptionByPlan[]
   monthlyRevenue: {
     month: string
     revenue: number
   }[]
-  // Metricas do periodo selecionado
   periodMetrics?: {
     revenueInPeriod: number
     newSubscriptionsInPeriod: number
@@ -101,23 +102,13 @@ export default function AdminFinancial() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [period, setPeriod] = useState<Period>('6months')
-  const [showPeriodDropdown, setShowPeriodDropdown] = useState(false)
-  const [customStartDate, setCustomStartDate] = useState<string>('')
-  const [customEndDate, setCustomEndDate] = useState<string>('')
-  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false)
+  const [range, setRange] = useState<DateRange>(getDefaultRange())
 
   useEffect(() => {
-    if (period !== 'custom') {
+    if (range?.from && range?.to) {
       loadStats()
     }
-  }, [period])
-
-  useEffect(() => {
-    if (period === 'custom' && customStartDate && customEndDate) {
-      loadStats()
-    }
-  }, [customStartDate, customEndDate])
+  }, [range])
 
   const loadStats = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -125,11 +116,10 @@ export default function AdminFinancial() {
     setError(null)
 
     try {
-      let url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-financial-stats?period=${period}`
+      const startDate = range?.from?.toISOString().split('T')[0]
+      const endDate = range?.to?.toISOString().split('T')[0]
 
-      if (period === 'custom' && customStartDate && customEndDate) {
-        url += `&startDate=${customStartDate}&endDate=${customEndDate}`
-      }
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-financial-stats?period=custom&startDate=${startDate}&endDate=${endDate}`
 
       const response = await fetch(url, {
         headers: {
@@ -227,7 +217,6 @@ export default function AdminFinancial() {
     return labels[status] || status
   }
 
-  // Calcular altura maxima do grafico
   const maxRevenue = stats?.monthlyRevenue
     ? Math.max(...stats.monthlyRevenue.map(m => m.revenue), 1)
     : 1
@@ -322,185 +311,7 @@ export default function AdminFinancial() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-          {/* Period selector */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
-              style={{
-                padding: '10px 16px',
-                borderRadius: '10px',
-                backgroundColor: 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border-color)',
-                fontWeight: 500,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '14px',
-                minWidth: '180px',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Calendar size={16} />
-                {period === 'custom' && customStartDate && customEndDate
-                  ? `${new Date(customStartDate).toLocaleDateString('pt-BR')} - ${new Date(customEndDate).toLocaleDateString('pt-BR')}`
-                  : periodOptions.find(p => p.value === period)?.label}
-              </div>
-              <ChevronDown size={16} style={{
-                transform: showPeriodDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s ease',
-              }} />
-            </button>
-            {showPeriodDropdown && (
-              <>
-                <div
-                  style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 10,
-                  }}
-                  onClick={() => {
-                    setShowPeriodDropdown(false)
-                    setShowCustomDatePicker(false)
-                  }}
-                />
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: '4px',
-                  backgroundColor: 'var(--bg-card)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '10px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  zIndex: 20,
-                  minWidth: '180px',
-                  overflow: 'hidden',
-                }}>
-                  {periodOptions.filter(o => o.value !== 'custom').map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setPeriod(option.value)
-                        setShowPeriodDropdown(false)
-                        setShowCustomDatePicker(false)
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px 16px',
-                        border: 'none',
-                        backgroundColor: period === option.value ? 'rgba(70, 114, 236, 0.1)' : 'transparent',
-                        color: period === option.value ? 'var(--accent)' : 'var(--text-primary)',
-                        fontWeight: period === option.value ? 600 : 400,
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        display: 'block',
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                  <div style={{ borderTop: '1px solid var(--border-color)', margin: '4px 0' }} />
-                  <button
-                    onClick={() => setShowCustomDatePicker(!showCustomDatePicker)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 16px',
-                      border: 'none',
-                      backgroundColor: period === 'custom' ? 'rgba(70, 114, 236, 0.1)' : 'transparent',
-                      color: period === 'custom' ? 'var(--accent)' : 'var(--text-primary)',
-                      fontWeight: period === 'custom' ? 600 : 400,
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    Personalizado
-                    <ChevronDown size={14} style={{
-                      transform: showCustomDatePicker ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.2s ease',
-                    }} />
-                  </button>
-                  {showCustomDatePicker && (
-                    <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)' }}>
-                      <div style={{ marginBottom: '12px' }}>
-                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                          Data inicial
-                        </label>
-                        <input
-                          type="date"
-                          value={customStartDate}
-                          onChange={(e) => setCustomStartDate(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '8px 12px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--border-color)',
-                            backgroundColor: 'var(--bg-primary)',
-                            color: 'var(--text-primary)',
-                            fontSize: '13px',
-                            boxSizing: 'border-box',
-                          }}
-                        />
-                      </div>
-                      <div style={{ marginBottom: '12px' }}>
-                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                          Data final
-                        </label>
-                        <input
-                          type="date"
-                          value={customEndDate}
-                          onChange={(e) => setCustomEndDate(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '8px 12px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--border-color)',
-                            backgroundColor: 'var(--bg-primary)',
-                            color: 'var(--text-primary)',
-                            fontSize: '13px',
-                            boxSizing: 'border-box',
-                          }}
-                        />
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (customStartDate && customEndDate) {
-                            setPeriod('custom')
-                            setShowPeriodDropdown(false)
-                            setShowCustomDatePicker(false)
-                          }
-                        }}
-                        disabled={!customStartDate || !customEndDate}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: 'none',
-                          backgroundColor: customStartDate && customEndDate ? 'var(--accent)' : 'var(--border-color)',
-                          color: customStartDate && customEndDate ? '#fff' : 'var(--text-secondary)',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          cursor: customStartDate && customEndDate ? 'pointer' : 'not-allowed',
-                        }}
-                      >
-                        Aplicar
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+          <DateRangePicker value={range} onChange={setRange} />
           <button
             onClick={() => loadStats(true)}
             disabled={refreshing}
@@ -574,32 +385,6 @@ export default function AdminFinancial() {
               {stats?.periodMetrics?.chargesInPeriod || 0}
             </div>
             <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)' }}>Cobrancas</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Saldo Stripe */}
-      <div style={{ ...cardStyle, marginBottom: '24px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '16px' : '32px', alignItems: isMobile ? 'flex-start' : 'center' }}>
-        <div style={iconBoxStyle('#635bff')}>
-          <Wallet size={isMobile ? 20 : 24} style={{ color: '#635bff' }} />
-        </div>
-        <div style={{ flex: 1, width: '100%' }}>
-          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-            Saldo Stripe
-          </div>
-          <div style={{ display: 'flex', gap: isMobile ? '24px' : '32px', flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 700, color: '#22c55e' }}>
-                {formatCurrency(stats?.balance.available || 0)}
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Disponivel para saque</div>
-            </div>
-            <div>
-              <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 700, color: '#f59e0b' }}>
-                {formatCurrency(stats?.balance.pending || 0)}
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Pendente</div>
-            </div>
           </div>
         </div>
       </div>
@@ -720,28 +505,6 @@ export default function AdminFinancial() {
         </div>
 
         <div style={statCardStyle}>
-          <div style={iconBoxStyle('#22c55e')}>
-            <ArrowUpRight size={isMobile ? 20 : 24} style={{ color: '#22c55e' }} />
-          </div>
-          <div>
-            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Assinaturas por Status
-            </div>
-            <div style={{ display: 'flex', gap: isMobile ? '6px' : '12px', marginTop: '8px', flexWrap: 'wrap' }}>
-              <span style={{ ...getStatusBadge('active'), fontSize: isMobile ? '10px' : '12px' }}>
-                {stats?.subscriptionsByStatus.active || 0} ativos
-              </span>
-              <span style={{ ...getStatusBadge('past_due'), fontSize: isMobile ? '10px' : '12px' }}>
-                {stats?.subscriptionsByStatus.past_due || 0} atrasados
-              </span>
-              <span style={{ ...getStatusBadge('trialing'), fontSize: isMobile ? '10px' : '12px' }}>
-                {stats?.subscriptionsByStatus.trialing || 0} trial
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div style={statCardStyle}>
           <div style={iconBoxStyle('#6b7280')}>
             <CreditCard size={isMobile ? 20 : 24} style={{ color: '#6b7280' }} />
           </div>
@@ -757,9 +520,105 @@ export default function AdminFinancial() {
             </div>
           </div>
         </div>
+
+        {/* Card de Assinaturas por Status */}
+        <div style={statCardStyle}>
+          <div style={iconBoxStyle('#22c55e')}>
+            <Users size={isMobile ? 20 : 24} style={{ color: '#22c55e' }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+              Assinaturas por Status
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#22c55e', fontWeight: 600 }}>Ativos</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {(stats?.subscriptionsByStatus.active || 0) + (stats?.subscriptionsByStatus.trialing || 0)}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>Cancelados</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {stats?.subscriptionsByStatus.canceled || 0}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#f59e0b', fontWeight: 600 }}>Inadimplência</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {stats?.subscriptionsByStatus.past_due || 0}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Grafico de receita e tabelas */}
+      {/* Bloco de Assinaturas por Plano - Linha inteira */}
+      <div style={{ ...cardStyle, marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+          <Package size={isMobile ? 18 : 20} style={{ color: 'var(--accent)' }} />
+          <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            Assinaturas por Plano
+          </h2>
+        </div>
+        {stats?.subscriptionsByPlan && stats.subscriptionsByPlan.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            {stats.subscriptionsByPlan.map((plan, index) => (
+              <div
+                key={index}
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
+                  {plan.plan_name}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Assinaturas</span>
+                  <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>{plan.count}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>MRR</span>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#22c55e' }}>{formatCurrency(plan.mrr)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+            gap: '16px',
+          }}>
+            <div style={{
+              backgroundColor: 'var(--bg-primary)',
+              borderRadius: '12px',
+              padding: '20px',
+              border: '1px solid var(--border-color)',
+            }}>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
+                Starter
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Assinaturas</span>
+                <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>
+                  {stats?.activeSubscriptions || 0}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>MRR</span>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#22c55e' }}>{formatCurrency(stats?.mrr || 0)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Grafico de receita e Pagamentos recentes */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
         {/* Grafico de receita mensal */}
         <div style={cardStyle}>
@@ -769,7 +628,7 @@ export default function AdminFinancial() {
               Receita Mensal
             </h2>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: isMobile ? '4px' : '8px', height: isMobile ? '160px' : '200px', overflowX: isMobile ? 'auto' : 'visible' }}>
+          <div className="replyna-scrollbar" style={{ display: 'flex', alignItems: 'flex-end', gap: isMobile ? '4px' : '8px', height: isMobile ? '160px' : '200px', overflowX: isMobile ? 'auto' : 'visible' }}>
             {stats?.monthlyRevenue.map((item, index) => (
               <div key={index} style={{ flex: isMobile ? '0 0 auto' : 1, minWidth: isMobile ? '40px' : 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{
@@ -808,7 +667,7 @@ export default function AdminFinancial() {
             </h2>
           </div>
           {stats?.recentPayments && stats.recentPayments.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '240px', overflowY: 'auto' }}>
+            <div className="replyna-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '240px', overflowY: 'auto' }}>
               {stats.recentPayments.map((payment) => (
                 <div
                   key={payment.id}
@@ -858,8 +717,7 @@ export default function AdminFinancial() {
         </div>
         {stats?.recentInvoices && stats.recentInvoices.length > 0 ? (
           isMobile ? (
-            /* Mobile: Card Layout */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="replyna-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '400px', overflowY: 'auto' }}>
               {stats.recentInvoices.map((invoice) => (
                 <div key={invoice.id} style={{
                   backgroundColor: 'var(--bg-primary)',
@@ -914,64 +772,65 @@ export default function AdminFinancial() {
               ))}
             </div>
           ) : (
-            /* Desktop: Table Layout */
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700 }}>
-                  <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Fatura</th>
-                  <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Cliente</th>
-                  <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Valor</th>
-                  <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Status</th>
-                  <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Data</th>
-                  <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.recentInvoices.map((invoice) => (
-                  <tr key={invoice.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
-                      {invoice.number || invoice.id.slice(-8)}
-                    </td>
-                    <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-primary)' }}>
-                      {invoice.customer_name || invoice.customer_email || 'N/A'}
-                    </td>
-                    <td style={{ padding: '12px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {formatCurrency(invoice.amount_due)}
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={getStatusBadge(invoice.status || 'draft')}>
-                        {getStatusLabel(invoice.status || 'draft')}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                      {formatDateShort(invoice.created)}
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      {invoice.hosted_invoice_url && (
-                        <a
-                          href={invoice.hosted_invoice_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            padding: '6px 10px',
-                            borderRadius: '6px',
-                            backgroundColor: 'var(--bg-primary)',
-                            color: 'var(--accent)',
-                            textDecoration: 'none',
-                            fontSize: '12px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          Ver <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </td>
+            <div className="replyna-scrollbar" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                  <tr style={{ textAlign: 'left', backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700 }}>
+                    <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Fatura</th>
+                    <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Cliente</th>
+                    <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Valor</th>
+                    <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Status</th>
+                    <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>Data</th>
+                    <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {stats.recentInvoices.map((invoice) => (
+                    <tr key={invoice.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                        {invoice.number || invoice.id.slice(-8)}
+                      </td>
+                      <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-primary)' }}>
+                        {invoice.customer_name || invoice.customer_email || 'N/A'}
+                      </td>
+                      <td style={{ padding: '12px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {formatCurrency(invoice.amount_due)}
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={getStatusBadge(invoice.status || 'draft')}>
+                          {getStatusLabel(invoice.status || 'draft')}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        {formatDateShort(invoice.created)}
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        {invoice.hosted_invoice_url && (
+                          <a
+                            href={invoice.hosted_invoice_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              backgroundColor: 'var(--bg-primary)',
+                              color: 'var(--accent)',
+                              textDecoration: 'none',
+                              fontSize: '12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            Ver <ExternalLink size={12} />
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )
         ) : (
           <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
