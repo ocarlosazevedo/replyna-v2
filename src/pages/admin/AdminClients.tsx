@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Search, Edit2, Mail, Store, Calendar, ChevronDown, ChevronUp, ExternalLink, Trash2, Key, RefreshCw, ArrowUpDown } from 'lucide-react'
+import { Search, Edit2, Mail, Store, Calendar, ChevronDown, ChevronUp, ExternalLink, Trash2, Key, RefreshCw, ArrowUpDown, LogIn } from 'lucide-react'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -71,6 +71,7 @@ export default function AdminClients() {
   const [savingClient, setSavingClient] = useState(false)
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [originalClient, setOriginalClient] = useState<Client | null>(null)
+  const [impersonating, setImpersonating] = useState<string | null>(null)
   const isMobile = useIsMobile()
 
   useEffect(() => {
@@ -263,6 +264,40 @@ export default function AdminClients() {
       setActionMessage({ type: 'error', text: err instanceof Error ? err.message : 'Erro ao enviar email' })
     } finally {
       setSendingReset(false)
+    }
+  }
+
+  const handleImpersonate = async (client: Client) => {
+    setImpersonating(client.id)
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-impersonate-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: client.id }),
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao gerar link de acesso')
+      }
+
+      // Abrir o magic link em uma nova aba
+      if (result.link) {
+        window.open(result.link, '_blank')
+      }
+    } catch (err) {
+      console.error('Erro ao acessar como cliente:', err)
+      alert('Erro ao acessar como cliente: ' + (err instanceof Error ? err.message : 'Erro desconhecido'))
+    } finally {
+      setImpersonating(null)
     }
   }
 
@@ -622,6 +657,22 @@ export default function AdminClients() {
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
+                        onClick={() => handleImpersonate(client)}
+                        disabled={impersonating === client.id}
+                        style={{
+                          padding: '8px',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                          backgroundColor: 'transparent',
+                          color: '#3b82f6',
+                          cursor: impersonating === client.id ? 'not-allowed' : 'pointer',
+                          flexShrink: 0,
+                          opacity: impersonating === client.id ? 0.6 : 1,
+                        }}
+                      >
+                        <LogIn size={14} />
+                      </button>
+                      <button
                         onClick={() => handleEditClient(client)}
                         style={{
                           padding: '8px',
@@ -828,6 +879,25 @@ export default function AdminClients() {
                     </td>
                     <td style={{ padding: '16px' }}>
                       <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => handleImpersonate(client)}
+                          disabled={impersonating === client.id}
+                          style={{
+                            padding: '8px',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            backgroundColor: 'transparent',
+                            color: '#3b82f6',
+                            cursor: impersonating === client.id ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: impersonating === client.id ? 0.6 : 1,
+                          }}
+                          title="Acessar como cliente"
+                        >
+                          <LogIn size={16} />
+                        </button>
                         <button
                           onClick={() => handleEditClient(client)}
                           style={{
