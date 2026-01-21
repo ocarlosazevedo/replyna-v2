@@ -1179,7 +1179,7 @@ export default function LandingPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
                     <div>
                       <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
-                        Olá, Horizon Blue Solutions LLC
+                        Olá, Sua Empresa
                       </h3>
                       <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>
                         Acompanhe o desempenho do seu atendimento automatizado
@@ -1307,9 +1307,9 @@ export default function LandingPage() {
                     </div>
                     {/* Table Rows */}
                     {[
-                      { shop: 'Notino Italy', client: 'Sem nome', subject: 'RICHIESTA DI NUOVO ORD...', category: 'Dúvidas gerais', categoryColor: '#3b82f6', date: '21/01, 17:00' },
-                      { shop: 'NotShop Spain', client: 'Luis Largo Alcon', subject: 'Devolución', category: 'Dúvidas gerais', categoryColor: '#3b82f6', date: '21/01, 16:35' },
-                      { shop: 'Notino Italy', client: 'Donato Menichel...', subject: 'To: support@notin-it.com', category: 'Rastreio', categoryColor: '#8b5cf6', date: '21/01, 15:45' },
+                      { shop: 'Minha Loja BR', client: 'Maria Silva', subject: 'Dúvida sobre entrega...', category: 'Dúvidas gerais', categoryColor: '#3b82f6', date: '21/01, 17:00' },
+                      { shop: 'Store USA', client: 'John Smith', subject: 'Order status inquiry', category: 'Dúvidas gerais', categoryColor: '#3b82f6', date: '21/01, 16:35' },
+                      { shop: 'Minha Loja BR', client: 'Pedro Santos', subject: 'Rastrear meu pedido', category: 'Rastreio', categoryColor: '#8b5cf6', date: '21/01, 15:45' },
                     ].map((row, i) => (
                       <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr 1fr 0.8fr', gap: '12px', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
                         <span>{row.shop}</span>
