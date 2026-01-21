@@ -1103,8 +1103,8 @@ export default function LandingPage() {
             {/* Right: Dashboard Preview */}
             <div className="lp-fade-in lp-fade-in-delay-3">
               <div className="lp-glow-blue lp-gradient-border" style={{
-                padding: '3px',
                 position: 'relative',
+                overflow: 'hidden',
               }}>
                 {/* Browser Chrome */}
                 <div style={{
@@ -1113,8 +1113,8 @@ export default function LandingPage() {
                   gap: '8px',
                   padding: '12px 16px',
                   borderBottom: '1px solid rgba(255,255,255,0.06)',
-                  backgroundColor: 'rgba(0,0,0,0.3)',
-                  borderRadius: '16px 16px 0 0',
+                  backgroundColor: '#1a1a2e',
+                  borderRadius: '19px 19px 0 0',
                 }}>
                   <div style={{ display: 'flex', gap: '6px' }}>
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ff5f57' }} />
@@ -1140,7 +1140,7 @@ export default function LandingPage() {
                 {/* Dashboard Mockup Compacto */}
                 <div style={{
                   backgroundColor: '#0f172a',
-                  borderRadius: '0 0 16px 16px',
+                  borderRadius: '0 0 19px 19px',
                   padding: '16px',
                 }}>
                   {/* Header */}
