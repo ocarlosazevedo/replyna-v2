@@ -39,8 +39,7 @@ interface MetricSummary {
   emailsReceived: number
   emailsReplied: number
   automationRate: number
-  topCategoryName: string | null
-  topCategoryPercent: number
+  successRate: number
   pendingHuman: number
 }
 
@@ -57,9 +56,6 @@ const formatNumber = (value: number) =>
 
 const formatPercent = (value: number) =>
   `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)}%`
-
-const formatPercentWhole = (value: number) =>
-  `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(value)}%`
 
 const formatDate = (date: Date) =>
   new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
@@ -231,8 +227,7 @@ export default function Dashboard() {
     emailsReceived: 0,
     emailsReplied: 0,
     automationRate: 0,
-    topCategoryName: null,
-    topCategoryPercent: 0,
+    successRate: 0,
     pendingHuman: 0,
   })
   const [volumeData, setVolumeData] = useState<Array<{ label: string; received: number; replied: number }>>([])
@@ -424,43 +419,6 @@ export default function Dashboard() {
       return (data || []) as MessageRow[]
     }
 
-    const loadTopCategory = async () => {
-      const query = supabase
-        .from('conversations')
-        .select('category')
-        .gte('created_at', dateStart.toISOString())
-        .lte('created_at', dateEnd.toISOString())
-        .not('category', 'is', null) // Ignorar conversas sem categoria
-
-      const { data, error } =
-        selectedShopId === 'all'
-          ? await query.in('shop_id', effectiveShopIds)
-          : await query.eq('shop_id', selectedShopId)
-
-      if (error) throw error
-
-      const rows = (data || []) as Array<{ category: string }>
-      if (rows.length === 0) {
-        return { topCategoryName: null, topCategoryPercent: 0 }
-      }
-
-      // Filtrar spam para não aparecer como categoria frequente
-      const nonSpamRows = rows.filter((row) => row.category !== 'spam')
-      if (nonSpamRows.length === 0) {
-        return { topCategoryName: null, topCategoryPercent: 0 }
-      }
-
-      const counts = nonSpamRows.reduce<Record<string, number>>((acc, row) => {
-        acc[row.category] = (acc[row.category] ?? 0) + 1
-        return acc
-      }, {})
-
-      const [topCategory, topCount] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
-      const topPercent = Math.round((topCount / nonSpamRows.length) * 100)
-
-      return { topCategoryName: topCategory, topCategoryPercent: topPercent }
-    }
-
     const loadConversationsList = async () => {
       const query = supabase
         .from('conversations')
@@ -480,7 +438,7 @@ export default function Dashboard() {
 
     const loadAll = async () => {
       try {
-        const [pendingHuman, messageRows, conversationRows, topCategoryData] = await Promise.all([
+        const [pendingHuman, messageRows, conversationRows] = await Promise.all([
           loadPendingHuman(),
           cacheFetch(
             `messages:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
@@ -489,10 +447,6 @@ export default function Dashboard() {
           cacheFetch(
             `conversations:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
             loadConversationsList
-          ),
-          cacheFetch(
-            `top-category:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
-            loadTopCategory
           ),
         ])
 
@@ -509,12 +463,17 @@ export default function Dashboard() {
           ? (emailsReplied / emailsReceived) * 100
           : 0
 
+        // Taxa de sucesso = (emails respondidos - atendimento humano) / emails respondidos * 100
+        // Quanto mais próximo de 100%, melhor (significa que a IA está resolvendo sem precisar de humano)
+        const successRate = emailsReplied > 0
+          ? ((emailsReplied - pendingHuman) / emailsReplied) * 100
+          : 0
+
         setMetrics({
           emailsReceived,
           emailsReplied,
           automationRate,
-          topCategoryName: topCategoryData.topCategoryName,
-          topCategoryPercent: topCategoryData.topCategoryPercent,
+          successRate,
           pendingHuman,
         })
 
@@ -720,18 +679,18 @@ export default function Dashboard() {
         ) : (
           <>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>E-mails Respondidos</div>
-              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {renderValue(metrics.emailsReplied)}
-              </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>respostas enviadas</div>
-            </div>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>E-mails Recebidos</div>
               <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {renderValue(metrics.emailsReceived)}
               </div>
               <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>excluindo spam</div>
+            </div>
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>E-mails Respondidos</div>
+              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {renderValue(metrics.emailsReplied)}
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>respostas enviadas</div>
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Taxa de Automação</div>
@@ -741,15 +700,20 @@ export default function Dashboard() {
               <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>respondidos / recebidos</div>
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Categoria Frequente</div>
-              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {metrics.topCategoryName ? formatCategoryLabel(metrics.topCategoryName) : '--'}
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Taxa de Sucesso</div>
+              <div style={{
+                marginTop: '12px',
+                fontSize: '28px',
+                fontWeight: 700,
+                color: metrics.successRate >= 90
+                  ? '#16a34a'
+                  : metrics.successRate >= 70
+                    ? '#d97706'
+                    : '#dc2626'
+              }}>
+                {renderValue(metrics.successRate, 'percent')}
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>
-                {metrics.topCategoryName
-                  ? `${formatPercentWhole(metrics.topCategoryPercent)} das conversas`
-                  : 'Sem dados no período'}
-              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>resolvidos sem humano</div>
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Atendimento Humano</div>
