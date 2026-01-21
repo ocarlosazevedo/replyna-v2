@@ -30,56 +30,35 @@ const formatDateTime = (date: Date) =>
   }).format(date)
 
 const categoryLabelMap: Record<string, string> = {
-  duvidas_gerais: 'Duvidas gerais',
-  rastreio: 'Rastreio',
-  reembolso: 'Reembolso',
-  institucional: 'Institucional',
-  suporte_humano: 'Suporte humano',
-  produto: 'Produto',
-  pagamento: 'Pagamento',
-  entrega: 'Entrega',
-  troca: 'Troca',
   spam: 'Spam',
-  outros: 'Outros',
+  duvidas_gerais: 'Dúvidas gerais',
+  rastreio: 'Rastreio',
+  troca_devolucao_reembolso: 'Troca/Devolução/Reembolso',
+  suporte_humano: 'Suporte humano',
 }
 
-// Categorias disponíveis para seleção (exceto spam que pode ser trocado)
+// Categorias disponíveis para seleção
 const availableCategories = [
-  { value: 'rastreio', label: 'Rastreio' },
   { value: 'duvidas_gerais', label: 'Dúvidas gerais' },
-  { value: 'produto', label: 'Produto' },
-  { value: 'pagamento', label: 'Pagamento' },
-  { value: 'entrega', label: 'Entrega' },
-  { value: 'reembolso', label: 'Reembolso' },
-  { value: 'troca', label: 'Troca' },
-  { value: 'institucional', label: 'Institucional' },
+  { value: 'rastreio', label: 'Rastreio' },
+  { value: 'troca_devolucao_reembolso', label: 'Troca/Devolução/Reembolso' },
   { value: 'suporte_humano', label: 'Suporte humano' },
-  { value: 'outros', label: 'Outros' },
+  { value: 'spam', label: 'Spam' },
 ]
 
 const getCategoryBadge = (category: string | null) => {
   const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
   switch (category) {
-    case 'rastreio':
-      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#16a34a' }
-    case 'duvidas_gerais':
-      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' }
-    case 'produto':
-      return { ...base, backgroundColor: 'rgba(168, 85, 247, 0.16)', color: '#9333ea' }
-    case 'pagamento':
-      return { ...base, backgroundColor: 'rgba(236, 72, 153, 0.16)', color: '#db2777' }
-    case 'entrega':
-      return { ...base, backgroundColor: 'rgba(14, 165, 233, 0.16)', color: '#0284c7' }
-    case 'reembolso':
-      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
-    case 'troca':
-      return { ...base, backgroundColor: 'rgba(251, 146, 60, 0.16)', color: '#ea580c' }
-    case 'institucional':
-      return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' }
-    case 'suporte_humano':
-      return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' }
     case 'spam':
       return { ...base, backgroundColor: 'rgba(220, 38, 38, 0.20)', color: '#b91c1c' }
+    case 'duvidas_gerais':
+      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' }
+    case 'rastreio':
+      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#16a34a' }
+    case 'troca_devolucao_reembolso':
+      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
+    case 'suporte_humano':
+      return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' }
     default:
       return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' }
   }

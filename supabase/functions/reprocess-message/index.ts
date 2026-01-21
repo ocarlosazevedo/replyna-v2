@@ -210,11 +210,13 @@ serve(async (req) => {
     }
 
     // 10. Gerar resposta baseada na categoria
-    const category = conversation.category || message.category || 'outros';
+    const category = conversation.category || message.category || 'duvidas_gerais';
     let responseResult: { response: string; tokens_input: number; tokens_output: number };
     let finalStatus: 'replied' | 'pending_human' = 'replied';
 
-    const categoriesWithoutOrderData = ['outros', 'produto'];
+    // Categorias que precisam de dados do pedido: rastreio e troca_devolucao_reembolso
+    // Categorias que NÃO precisam: duvidas_gerais (perguntas gerais sem pedido)
+    const categoriesWithoutOrderData = ['duvidas_gerais'];
     const needsOrderData = !categoriesWithoutOrderData.includes(category);
 
     if (category === 'suporte_humano') {

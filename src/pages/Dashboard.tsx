@@ -176,44 +176,27 @@ const buildVolumeSeries = (messages: MessageRow[], granularity: 'day' | 'week' |
 const getCategoryBadge = (category: string | null) => {
   const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
   switch (category) {
-    case 'rastreio':
-      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#16a34a' } // Verde
-    case 'duvidas_gerais':
-      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' } // Azul
-    case 'produto':
-      return { ...base, backgroundColor: 'rgba(168, 85, 247, 0.16)', color: '#9333ea' } // Roxo
-    case 'pagamento':
-      return { ...base, backgroundColor: 'rgba(236, 72, 153, 0.16)', color: '#db2777' } // Rosa
-    case 'entrega':
-      return { ...base, backgroundColor: 'rgba(14, 165, 233, 0.16)', color: '#0284c7' } // Azul claro
-    case 'reembolso':
-      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' } // Laranja
-    case 'troca':
-      return { ...base, backgroundColor: 'rgba(251, 146, 60, 0.16)', color: '#ea580c' } // Laranja escuro
-    case 'institucional':
-      return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' } // Cinza
-    case 'suporte_humano':
-      return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' } // Vermelho
     case 'spam':
       return { ...base, backgroundColor: 'rgba(220, 38, 38, 0.20)', color: '#b91c1c' } // Vermelho escuro
-    case 'outros':
+    case 'duvidas_gerais':
+      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' } // Azul
+    case 'rastreio':
+      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#16a34a' } // Verde
+    case 'troca_devolucao_reembolso':
+      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' } // Laranja
+    case 'suporte_humano':
+      return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' } // Vermelho
     default:
       return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' } // Cinza claro
   }
 }
 
 const categoryLabelMap: Record<string, string> = {
-  rastreio: 'Rastreio',
-  duvidas_gerais: 'Dúvidas gerais',
-  produto: 'Produto',
-  pagamento: 'Pagamento',
-  entrega: 'Entrega',
-  reembolso: 'Reembolso',
-  troca: 'Troca',
-  institucional: 'Institucional',
-  suporte_humano: 'Suporte humano',
   spam: 'Spam',
-  outros: 'Outros',
+  duvidas_gerais: 'Dúvidas gerais',
+  rastreio: 'Rastreio',
+  troca_devolucao_reembolso: 'Troca/Devolução/Reembolso',
+  suporte_humano: 'Suporte humano',
 }
 
 const formatCategoryLabel = (category: string | null) => {
@@ -827,17 +810,11 @@ export default function Dashboard() {
                 }}
               >
                 <option value="all">Todas categorias</option>
-                <option value="rastreio">Rastreio</option>
                 <option value="duvidas_gerais">Dúvidas gerais</option>
-                <option value="produto">Produto</option>
-                <option value="pagamento">Pagamento</option>
-                <option value="entrega">Entrega</option>
-                <option value="reembolso">Reembolso</option>
-                <option value="troca">Troca</option>
-                <option value="institucional">Institucional</option>
+                <option value="rastreio">Rastreio</option>
+                <option value="troca_devolucao_reembolso">Troca/Devolução/Reembolso</option>
                 <option value="suporte_humano">Suporte humano</option>
                 <option value="spam">Spam</option>
-                <option value="outros">Outros</option>
               </select>
               {!loadingConversations && conversations.length > 0 && (
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>

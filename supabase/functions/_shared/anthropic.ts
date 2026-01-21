@@ -27,14 +27,11 @@ export interface ClaudeResponse {
 
 export interface ClassificationResult {
   category:
-    | 'rastreio'
-    | 'reembolso'
-    | 'produto'
-    | 'pagamento'
-    | 'entrega'
-    | 'suporte_humano'
     | 'spam'
-    | 'outros';
+    | 'duvidas_gerais'
+    | 'rastreio'
+    | 'troca_devolucao_reembolso'
+    | 'suporte_humano';
   confidence: number;
   language: string;
   order_id_found: string | null;
@@ -139,7 +136,7 @@ export async function classifyEmail(
   const systemPrompt = `You are an email classifier for e-commerce customer support.
 
 Your task is to analyze the email and return a JSON with:
-1. category: email category (one of the options below)
+1. category: email category (one of the 5 options below)
 2. confidence: classification confidence (0.0 to 1.0)
 3. language: EXACT language of the customer's email (VERY IMPORTANT - detect correctly!)
 4. order_id_found: order number if mentioned (e.g., #12345, 12345), or null
@@ -152,50 +149,56 @@ LANGUAGE DETECTION (CRITICAL):
 - "en" for English (words like: hello, order, cancel, thanks, want, where, tracking)
 - NEVER assume any language by default - analyze the actual text
 
-AVAILABLE CATEGORIES:
-- rastreio: Questions about order location, tracking code, delivery status ("where is my order", "tracking", "when will it arrive")
-- reembolso: Return requests, cancellation, refund, product exchange ("refund", "cancel order", "return", "exchange")
-- produto: Questions about size, color, availability, product specs ("is it available", "what size", "product details", "in stock")
-- pagamento: Payment issues, declined card, invoice ("payment failed", "invoice", "payment problem")
-- entrega: Wrong address, missed delivery, shipping issues ("wrong address", "delivery problem", "shipping")
-- suporte_humano: ONLY for VERY SERIOUS cases with explicit legal threat (lawyer, lawsuit, legal action)
-- spam: Unsolicited service offers from agencies, consultants, or developers (see list below)
-- outros: Doesn't fit any category above
+=== AVAILABLE CATEGORIES (ONLY 5) ===
 
-SPAM DETECTION (VERY IMPORTANT):
-Classify as "spam" emails offering UNSOLICITED services such as:
-- Digital marketing, SEO, paid traffic, growth hacking
-- Website/Shopify store development
-- Sales consulting, conversion optimization, performance audits
-- Store audits, growth analysis
-- Revenue share or commission partnerships
-- Offers to "increase sales", "generate traffic", "improve conversion", "boost revenue"
+1. spam
+   Marketing emails, unsolicited service offers from agencies/consultants/developers.
+   Examples: SEO services, store development, growth hacking, sales consulting, "increase your revenue" offers.
+   Signals: "Marketing Consultant", "Shopify Developer", "Growth Specialist", "free consultation", "schedule a meeting".
+   Also: Generic emails not about a specific order ("Is your store active?", "Can I ask you something?").
+   DO NOT RESPOND to spam emails.
 
-SPAM signals - classify as SPAM with HIGH confidence (0.9+):
-- Senders like "Marketing Consultant", "Shopify Developer", "Growth Specialist", "Expert", "Agency"
-- Phrases like "growth opportunity", "increase revenue", "boost sales", "performance audit", "results-first"
-- Offers of "quick call", "schedule a meeting", "free consultation", "no upfront fees"
-- Mentions of "Shopify partner", "certified developer", "agency", "affiliate marketing"
-- GENERIC emails that don't mention any specific order or product purchase
-- Emails asking generic questions like "Is your store active?", "Are you accepting orders?", "Can I ask you something?"
-- Templates with [placeholders] or generic text
-- Emails from people introducing themselves as consultants, developers, or specialists
-- Cold outreach emails trying to sell services
+2. duvidas_gerais
+   General questions about the store, products, or policies - WITHOUT mentioning a specific existing order.
+   Examples: "Do you ship to my country?", "What sizes are available?", "Is this product in stock?",
+   "What's your return policy?", "How long does shipping take?", "Is your store reliable?", "Do you accept PayPal?"
+   Key: Customer is asking BEFORE making a purchase or has general questions.
+
+3. rastreio
+   Questions about an EXISTING order: tracking, status, location, delivery estimate.
+   Examples: "Where is my order?", "Tracking code?", "When will it arrive?", "Order status?", "Why is delivery delayed?"
+   Key: Customer already made a purchase and wants to know about their order.
+
+4. troca_devolucao_reembolso
+   Requests for exchange, return, refund, or order cancellation.
+   Examples: "I want to return this", "Cancel my order", "Request refund", "Exchange for different size",
+   "Product arrived damaged", "Wrong item received", "I don't want it anymore".
+   Key: Customer wants to undo, change, or get money back.
+
+5. suporte_humano
+   ONLY for cases with EXPLICIT LEGAL THREATS (lawyer, lawsuit, legal action, consumer protection agency).
+   These cases need human escalation.
+   NOT for: angry customers, complaints, requests to "speak with a human" (respond normally to these).
+
+=== SPAM DETECTION (IMPORTANT) ===
+Classify as "spam" with HIGH confidence (0.9+):
+- Emails offering marketing, SEO, development, consulting services
+- Phrases like "grow your business", "increase revenue", "boost sales", "performance audit"
+- Senders identifying as consultants, developers, specialists, agencies
+- Generic emails with [placeholders] or template text
+- Cold outreach trying to sell services
+- Emails NOT related to a specific purchase from the store
 
 REAL CUSTOMERS (NOT spam):
-- Customer asking about THEIR existing order (mentions order number, tracking, specific purchase)
-- Customer with questions about products they want to BUY from the store
-- Customer needing support for a purchase THEY made
-- Shopify system emails (order confirmations, email verifications)
+- Asking about THEIR order (mentions order number, tracking, specific purchase)
+- Questions about products they want to BUY
+- Support for a purchase THEY made
 
-IMPORTANT RULES:
-- Angry customer is NOT suporte_humano
-- Complaint about product or delivery is NOT suporte_humano
-- Customer asking to speak with owner/human is NOT suporte_humano - respond normally
-- ONLY classify as suporte_humano if there's EXPLICIT LEGAL THREAT (mentioning lawyer, lawsuit, legal action)
-- When in doubt, choose the most likely category (rastreio, reembolso, produto, etc), NEVER suporte_humano
-- If it looks like agency/consultant spam, classify as "spam" with high confidence (0.9+)
-- Generic "is your store active?" type emails are SPAM - they're from service sellers, not real customers
+=== CLASSIFICATION RULES ===
+- When in doubt between duvidas_gerais and rastreio: if no order number/purchase mentioned → duvidas_gerais
+- Angry customer → still classify by the actual request (rastreio, troca_devolucao_reembolso, etc.)
+- "I want to speak with a human" → classify by the underlying issue, respond normally
+- ONLY use suporte_humano for EXPLICIT legal threats
 
 Respond ONLY with the JSON, no additional text.`;
 
@@ -230,17 +233,14 @@ Classifique este email e retorne o JSON.`;
 
     // Validar categoria
     const validCategories = [
-      'rastreio',
-      'reembolso',
-      'produto',
-      'pagamento',
-      'entrega',
-      'suporte_humano',
       'spam',
-      'outros',
+      'duvidas_gerais',
+      'rastreio',
+      'troca_devolucao_reembolso',
+      'suporte_humano',
     ];
     if (!validCategories.includes(result.category)) {
-      result.category = 'outros';
+      result.category = 'duvidas_gerais';
     }
 
     // Validar confidence
