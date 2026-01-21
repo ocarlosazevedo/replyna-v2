@@ -1799,8 +1799,8 @@ export default function LandingPage() {
                   {plan.description}
                 </p>
 
-                <div style={{ marginBottom: '20px' }}>
-                  <span className="lp-number" style={{ fontSize: '32px', fontWeight: 800 }}>
+                <div style={{ marginBottom: '20px', height: '40px', display: 'flex', alignItems: 'center' }}>
+                  <span className="lp-number" style={{ fontSize: plan.isEnterprise ? '24px' : '32px', fontWeight: 800 }}>
                     {plan.isEnterprise ? 'Sob consulta' : formatPrice(plan.price)}
                   </span>
                   {!plan.isEnterprise && (
