@@ -447,7 +447,7 @@ export default function Dashboard() {
       // Filtrar spam para não aparecer como categoria frequente
       const nonSpamRows = rows.filter((row) => row.category !== 'spam')
       if (nonSpamRows.length === 0) {
-        return { topCategoryName: 'spam', topCategoryPercent: 100 }
+        return { topCategoryName: null, topCategoryPercent: 0 }
       }
 
       const counts = nonSpamRows.reduce<Record<string, number>>((acc, row) => {
