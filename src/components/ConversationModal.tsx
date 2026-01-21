@@ -609,7 +609,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
         )}
 
         {/* Messages */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
+        <div className="replyna-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
           {loading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
               Carregando mensagens...
