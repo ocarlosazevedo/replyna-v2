@@ -1748,12 +1748,12 @@ export default function LandingPage() {
 
           <div className="lp-plans-grid">
             {plans.map((plan, i) => (
-              <div key={i} style={{ position: 'relative', paddingTop: plan.popular ? '14px' : '0' }}>
-                {/* Popular badge outside card */}
+              <div key={i} style={{ position: 'relative' }}>
+                {/* Popular badge - positioned absolute outside card flow */}
                 {plan.popular && (
                   <div style={{
                     position: 'absolute',
-                    top: '0',
+                    top: '-14px',
                     left: '50%',
                     transform: 'translateX(-50%)',
                     background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
@@ -1801,11 +1801,13 @@ export default function LandingPage() {
 
                 <div style={{ marginBottom: '20px' }}>
                   <span className="lp-number" style={{ fontSize: '32px', fontWeight: 800 }}>
-                    {formatPrice(plan.price)}
+                    {plan.isEnterprise ? 'Sob consulta' : formatPrice(plan.price)}
                   </span>
-                  <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginLeft: '4px' }}>
-                    /mês
-                  </span>
+                  {!plan.isEnterprise && (
+                    <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginLeft: '4px' }}>
+                      /mês
+                    </span>
+                  )}
                 </div>
 
                 <div style={{
