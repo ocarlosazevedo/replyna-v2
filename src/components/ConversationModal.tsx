@@ -59,7 +59,7 @@ const getCategoryBadge = (category: string | null): React.CSSProperties => {
     case 'spam':
       return { ...base, backgroundColor: 'rgba(220, 38, 38, 0.20)', color: '#b91c1c' }
     case 'duvidas_gerais':
-      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' }
+      return { ...base, backgroundColor: 'rgba(96, 165, 250, 0.16)', color: '#60a5fa' }
     case 'rastreio':
       return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#16a34a' }
     case 'troca_devolucao_reembolso':
