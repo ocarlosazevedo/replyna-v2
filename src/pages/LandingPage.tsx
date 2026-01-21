@@ -65,17 +65,17 @@ const influencers = [
   {
     name: 'Carlos Azevedo',
     role: 'Especialista em operações globais e expansão internacional de e-commerce',
-    image: '/influencers/carlos-azevedo.jpg',
+    image: '/influencers/carlos-azevedo.webp',
   },
   {
     name: 'Lhucas Maciel',
     role: 'Empreendedor digital com foco em vendas e estratégias de crescimento',
-    image: '/influencers/lhucas-maciel.jpg',
+    image: '/influencers/lhucas-maciel.webp',
   },
   {
     name: 'Guilherme Smith',
     role: 'Gestor de múltiplas lojas online e especialista em vendas',
-    image: '/influencers/guilherme-smith.jpg',
+    image: '/influencers/guilherme-smith.webp',
   },
 ]
 
