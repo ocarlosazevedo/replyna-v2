@@ -60,6 +60,8 @@ export default function AdminPlans() {
     sort_order: 0,
   })
   const [newFeature, setNewFeature] = useState('')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     loadPlans()
@@ -123,21 +125,28 @@ export default function AdminPlans() {
         sort_order: plans.length,
       })
     }
+    setSaveError(null)
     setShowModal(true)
   }
 
   const handleSavePlan = async () => {
+    setSaveError(null)
+    setSaving(true)
+
     try {
       // Converter strings vazias para null (ilimitado)
+      // IMPORTANTE: 0 é um valor válido e deve ser preservado
       const parseLimit = (value: string | number): number | null => {
         if (value === '' || value === null || value === undefined) return null
         const num = typeof value === 'string' ? parseInt(value) : value
-        return isNaN(num) ? null : num
+        if (isNaN(num)) return null
+        return num  // 0 é válido
       }
       const parsePrice = (value: string | number): number | null => {
         if (value === '' || value === null || value === undefined) return null
         const num = typeof value === 'string' ? parseFloat(value) : value
-        return isNaN(num) ? null : num
+        if (isNaN(num)) return null
+        return num  // 0 é válido
       }
 
       const planData = {
@@ -151,7 +160,7 @@ export default function AdminPlans() {
         stripe_product_id: formData.stripe_product_id || null,
         stripe_price_monthly_id: formData.stripe_price_monthly_id || null,
         stripe_price_yearly_id: formData.stripe_price_yearly_id || null,
-        extra_email_price: parsePrice(formData.extra_email_price),  // null = sem cobrança extra
+        extra_email_price: parsePrice(formData.extra_email_price),  // null ou 0 = sem cobrança extra
         extra_email_package_size: parseLimit(formData.extra_email_package_size),
         stripe_extra_email_price_id: formData.stripe_extra_email_price_id || null,
         is_active: formData.is_active,
@@ -175,6 +184,9 @@ export default function AdminPlans() {
       loadPlans()
     } catch (err) {
       console.error('Erro ao salvar plano:', err)
+      setSaveError(err instanceof Error ? err.message : 'Erro ao salvar plano')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -712,9 +724,24 @@ export default function AdminPlans() {
               </div>
             </div>
 
+            {saveError && (
+              <div style={{
+                padding: '12px 16px',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                color: '#ef4444',
+                fontSize: '13px',
+                marginTop: '16px',
+              }}>
+                {saveError}
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowModal(false)}
+                disabled={saving}
                 style={{
                   padding: '12px 24px',
                   borderRadius: '10px',
@@ -722,14 +749,16 @@ export default function AdminPlans() {
                   backgroundColor: 'transparent',
                   color: 'var(--text-primary)',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: saving ? 'not-allowed' : 'pointer',
                   width: isMobile ? '100%' : 'auto',
+                  opacity: saving ? 0.5 : 1,
                 }}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSavePlan}
+                disabled={saving}
                 style={{
                   padding: '12px 24px',
                   borderRadius: '10px',
@@ -737,11 +766,12 @@ export default function AdminPlans() {
                   backgroundColor: 'var(--accent)',
                   color: '#fff',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: saving ? 'not-allowed' : 'pointer',
                   width: isMobile ? '100%' : 'auto',
+                  opacity: saving ? 0.7 : 1,
                 }}
               >
-                {editingPlan ? 'Salvar' : 'Criar Plano'}
+                {saving ? 'Salvando...' : (editingPlan ? 'Salvar' : 'Criar Plano')}
               </button>
             </div>
           </div>
