@@ -530,9 +530,9 @@ export default function LandingPage() {
         .lp-stats-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 32px;
-          max-width: 800px;
-          margin: 80px auto 0;
+          gap: 24px;
+          max-width: 700px;
+          margin: 48px auto 0;
         }
 
         /* Problem/Solution Grid */
@@ -634,9 +634,11 @@ export default function LandingPage() {
         @media (max-width: 1024px) {
           .lp-plans-grid {
             grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
           }
           .lp-benefits-grid {
             grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
           }
         }
 
@@ -652,31 +654,33 @@ export default function LandingPage() {
 
           .lp-stats-grid {
             grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-            margin-top: 48px;
+            gap: 12px;
+            margin-top: 32px;
           }
 
           .lp-problem-grid {
             grid-template-columns: 1fr;
-            gap: 24px;
+            gap: 16px;
           }
 
           .lp-steps-grid {
             grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
+            gap: 12px;
           }
 
           .lp-benefits-grid {
             grid-template-columns: 1fr;
+            gap: 12px;
           }
 
           .lp-influencers-grid {
             grid-template-columns: 1fr;
+            gap: 16px;
           }
 
           .lp-plans-grid {
             grid-template-columns: 1fr;
-            gap: 16px;
+            gap: 12px;
           }
 
           .lp-section-title {
@@ -695,7 +699,7 @@ export default function LandingPage() {
           .lp-footer-content {
             flex-direction: column;
             text-align: center;
-            gap: 24px;
+            gap: 20px;
           }
 
           /* Hide carousel, show grid on mobile */
@@ -705,20 +709,27 @@ export default function LandingPage() {
           .lp-testimonials-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 16px;
+            gap: 12px;
             padding: 0 24px;
+          }
+
+          /* Mobile section padding */
+          .lp-mobile-section {
+            padding-top: 60px !important;
+            padding-bottom: 60px !important;
           }
         }
 
         @media (max-width: 480px) {
           .lp-stats-grid {
             grid-template-columns: 1fr;
-            gap: 24px;
+            gap: 12px;
             text-align: center;
           }
 
           .lp-steps-grid {
             grid-template-columns: 1fr;
+            gap: 12px;
           }
         }
       `}</style>
@@ -907,13 +918,10 @@ export default function LandingPage() {
         ref={heroRef}
         style={{
           position: 'relative',
-          paddingTop: '140px',
-          paddingBottom: '60px',
+          paddingTop: '120px',
+          paddingBottom: '40px',
           textAlign: 'center',
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          minHeight: 'auto',
           overflow: 'hidden',
         }}
       >
@@ -940,9 +948,9 @@ export default function LandingPage() {
             gap: '10px',
             backgroundColor: 'rgba(150, 191, 72, 0.1)',
             border: '1px solid rgba(150, 191, 72, 0.25)',
-            padding: '10px 20px',
+            padding: '8px 18px',
             borderRadius: '50px',
-            marginBottom: '32px',
+            marginBottom: '24px',
           }}>
             <div className="lp-pulse-ring" style={{
               width: '8px',
@@ -957,10 +965,10 @@ export default function LandingPage() {
 
           {/* Main Headline */}
           <h1 className="lp-fade-in lp-fade-in-delay-2" style={{
-            fontSize: 'clamp(36px, 6vw, 72px)',
+            fontSize: 'clamp(32px, 5vw, 64px)',
             fontWeight: 800,
-            lineHeight: 1.05,
-            marginBottom: '28px',
+            lineHeight: 1.1,
+            marginBottom: '20px',
             letterSpacing: '-0.02em',
           }}>
             <span style={{ color: '#fff' }}>Reduza chargebacks</span>
@@ -972,10 +980,10 @@ export default function LandingPage() {
 
           {/* Subtitle */}
           <p className="lp-fade-in lp-fade-in-delay-3" style={{
-            fontSize: 'clamp(16px, 2vw, 20px)',
+            fontSize: 'clamp(16px, 2vw, 18px)',
             color: 'rgba(255,255,255,0.5)',
-            maxWidth: '600px',
-            margin: '0 auto 48px',
+            maxWidth: '550px',
+            margin: '0 auto 36px',
             lineHeight: 1.7,
             fontWeight: 400,
           }}>
@@ -1055,7 +1063,7 @@ export default function LandingPage() {
 
       {/* Dashboard Preview Section */}
       <section style={{
-        padding: '20px 24px 120px',
+        padding: '60px 24px 80px',
         position: 'relative',
       }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
@@ -1139,7 +1147,7 @@ export default function LandingPage() {
 
       {/* Problema/Solução */}
       <section style={{
-        padding: '100px 24px',
+        padding: '80px 24px',
         position: 'relative',
       }}>
         {/* Background Orb */}
@@ -1261,7 +1269,7 @@ export default function LandingPage() {
       <div className="lp-section-divider" />
 
       {/* Como funciona */}
-      <section id="como-funciona" style={{ padding: '100px 24px' }}>
+      <section id="como-funciona" style={{ padding: '80px 24px' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
           <div style={{
             display: 'inline-flex',
@@ -1279,19 +1287,18 @@ export default function LandingPage() {
           </div>
 
           <h2 className="lp-section-title" style={{
-            fontSize: '40px',
+            fontSize: '36px',
             fontWeight: 800,
-            marginBottom: '16px',
+            marginBottom: '12px',
             letterSpacing: '-0.02em',
           }}>
             Como a Replyna funciona
           </h2>
           <p style={{
-            fontSize: '17px',
+            fontSize: '16px',
             color: 'rgba(255,255,255,0.4)',
-            marginBottom: '60px',
             maxWidth: '500px',
-            margin: '0 auto 60px',
+            margin: '0 auto 40px',
           }}>
             Configure em minutos, proteja seu negócio para sempre
           </p>
@@ -1355,7 +1362,7 @@ export default function LandingPage() {
 
       {/* Benefícios */}
       <section style={{
-        padding: '100px 24px',
+        padding: '80px 24px',
         position: 'relative',
       }}>
         <div className="lp-orb" style={{
@@ -1383,19 +1390,18 @@ export default function LandingPage() {
           </div>
 
           <h2 className="lp-section-title" style={{
-            fontSize: '40px',
+            fontSize: '36px',
             fontWeight: 800,
-            marginBottom: '16px',
+            marginBottom: '12px',
             letterSpacing: '-0.02em',
           }}>
             Por que escolher a Replyna
           </h2>
           <p style={{
-            fontSize: '17px',
+            fontSize: '16px',
             color: 'rgba(255,255,255,0.4)',
-            marginBottom: '60px',
             maxWidth: '500px',
-            margin: '0 auto 60px',
+            margin: '0 auto 40px',
           }}>
             Feita especialmente para dropshippers que usam Shopify Payments
           </p>
@@ -1442,7 +1448,7 @@ export default function LandingPage() {
       <div className="lp-section-divider" />
 
       {/* Quem usa */}
-      <section style={{ padding: '100px 24px' }}>
+      <section style={{ padding: '80px 24px' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
           <div style={{
             display: 'inline-flex',
@@ -1460,19 +1466,18 @@ export default function LandingPage() {
           </div>
 
           <h2 className="lp-section-title" style={{
-            fontSize: '40px',
+            fontSize: '36px',
             fontWeight: 800,
-            marginBottom: '16px',
+            marginBottom: '12px',
             letterSpacing: '-0.02em',
           }}>
             Quem usa a <span className="lp-number">Replyna</span>
           </h2>
           <p style={{
-            fontSize: '17px',
+            fontSize: '16px',
             color: 'rgba(255,255,255,0.4)',
-            marginBottom: '60px',
             maxWidth: '500px',
-            margin: '0 auto 60px',
+            margin: '0 auto 40px',
           }}>
             De pequenas a grandes operações, todos confiam na gente
           </p>
@@ -1579,7 +1584,7 @@ export default function LandingPage() {
 
       {/* Preços */}
       <section id="precos" style={{
-        padding: '100px 24px',
+        padding: '80px 24px',
         position: 'relative',
       }}>
         <div className="lp-orb" style={{
@@ -1607,19 +1612,18 @@ export default function LandingPage() {
           </div>
 
           <h2 className="lp-section-title" style={{
-            fontSize: '40px',
+            fontSize: '36px',
             fontWeight: 800,
-            marginBottom: '16px',
+            marginBottom: '12px',
             letterSpacing: '-0.02em',
           }}>
             Planos e preços
           </h2>
           <p style={{
-            fontSize: '17px',
+            fontSize: '16px',
             color: 'rgba(255,255,255,0.4)',
-            marginBottom: '60px',
             maxWidth: '500px',
-            margin: '0 auto 60px',
+            margin: '0 auto 40px',
           }}>
             Escolha o plano ideal para o tamanho da sua operação
           </p>
@@ -1806,7 +1810,7 @@ export default function LandingPage() {
 
       {/* Depoimentos */}
       <section style={{
-        padding: '100px 0',
+        padding: '80px 0',
         overflow: 'hidden',
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
@@ -1826,9 +1830,9 @@ export default function LandingPage() {
           </div>
 
           <h2 className="lp-section-title" style={{
-            fontSize: '40px',
+            fontSize: '36px',
             fontWeight: 800,
-            marginBottom: '16px',
+            marginBottom: '12px',
             letterSpacing: '-0.02em',
           }}>
             O que nossos clientes dizem
@@ -1836,7 +1840,7 @@ export default function LandingPage() {
           <p style={{
             fontSize: '17px',
             color: 'rgba(255,255,255,0.4)',
-            marginBottom: '60px',
+            marginBottom: '40px',
           }}>
             Resultados reais de quem já usa a Replyna
           </p>
@@ -1906,10 +1910,10 @@ export default function LandingPage() {
 
       {/* FAQ */}
       <section id="faq" style={{
-        padding: '100px 24px',
+        padding: '80px 24px',
       }}>
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -1917,7 +1921,7 @@ export default function LandingPage() {
               backgroundColor: 'rgba(6, 182, 212, 0.1)',
               padding: '8px 16px',
               borderRadius: '50px',
-              marginBottom: '20px',
+              marginBottom: '16px',
             }}>
               <MessageSquare size={14} color="#06b6d4" />
               <span style={{ fontSize: '13px', color: '#06b6d4', fontWeight: 600 }}>
@@ -1926,15 +1930,15 @@ export default function LandingPage() {
             </div>
 
             <h2 className="lp-section-title" style={{
-              fontSize: '40px',
+              fontSize: '36px',
               fontWeight: 800,
-              marginBottom: '16px',
+              marginBottom: '12px',
               letterSpacing: '-0.02em',
             }}>
               Perguntas frequentes
             </h2>
             <p style={{
-              fontSize: '17px',
+              fontSize: '16px',
               color: 'rgba(255,255,255,0.4)',
             }}>
               Tire suas dúvidas sobre a Replyna
@@ -2006,7 +2010,7 @@ export default function LandingPage() {
 
       {/* CTA Final */}
       <section style={{
-        padding: '120px 24px',
+        padding: '80px 24px',
         textAlign: 'center',
         position: 'relative',
         overflow: 'hidden',
