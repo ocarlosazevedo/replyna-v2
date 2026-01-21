@@ -29,15 +29,20 @@ interface Shop {
   created_at: string
 }
 
-type ShopFilter = 'all' | 'active' | 'paused' | 'cod' | 'non-cod' | 'frozen'
+type StatusFilter = 'all' | 'active' | 'paused' | 'frozen'
+type BusinessFilter = 'all' | 'cod' | 'non-cod'
 
-const filterOptions: { value: ShopFilter; label: string }[] = [
-  { value: 'all', label: 'Todas as lojas' },
+const statusFilterOptions: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'Todos os status' },
   { value: 'active', label: 'Ativas' },
   { value: 'paused', label: 'Pausadas' },
+  { value: 'frozen', label: 'Congeladas' },
+]
+
+const businessFilterOptions: { value: BusinessFilter; label: string }[] = [
+  { value: 'all', label: 'Todos os modelos' },
   { value: 'cod', label: 'COD' },
   { value: 'non-cod', label: 'Não-COD' },
-  { value: 'frozen', label: 'Congeladas' },
 ]
 
 export default function Shops() {
@@ -47,8 +52,10 @@ export default function Shops() {
   const [loading, setLoading] = useState(true)
   const [shopsLimit, setShopsLimit] = useState<number | null>(null) // null = ainda carregando ou ilimitado
   const [limitsLoaded, setLimitsLoaded] = useState(false)
-  const [filter, setFilter] = useState<ShopFilter>('all')
-  const [showDropdown, setShowDropdown] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [businessFilter, setBusinessFilter] = useState<BusinessFilter>('all')
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
+  const [showBusinessDropdown, setShowBusinessDropdown] = useState(false)
   const isMobile = useIsMobile()
 
   // Verificar se é ilimitado (só após carregar os limites)
@@ -74,36 +81,56 @@ export default function Shops() {
 
   const hasFrozenShops = frozenShopIds.size > 0
 
-  // Filtrar lojas
+  // Filtrar lojas (combina ambos os filtros)
   const filteredShops = sortedShops.filter((shop) => {
     const isFrozen = frozenShopIds.has(shop.id)
 
-    switch (filter) {
-      case 'all':
-        return true
+    // Filtro de status
+    let passesStatusFilter = true
+    switch (statusFilter) {
       case 'active':
-        return shop.is_active && !isFrozen
+        passesStatusFilter = shop.is_active && !isFrozen
+        break
       case 'paused':
-        return !shop.is_active
-      case 'cod':
-        return shop.is_cod
-      case 'non-cod':
-        return !shop.is_cod
+        passesStatusFilter = !shop.is_active
+        break
       case 'frozen':
-        return isFrozen
+        passesStatusFilter = isFrozen
+        break
+      case 'all':
       default:
-        return true
+        passesStatusFilter = true
     }
+
+    // Filtro de modelo de negócio
+    let passesBusinessFilter = true
+    switch (businessFilter) {
+      case 'cod':
+        passesBusinessFilter = shop.is_cod
+        break
+      case 'non-cod':
+        passesBusinessFilter = !shop.is_cod
+        break
+      case 'all':
+      default:
+        passesBusinessFilter = true
+    }
+
+    return passesStatusFilter && passesBusinessFilter
   })
 
-  // Contadores para o dropdown
-  const counts = {
+  // Contadores para os dropdowns
+  const statusCounts = {
     all: shops.length,
     active: activeShops.filter(s => !frozenShopIds.has(s.id)).length,
     paused: shops.filter(s => !s.is_active).length,
+    frozen: frozenShopIds.size,
+  }
+
+  const businessCounts = {
+    all: shops.length,
     cod: shops.filter(s => s.is_cod).length,
     'non-cod': shops.filter(s => !s.is_cod).length,
-    frozen: frozenShopIds.size,
   }
 
   useEffect(() => {
@@ -111,12 +138,15 @@ export default function Shops() {
     loadUserLimit()
   }, [user])
 
-  // Fechar dropdown ao clicar fora
+  // Fechar dropdowns ao clicar fora
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement
-      if (!target.closest('.filter-dropdown')) {
-        setShowDropdown(false)
+      if (!target.closest('.status-filter-dropdown')) {
+        setShowStatusDropdown(false)
+      }
+      if (!target.closest('.business-filter-dropdown')) {
+        setShowBusinessDropdown(false)
       }
     }
     document.addEventListener('click', handleClickOutside)
@@ -259,7 +289,8 @@ export default function Shops() {
   // Verificar se pode adicionar mais lojas (ilimitado ou abaixo do limite)
   const canAddMoreShops = isUnlimited || shops.length < (shopsLimit ?? 0)
 
-  const selectedFilterLabel = filterOptions.find(f => f.value === filter)?.label || 'Todas as lojas'
+  const selectedStatusLabel = statusFilterOptions.find(f => f.value === statusFilter)?.label || 'Todos os status'
+  const selectedBusinessLabel = businessFilterOptions.find(f => f.value === businessFilter)?.label || 'Todos os modelos'
 
   return (
     <div>
@@ -332,15 +363,19 @@ export default function Shops() {
         </div>
       )}
 
-      {/* Filtro em Dropdown */}
+      {/* Filtros em Dropdown */}
       {shops.length > 0 && (
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          {/* Filtro de Status */}
           <div
-            className="filter-dropdown"
+            className="status-filter-dropdown"
             style={{ position: 'relative', display: 'inline-block' }}
           >
             <button
-              onClick={() => setShowDropdown(!showDropdown)}
+              onClick={() => {
+                setShowStatusDropdown(!showStatusDropdown)
+                setShowBusinessDropdown(false)
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -357,18 +392,18 @@ export default function Shops() {
                 justifyContent: 'space-between',
               }}
             >
-              <span>{selectedFilterLabel} ({counts[filter]})</span>
+              <span>{selectedStatusLabel} ({statusCounts[statusFilter]})</span>
               <ChevronDown
                 size={18}
                 style={{
-                  transform: showDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transform: showStatusDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.2s ease',
                   color: 'var(--text-secondary)',
                 }}
               />
             </button>
 
-            {showDropdown && (
+            {showStatusDropdown && (
               <div style={{
                 position: 'absolute',
                 top: '100%',
@@ -382,16 +417,16 @@ export default function Shops() {
                 minWidth: '200px',
                 overflow: 'hidden',
               }}>
-                {filterOptions.map((option) => {
+                {statusFilterOptions.map((option) => {
                   // Esconder opção "Congeladas" se não houver lojas congeladas
-                  if (option.value === 'frozen' && counts.frozen === 0) return null
+                  if (option.value === 'frozen' && statusCounts.frozen === 0) return null
 
                   return (
                     <button
                       key={option.value}
                       onClick={() => {
-                        setFilter(option.value)
-                        setShowDropdown(false)
+                        setStatusFilter(option.value)
+                        setShowStatusDropdown(false)
                       }}
                       style={{
                         display: 'flex',
@@ -400,8 +435,8 @@ export default function Shops() {
                         width: '100%',
                         padding: '12px 16px',
                         border: 'none',
-                        backgroundColor: filter === option.value ? 'rgba(70, 114, 236, 0.1)' : 'transparent',
-                        color: filter === option.value ? 'var(--accent)' : 'var(--text-primary)',
+                        backgroundColor: statusFilter === option.value ? 'rgba(70, 114, 236, 0.1)' : 'transparent',
+                        color: statusFilter === option.value ? 'var(--accent)' : 'var(--text-primary)',
                         fontSize: '14px',
                         cursor: 'pointer',
                         textAlign: 'left',
@@ -418,11 +453,99 @@ export default function Shops() {
                         padding: '2px 8px',
                         borderRadius: '9999px',
                       }}>
-                        {counts[option.value]}
+                        {statusCounts[option.value]}
                       </span>
                     </button>
                   )
                 })}
+              </div>
+            )}
+          </div>
+
+          {/* Filtro de Modelo de Negócio */}
+          <div
+            className="business-filter-dropdown"
+            style={{ position: 'relative', display: 'inline-block' }}
+          >
+            <button
+              onClick={() => {
+                setShowBusinessDropdown(!showBusinessDropdown)
+                setShowStatusDropdown(false)
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 16px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                fontSize: '14px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                minWidth: '160px',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span>{selectedBusinessLabel} ({businessCounts[businessFilter]})</span>
+              <ChevronDown
+                size={18}
+                style={{
+                  transform: showBusinessDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease',
+                  color: 'var(--text-secondary)',
+                }}
+              />
+            </button>
+
+            {showBusinessDropdown && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                marginTop: '4px',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '10px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                zIndex: 100,
+                minWidth: '180px',
+                overflow: 'hidden',
+              }}>
+                {businessFilterOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setBusinessFilter(option.value)
+                      setShowBusinessDropdown(false)
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: 'none',
+                      backgroundColor: businessFilter === option.value ? 'rgba(70, 114, 236, 0.1)' : 'transparent',
+                      color: businessFilter === option.value ? 'var(--accent)' : 'var(--text-primary)',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span>{option.label}</span>
+                    <span style={{
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)',
+                      backgroundColor: 'var(--border-color)',
+                      padding: '2px 8px',
+                      borderRadius: '9999px',
+                    }}>
+                      {businessCounts[option.value]}
+                    </span>
+                  </button>
+                ))}
               </div>
             )}
           </div>

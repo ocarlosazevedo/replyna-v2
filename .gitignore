@@ -8,3 +8,5 @@ build/
 .vercel/
 coverage/
 
+.vercel
+.env*.local
