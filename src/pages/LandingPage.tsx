@@ -635,6 +635,14 @@ export default function LandingPage() {
           max-width: 1200px;
         }
 
+        /* Dashboard Preview Grid */
+        .lp-dashboard-preview {
+          display: grid;
+          grid-template-columns: 1fr 1.3fr;
+          gap: 60px;
+          align-items: center;
+        }
+
         /* Mobile Styles */
         @media (max-width: 1280px) {
           .lp-plans-grid {
@@ -729,6 +737,12 @@ export default function LandingPage() {
           .lp-mobile-section {
             padding-top: 60px !important;
             padding-bottom: 60px !important;
+          }
+
+          /* Dashboard Preview Mobile */
+          .lp-dashboard-preview {
+            grid-template-columns: 1fr;
+            gap: 40px;
           }
         }
 
@@ -1073,82 +1087,281 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Dashboard Preview Section */}
+      {/* Dashboard Preview Section - Estilo Zouti */}
       <section style={{
-        padding: '60px 24px 80px',
+        padding: '80px 24px',
         position: 'relative',
+        backgroundColor: '#0a0f0a',
       }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div className="lp-glow-blue lp-gradient-border" style={{
-            padding: '4px',
-            position: 'relative',
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div className="lp-dashboard-preview" style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1.3fr',
+            gap: '60px',
+            alignItems: 'center',
           }}>
-            {/* Browser Chrome */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '14px 18px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              backgroundColor: 'rgba(0,0,0,0.3)',
-              borderRadius: '18px 18px 0 0',
-            }}>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ff5f57' }} />
-                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#febc2e' }} />
-                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#28c840' }} />
-              </div>
-              <div style={{
-                flex: 1,
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                borderRadius: '8px',
-                padding: '8px 14px',
-                fontSize: '13px',
-                color: 'rgba(255,255,255,0.3)',
-                marginLeft: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
+            {/* Left - Text Content */}
+            <div>
+              <h2 style={{
+                fontSize: 'clamp(28px, 4vw, 42px)',
+                fontWeight: 800,
+                lineHeight: 1.15,
+                marginBottom: '24px',
+                color: '#fff',
               }}>
-                <div style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)' }} />
-                app.replyna.me/dashboard
-              </div>
-            </div>
-            {/* Screenshot placeholder */}
-            <div style={{
-              aspectRatio: '16/9',
-              backgroundColor: '#0a0a12',
-              borderRadius: '0 0 18px 18px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-            }}>
-              <img
-                src="/dashboard-preview.png"
-                alt="Dashboard Replyna"
+                Reverta chargebacks antes que eles aconteçam.
+              </h2>
+              <p style={{
+                fontSize: '16px',
+                color: 'rgba(255,255,255,0.5)',
+                lineHeight: 1.7,
+                marginBottom: '32px',
+              }}>
+                Nossa IA analisa sinais de risco, detecta insatisfação, prioriza casos críticos e entrega a solução ideal automaticamente. Ela cuida da sua operação 24/7, enquanto você mantém o foco no que realmente importa.
+              </p>
+
+              {/* CTA Button */}
+              <a
+                href="#precos"
+                onClick={(e) => scrollToSection(e, 'precos')}
                 style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  backgroundColor: '#fff',
+                  color: '#0a0f0a',
+                  padding: '16px 28px',
+                  borderRadius: '12px',
+                  textDecoration: 'none',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  marginBottom: '32px',
+                  transition: 'all 0.3s ease',
                 }}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.style.display = 'none'
-                  const parent = target.parentElement
-                  if (parent) {
-                    parent.innerHTML = `
-                      <div style="text-align: center; padding: 60px 40px;">
-                        <div style="width: 80px; height: 80px; margin: 0 auto 24px; border-radius: 20px; background: linear-gradient(135deg, rgba(70, 114, 236, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%); display: flex; align-items: center; justify-content: center;">
-                          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4672ec" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-                        </div>
-                        <div style="font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 8px;">Dashboard intuitivo</div>
-                        <div style="font-size: 15px; color: rgba(255,255,255,0.4); max-width: 300px; margin: 0 auto;">Gerencie suas lojas, visualize emails e métricas em tempo real</div>
-                      </div>
-                    `
-                  }
-                }}
-              />
+              >
+                <Shield size={18} />
+                Proteger o meu lucro agora!
+              </a>
+
+              {/* Trust Badges */}
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                {[
+                  { icon: <Shield size={14} />, text: 'LGPD Compliance' },
+                  { icon: <Zap size={14} />, text: '99.9% Uptime' },
+                  { icon: <CheckCircle2 size={14} />, text: 'ISO 27001' },
+                ].map((badge, i) => (
+                  <div key={i} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    fontSize: '13px',
+                    color: 'rgba(255,255,255,0.7)',
+                  }}>
+                    {badge.icon}
+                    {badge.text}
+                  </div>
+                ))}
+              </div>
+
+              {/* Small Text */}
+              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)' }}>
+                Integração em minutos · Retorno imediato · Zero burocracia
+              </p>
+            </div>
+
+            {/* Right - Dashboard Mockup */}
+            <div style={{
+              backgroundColor: '#111827',
+              borderRadius: '16px',
+              padding: '20px',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 25px 80px rgba(0,0,0,0.5)',
+            }}>
+              {/* Dashboard Header */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px',
+                paddingBottom: '16px',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      backgroundColor: '#4672ec',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <TrendingUp size={16} color="#fff" />
+                    </div>
+                    <span style={{ fontSize: '16px', fontWeight: 700, color: '#fff' }}>Dashboard</span>
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Visão geral do atendimento automatizado</span>
+                </div>
+                <div style={{
+                  padding: '8px 14px',
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  color: 'rgba(255,255,255,0.6)',
+                }}>
+                  Todas as lojas
+                </div>
+              </div>
+
+              {/* Period Selector */}
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                marginBottom: '16px',
+                padding: '4px',
+                backgroundColor: 'rgba(255,255,255,0.03)',
+                borderRadius: '10px',
+                width: 'fit-content',
+              }}>
+                {['Hoje', '7 dias', '30 dias', '90 dias'].map((period, i) => (
+                  <div key={i} style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    backgroundColor: i === 1 ? '#4672ec' : 'transparent',
+                    color: i === 1 ? '#fff' : 'rgba(255,255,255,0.5)',
+                    cursor: 'pointer',
+                  }}>
+                    {period}
+                  </div>
+                ))}
+              </div>
+
+              {/* Main Stats Card */}
+              <div style={{
+                backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                border: '1px solid rgba(34, 197, 94, 0.2)',
+                borderRadius: '12px',
+                padding: '16px',
+                marginBottom: '12px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <TrendingUp size={16} color="#22c55e" />
+                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Economia Total</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                  <span style={{ fontSize: '28px', fontWeight: 800, color: '#fff' }}>R$ 17.376,25</span>
+                  <span style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: '#22c55e',
+                    backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                  }}>+22.7%</span>
+                </div>
+                <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+                  <div style={{ flex: 1, padding: '10px', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <Mail size={12} color="#4672ec" />
+                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>Respondidos</span>
+                    </div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff' }}>R$ 1.036,00</div>
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>560 emails · 46h 40min</div>
+                  </div>
+                  <div style={{ flex: 1, padding: '10px', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <CheckCircle2 size={12} color="#22c55e" />
+                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>Resolvidos</span>
+                    </div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff' }}>R$ 16.340,25</div>
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>36 requisições · 80% resolvido</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mini Stats Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
+                {[
+                  { label: 'Total de E-mails', value: '560', sub: '560 respondidos · 0 pendentes', change: '+1091.5%', changeColor: '#22c55e' },
+                  { label: 'Taxa de Automação', value: '99%', sub: '560 IA · 0 Humano', badge: 'Excelente' },
+                  { label: 'Tempo Economizado', value: '46.7h', sub: 'Com automação (5min/email)', badge: 'Excelente' },
+                ].map((stat, i) => (
+                  <div key={i} style={{
+                    padding: '12px',
+                    backgroundColor: 'rgba(255,255,255,0.02)',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>{stat.label}</span>
+                      {stat.badge && (
+                        <span style={{
+                          fontSize: '9px',
+                          fontWeight: 600,
+                          color: '#22c55e',
+                          backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                        }}>{stat.badge}</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#fff', marginBottom: '2px' }}>{stat.value}</div>
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>{stat.sub}</div>
+                    {stat.change && (
+                      <div style={{ fontSize: '10px', color: stat.changeColor, marginTop: '4px' }}>↗ {stat.change} vs. período anterior</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Chart Area */}
+              <div style={{
+                padding: '14px',
+                backgroundColor: 'rgba(255,255,255,0.02)',
+                borderRadius: '10px',
+                border: '1px solid rgba(255,255,255,0.05)',
+              }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>Atividade do Período</div>
+                {/* Simple Line Chart Visualization */}
+                <div style={{ height: '80px', display: 'flex', alignItems: 'flex-end', gap: '4px', paddingBottom: '20px', position: 'relative' }}>
+                  {[30, 45, 60, 75, 65, 80, 90, 85, 95, 88, 92, 85].map((height, i) => (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div style={{
+                        width: '100%',
+                        height: `${height}%`,
+                        background: 'linear-gradient(180deg, #22c55e 0%, rgba(34, 197, 94, 0.3) 100%)',
+                        borderRadius: '3px 3px 0 0',
+                      }} />
+                    </div>
+                  ))}
+                  {/* X-axis labels */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '9px',
+                    color: 'rgba(255,255,255,0.3)',
+                  }}>
+                    <span>Sex</span>
+                    <span>Sab</span>
+                    <span>Dom</span>
+                    <span>Seg</span>
+                    <span>Ter</span>
+                    <span>Qua</span>
+                    <span>Qui</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
