@@ -328,7 +328,7 @@ export default function LandingPage() {
             linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
             linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
           background-size: 80px 80px;
-          mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 30%, transparent 70%);
+          mask-image: radial-gradient(ellipse 100% 100% at 50% 0%, black 50%, transparent 90%);
           z-index: 0;
         }
 
