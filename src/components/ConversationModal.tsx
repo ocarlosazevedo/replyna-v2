@@ -322,7 +322,6 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
   if (!conversationId) return null
 
   const isSpam = conversation?.category === 'spam'
-  const wasSpam = conversation?.category !== 'spam' && messages.some(m => m.category === 'spam')
 
   return (
     <div
