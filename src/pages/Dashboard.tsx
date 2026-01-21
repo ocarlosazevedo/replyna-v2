@@ -568,6 +568,8 @@ export default function Dashboard() {
   const emailsUsed = profile?.emails_used ?? 0
   const isUnlimited = emailsLimit === null
   const usagePercent = emailsLimit ? Math.min((emailsUsed / emailsLimit) * 100, 100) : 0
+  const shopsLimit = profile?.shops_limit  // null = ilimitado
+  const isShopsUnlimited = shopsLimit === null
 
   const shopName = profile?.name || user?.user_metadata?.name || 'Cliente'
 
@@ -1005,7 +1007,13 @@ export default function Dashboard() {
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Lojas ativas</div>
                 <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
-                  {formatNumber(shops.length)}
+                  {isShopsUnlimited ? (
+                    <>
+                      {formatNumber(shops.length)} de <span style={{ color: '#22c55e' }}>Ilimitado</span>
+                    </>
+                  ) : (
+                    <>{formatNumber(shops.length)} de {formatNumber(shopsLimit ?? 0)}</>
+                  )}
                 </div>
               </div>
             </div>
