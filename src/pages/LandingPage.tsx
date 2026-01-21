@@ -1101,16 +1101,15 @@ export default function LandingPage() {
             </div>
 
             {/* Right: Dashboard Preview */}
-            <div className="lp-fade-in lp-fade-in-delay-3" style={{ display: 'flex' }}>
+            <div className="lp-fade-in lp-fade-in-delay-3" style={{ height: '100%' }}>
               <div className="lp-glow-blue" style={{
                 position: 'relative',
                 borderRadius: '20px',
                 border: '1px solid rgba(255,255,255,0.1)',
                 overflow: 'hidden',
                 background: '#0f172a',
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
+                height: '100%',
+                boxSizing: 'border-box',
               }}>
                 {/* Browser Chrome */}
                 <div style={{
@@ -1145,9 +1144,6 @@ export default function LandingPage() {
                 {/* Dashboard Mockup Compacto */}
                 <div style={{
                   padding: '16px',
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
                 }}>
                   {/* Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
