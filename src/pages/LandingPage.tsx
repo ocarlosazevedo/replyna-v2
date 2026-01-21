@@ -568,7 +568,12 @@ export default function LandingPage() {
         .lp-plans-grid {
           display: grid;
           grid-template-columns: repeat(5, 1fr);
-          gap: 16px;
+          gap: 20px;
+          align-items: stretch;
+        }
+        .lp-plans-grid > * {
+          display: flex;
+          flex-direction: column;
         }
 
         /* Testimonials Grid for Mobile */
@@ -631,10 +636,17 @@ export default function LandingPage() {
         }
 
         /* Mobile Styles */
-        @media (max-width: 1024px) {
+        @media (max-width: 1280px) {
           .lp-plans-grid {
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+            gap: 16px;
+          }
+        }
+
+        @media (max-width: 1024px) {
+          .lp-plans-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
           }
           .lp-benefits-grid {
             grid-template-columns: repeat(2, 1fr);
@@ -1636,22 +1648,12 @@ export default function LandingPage() {
 
           <div className="lp-plans-grid">
             {plans.map((plan, i) => (
-              <div key={i} className={`lp-card-shine ${plan.popular ? '' : 'lp-gradient-border'}`} style={{
-                padding: '28px 22px',
-                position: 'relative',
-                textAlign: 'left',
-                display: 'flex',
-                flexDirection: 'column',
-                background: plan.popular
-                  ? 'linear-gradient(180deg, rgba(70, 114, 236, 0.1) 0%, rgba(70, 114, 236, 0.02) 100%)'
-                  : 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                border: plan.popular ? '2px solid rgba(70, 114, 236, 0.5)' : undefined,
-                borderRadius: '20px',
-              }}>
+              <div key={i} style={{ position: 'relative', paddingTop: plan.popular ? '14px' : '0' }}>
+                {/* Popular badge outside card */}
                 {plan.popular && (
                   <div style={{
                     position: 'absolute',
-                    top: '-14px',
+                    top: '0',
                     left: '50%',
                     transform: 'translateX(-50%)',
                     background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
@@ -1665,15 +1667,29 @@ export default function LandingPage() {
                     gap: '6px',
                     whiteSpace: 'nowrap',
                     boxShadow: '0 4px 15px rgba(245, 158, 11, 0.3)',
+                    zIndex: 10,
                   }}>
                     <Star size={12} fill="#fff" />
                     Popular
                   </div>
                 )}
-
-                <h3 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '4px', marginTop: plan.popular ? '8px' : 0 }}>
-                  {plan.name}
-                </h3>
+                {/* Card */}
+                <div className={`lp-card-shine ${plan.popular ? '' : 'lp-gradient-border'}`} style={{
+                  padding: '28px 22px',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  boxSizing: 'border-box',
+                  background: plan.popular
+                    ? 'linear-gradient(180deg, rgba(70, 114, 236, 0.1) 0%, rgba(70, 114, 236, 0.02) 100%)'
+                    : 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+                  border: plan.popular ? '2px solid rgba(70, 114, 236, 0.5)' : undefined,
+                  borderRadius: '20px',
+                }}>
+                  <h3 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '4px' }}>
+                    {plan.name}
+                  </h3>
 
                 <p style={{
                   fontSize: '14px',
@@ -1805,6 +1821,7 @@ export default function LandingPage() {
                     <ArrowRight size={16} />
                   </Link>
                 )}
+                </div>
               </div>
             ))}
           </div>
