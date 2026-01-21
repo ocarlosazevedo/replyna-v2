@@ -1087,278 +1087,238 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Dashboard Preview Section - Estilo Zouti */}
+      {/* Dashboard Preview Section */}
       <section style={{
-        padding: '80px 24px',
+        padding: '60px 24px 80px',
         position: 'relative',
-        backgroundColor: '#0a0f0a',
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div className="lp-dashboard-preview" style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1.3fr',
-            gap: '60px',
-            alignItems: 'center',
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div className="lp-glow-blue lp-gradient-border" style={{
+            padding: '4px',
+            position: 'relative',
           }}>
-            {/* Left - Text Content */}
-            <div>
-              <h2 style={{
-                fontSize: 'clamp(28px, 4vw, 42px)',
-                fontWeight: 800,
-                lineHeight: 1.15,
-                marginBottom: '24px',
-                color: '#fff',
-              }}>
-                Reverta chargebacks antes que eles aconteçam.
-              </h2>
-              <p style={{
-                fontSize: '16px',
-                color: 'rgba(255,255,255,0.5)',
-                lineHeight: 1.7,
-                marginBottom: '32px',
-              }}>
-                Nossa IA analisa sinais de risco, detecta insatisfação, prioriza casos críticos e entrega a solução ideal automaticamente. Ela cuida da sua operação 24/7, enquanto você mantém o foco no que realmente importa.
-              </p>
-
-              {/* CTA Button */}
-              <a
-                href="#precos"
-                onClick={(e) => scrollToSection(e, 'precos')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  backgroundColor: '#fff',
-                  color: '#0a0f0a',
-                  padding: '16px 28px',
-                  borderRadius: '12px',
-                  textDecoration: 'none',
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  marginBottom: '32px',
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                <Shield size={18} />
-                Proteger o meu lucro agora!
-              </a>
-
-              {/* Trust Badges */}
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '24px' }}>
-                {[
-                  { icon: <Shield size={14} />, text: 'LGPD Compliance' },
-                  { icon: <Zap size={14} />, text: '99.9% Uptime' },
-                  { icon: <CheckCircle2 size={14} />, text: 'ISO 27001' },
-                ].map((badge, i) => (
-                  <div key={i} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    backgroundColor: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    fontSize: '13px',
-                    color: 'rgba(255,255,255,0.7)',
-                  }}>
-                    {badge.icon}
-                    {badge.text}
-                  </div>
-                ))}
-              </div>
-
-              {/* Small Text */}
-              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)' }}>
-                Integração em minutos · Retorno imediato · Zero burocracia
-              </p>
-            </div>
-
-            {/* Right - Dashboard Mockup */}
+            {/* Browser Chrome */}
             <div style={{
-              backgroundColor: '#111827',
-              borderRadius: '16px',
-              padding: '20px',
-              border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: '0 25px 80px rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              backgroundColor: 'rgba(0,0,0,0.3)',
+              borderRadius: '18px 18px 0 0',
             }}>
-              {/* Dashboard Header */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ff5f57' }} />
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#febc2e' }} />
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#28c840' }} />
+              </div>
               <div style={{
+                flex: 1,
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                borderRadius: '8px',
+                padding: '8px 14px',
+                fontSize: '13px',
+                color: 'rgba(255,255,255,0.3)',
+                marginLeft: '16px',
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '16px',
-                paddingBottom: '16px',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                gap: '8px',
               }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                <div style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)' }} />
+                app.replyna.me/dashboard
+              </div>
+            </div>
+            {/* Dashboard Mockup - Fiel ao app real */}
+            <div style={{
+              backgroundColor: '#0f172a',
+              borderRadius: '0 0 18px 18px',
+              padding: '24px',
+              minHeight: '500px',
+            }}>
+              {/* Sidebar + Content Layout */}
+              <div style={{ display: 'flex', gap: '24px' }}>
+                {/* Sidebar */}
+                <div style={{ width: '200px', flexShrink: 0 }}>
+                  {/* Logo */}
+                  <div style={{ marginBottom: '32px' }}>
+                    <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '28px', width: 'auto' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                  </div>
+                  {/* Menu Items */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      backgroundColor: '#4672ec',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
+                      gap: '12px',
+                      padding: '12px 16px',
+                      backgroundColor: '#ef4444',
+                      borderRadius: '10px',
+                      color: '#fff',
+                      fontSize: '14px',
+                      fontWeight: 500,
                     }}>
-                      <TrendingUp size={16} color="#fff" />
+                      <TrendingUp size={18} />
+                      Painel de controle
                     </div>
-                    <span style={{ fontSize: '16px', fontWeight: 700, color: '#fff' }}>Dashboard</span>
-                  </div>
-                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Visão geral do atendimento automatizado</span>
-                </div>
-                <div style={{
-                  padding: '8px 14px',
-                  backgroundColor: 'rgba(255,255,255,0.05)',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  color: 'rgba(255,255,255,0.6)',
-                }}>
-                  Todas as lojas
-                </div>
-              </div>
-
-              {/* Period Selector */}
-              <div style={{
-                display: 'flex',
-                gap: '8px',
-                marginBottom: '16px',
-                padding: '4px',
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                borderRadius: '10px',
-                width: 'fit-content',
-              }}>
-                {['Hoje', '7 dias', '30 dias', '90 dias'].map((period, i) => (
-                  <div key={i} style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    backgroundColor: i === 1 ? '#4672ec' : 'transparent',
-                    color: i === 1 ? '#fff' : 'rgba(255,255,255,0.5)',
-                    cursor: 'pointer',
-                  }}>
-                    {period}
-                  </div>
-                ))}
-              </div>
-
-              {/* Main Stats Card */}
-              <div style={{
-                backgroundColor: 'rgba(34, 197, 94, 0.08)',
-                border: '1px solid rgba(34, 197, 94, 0.2)',
-                borderRadius: '12px',
-                padding: '16px',
-                marginBottom: '12px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <TrendingUp size={16} color="#22c55e" />
-                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Economia Total</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                  <span style={{ fontSize: '28px', fontWeight: 800, color: '#fff' }}>R$ 17.376,25</span>
-                  <span style={{
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#22c55e',
-                    backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                  }}>+22.7%</span>
-                </div>
-                <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
-                  <div style={{ flex: 1, padding: '10px', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                      <Mail size={12} color="#4672ec" />
-                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>Respondidos</span>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px 16px',
+                      color: 'rgba(255,255,255,0.5)',
+                      fontSize: '14px',
+                    }}>
+                      <Store size={18} />
+                      Minhas lojas
                     </div>
-                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff' }}>R$ 1.036,00</div>
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>560 emails · 46h 40min</div>
-                  </div>
-                  <div style={{ flex: 1, padding: '10px', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                      <CheckCircle2 size={12} color="#22c55e" />
-                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>Resolvidos</span>
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff' }}>R$ 16.340,25</div>
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>36 requisições · 80% resolvido</div>
                   </div>
                 </div>
-              </div>
 
-              {/* Mini Stats Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
-                {[
-                  { label: 'Total de E-mails', value: '560', sub: '560 respondidos · 0 pendentes', change: '+1091.5%', changeColor: '#22c55e' },
-                  { label: 'Taxa de Automação', value: '99%', sub: '560 IA · 0 Humano', badge: 'Excelente' },
-                  { label: 'Tempo Economizado', value: '46.7h', sub: 'Com automação (5min/email)', badge: 'Excelente' },
-                ].map((stat, i) => (
-                  <div key={i} style={{
-                    padding: '12px',
-                    backgroundColor: 'rgba(255,255,255,0.02)',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>{stat.label}</span>
-                      {stat.badge && (
-                        <span style={{
-                          fontSize: '9px',
-                          fontWeight: 600,
-                          color: '#22c55e',
-                          backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                        }}>{stat.badge}</span>
-                      )}
+                {/* Main Content */}
+                <div style={{ flex: 1 }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                    <div>
+                      <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                        Olá, Horizon Blue Solutions LLC
+                      </h3>
+                      <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>
+                        Acompanhe o desempenho do seu atendimento automatizado
+                      </p>
                     </div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#fff', marginBottom: '2px' }}>{stat.value}</div>
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>{stat.sub}</div>
-                    {stat.change && (
-                      <div style={{ fontSize: '10px', color: stat.changeColor, marginTop: '4px' }}>↗ {stat.change} vs. período anterior</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Chart Area */}
-              <div style={{
-                padding: '14px',
-                backgroundColor: 'rgba(255,255,255,0.02)',
-                borderRadius: '10px',
-                border: '1px solid rgba(255,255,255,0.05)',
-              }}>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>Atividade do Período</div>
-                {/* Simple Line Chart Visualization */}
-                <div style={{ height: '80px', display: 'flex', alignItems: 'flex-end', gap: '4px', paddingBottom: '20px', position: 'relative' }}>
-                  {[30, 45, 60, 75, 65, 80, 90, 85, 95, 88, 92, 85].map((height, i) => (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '12px' }}>
                       <div style={{
-                        width: '100%',
-                        height: `${height}%`,
-                        background: 'linear-gradient(180deg, #22c55e 0%, rgba(34, 197, 94, 0.3) 100%)',
-                        borderRadius: '3px 3px 0 0',
-                      }} />
+                        padding: '10px 16px',
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        color: 'rgba(255,255,255,0.6)',
+                      }}>
+                        Todas as lojas
+                      </div>
+                      <div style={{
+                        padding: '10px 16px',
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        color: 'rgba(255,255,255,0.6)',
+                      }}>
+                        15/01/2026 → 21/01/2026
+                      </div>
                     </div>
-                  ))}
-                  {/* X-axis labels */}
+                  </div>
+
+                  {/* Stats Row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '24px' }}>
+                    {[
+                      { label: 'E-mails Recebidos', value: '469', sub: 'excluindo spam' },
+                      { label: 'E-mails Respondidos', value: '323', sub: 'respostas enviadas' },
+                      { label: 'Taxa de Automação', value: '68,9%', sub: 'respondidos / recebidos' },
+                      { label: 'Taxa de Sucesso', value: '97,8%', sub: 'resolvidos sem humano' },
+                      { label: 'Atendimento Humano', value: '7', sub: 'aguardando atendimento' },
+                    ].map((stat, i) => (
+                      <div key={i} style={{
+                        padding: '16px',
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>{stat.label}</div>
+                        <div style={{ fontSize: '28px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{stat.value}</div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>{stat.sub}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Chart Section */}
                   <div style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: '9px',
-                    color: 'rgba(255,255,255,0.3)',
+                    padding: '20px',
+                    backgroundColor: 'rgba(255,255,255,0.03)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    marginBottom: '24px',
                   }}>
-                    <span>Sex</span>
-                    <span>Sab</span>
-                    <span>Dom</span>
-                    <span>Seg</span>
-                    <span>Ter</span>
-                    <span>Qua</span>
-                    <span>Qui</span>
+                    <div style={{ marginBottom: '4px' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>Volume de Emails</span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginBottom: '20px' }}>Recebidos x Respondidos</div>
+                    {/* Bar Chart */}
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '40px', height: '150px', paddingBottom: '30px', position: 'relative' }}>
+                      {[
+                        { date: '19/01', received: 30, responded: 25 },
+                        { date: '20/01', received: 85, responded: 55 },
+                        { date: '21/01', received: 100, responded: 70 },
+                      ].map((day, i) => (
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', height: '120px' }}>
+                            <div style={{
+                              width: '40px',
+                              height: `${day.received}%`,
+                              backgroundColor: 'rgba(100, 116, 139, 0.5)',
+                              borderRadius: '4px 4px 0 0',
+                            }} />
+                            <div style={{
+                              width: '40px',
+                              height: `${day.responded}%`,
+                              backgroundColor: '#4672ec',
+                              borderRadius: '4px 4px 0 0',
+                            }} />
+                          </div>
+                          <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>{day.date}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Legend */}
+                    <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', marginTop: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: 'rgba(100, 116, 139, 0.5)' }} />
+                        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Emails recebidos</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#4672ec' }} />
+                        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Emails respondidos</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Conversations Table Preview */}
+                  <div style={{
+                    padding: '20px',
+                    backgroundColor: 'rgba(255,255,255,0.03)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>Conversas do Período</span>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <span style={{ padding: '6px 12px', backgroundColor: '#ef4444', borderRadius: '6px', fontSize: '12px', color: '#fff' }}>Conversas</span>
+                          <span style={{ padding: '6px 12px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Spam (274)</span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>611 conversas</span>
+                    </div>
+                    {/* Table Header */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr 1fr 0.8fr', gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
+                      <span>Loja</span>
+                      <span>Cliente</span>
+                      <span>Assunto</span>
+                      <span>Categoria</span>
+                      <span>Data</span>
+                    </div>
+                    {/* Table Rows */}
+                    {[
+                      { shop: 'Notino Italy', client: 'Sem nome', subject: 'RICHIESTA DI NUOVO ORD...', category: 'Dúvidas gerais', categoryColor: '#3b82f6', date: '21/01, 17:00' },
+                      { shop: 'NotShop Spain', client: 'Luis Largo Alcon', subject: 'Devolución', category: 'Dúvidas gerais', categoryColor: '#3b82f6', date: '21/01, 16:35' },
+                      { shop: 'Notino Italy', client: 'Donato Menichel...', subject: 'To: support@notin-it.com', category: 'Rastreio', categoryColor: '#8b5cf6', date: '21/01, 15:45' },
+                    ].map((row, i) => (
+                      <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr 1fr 0.8fr', gap: '12px', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
+                        <span>{row.shop}</span>
+                        <span style={{ fontWeight: 500 }}>{row.client}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>{row.subject}</span>
+                        <span style={{ padding: '4px 10px', backgroundColor: `${row.categoryColor}20`, color: row.categoryColor, borderRadius: '6px', fontSize: '11px', width: 'fit-content' }}>{row.category}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.4)' }}>{row.date}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
