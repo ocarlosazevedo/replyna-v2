@@ -656,7 +656,7 @@ export default function Account() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                         <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Lojas integradas</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: shopsLimit === null ? '#22c55e' : 'var(--text-primary)' }}>
-                          {shopsCount} / {shopsLimit === null ? 'Ilimitado' : formatNumber(shopsLimit)}
+                          {shopsCount} / {shopsLimit === null ? 'Ilimitado' : formatNumber(shopsLimit ?? 0)}
                         </span>
                       </div>
                       {shopsLimit !== null && (
@@ -677,7 +677,7 @@ export default function Account() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                         <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Emails enviados</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: emailsLimit === null ? '#22c55e' : 'var(--text-primary)' }}>
-                          {profile?.emails_used !== null && profile?.emails_used !== undefined ? formatNumber(profile.emails_used) : '0'} / {emailsLimit === null ? 'Ilimitado' : formatNumber(emailsLimit)}
+                          {profile?.emails_used !== null && profile?.emails_used !== undefined ? formatNumber(profile.emails_used) : '0'} / {emailsLimit === null ? 'Ilimitado' : formatNumber(emailsLimit ?? 0)}
                         </span>
                       </div>
                       {emailsLimit !== null && (
