@@ -194,6 +194,8 @@ const getCategoryBadge = (category: string | null) => {
       return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' } // Cinza
     case 'suporte_humano':
       return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' } // Vermelho
+    case 'spam':
+      return { ...base, backgroundColor: 'rgba(220, 38, 38, 0.20)', color: '#b91c1c' } // Vermelho escuro
     case 'outros':
     default:
       return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' } // Cinza claro
@@ -210,6 +212,7 @@ const categoryLabelMap: Record<string, string> = {
   troca: 'Troca',
   institucional: 'Institucional',
   suporte_humano: 'Suporte humano',
+  spam: 'Spam',
   outros: 'Outros',
 }
 
@@ -634,6 +637,18 @@ export default function Dashboard() {
       <ConversationModal
         conversationId={selectedConversationId}
         onClose={() => setSelectedConversationId(null)}
+        onCategoryChange={(conversationId, newCategory) => {
+          // Atualizar a lista de conversas localmente
+          setConversations((prev) =>
+            prev.map((c) => (c.id === conversationId ? { ...c, category: newCategory } : c))
+          )
+          // Invalidar cache
+          if (user && dateStart && dateEnd) {
+            cacheRef.current.delete(
+              `conversations:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`
+            )
+          }
+        }}
       />
 
       {/* Banner de créditos */}
@@ -821,6 +836,7 @@ export default function Dashboard() {
                 <option value="troca">Troca</option>
                 <option value="institucional">Institucional</option>
                 <option value="suporte_humano">Suporte humano</option>
+                <option value="spam">Spam</option>
                 <option value="outros">Outros</option>
               </select>
               {!loadingConversations && conversations.length > 0 && (
