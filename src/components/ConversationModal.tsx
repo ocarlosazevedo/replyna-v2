@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -46,8 +47,14 @@ const availableCategories = [
   { value: 'spam', label: 'Spam' },
 ]
 
-const getCategoryBadge = (category: string | null) => {
-  const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
+const getCategoryBadge = (category: string | null): React.CSSProperties => {
+  const base: React.CSSProperties = {
+    padding: '4px 10px',
+    borderRadius: '999px',
+    fontSize: '12px',
+    fontWeight: 600,
+    whiteSpace: 'nowrap',
+  }
   switch (category) {
     case 'spam':
       return { ...base, backgroundColor: 'rgba(220, 38, 38, 0.20)', color: '#b91c1c' }
@@ -600,14 +607,15 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span
                       style={{
-                        padding: '2px 8px',
+                        padding: '3px 8px',
                         borderRadius: '4px',
                         fontSize: '11px',
                         fontWeight: 700,
                         textTransform: 'uppercase',
+                        whiteSpace: 'nowrap',
                         backgroundColor: message.direction === 'inbound' ? 'rgba(107, 114, 128, 0.16)' : 'rgba(59, 130, 246, 0.16)',
                         color: message.direction === 'inbound' ? '#6b7280' : '#2563eb',
                       }}
@@ -617,10 +625,11 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                     {message.direction === 'outbound' && message.was_auto_replied && (
                       <span
                         style={{
-                          padding: '2px 8px',
+                          padding: '3px 8px',
                           borderRadius: '4px',
                           fontSize: '11px',
                           fontWeight: 700,
+                          whiteSpace: 'nowrap',
                           backgroundColor: 'rgba(34, 197, 94, 0.16)',
                           color: '#15803d',
                         }}
