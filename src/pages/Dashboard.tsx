@@ -897,7 +897,7 @@ export default function Dashboard() {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            color: 'var(--text-primary)',
+                            color: 'var(--text-secondary)',
                             fontWeight: 600,
                           }}
                         >
