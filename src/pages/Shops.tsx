@@ -45,13 +45,14 @@ export default function Shops() {
   const navigate = useNavigate()
   const [shops, setShops] = useState<Shop[]>([])
   const [loading, setLoading] = useState(true)
-  const [shopsLimit, setShopsLimit] = useState<number | null>(1)
+  const [shopsLimit, setShopsLimit] = useState<number | null>(null) // null = ainda carregando ou ilimitado
+  const [limitsLoaded, setLimitsLoaded] = useState(false)
   const [filter, setFilter] = useState<ShopFilter>('all')
   const [showDropdown, setShowDropdown] = useState(false)
   const isMobile = useIsMobile()
 
-  // Verificar se é ilimitado
-  const isUnlimited = shopsLimit === null
+  // Verificar se é ilimitado (só após carregar os limites)
+  const isUnlimited = limitsLoaded && shopsLimit === null
 
   // Ordenar lojas: ativas primeiro por data de criação (mais antigas primeiro)
   const sortedShops = [...shops].sort((a, b) => {
@@ -137,6 +138,8 @@ export default function Shops() {
       }
     } catch (err) {
       console.error('Erro ao carregar limite de lojas:', err)
+    } finally {
+      setLimitsLoaded(true)
     }
   }
 
@@ -266,7 +269,7 @@ export default function Shops() {
             Minhas Lojas
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-            Gerencie suas lojas e integrações ({shops.length} de {isUnlimited ? <span style={{ color: '#22c55e' }}>Ilimitado</span> : shopsLimit})
+            Gerencie suas lojas e integrações ({shops.length} de {!limitsLoaded ? '...' : isUnlimited ? <span style={{ color: '#22c55e' }}>Ilimitado</span> : shopsLimit})
           </p>
         </div>
         {canAddMoreShops ? (

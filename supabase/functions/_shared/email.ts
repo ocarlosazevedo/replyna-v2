@@ -610,49 +610,106 @@ function extractCharset(contentTypeHeader: string): string {
 function extractTextFromMime(body: string): string {
   if (!body) return '';
 
-  // Verificar se é MIME multipart
-  const boundaryMatch = body.match(/--([^\r\n]+)/);
-  if (!boundaryMatch) {
-    // Não é multipart, retornar corpo direto
-    return body;
+  // Verificar se é MIME multipart buscando Content-Type header com boundary
+  const boundaryHeaderMatch = body.match(/Content-Type:\s*multipart\/[^;]+;\s*boundary=["']?([^"'\r\n;]+)/i);
+  let boundary = '';
+
+  if (boundaryHeaderMatch) {
+    boundary = boundaryHeaderMatch[1].trim();
+  } else {
+    // Fallback: tentar encontrar boundary diretamente no corpo
+    const boundaryMatch = body.match(/^--([^\r\n]+)/m);
+    if (!boundaryMatch) {
+      // Não é multipart, retornar corpo direto
+      return body;
+    }
+    boundary = boundaryMatch[1].trim();
   }
 
-  const boundary = boundaryMatch[1];
   console.log('MIME boundary encontrado:', boundary);
 
   // Dividir em partes usando o boundary
-  const parts = body.split(new RegExp(`--${boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:--)?`));
+  const escapedBoundary = boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parts = body.split(new RegExp(`--${escapedBoundary}(?:--)?`));
+
+  let textContent = '';
+  let htmlContent = '';
 
   for (const part of parts) {
-    // Procurar parte text/plain
-    if (part.includes('Content-Type: text/plain') || part.includes('content-type: text/plain')) {
-      // Extrair charset do Content-Type
-      const contentTypeMatch = part.match(/Content-Type:\s*text\/plain[^\r\n]*/i);
-      const charset = contentTypeMatch ? extractCharset(contentTypeMatch[0]) : 'utf-8';
+    if (!part.trim()) continue;
 
-      // Verificar encoding
-      const isQuotedPrintable = part.toLowerCase().includes('quoted-printable');
-      const isBase64 = part.toLowerCase().includes('base64');
+    // Verificar Content-Type da parte
+    const contentTypeMatch = part.match(/Content-Type:\s*([^;\r\n]+)/i);
+    if (!contentTypeMatch) continue;
 
-      // Extrair conteúdo após os headers (linha vazia)
-      const contentMatch = part.match(/\r?\n\r?\n([\s\S]*)/);
-      if (contentMatch) {
-        let content = contentMatch[1].trim();
+    const contentType = contentTypeMatch[1].toLowerCase().trim();
 
-        // Decodificar se necessário
-        if (isQuotedPrintable) {
-          content = decodeQuotedPrintable(content, charset);
-        } else if (isBase64) {
-          content = decodeBase64ToUtf8(content, charset);
-        }
+    // Extrair charset
+    const charsetMatch = part.match(/charset=["']?([^"';\s\r\n]+)/i);
+    const charset = charsetMatch ? charsetMatch[1] : 'utf-8';
 
-        console.log('Conteúdo text/plain extraído do MIME:', content.substring(0, 200));
-        return content;
+    // Verificar encoding
+    const isQuotedPrintable = /Content-Transfer-Encoding:\s*quoted-printable/i.test(part);
+    const isBase64 = /Content-Transfer-Encoding:\s*base64/i.test(part);
+
+    // Extrair conteúdo após os headers (linha vazia dupla)
+    const contentMatch = part.match(/\r?\n\r?\n([\s\S]*)/);
+    if (!contentMatch) continue;
+
+    let content = contentMatch[1].trim();
+
+    // Decodificar se necessário
+    if (isQuotedPrintable) {
+      content = decodeQuotedPrintable(content, charset);
+    } else if (isBase64) {
+      content = decodeBase64ToUtf8(content, charset);
+    }
+
+    // Verificar se é multipart aninhado (recursão)
+    if (contentType.includes('multipart/')) {
+      const nestedContent = extractTextFromMime(part);
+      if (nestedContent && nestedContent !== part) {
+        content = nestedContent;
       }
+    }
+
+    // Guardar conteúdo baseado no tipo
+    if (contentType.includes('text/plain')) {
+      textContent = content;
+      console.log('Conteúdo text/plain extraído do MIME:', content.substring(0, 200));
+    } else if (contentType.includes('text/html') && !textContent) {
+      // Guardar HTML como fallback se não tiver text/plain
+      htmlContent = content;
     }
   }
 
-  // Fallback: retornar corpo original se não encontrar text/plain
+  // Preferir text/plain, fallback para HTML convertido
+  if (textContent) {
+    return textContent;
+  }
+
+  if (htmlContent) {
+    // Converter HTML para texto simples (básico)
+    const textFromHtml = htmlContent
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    console.log('Conteúdo text/html convertido para texto:', textFromHtml.substring(0, 200));
+    return textFromHtml;
+  }
+
+  // Fallback: retornar corpo original se não encontrar text/plain nem text/html
   return body;
 }
 

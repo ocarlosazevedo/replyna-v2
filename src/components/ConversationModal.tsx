@@ -77,42 +77,151 @@ const getCategoryBadge = (category: string | null): React.CSSProperties => {
 }
 
 /**
+ * Decodifica quoted-printable para texto
+ */
+function decodeQuotedPrintable(text: string): string {
+  // Remover soft line breaks
+  const withoutSoftBreaks = text.replace(/=\r?\n/g, '')
+
+  // Converter =XX para caracteres
+  return withoutSoftBreaks.replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => {
+    return String.fromCharCode(parseInt(hex, 16))
+  })
+}
+
+/**
+ * Decodifica base64 para texto
+ */
+function decodeBase64(text: string): string {
+  try {
+    // Remover whitespace e decodificar
+    const cleaned = text.replace(/\s/g, '')
+    return atob(cleaned)
+  } catch {
+    return text
+  }
+}
+
+/**
+ * Converte HTML para texto simples
+ */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+/**
  * Limpa o corpo da mensagem removendo MIME boundaries e headers
  */
 function cleanMessageBody(body: string | null): string {
   if (!body) return '(Sem conteudo)'
 
-  let cleaned = body
+  let cleaned = body.trim()
 
-  // Verificar se tem MIME boundary
-  const boundaryMatch = cleaned.match(/--([0-9a-f]+)/i)
-  if (boundaryMatch) {
-    const boundary = boundaryMatch[1]
-    // Dividir por boundary e pegar a primeira parte text/plain
-    const parts = cleaned.split(new RegExp(`--${boundary}(?:--)?`, 'g'))
+  // Verificar se é MIME multipart buscando boundary no header ou diretamente
+  const boundaryHeaderMatch = cleaned.match(/Content-Type:\s*multipart\/[^;]+;\s*boundary=["']?([^"'\r\n;]+)/i)
+  let boundary = ''
 
-    for (const part of parts) {
-      // Procurar parte text/plain
-      if (part.includes('Content-Type: text/plain') || part.includes('content-type: text/plain')) {
-        // Extrair conteudo apos headers (linha vazia)
-        const contentMatch = part.match(/\r?\n\r?\n([\s\S]*)/);
-        if (contentMatch) {
-          cleaned = contentMatch[1].trim()
-          break
-        }
-      }
+  if (boundaryHeaderMatch) {
+    boundary = boundaryHeaderMatch[1].trim()
+  } else {
+    // Fallback: tentar encontrar boundary diretamente
+    const boundaryMatch = cleaned.match(/^--([^\r\n]+)/m)
+    if (boundaryMatch) {
+      boundary = boundaryMatch[1].trim()
     }
   }
 
-  // Remover headers MIME restantes
-  cleaned = cleaned
-    .replace(/^Content-Type:.*$/gim, '')
-    .replace(/^Content-Transfer-Encoding:.*$/gim, '')
-    .replace(/^--[0-9a-f]+--?$/gim, '')
-    .replace(/<div[^>]*>(.*?)<\/div>/gi, '$1')
-    .replace(/=\r?\n/g, '')
-    .replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .trim()
+  if (boundary) {
+    // Dividir por boundary e procurar partes
+    const escapedBoundary = boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const parts = cleaned.split(new RegExp(`--${escapedBoundary}(?:--)?`))
+
+    let textContent = ''
+    let htmlContent = ''
+
+    for (const part of parts) {
+      if (!part.trim()) continue
+
+      const contentTypeMatch = part.match(/Content-Type:\s*([^;\r\n]+)/i)
+      if (!contentTypeMatch) continue
+
+      const contentType = contentTypeMatch[1].toLowerCase().trim()
+
+      // Verificar encoding
+      const isQuotedPrintable = /Content-Transfer-Encoding:\s*quoted-printable/i.test(part)
+      const isBase64 = /Content-Transfer-Encoding:\s*base64/i.test(part)
+
+      // Extrair conteudo apos headers (linha vazia dupla)
+      const contentMatch = part.match(/\r?\n\r?\n([\s\S]*)/)
+      if (!contentMatch) continue
+
+      let content = contentMatch[1].trim()
+
+      // Decodificar se necessário
+      if (isQuotedPrintable) {
+        content = decodeQuotedPrintable(content)
+      } else if (isBase64) {
+        content = decodeBase64(content)
+      }
+
+      // Guardar por tipo
+      if (contentType.includes('text/plain')) {
+        textContent = content
+      } else if (contentType.includes('text/html') && !textContent) {
+        htmlContent = content
+      }
+    }
+
+    // Preferir text/plain, fallback para HTML convertido
+    if (textContent) {
+      cleaned = textContent
+    } else if (htmlContent) {
+      cleaned = htmlToText(htmlContent)
+    }
+  }
+
+  // Se ainda tem headers MIME, tentar limpar
+  if (cleaned.includes('Content-Type:') || cleaned.includes('Content-Transfer-Encoding:')) {
+    // Verificar se é quoted-printable standalone
+    const isQP = /Content-Transfer-Encoding:\s*quoted-printable/i.test(cleaned)
+    const isB64 = /Content-Transfer-Encoding:\s*base64/i.test(cleaned)
+
+    // Extrair conteúdo após headers
+    const contentAfterHeaders = cleaned.match(/\r?\n\r?\n([\s\S]*)/)
+    if (contentAfterHeaders) {
+      let content = contentAfterHeaders[1].trim()
+      if (isQP) {
+        content = decodeQuotedPrintable(content)
+      } else if (isB64) {
+        content = decodeBase64(content)
+      }
+      cleaned = content
+    }
+
+    // Limpar headers residuais
+    cleaned = cleaned
+      .replace(/^Content-Type:.*$/gim, '')
+      .replace(/^Content-Transfer-Encoding:.*$/gim, '')
+      .replace(/^MIME-Version:.*$/gim, '')
+      .replace(/^--[^\r\n]+--?$/gim, '')
+      .trim()
+  }
 
   // Remover linhas vazias multiplas
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim()
