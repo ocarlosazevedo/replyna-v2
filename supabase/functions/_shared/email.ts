@@ -498,8 +498,9 @@ export async function fetchUnreadEmails(
           continue;
         }
 
-        // Limpar o corpo
-        const bodyText = cleanEmailBody(decodeEmailBody(msg.body));
+        // Decodificar o corpo (texto e HTML)
+        const decodedBody = decodeEmailBodyFull(msg.body);
+        const bodyText = cleanEmailBody(decodedBody.text);
 
         emails.push({
           message_id: msg.envelope.messageId,
@@ -508,12 +509,12 @@ export async function fetchUnreadEmails(
           to_email: credentials.imap_user,
           subject: msg.envelope.subject || null,
           body_text: bodyText || null,
-          body_html: null,
+          body_html: decodedBody.html,
           in_reply_to: msg.inReplyTo || null,
           references: msg.references || null,
           received_at: receivedAt,
-          has_attachments: false,
-          attachment_count: 0,
+          has_attachments: decodedBody.hasAttachments,
+          attachment_count: decodedBody.attachmentCount,
         });
 
         // Marcar como lida
@@ -605,10 +606,27 @@ function extractCharset(contentTypeHeader: string): string {
 }
 
 /**
- * Extrai o conteúdo text/plain de um email MIME multipart
+ * Resultado da extração MIME contendo text e html separados
  */
-function extractTextFromMime(body: string): string {
-  if (!body) return '';
+interface MimeExtractResult {
+  textContent: string;
+  htmlContent: string | null;
+  hasAttachments: boolean;
+  attachmentCount: number;
+}
+
+/**
+ * Extrai o conteúdo text/plain e text/html de um email MIME multipart
+ */
+function extractTextFromMime(body: string): MimeExtractResult {
+  const result: MimeExtractResult = {
+    textContent: '',
+    htmlContent: null,
+    hasAttachments: false,
+    attachmentCount: 0,
+  };
+
+  if (!body) return result;
 
   // Verificar se é MIME multipart buscando Content-Type header com boundary
   const boundaryHeaderMatch = body.match(/Content-Type:\s*multipart\/[^;]+;\s*boundary=["']?([^"'\r\n;]+)/i);
@@ -620,8 +638,9 @@ function extractTextFromMime(body: string): string {
     // Fallback: tentar encontrar boundary diretamente no corpo
     const boundaryMatch = body.match(/^--([^\r\n]+)/m);
     if (!boundaryMatch) {
-      // Não é multipart, retornar corpo direto
-      return body;
+      // Não é multipart, retornar corpo direto como texto
+      result.textContent = body;
+      return result;
     }
     boundary = boundaryMatch[1].trim();
   }
@@ -643,6 +662,19 @@ function extractTextFromMime(body: string): string {
     if (!contentTypeMatch) continue;
 
     const contentType = contentTypeMatch[1].toLowerCase().trim();
+
+    // Verificar se é attachment
+    const isAttachment = /Content-Disposition:\s*attachment/i.test(part) ||
+      (contentType.includes('image/') && !contentType.includes('text/')) ||
+      contentType.includes('application/') ||
+      contentType.includes('audio/') ||
+      contentType.includes('video/');
+
+    if (isAttachment) {
+      result.hasAttachments = true;
+      result.attachmentCount++;
+      continue;
+    }
 
     // Extrair charset
     const charsetMatch = part.match(/charset=["']?([^"';\s\r\n]+)/i);
@@ -667,30 +699,36 @@ function extractTextFromMime(body: string): string {
 
     // Verificar se é multipart aninhado (recursão)
     if (contentType.includes('multipart/')) {
-      const nestedContent = extractTextFromMime(part);
-      if (nestedContent && nestedContent !== part) {
-        content = nestedContent;
+      const nestedResult = extractTextFromMime(part);
+      if (nestedResult.textContent) {
+        textContent = nestedResult.textContent;
       }
+      if (nestedResult.htmlContent) {
+        htmlContent = nestedResult.htmlContent;
+      }
+      if (nestedResult.hasAttachments) {
+        result.hasAttachments = true;
+        result.attachmentCount += nestedResult.attachmentCount;
+      }
+      continue;
     }
 
     // Guardar conteúdo baseado no tipo
     if (contentType.includes('text/plain')) {
       textContent = content;
       console.log('Conteúdo text/plain extraído do MIME:', content.substring(0, 200));
-    } else if (contentType.includes('text/html') && !textContent) {
-      // Guardar HTML como fallback se não tiver text/plain
+    } else if (contentType.includes('text/html')) {
       htmlContent = content;
+      console.log('Conteúdo text/html extraído do MIME:', content.substring(0, 200));
     }
   }
 
-  // Preferir text/plain, fallback para HTML convertido
+  // Definir textContent
   if (textContent) {
-    return textContent;
-  }
-
-  if (htmlContent) {
-    // Converter HTML para texto simples (básico)
-    const textFromHtml = htmlContent
+    result.textContent = textContent;
+  } else if (htmlContent) {
+    // Converter HTML para texto simples se não tiver text/plain
+    result.textContent = htmlContent
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<br\s*\/?>/gi, '\n')
@@ -705,12 +743,23 @@ function extractTextFromMime(body: string): string {
       .replace(/&#39;/g, "'")
       .replace(/\n{3,}/g, '\n\n')
       .trim();
-    console.log('Conteúdo text/html convertido para texto:', textFromHtml.substring(0, 200));
-    return textFromHtml;
+  } else {
+    result.textContent = body;
   }
 
-  // Fallback: retornar corpo original se não encontrar text/plain nem text/html
-  return body;
+  // Guardar HTML se encontrado
+  if (htmlContent) {
+    result.htmlContent = htmlContent;
+  }
+
+  return result;
+}
+
+/**
+ * Extrai apenas texto (compatibilidade com código existente)
+ */
+function extractTextOnlyFromMime(body: string): string {
+  return extractTextFromMime(body).textContent;
 }
 
 /**
@@ -757,28 +806,59 @@ function removeQuotedContent(text: string): string {
 }
 
 /**
- * Decodifica o corpo do email (base64, quoted-printable, MIME multipart)
+ * Resultado da decodificação do corpo do email
  */
-function decodeEmailBody(body: string): string {
-  if (!body) return '';
+interface DecodedEmailBody {
+  text: string;
+  html: string | null;
+  hasAttachments: boolean;
+  attachmentCount: number;
+}
+
+/**
+ * Decodifica o corpo do email (base64, quoted-printable, MIME multipart)
+ * Retorna tanto texto quanto HTML quando disponíveis
+ */
+function decodeEmailBodyFull(body: string): DecodedEmailBody {
+  const result: DecodedEmailBody = {
+    text: '',
+    html: null,
+    hasAttachments: false,
+    attachmentCount: 0,
+  };
+
+  if (!body) return result;
 
   // 1. Primeiro extrair conteúdo de MIME multipart se for o caso
-  let decoded = extractTextFromMime(body);
+  const mimeResult = extractTextFromMime(body);
+  result.hasAttachments = mimeResult.hasAttachments;
+  result.attachmentCount = mimeResult.attachmentCount;
 
-  // 2. Se não era multipart, tentar decodificar base64
-  if (decoded === body && /^[A-Za-z0-9+/=\s]+$/.test(body.trim())) {
-    decoded = decodeBase64ToUtf8(body, 'utf-8');
+  let textDecoded = mimeResult.textContent;
+  let htmlDecoded = mimeResult.htmlContent;
+
+  // 2. Se não era multipart, tentar decodificar base64 (apenas para texto)
+  if (textDecoded === body && /^[A-Za-z0-9+/=\s]+$/.test(body.trim())) {
+    textDecoded = decodeBase64ToUtf8(body, 'utf-8');
   }
 
   // 3. Decodificar quoted-printable (pode ter escapado do MIME)
-  if (decoded === body) {
-    decoded = decodeQuotedPrintable(body, 'utf-8');
+  if (textDecoded === body) {
+    textDecoded = decodeQuotedPrintable(body, 'utf-8');
   }
 
-  // 4. Remover citações de mensagens anteriores
-  decoded = removeQuotedContent(decoded);
+  // 4. Remover citações de mensagens anteriores (apenas no texto)
+  result.text = removeQuotedContent(textDecoded);
+  result.html = htmlDecoded;
 
-  return decoded;
+  return result;
+}
+
+/**
+ * Decodifica o corpo do email - versão legada que retorna apenas texto
+ */
+function decodeEmailBody(body: string): string {
+  return decodeEmailBodyFull(body).text;
 }
 
 /**

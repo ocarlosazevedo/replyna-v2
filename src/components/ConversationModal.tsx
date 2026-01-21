@@ -126,6 +126,72 @@ function htmlToText(html: string): string {
 }
 
 /**
+ * Sanitiza HTML de email para exibição segura
+ * Remove scripts, eventos inline, e limita estilos problemáticos
+ */
+function sanitizeEmailHtml(html: string): string {
+  if (!html) return ''
+
+  let sanitized = html
+    // Remover scripts e conteúdo perigoso
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<link[^>]*>/gi, '')
+    .replace(/<meta[^>]*>/gi, '')
+    .replace(/<base[^>]*>/gi, '')
+    // Remover eventos inline (onclick, onload, onerror, etc.)
+    .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/\s+on\w+\s*=\s*[^\s>]+/gi, '')
+    // Remover javascript: URLs
+    .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"')
+    .replace(/src\s*=\s*["']javascript:[^"']*["']/gi, '')
+    // Remover data: URLs em src (podem conter código malicioso, mas manter em imagens)
+    // Manter data:image mas remover outros
+    .replace(/src\s*=\s*["']data:(?!image\/)[^"']*["']/gi, '')
+    // Remover iframes
+    .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
+    .replace(/<iframe[^>]*\/>/gi, '')
+    // Remover object/embed
+    .replace(/<object[^>]*>[\s\S]*?<\/object>/gi, '')
+    .replace(/<embed[^>]*>/gi, '')
+    // Remover form elements
+    .replace(/<form[^>]*>[\s\S]*?<\/form>/gi, '')
+    .replace(/<input[^>]*>/gi, '')
+    .replace(/<button[^>]*>[\s\S]*?<\/button>/gi, '')
+    // Converter imagens CID para placeholder (cid:xxx não funciona no browser)
+    .replace(/src\s*=\s*["']cid:[^"']+["']/gi, 'src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'%3E%3Crect fill=\'%23ddd\' width=\'100\' height=\'100\'/%3E%3Ctext x=\'50\' y=\'50\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%23999\' font-size=\'12\'%3EImagem%3C/text%3E%3C/svg%3E" alt="[Imagem incorporada]"')
+
+  return sanitized
+}
+
+/**
+ * Verifica se o HTML parece ser válido/seguro para renderizar
+ * Retorna false se parecer ser MIME raw ou conteúdo quebrado
+ */
+function isValidEmailHtml(html: string | null): boolean {
+  if (!html) return false
+
+  // Se contém headers MIME, não é HTML válido
+  if (/Content-Type:/i.test(html) || /Content-Transfer-Encoding:/i.test(html)) {
+    return false
+  }
+
+  // Se contém boundary MIME, não é HTML válido
+  if (/^--[A-Za-z0-9_-]+$/m.test(html)) {
+    return false
+  }
+
+  // Se tem muito base64, provavelmente não é HTML renderizável
+  const base64Ratio = (html.match(/[A-Za-z0-9+/=]{50,}/g) || []).join('').length / html.length
+  if (base64Ratio > 0.3) {
+    return false
+  }
+
+  // Verificar se parece ter tags HTML básicas
+  return /<[a-z][a-z0-9]*[^>]*>/i.test(html)
+}
+
+/**
  * Limpa o corpo da mensagem removendo MIME boundaries e headers
  */
 function cleanMessageBody(body: string | null): string {
@@ -778,7 +844,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                   </span>
                 </div>
 
-                {message.body_html ? (
+                {message.body_html && isValidEmailHtml(message.body_html) ? (
                   <div
                     style={{
                       fontSize: '14px',
@@ -787,7 +853,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                       wordBreak: 'break-word',
                     }}
                     className="email-html-content"
-                    dangerouslySetInnerHTML={{ __html: message.body_html }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(message.body_html) }}
                   />
                 ) : (
                   <div
@@ -820,29 +886,57 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
         .email-html-content {
           max-width: 100%;
           overflow-x: auto;
+          overflow-y: hidden;
+        }
+        .email-html-content * {
+          max-width: 100% !important;
+          box-sizing: border-box;
         }
         .email-html-content img {
-          max-width: 100%;
-          height: auto;
+          max-width: 100% !important;
+          height: auto !important;
           border-radius: 8px;
           margin: 8px 0;
+          display: block;
         }
         .email-html-content a {
           color: var(--accent);
           text-decoration: underline;
+          word-break: break-all;
         }
         .email-html-content table {
-          max-width: 100%;
+          max-width: 100% !important;
+          width: auto !important;
           border-collapse: collapse;
+          table-layout: fixed;
         }
         .email-html-content td, .email-html-content th {
           padding: 4px 8px;
+          word-break: break-word;
+          overflow-wrap: break-word;
         }
         .email-html-content p {
           margin: 8px 0;
         }
         .email-html-content br + br {
           display: none;
+        }
+        .email-html-content div {
+          max-width: 100% !important;
+        }
+        .email-html-content pre, .email-html-content code {
+          white-space: pre-wrap;
+          word-break: break-word;
+          max-width: 100%;
+          overflow-x: auto;
+        }
+        /* Prevenir que estilos inline do email quebrem o layout */
+        .email-html-content [style*="width"] {
+          max-width: 100% !important;
+        }
+        .email-html-content [style*="position: fixed"],
+        .email-html-content [style*="position:fixed"] {
+          position: relative !important;
         }
       `}</style>
     </div>
