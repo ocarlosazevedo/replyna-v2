@@ -430,6 +430,7 @@ export default function Dashboard() {
         .select('category')
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
+        .not('category', 'is', null) // Ignorar conversas sem categoria
 
       const { data, error } =
         selectedShopId === 'all'
@@ -438,19 +439,24 @@ export default function Dashboard() {
 
       if (error) throw error
 
-      const rows = (data || []) as Array<{ category: string | null }>
+      const rows = (data || []) as Array<{ category: string }>
       if (rows.length === 0) {
         return { topCategoryName: null, topCategoryPercent: 0 }
       }
 
-      const counts = rows.reduce<Record<string, number>>((acc, row) => {
-        const key = row.category ?? 'outros'
-        acc[key] = (acc[key] ?? 0) + 1
+      // Filtrar spam para não aparecer como categoria frequente
+      const nonSpamRows = rows.filter((row) => row.category !== 'spam')
+      if (nonSpamRows.length === 0) {
+        return { topCategoryName: 'spam', topCategoryPercent: 100 }
+      }
+
+      const counts = nonSpamRows.reduce<Record<string, number>>((acc, row) => {
+        acc[row.category] = (acc[row.category] ?? 0) + 1
         return acc
       }, {})
 
       const [topCategory, topCount] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
-      const topPercent = Math.round((topCount / rows.length) * 100)
+      const topPercent = Math.round((topCount / nonSpamRows.length) * 100)
 
       return { topCategoryName: topCategory, topCategoryPercent: topPercent }
     }
@@ -498,11 +504,9 @@ export default function Dashboard() {
         const emailsReceived = inboundMessages.length
         const emailsReplied = outboundMessages.length
 
-        // Taxa de automação = emails respondidos automaticamente / total de emails recebidos (exceto spam)
-        const nonSpamInbound = inboundMessages.filter((message) => message.category !== 'spam')
-        const autoReplied = nonSpamInbound.filter((message) => message.was_auto_replied === true).length
-        const automationRate = nonSpamInbound.length > 0
-          ? (autoReplied / nonSpamInbound.length) * 100
+        // Taxa de automação = emails respondidos / emails recebidos
+        const automationRate = emailsReceived > 0
+          ? (emailsReplied / emailsReceived) * 100
           : 0
 
         setMetrics({
@@ -716,13 +720,6 @@ export default function Dashboard() {
         ) : (
           <>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>E-mails Recebidos</div>
-              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {renderValue(metrics.emailsReceived)}
-              </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>no período selecionado</div>
-            </div>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>E-mails Respondidos</div>
               <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {renderValue(metrics.emailsReplied)}
@@ -730,11 +727,18 @@ export default function Dashboard() {
               <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>respostas enviadas</div>
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>E-mails Recebidos</div>
+              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {renderValue(metrics.emailsReceived)}
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>no período selecionado</div>
+            </div>
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Taxa de Automação</div>
               <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {renderValue(metrics.automationRate, 'percent')}
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>excluindo spam</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>respondidos / recebidos</div>
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Categoria Frequente</div>
