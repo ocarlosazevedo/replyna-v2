@@ -744,6 +744,19 @@ export default function LandingPage() {
             grid-template-columns: 1fr;
             gap: 40px;
           }
+
+          /* Hero Grid Mobile */
+          .lp-hero-grid {
+            grid-template-columns: 1fr !important;
+            gap: 40px !important;
+            text-align: center;
+          }
+          .lp-hero-grid > div:first-child {
+            text-align: center;
+          }
+          .lp-hero-grid > div:first-child > div:last-child {
+            justify-content: center;
+          }
         }
 
         @media (max-width: 480px) {
@@ -945,8 +958,7 @@ export default function LandingPage() {
         style={{
           position: 'relative',
           paddingTop: '120px',
-          paddingBottom: '40px',
-          textAlign: 'center',
+          paddingBottom: '80px',
           minHeight: 'auto',
           overflow: 'hidden',
         }}
@@ -966,357 +978,267 @@ export default function LandingPage() {
         />
         <div className="lp-grid-pattern" />
 
-        <div style={{ maxWidth: '950px', margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
-          {/* Badge */}
-          <div className="lp-fade-in lp-fade-in-delay-1 lp-badge" style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '10px',
-            backgroundColor: 'rgba(150, 191, 72, 0.1)',
-            border: '1px solid rgba(150, 191, 72, 0.25)',
-            padding: '8px 18px',
-            borderRadius: '50px',
-            marginBottom: '24px',
-          }}>
-            <div className="lp-pulse-ring" style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: '#96bf48',
-            }} />
-            <span style={{ fontSize: '14px', color: '#96bf48', fontWeight: 500 }}>
-              Integrado com Shopify
-            </span>
-          </div>
-
-          {/* Main Headline */}
-          <h1 className="lp-fade-in lp-fade-in-delay-2" style={{
-            fontSize: 'clamp(32px, 5vw, 64px)',
-            fontWeight: 800,
-            lineHeight: 1.1,
-            marginBottom: '20px',
-            letterSpacing: '-0.02em',
-          }}>
-            <span style={{ color: '#fff' }}>Reduza chargebacks</span>
-            <br />
-            <span style={{ color: '#fff' }}>em até </span>
-            <span className="lp-number" style={{ fontWeight: 900 }}>90%</span>
-            <span style={{ color: '#fff' }}> com IA</span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="lp-fade-in lp-fade-in-delay-3" style={{
-            fontSize: 'clamp(16px, 2vw, 18px)',
-            color: 'rgba(255,255,255,0.5)',
-            maxWidth: '550px',
-            margin: '0 auto 36px',
-            lineHeight: 1.7,
-            fontWeight: 400,
-          }}>
-            A Replyna responde automaticamente os emails dos seus clientes antes que eles abram disputas.
-            Mantenha seu Shopify Payments ativo.
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="lp-hero-buttons lp-fade-in lp-fade-in-delay-4" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a
-              href="#precos"
-              onClick={(e) => scrollToSection(e, 'precos')}
-              className="lp-btn-primary"
-              style={{
+        <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
+          {/* Hero Grid: Copy Left + Dashboard Right */}
+          <div className="lp-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '60px', alignItems: 'center' }}>
+            {/* Left: Copy */}
+            <div style={{ textAlign: 'left' }}>
+              {/* Badge */}
+              <div className="lp-fade-in lp-fade-in-delay-1 lp-badge" style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '10px',
-                color: '#ffffff',
-                padding: '18px 36px',
-                borderRadius: '14px',
-                textDecoration: 'none',
-                fontSize: '16px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Começar agora
-              <ArrowRight size={18} />
-            </a>
-            <a
-              href="#como-funciona"
-              onClick={(e) => scrollToSection(e, 'como-funciona')}
-              className="lp-btn-secondary"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '10px',
-                color: '#ffffff',
-                padding: '18px 36px',
-                borderRadius: '14px',
-                textDecoration: 'none',
-                fontSize: '16px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <Play size={18} />
-              Ver demonstração
-            </a>
-          </div>
-
-          {/* Stats */}
-          <div className="lp-stats-grid lp-fade-in lp-fade-in-delay-5">
-            {[
-              { value: '90%', label: 'Menos chargebacks' },
-              { value: '<2min', label: 'Tempo de resposta' },
-              { value: '24/7', label: 'Automação total' },
-            ].map((stat, i) => (
-              <div key={i} className="lp-float" style={{ animationDelay: `${i * 0.3}s` }}>
-                <div className="lp-gradient-border" style={{ padding: '24px 16px' }}>
-                  <div className="lp-number" style={{
-                    fontSize: 'clamp(28px, 4vw, 42px)',
-                    fontWeight: 800,
-                    marginBottom: '8px',
-                  }}>
-                    {stat.value}
-                  </div>
-                  <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
-                    {stat.label}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Dashboard Preview Section */}
-      <section style={{
-        padding: '60px 24px 80px',
-        position: 'relative',
-      }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div className="lp-glow-blue lp-gradient-border" style={{
-            padding: '4px',
-            position: 'relative',
-          }}>
-            {/* Browser Chrome */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '14px 18px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              backgroundColor: 'rgba(0,0,0,0.3)',
-              borderRadius: '18px 18px 0 0',
-            }}>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ff5f57' }} />
-                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#febc2e' }} />
-                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#28c840' }} />
-              </div>
-              <div style={{
-                flex: 1,
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                borderRadius: '8px',
-                padding: '8px 14px',
-                fontSize: '13px',
-                color: 'rgba(255,255,255,0.3)',
-                marginLeft: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
+                backgroundColor: 'rgba(150, 191, 72, 0.1)',
+                border: '1px solid rgba(150, 191, 72, 0.25)',
+                padding: '8px 18px',
+                borderRadius: '50px',
+                marginBottom: '24px',
               }}>
-                <div style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)' }} />
-                app.replyna.me/dashboard
+                <div className="lp-pulse-ring" style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: '#96bf48',
+                }} />
+                <span style={{ fontSize: '14px', color: '#96bf48', fontWeight: 500 }}>
+                  Integrado com Shopify
+                </span>
+              </div>
+
+              {/* Main Headline */}
+              <h1 className="lp-fade-in lp-fade-in-delay-2" style={{
+                fontSize: 'clamp(32px, 4vw, 52px)',
+                fontWeight: 800,
+                lineHeight: 1.1,
+                marginBottom: '20px',
+                letterSpacing: '-0.02em',
+              }}>
+                <span style={{ color: '#fff' }}>Reduza chargebacks</span>
+                <br />
+                <span style={{ color: '#fff' }}>em até </span>
+                <span className="lp-number" style={{ fontWeight: 900 }}>90%</span>
+                <span style={{ color: '#fff' }}> com IA</span>
+              </h1>
+
+              {/* Subtitle */}
+              <p className="lp-fade-in lp-fade-in-delay-3" style={{
+                fontSize: 'clamp(15px, 1.5vw, 17px)',
+                color: 'rgba(255,255,255,0.5)',
+                maxWidth: '450px',
+                marginBottom: '32px',
+                lineHeight: 1.7,
+                fontWeight: 400,
+              }}>
+                A Replyna responde automaticamente os emails dos seus clientes antes que eles abram disputas.
+                Mantenha seu Shopify Payments ativo.
+              </p>
+
+              {/* CTA Buttons */}
+              <div className="lp-hero-buttons lp-fade-in lp-fade-in-delay-4" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <a
+                  href="#precos"
+                  onClick={(e) => scrollToSection(e, 'precos')}
+                  className="lp-btn-primary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    color: '#ffffff',
+                    padding: '16px 32px',
+                    borderRadius: '14px',
+                    textDecoration: 'none',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Começar agora
+                  <ArrowRight size={18} />
+                </a>
+                <a
+                  href="#como-funciona"
+                  onClick={(e) => scrollToSection(e, 'como-funciona')}
+                  className="lp-btn-secondary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    color: '#ffffff',
+                    padding: '16px 32px',
+                    borderRadius: '14px',
+                    textDecoration: 'none',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Play size={18} />
+                  Ver demonstração
+                </a>
+              </div>
+
+              {/* Stats */}
+              <div className="lp-fade-in lp-fade-in-delay-5" style={{ display: 'flex', gap: '32px', marginTop: '48px' }}>
+                {[
+                  { value: '90%', label: 'Menos chargebacks' },
+                  { value: '<2min', label: 'Tempo de resposta' },
+                  { value: '24/7', label: 'Automação total' },
+                ].map((stat, i) => (
+                  <div key={i}>
+                    <div className="lp-number" style={{
+                      fontSize: '32px',
+                      fontWeight: 800,
+                      marginBottom: '4px',
+                    }}>
+                      {stat.value}
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-            {/* Dashboard Mockup - Fiel ao app real */}
-            <div style={{
-              backgroundColor: '#0f172a',
-              borderRadius: '0 0 18px 18px',
-              padding: '24px',
-              minHeight: '500px',
-            }}>
-              {/* Sidebar + Content Layout */}
-              <div style={{ display: 'flex', gap: '24px' }}>
-                {/* Sidebar */}
-                <div style={{ width: '200px', flexShrink: 0 }}>
-                  {/* Logo */}
-                  <div style={{ marginBottom: '32px' }}>
-                    <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '28px', width: 'auto' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+
+            {/* Right: Dashboard Preview */}
+            <div className="lp-fade-in lp-fade-in-delay-3">
+              <div className="lp-glow-blue lp-gradient-border" style={{
+                padding: '3px',
+                position: 'relative',
+              }}>
+                {/* Browser Chrome */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 16px',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  backgroundColor: 'rgba(0,0,0,0.3)',
+                  borderRadius: '16px 16px 0 0',
+                }}>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ff5f57' }} />
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#febc2e' }} />
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#28c840' }} />
                   </div>
-                  {/* Menu Items */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px 16px',
-                      backgroundColor: '#ef4444',
-                      borderRadius: '10px',
-                      color: '#fff',
-                      fontSize: '14px',
-                      fontWeight: 500,
-                    }}>
-                      <TrendingUp size={18} />
-                      Painel de controle
-                    </div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px 16px',
-                      color: 'rgba(255,255,255,0.5)',
-                      fontSize: '14px',
-                    }}>
-                      <Store size={18} />
-                      Minhas lojas
-                    </div>
+                  <div style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    fontSize: '11px',
+                    color: 'rgba(255,255,255,0.3)',
+                    marginLeft: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)' }} />
+                    app.replyna.me/dashboard
                   </div>
                 </div>
-
-                {/* Main Content */}
-                <div style={{ flex: 1 }}>
+                {/* Dashboard Mockup Compacto */}
+                <div style={{
+                  backgroundColor: '#0f172a',
+                  borderRadius: '0 0 16px 16px',
+                  padding: '16px',
+                }}>
                   {/* Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <div>
-                      <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                      <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>
                         Olá, Sua Empresa
                       </h3>
-                      <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>
-                        Acompanhe o desempenho do seu atendimento automatizado
+                      <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
+                        Acompanhe o desempenho do seu atendimento
                       </p>
                     </div>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      <div style={{
-                        padding: '10px 16px',
-                        backgroundColor: 'rgba(255,255,255,0.05)',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        color: 'rgba(255,255,255,0.6)',
-                      }}>
-                        Todas as lojas
-                      </div>
-                      <div style={{
-                        padding: '10px 16px',
-                        backgroundColor: 'rgba(255,255,255,0.05)',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        color: 'rgba(255,255,255,0.6)',
-                      }}>
-                        15/01/2026 → 21/01/2026
-                      </div>
+                    <div style={{
+                      padding: '6px 12px',
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      color: 'rgba(255,255,255,0.5)',
+                    }}>
+                      Últimos 7 dias
                     </div>
                   </div>
 
-                  {/* Stats Row */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '24px' }}>
+                  {/* Stats Row - Compacto */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
                     {[
-                      { label: 'E-mails Recebidos', value: '469', sub: 'excluindo spam' },
-                      { label: 'E-mails Respondidos', value: '323', sub: 'respostas enviadas' },
-                      { label: 'Taxa de Automação', value: '68,9%', sub: 'respondidos / recebidos' },
-                      { label: 'Taxa de Sucesso', value: '97,8%', sub: 'resolvidos sem humano' },
-                      { label: 'Atendimento Humano', value: '7', sub: 'aguardando atendimento' },
+                      { label: 'E-mails Recebidos', value: '469' },
+                      { label: 'Taxa de Automação', value: '68,9%' },
+                      { label: 'Taxa de Sucesso', value: '97,8%' },
                     ].map((stat, i) => (
                       <div key={i} style={{
-                        padding: '16px',
+                        padding: '12px',
                         backgroundColor: 'rgba(255,255,255,0.03)',
-                        borderRadius: '12px',
+                        borderRadius: '10px',
                         border: '1px solid rgba(255,255,255,0.06)',
                       }}>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>{stat.label}</div>
-                        <div style={{ fontSize: '28px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{stat.value}</div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>{stat.sub}</div>
+                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>{stat.label}</div>
+                        <div style={{ fontSize: '22px', fontWeight: 700, color: '#fff' }}>{stat.value}</div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Chart Section */}
+                  {/* Chart Section - Compacto */}
                   <div style={{
-                    padding: '20px',
+                    padding: '14px',
                     backgroundColor: 'rgba(255,255,255,0.03)',
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     border: '1px solid rgba(255,255,255,0.06)',
-                    marginBottom: '24px',
+                    marginBottom: '12px',
                   }}>
-                    <div style={{ marginBottom: '4px' }}>
-                      <span style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>Volume de Emails</span>
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginBottom: '20px' }}>Recebidos x Respondidos</div>
-                    {/* Bar Chart */}
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '40px', height: '150px', paddingBottom: '30px', position: 'relative' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>Volume de Emails</div>
+                    {/* Bar Chart Compacto */}
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '20px', height: '80px' }}>
                       {[
-                        { date: '19/01', received: 30, responded: 25 },
-                        { date: '20/01', received: 85, responded: 55 },
-                        { date: '21/01', received: 100, responded: 70 },
+                        { date: '18/01', received: 40, responded: 30 },
+                        { date: '19/01', received: 60, responded: 45 },
+                        { date: '20/01', received: 85, responded: 60 },
+                        { date: '21/01', received: 100, responded: 72 },
                       ].map((day, i) => (
-                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', height: '120px' }}>
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-end', height: '60px' }}>
                             <div style={{
-                              width: '40px',
-                              height: `${day.received}%`,
+                              width: '16px',
+                              height: `${day.received * 0.6}px`,
                               backgroundColor: 'rgba(100, 116, 139, 0.5)',
-                              borderRadius: '4px 4px 0 0',
+                              borderRadius: '3px 3px 0 0',
                             }} />
                             <div style={{
-                              width: '40px',
-                              height: `${day.responded}%`,
+                              width: '16px',
+                              height: `${day.responded * 0.6}px`,
                               backgroundColor: '#4672ec',
-                              borderRadius: '4px 4px 0 0',
+                              borderRadius: '3px 3px 0 0',
                             }} />
                           </div>
-                          <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>{day.date}</span>
+                          <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>{day.date}</span>
                         </div>
                       ))}
                     </div>
-                    {/* Legend */}
-                    <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', marginTop: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: 'rgba(100, 116, 139, 0.5)' }} />
-                        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Emails recebidos</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#4672ec' }} />
-                        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Emails respondidos</span>
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Conversations Table Preview */}
+                  {/* Mini Table */}
                   <div style={{
-                    padding: '20px',
+                    padding: '12px',
                     backgroundColor: 'rgba(255,255,255,0.03)',
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     border: '1px solid rgba(255,255,255,0.06)',
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>Conversas do Período</span>
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                          <span style={{ padding: '6px 12px', backgroundColor: '#ef4444', borderRadius: '6px', fontSize: '12px', color: '#fff' }}>Conversas</span>
-                          <span style={{ padding: '6px 12px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Spam (274)</span>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>611 conversas</span>
-                    </div>
-                    {/* Table Header */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr 1fr 0.8fr', gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
-                      <span>Loja</span>
-                      <span>Cliente</span>
-                      <span>Assunto</span>
-                      <span>Categoria</span>
-                      <span>Data</span>
-                    </div>
-                    {/* Table Rows */}
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#fff', marginBottom: '10px' }}>Últimas Conversas</div>
                     {[
-                      { shop: 'Minha Loja BR', client: 'Maria Silva', subject: 'Dúvida sobre entrega...', category: 'Dúvidas gerais', categoryColor: '#3b82f6', date: '21/01, 17:00' },
-                      { shop: 'Store USA', client: 'John Smith', subject: 'Order status inquiry', category: 'Dúvidas gerais', categoryColor: '#3b82f6', date: '21/01, 16:35' },
-                      { shop: 'Minha Loja BR', client: 'Pedro Santos', subject: 'Rastrear meu pedido', category: 'Rastreio', categoryColor: '#8b5cf6', date: '21/01, 15:45' },
+                      { client: 'Maria Silva', subject: 'Dúvida sobre entrega', category: 'Dúvidas', color: '#3b82f6' },
+                      { client: 'John Smith', subject: 'Order status', category: 'Rastreio', color: '#8b5cf6' },
                     ].map((row, i) => (
-                      <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr 1fr 0.8fr', gap: '12px', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
-                        <span>{row.shop}</span>
-                        <span style={{ fontWeight: 500 }}>{row.client}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>{row.subject}</span>
-                        <span style={{ padding: '4px 10px', backgroundColor: `${row.categoryColor}20`, color: row.categoryColor, borderRadius: '6px', fontSize: '11px', width: 'fit-content' }}>{row.category}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.4)' }}>{row.date}</span>
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i === 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                        <div>
+                          <div style={{ fontSize: '12px', color: '#fff', fontWeight: 500 }}>{row.client}</div>
+                          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>{row.subject}</div>
+                        </div>
+                        <span style={{ padding: '3px 8px', backgroundColor: `${row.color}20`, color: row.color, borderRadius: '4px', fontSize: '10px' }}>{row.category}</span>
                       </div>
                     ))}
                   </div>
