@@ -603,7 +603,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                 style={{
                   padding: '16px 20px',
                   borderBottom: '1px solid var(--border-color)',
-                  backgroundColor: message.direction === 'outbound' ? 'rgba(59, 130, 246, 0.04)' : 'transparent',
+                  backgroundColor: message.direction === 'outbound' ? 'rgba(139, 92, 246, 0.06)' : 'transparent',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -616,8 +616,8 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                         fontWeight: 700,
                         textTransform: 'uppercase',
                         whiteSpace: 'nowrap',
-                        backgroundColor: message.direction === 'inbound' ? 'rgba(107, 114, 128, 0.16)' : 'rgba(59, 130, 246, 0.16)',
-                        color: message.direction === 'inbound' ? '#6b7280' : '#2563eb',
+                        backgroundColor: message.direction === 'inbound' ? 'rgba(107, 114, 128, 0.16)' : 'rgba(139, 92, 246, 0.16)',
+                        color: message.direction === 'inbound' ? '#6b7280' : '#a78bfa',
                       }}
                     >
                       {message.direction === 'inbound' ? 'Cliente' : 'Resposta'}
