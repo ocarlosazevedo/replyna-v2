@@ -980,9 +980,9 @@ export default function LandingPage() {
 
         <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
           {/* Hero Grid: Copy Left + Dashboard Right */}
-          <div className="lp-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '60px', alignItems: 'center' }}>
+          <div className="lp-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '60px', alignItems: 'start' }}>
             {/* Left: Copy */}
-            <div style={{ textAlign: 'left' }}>
+            <div style={{ textAlign: 'left', paddingTop: '40px' }}>
               {/* Badge */}
               <div className="lp-fade-in lp-fade-in-delay-1 lp-badge" style={{
                 display: 'inline-flex',
@@ -1102,9 +1102,12 @@ export default function LandingPage() {
 
             {/* Right: Dashboard Preview */}
             <div className="lp-fade-in lp-fade-in-delay-3">
-              <div className="lp-glow-blue lp-gradient-border" style={{
+              <div className="lp-glow-blue" style={{
                 position: 'relative',
+                borderRadius: '20px',
+                border: '1px solid rgba(255,255,255,0.1)',
                 overflow: 'hidden',
+                background: '#0f172a',
               }}>
                 {/* Browser Chrome */}
                 <div style={{
@@ -1138,7 +1141,6 @@ export default function LandingPage() {
                 </div>
                 {/* Dashboard Mockup Compacto */}
                 <div style={{
-                  backgroundColor: '#0f172a',
                   padding: '16px',
                 }}>
                   {/* Header */}
