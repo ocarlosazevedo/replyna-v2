@@ -498,13 +498,13 @@ export default function Dashboard() {
 
         if (!isActive) return
 
-        // Calcular métricas de emails
-        const inboundMessages = messageRows.filter((message) => message.direction === 'inbound')
+        // Calcular métricas de emails (excluindo spam)
+        const inboundMessages = messageRows.filter((message) => message.direction === 'inbound' && message.category !== 'spam')
         const outboundMessages = messageRows.filter((message) => message.direction === 'outbound')
         const emailsReceived = inboundMessages.length
         const emailsReplied = outboundMessages.length
 
-        // Taxa de automação = emails respondidos / emails recebidos
+        // Taxa de automação = emails respondidos / emails recebidos (spam já excluído)
         const automationRate = emailsReceived > 0
           ? (emailsReplied / emailsReceived) * 100
           : 0
@@ -731,7 +731,7 @@ export default function Dashboard() {
               <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {renderValue(metrics.emailsReceived)}
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>no período selecionado</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>excluindo spam</div>
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Taxa de Automação</div>
