@@ -144,11 +144,20 @@ Your task is to analyze the email and return a JSON with:
 5. summary: 1-line summary of what the customer wants
 
 LANGUAGE DETECTION (CRITICAL):
-- Analyze the customer's text carefully
-- "es" for Spanish (words like: hola, pedido, cancelar, gracias, quiero, donde, está)
-- "pt-BR" for Brazilian Portuguese (words like: olá, obrigado, quero, onde, está, cancelamento)
-- "en" for English (words like: hello, order, cancel, thanks, want, where, tracking)
+- Analyze the customer's text carefully and detect the EXACT language used
+- Common languages:
+  - "pt-BR" for Brazilian Portuguese (olá, obrigado, quero, onde, está, cancelamento, pedido)
+  - "es" for Spanish (hola, pedido, cancelar, gracias, quiero, donde, está)
+  - "en" for English (hello, order, cancel, thanks, want, where, tracking)
+  - "it" for Italian (ciao, ordine, annullare, grazie, voglio, dove, tracciamento)
+  - "fr" for French (bonjour, commande, annuler, merci, je veux, où, suivi)
+  - "de" for German (hallo, bestellung, stornieren, danke, ich möchte, wo, sendungsverfolgung)
+  - "pl" for Polish (cześć, dzień dobry, zamówienie, anulować, dziękuję, chcę, gdzie, śledzenie)
+  - "nl" for Dutch (hallo, bestelling, annuleren, bedankt, ik wil, waar, tracking)
+  - "ro" for Romanian (bună, comandă, anulare, mulțumesc, vreau, unde, urmărire)
+- For ANY other language not listed, use the ISO 639-1 code (e.g., "sv" for Swedish, "da" for Danish, etc.)
 - NEVER assume any language by default - analyze the actual text
+- If the email contains multiple languages, use the PRIMARY language the customer wrote in
 
 === AVAILABLE CATEGORIES (ONLY 5) ===
 
@@ -191,6 +200,11 @@ Classify as "spam" with HIGH confidence (0.9+):
 - Generic emails with [placeholders] or template text
 - Cold outreach trying to sell services
 - Emails NOT related to a specific purchase from the store
+- BOUNCE/DSN EMAILS (VERY IMPORTANT): Emails with "Delivery Status Notification", "Mail Delivery Subsystem",
+  "mailer-daemon", "Undeliverable", "Delivery Failure", "Mail delivery failed" in subject or body.
+  These are automatic system notifications about failed email delivery - NOT real customer messages.
+  Remetentes como: mailer-daemon@*, postmaster@*, bounce@* são sempre spam.
+- Forwarded bounce notifications: If a customer forwards a bounce email, it's still spam - there's no real question to answer.
 
 REAL CUSTOMERS (NOT spam):
 - Asking about THEIR order (mentions order number, tracking, specific purchase)

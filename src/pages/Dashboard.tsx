@@ -438,14 +438,15 @@ export default function Dashboard() {
 
       if (error) throw error
       // Mapear para incluir shop_name
-      return (data || []).map((row: { id: string; shop_id: string; customer_name: string | null; subject: string | null; category: string | null; created_at: string; shops: Array<{ name: string }> | null }) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data || []).map((row: any) => ({
         id: row.id,
         shop_id: row.shop_id,
         customer_name: row.customer_name,
         subject: row.subject,
         category: row.category,
         created_at: row.created_at,
-        shop_name: row.shops?.[0]?.name || null,
+        shop_name: row.shops?.name || (Array.isArray(row.shops) ? row.shops[0]?.name : null) || null,
       })) as ConversationRow[]
     }
 
