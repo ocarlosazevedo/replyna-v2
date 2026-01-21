@@ -33,6 +33,7 @@ interface ConversationRow {
   subject: string | null
   category: string | null
   created_at: string
+  shop_name?: string
 }
 
 interface MetricSummary {
@@ -425,7 +426,7 @@ export default function Dashboard() {
     const loadConversationsList = async () => {
       const query = supabase
         .from('conversations')
-        .select('id, shop_id, customer_name, subject, category, created_at')
+        .select('id, shop_id, customer_name, subject, category, created_at, shops(name)')
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
         .order('created_at', { ascending: false })
@@ -436,7 +437,16 @@ export default function Dashboard() {
           : await query.eq('shop_id', selectedShopId)
 
       if (error) throw error
-      return (data || []) as ConversationRow[]
+      // Mapear para incluir shop_name
+      return (data || []).map((row: { id: string; shop_id: string; customer_name: string | null; subject: string | null; category: string | null; created_at: string; shops: { name: string } | null }) => ({
+        id: row.id,
+        shop_id: row.shop_id,
+        customer_name: row.customer_name,
+        subject: row.subject,
+        category: row.category,
+        created_at: row.created_at,
+        shop_name: row.shops?.name || null,
+      })) as ConversationRow[]
     }
 
     const loadAll = async () => {
@@ -852,6 +862,7 @@ export default function Dashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr style={{ textAlign: 'left', backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Loja</th>
                     <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Cliente</th>
                     <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Assunto</th>
                     <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Categoria</th>
@@ -881,7 +892,23 @@ export default function Dashboard() {
                         <span
                           style={{
                             display: 'inline-block',
-                            maxWidth: '160px',
+                            maxWidth: '120px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            color: 'var(--accent)',
+                            fontWeight: 600,
+                            fontSize: '12px',
+                          }}
+                        >
+                          {conversation.shop_name || 'Loja'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            maxWidth: '140px',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
@@ -896,7 +923,7 @@ export default function Dashboard() {
                         <span
                           style={{
                             display: 'inline-block',
-                            maxWidth: '240px',
+                            maxWidth: '200px',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',

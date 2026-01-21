@@ -9,6 +9,7 @@ interface Message {
   to_email: string | null
   subject: string | null
   body_text: string | null
+  body_html: string | null
   status: string | null
   was_auto_replied: boolean | null
   created_at: string
@@ -154,7 +155,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
       // Carregar mensagens
       const { data: msgData, error: msgError } = await supabase
         .from('messages')
-        .select('id, direction, from_email, to_email, subject, body_text, status, was_auto_replied, created_at, category')
+        .select('id, direction, from_email, to_email, subject, body_text, body_html, status, was_auto_replied, created_at, category')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
 
@@ -643,17 +644,30 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                   </span>
                 </div>
 
-                <div
-                  style={{
-                    fontSize: '14px',
-                    color: 'var(--text-primary)',
-                    lineHeight: '1.6',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {cleanMessageBody(message.body_text)}
-                </div>
+                {message.body_html ? (
+                  <div
+                    style={{
+                      fontSize: '14px',
+                      color: 'var(--text-primary)',
+                      lineHeight: '1.6',
+                      wordBreak: 'break-word',
+                    }}
+                    className="email-html-content"
+                    dangerouslySetInnerHTML={{ __html: message.body_html }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      fontSize: '14px',
+                      color: 'var(--text-primary)',
+                      lineHeight: '1.6',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {cleanMessageBody(message.body_text)}
+                  </div>
+                )}
 
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>
                   {message.direction === 'inbound' ? `De: ${message.from_email}` : `Para: ${message.to_email}`}
@@ -664,10 +678,37 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
         </div>
       </div>
 
-      {/* CSS para animação do spinner */}
+      {/* CSS para animação do spinner e conteúdo HTML de email */}
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
+        }
+        .email-html-content {
+          max-width: 100%;
+          overflow-x: auto;
+        }
+        .email-html-content img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 8px;
+          margin: 8px 0;
+        }
+        .email-html-content a {
+          color: var(--accent);
+          text-decoration: underline;
+        }
+        .email-html-content table {
+          max-width: 100%;
+          border-collapse: collapse;
+        }
+        .email-html-content td, .email-html-content th {
+          padding: 4px 8px;
+        }
+        .email-html-content p {
+          margin: 8px 0;
+        }
+        .email-html-content br + br {
+          display: none;
         }
       `}</style>
     </div>
