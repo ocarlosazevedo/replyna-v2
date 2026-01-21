@@ -55,7 +55,9 @@ export default function Register() {
 
   useEffect(() => {
     if (preselectedPlan && plans.length > 0) {
-      const plan = plans.find(p => p.name.toLowerCase() === preselectedPlan.toLowerCase())
+      // Normaliza ambos os lados: remove espaços/hífens e compara em lowercase
+      const normalizedPreselected = preselectedPlan.toLowerCase().replace(/[-\s]/g, '')
+      const plan = plans.find(p => p.name.toLowerCase().replace(/[-\s]/g, '') === normalizedPreselected)
       if (plan) {
         setSelectedPlan(plan)
         setStep('account')
