@@ -119,6 +119,21 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Função para scroll suave
+  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+    e.preventDefault()
+    const element = document.getElementById(targetId)
+    if (element) {
+      const headerOffset = 80
+      const elementPosition = element.getBoundingClientRect().top
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      })
+    }
+  }
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -152,13 +167,13 @@ export default function LandingPage() {
             style={{ height: '36px', width: 'auto' }}
           />
           <nav style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
-            <a href="#como-funciona" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>
+            <a href="#como-funciona" onClick={(e) => scrollToSection(e, 'como-funciona')} style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
               Como funciona
             </a>
-            <a href="#precos" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>
+            <a href="#precos" onClick={(e) => scrollToSection(e, 'precos')} style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
               Preços
             </a>
-            <a href="#faq" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>
+            <a href="#faq" onClick={(e) => scrollToSection(e, 'faq')} style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
               FAQ
             </a>
             <Link
@@ -267,6 +282,7 @@ export default function LandingPage() {
             </Link>
             <a
               href="#como-funciona"
+              onClick={(e) => scrollToSection(e, 'como-funciona')}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -279,6 +295,7 @@ export default function LandingPage() {
                 fontSize: '16px',
                 fontWeight: 600,
                 border: '1px solid rgba(255,255,255,0.2)',
+                cursor: 'pointer',
               }}
             >
               Ver demonstração
@@ -350,10 +367,49 @@ export default function LandingPage() {
                 <div style={{
                   height: '320px',
                   backgroundColor: '#1a1a2e',
-                  backgroundImage: `url(${influencer.image})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center top',
-                }} />
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                  <img
+                    src={influencer.image}
+                    alt={influencer.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: 'center top',
+                    }}
+                    onError={(e) => {
+                      // Fallback: esconder a imagem e mostrar placeholder
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                    }}
+                  />
+                  {/* Placeholder caso a imagem não carregue */}
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#1a1a2e',
+                    zIndex: -1,
+                  }}>
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(70, 114, 236, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '32px',
+                      color: '#4672ec',
+                    }}>
+                      {influencer.name.charAt(0)}
+                    </div>
+                  </div>
+                </div>
                 <div style={{ padding: '24px' }}>
                   <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>
                     {influencer.name}
