@@ -122,6 +122,9 @@ const getWeekStart = (date: Date) => {
 const buildVolumeSeries = (messages: MessageRow[], granularity: 'day' | 'week' | 'month') => {
   const buckets = new Map<string, { date: Date; received: number; replied: number }>()
   messages.forEach((message) => {
+    // Ignorar spam no gráfico de volume
+    if (message.category === 'spam') return
+
     const date = new Date(message.created_at)
     let key = ''
     let labelDate = date
@@ -753,42 +756,83 @@ export default function Dashboard() {
       <div className="replyna-dashboard-bottom">
         <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Conversas do Período
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Conversas do Período
+              </div>
+              {/* Toggle Spam / Conversas */}
+              <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilter(categoryFilter === 'spam' ? 'all' : categoryFilter)}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: 'pointer',
+                    backgroundColor: categoryFilter !== 'spam' ? 'var(--accent)' : 'var(--bg-card)',
+                    color: categoryFilter !== 'spam' ? '#fff' : 'var(--text-secondary)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Conversas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilter('spam')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    border: 'none',
+                    borderLeft: '1px solid var(--border-color)',
+                    cursor: 'pointer',
+                    backgroundColor: categoryFilter === 'spam' ? 'rgba(220, 38, 38, 0.15)' : 'var(--bg-card)',
+                    color: categoryFilter === 'spam' ? '#b91c1c' : 'var(--text-secondary)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Spam ({conversations.filter(c => c.category === 'spam').length})
+                </button>
+              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {/* Filtro por categoria */}
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                style={{
-                  backgroundColor: 'var(--bg-card)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '10px',
-                  padding: '10px 28px 10px 14px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 10px center',
-                  appearance: 'none',
-                  WebkitAppearance: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <option value="all">Todas categorias</option>
-                <option value="duvidas_gerais">Dúvidas gerais</option>
-                <option value="rastreio">Rastreio</option>
-                <option value="troca_devolucao_reembolso">Troca/Devolução/Reembolso</option>
-                <option value="suporte_humano">Suporte humano</option>
-                <option value="spam">Spam</option>
-              </select>
+              {/* Filtro por categoria (só aparece quando não está em Spam) */}
+              {categoryFilter !== 'spam' && (
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  style={{
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '10px',
+                    padding: '10px 28px 10px 14px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 10px center',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="all">Todas categorias</option>
+                  <option value="duvidas_gerais">Dúvidas gerais</option>
+                  <option value="rastreio">Rastreio</option>
+                  <option value="troca_devolucao_reembolso">Troca/Devolução/Reembolso</option>
+                  <option value="suporte_humano">Suporte humano</option>
+                </select>
+              )}
               {!loadingConversations && conversations.length > 0 && (
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                  {categoryFilter === 'all'
-                    ? `${conversations.length} ${conversations.length === 1 ? 'conversa' : 'conversas'}`
-                    : `${conversations.filter(c => (c.category || 'outros') === categoryFilter).length} de ${conversations.length}`}
+                  {categoryFilter === 'spam'
+                    ? `${conversations.filter(c => c.category === 'spam').length} spam`
+                    : categoryFilter === 'all'
+                      ? `${conversations.filter(c => c.category !== 'spam').length} conversas`
+                      : `${conversations.filter(c => c.category === categoryFilter).length} de ${conversations.filter(c => c.category !== 'spam').length}`}
                 </div>
               )}
             </div>
@@ -816,7 +860,11 @@ export default function Dashboard() {
                 </thead>
                 <tbody>
                   {conversations
-                    .filter((c) => categoryFilter === 'all' || (c.category || 'outros') === categoryFilter)
+                    .filter((c) => {
+                      if (categoryFilter === 'spam') return c.category === 'spam'
+                      if (categoryFilter === 'all') return c.category !== 'spam'
+                      return c.category === categoryFilter
+                    })
                     .map((conversation) => (
                     <tr
                       key={conversation.id}
