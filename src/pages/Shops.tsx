@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User, Store, Plus, Filter } from 'lucide-react'
+import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User, Store, Plus, ChevronDown, Snowflake } from 'lucide-react'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -29,7 +29,16 @@ interface Shop {
   created_at: string
 }
 
-type CodFilter = 'all' | 'cod' | 'non-cod'
+type ShopFilter = 'all' | 'active' | 'paused' | 'cod' | 'non-cod' | 'frozen'
+
+const filterOptions: { value: ShopFilter; label: string }[] = [
+  { value: 'all', label: 'Todas as lojas' },
+  { value: 'active', label: 'Ativas' },
+  { value: 'paused', label: 'Pausadas' },
+  { value: 'cod', label: 'COD' },
+  { value: 'non-cod', label: 'Não-COD' },
+  { value: 'frozen', label: 'Congeladas' },
+]
 
 export default function Shops() {
   const { user } = useAuth()
@@ -37,23 +46,81 @@ export default function Shops() {
   const [shops, setShops] = useState<Shop[]>([])
   const [loading, setLoading] = useState(true)
   const [shopsLimit, setShopsLimit] = useState<number | null>(1)
-  const [codFilter, setCodFilter] = useState<CodFilter>('all')
+  const [filter, setFilter] = useState<ShopFilter>('all')
+  const [showDropdown, setShowDropdown] = useState(false)
   const isMobile = useIsMobile()
-
-  // Filtrar lojas por COD
-  const filteredShops = shops.filter((shop) => {
-    if (codFilter === 'all') return true
-    if (codFilter === 'cod') return shop.is_cod
-    return !shop.is_cod
-  })
 
   // Verificar se é ilimitado
   const isUnlimited = shopsLimit === null
+
+  // Ordenar lojas: ativas primeiro por data de criação (mais antigas primeiro)
+  const sortedShops = [...shops].sort((a, b) => {
+    if (a.is_active && !b.is_active) return -1
+    if (!a.is_active && b.is_active) return 1
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  })
+
+  // Determinar quais lojas estão "congeladas" (excedem o limite do plano)
+  // Lojas ativas mais antigas têm prioridade
+  const activeShops = sortedShops.filter(s => s.is_active)
+  const frozenShopIds = new Set<string>()
+
+  if (!isUnlimited && shopsLimit !== null && activeShops.length > shopsLimit) {
+    // Lojas excedentes (as mais recentes) ficam congeladas
+    const excessShops = activeShops.slice(shopsLimit)
+    excessShops.forEach(shop => frozenShopIds.add(shop.id))
+  }
+
+  const hasFrozenShops = frozenShopIds.size > 0
+
+  // Filtrar lojas
+  const filteredShops = sortedShops.filter((shop) => {
+    const isFrozen = frozenShopIds.has(shop.id)
+
+    switch (filter) {
+      case 'all':
+        return true
+      case 'active':
+        return shop.is_active && !isFrozen
+      case 'paused':
+        return !shop.is_active
+      case 'cod':
+        return shop.is_cod
+      case 'non-cod':
+        return !shop.is_cod
+      case 'frozen':
+        return isFrozen
+      default:
+        return true
+    }
+  })
+
+  // Contadores para o dropdown
+  const counts = {
+    all: shops.length,
+    active: activeShops.filter(s => !frozenShopIds.has(s.id)).length,
+    paused: shops.filter(s => !s.is_active).length,
+    cod: shops.filter(s => s.is_cod).length,
+    'non-cod': shops.filter(s => !s.is_cod).length,
+    frozen: frozenShopIds.size,
+  }
 
   useEffect(() => {
     loadShops()
     loadUserLimit()
   }, [user])
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('.filter-dropdown')) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
 
   const loadUserLimit = async () => {
     if (!user) return
@@ -81,7 +148,7 @@ export default function Shops() {
         .from('shops')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: true })
 
       if (error) throw error
       setShops(data || [])
@@ -109,6 +176,15 @@ export default function Shops() {
   }
 
   const handleToggleActive = async (shopId: string, currentStatus: boolean) => {
+    // Verificar se está tentando ativar uma loja quando já atingiu o limite
+    if (!currentStatus && !isUnlimited && shopsLimit !== null) {
+      const currentActiveCount = shops.filter(s => s.is_active).length
+      if (currentActiveCount >= shopsLimit) {
+        alert(`Você atingiu o limite de ${shopsLimit} loja${shopsLimit > 1 ? 's' : ''} ativa${shopsLimit > 1 ? 's' : ''} do seu plano. Faça upgrade para ativar mais lojas.`)
+        return
+      }
+    }
+
     try {
       const { error } = await supabase
         .from('shops')
@@ -180,6 +256,8 @@ export default function Shops() {
   // Verificar se pode adicionar mais lojas (ilimitado ou abaixo do limite)
   const canAddMoreShops = isUnlimited || shops.length < (shopsLimit ?? 0)
 
+  const selectedFilterLabel = filterOptions.find(f => f.value === filter)?.label || 'Todas as lojas'
+
   return (
     <div>
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: '24px', gap: '16px' }}>
@@ -211,59 +289,139 @@ export default function Shops() {
         )}
       </div>
 
-      {/* Filtro por COD */}
-      {shops.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '14px' }}>
-            <Filter size={16} />
-            <span>Filtrar:</span>
+      {/* Banner de lojas congeladas */}
+      {hasFrozenShops && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '16px',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          borderRadius: '12px',
+          marginBottom: '20px',
+        }}>
+          <Snowflake size={24} style={{ color: '#3b82f6', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: '#3b82f6', marginBottom: '4px' }}>
+              {frozenShopIds.size} loja{frozenShopIds.size > 1 ? 's' : ''} congelada{frozenShopIds.size > 1 ? 's' : ''}
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Seu plano permite {shopsLimit} loja{shopsLimit && shopsLimit > 1 ? 's' : ''} ativa{shopsLimit && shopsLimit > 1 ? 's' : ''}.
+              As lojas excedentes estão congeladas e não processam emails.
+              <button
+                onClick={() => navigate('/account')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#3b82f6',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0,
+                  marginLeft: '4px',
+                  textDecoration: 'underline',
+                }}
+              >
+                Fazer upgrade
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+        </div>
+      )}
+
+      {/* Filtro em Dropdown */}
+      {shops.length > 0 && (
+        <div style={{ marginBottom: '20px' }}>
+          <div
+            className="filter-dropdown"
+            style={{ position: 'relative', display: 'inline-block' }}
+          >
             <button
-              onClick={() => setCodFilter('all')}
+              onClick={() => setShowDropdown(!showDropdown)}
               style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 16px',
+                borderRadius: '10px',
                 border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                fontSize: '14px',
+                fontWeight: 500,
                 cursor: 'pointer',
-                backgroundColor: codFilter === 'all' ? 'var(--accent)' : 'transparent',
-                color: codFilter === 'all' ? '#fff' : 'var(--text-primary)',
+                minWidth: '180px',
+                justifyContent: 'space-between',
               }}
             >
-              Todas ({shops.length})
+              <span>{selectedFilterLabel} ({counts[filter]})</span>
+              <ChevronDown
+                size={18}
+                style={{
+                  transform: showDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease',
+                  color: 'var(--text-secondary)',
+                }}
+              />
             </button>
-            <button
-              onClick={() => setCodFilter('cod')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: '500',
+
+            {showDropdown && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                marginTop: '4px',
+                backgroundColor: 'var(--bg-card)',
                 border: '1px solid var(--border-color)',
-                cursor: 'pointer',
-                backgroundColor: codFilter === 'cod' ? '#8b5cf6' : 'transparent',
-                color: codFilter === 'cod' ? '#fff' : 'var(--text-primary)',
-              }}
-            >
-              COD ({shops.filter(s => s.is_cod).length})
-            </button>
-            <button
-              onClick={() => setCodFilter('non-cod')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: '500',
-                border: '1px solid var(--border-color)',
-                cursor: 'pointer',
-                backgroundColor: codFilter === 'non-cod' ? 'var(--text-secondary)' : 'transparent',
-                color: codFilter === 'non-cod' ? '#fff' : 'var(--text-primary)',
-              }}
-            >
-              Não-COD ({shops.filter(s => !s.is_cod).length})
-            </button>
+                borderRadius: '10px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                zIndex: 100,
+                minWidth: '200px',
+                overflow: 'hidden',
+              }}>
+                {filterOptions.map((option) => {
+                  // Esconder opção "Congeladas" se não houver lojas congeladas
+                  if (option.value === 'frozen' && counts.frozen === 0) return null
+
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setFilter(option.value)
+                        setShowDropdown(false)
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: 'none',
+                        backgroundColor: filter === option.value ? 'rgba(70, 114, 236, 0.1)' : 'transparent',
+                        color: filter === option.value ? 'var(--accent)' : 'var(--text-primary)',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {option.value === 'frozen' && <Snowflake size={14} style={{ color: '#3b82f6' }} />}
+                        {option.label}
+                      </span>
+                      <span style={{
+                        fontSize: '12px',
+                        color: 'var(--text-secondary)',
+                        backgroundColor: 'var(--border-color)',
+                        padding: '2px 8px',
+                        borderRadius: '9999px',
+                      }}>
+                        {counts[option.value]}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -318,44 +476,102 @@ export default function Shops() {
           {filteredShops.map((shop) => {
             const emailStatus = getStatusIcon(shop.mail_status)
             const shopifyStatus = getStatusIcon(shop.shopify_status)
+            const isFrozen = frozenShopIds.has(shop.id)
 
             return (
-              <div key={shop.id} style={cardStyle}>
+              <div
+                key={shop.id}
+                style={{
+                  ...cardStyle,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  ...(isFrozen ? {
+                    border: '2px solid rgba(59, 130, 246, 0.4)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.03)',
+                  } : {}),
+                }}
+              >
+                {/* Overlay de congelado */}
+                {isFrozen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 197, 253, 0.05) 100%)',
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                  }} />
+                )}
+
+                {/* Badge de congelado */}
+                {isFrozen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '12px',
+                    right: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                    color: '#3b82f6',
+                    padding: '6px 12px',
+                    borderRadius: '9999px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    zIndex: 2,
+                  }}>
+                    <Snowflake size={12} className="frozen-icon" />
+                    Congelada
+                  </div>
+                )}
+
                 {/* Header com nome e status */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', position: 'relative', zIndex: 2 }}>
+                  <h3 style={{
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    color: isFrozen ? 'var(--text-secondary)' : 'var(--text-primary)',
+                    margin: 0,
+                    maxWidth: isFrozen ? '60%' : '100%',
+                  }}>
                     {shop.name}
                   </h3>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {shop.is_cod && (
+                  {!isFrozen && (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {shop.is_cod && (
+                        <span style={{
+                          backgroundColor: 'rgba(139, 92, 246, 0.16)',
+                          color: '#8b5cf6',
+                          padding: '4px 10px',
+                          borderRadius: '9999px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          COD
+                        </span>
+                      )}
                       <span style={{
-                        backgroundColor: 'rgba(139, 92, 246, 0.16)',
-                        color: '#8b5cf6',
-                        padding: '4px 10px',
+                        backgroundColor: shop.is_active ? 'rgba(34, 197, 94, 0.16)' : 'rgba(107, 114, 128, 0.16)',
+                        color: shop.is_active ? '#22c55e' : 'var(--text-secondary)',
+                        padding: '4px 12px',
                         borderRadius: '9999px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
+                        fontSize: '12px',
+                        fontWeight: '600'
                       }}>
-                        COD
+                        {shop.is_active ? 'Ativa' : 'Inativa'}
                       </span>
-                    )}
-                    <span style={{
-                      backgroundColor: shop.is_active ? 'rgba(34, 197, 94, 0.16)' : 'rgba(107, 114, 128, 0.16)',
-                      color: shop.is_active ? '#22c55e' : 'var(--text-secondary)',
-                      padding: '4px 12px',
-                      borderRadius: '9999px',
-                      fontSize: '12px',
-                      fontWeight: '600'
-                    }}>
-                      {shop.is_active ? 'Ativa' : 'Inativa'}
-                    </span>
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Informações organizadas */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px', position: 'relative', zIndex: 2, opacity: isFrozen ? 0.6 : 1 }}>
                   {/* Email da IA (Replyna) */}
                   {shop.imap_user && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -363,12 +579,12 @@ export default function Shops() {
                         width: '36px',
                         height: '36px',
                         borderRadius: '10px',
-                        backgroundColor: 'rgba(70, 114, 236, 0.1)',
+                        backgroundColor: isFrozen ? 'rgba(59, 130, 246, 0.1)' : 'rgba(70, 114, 236, 0.1)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}>
-                        <Mail size={18} style={{ color: 'var(--accent)' }} />
+                        <Mail size={18} style={{ color: isFrozen ? '#3b82f6' : 'var(--accent)' }} />
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
@@ -412,10 +628,13 @@ export default function Shops() {
                   display: 'flex',
                   gap: '16px',
                   padding: '16px',
-                  backgroundColor: 'rgba(70, 114, 236, 0.06)',
+                  backgroundColor: isFrozen ? 'rgba(59, 130, 246, 0.06)' : 'rgba(70, 114, 236, 0.06)',
                   borderRadius: '12px',
                   marginBottom: '20px',
                   border: '1px solid var(--border-color)',
+                  position: 'relative',
+                  zIndex: 2,
+                  opacity: isFrozen ? 0.6 : 1,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                     <Mail size={16} style={{ color: emailStatus.color }} />
@@ -443,7 +662,7 @@ export default function Shops() {
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', position: 'relative', zIndex: 2 }}>
                   <button
                     onClick={() => navigate(`/shops/${shop.id}`)}
                     style={{
@@ -458,16 +677,31 @@ export default function Shops() {
                     <Settings size={16} />
                     Gerenciar
                   </button>
-                  <button
-                    onClick={() => handleToggleActive(shop.id, shop.is_active)}
-                    style={{
-                      ...buttonIcon,
-                      color: shop.is_active ? '#22c55e' : 'var(--text-secondary)',
-                    }}
-                    title={shop.is_active ? 'Desativar loja' : 'Ativar loja'}
-                  >
-                    {shop.is_active ? <Power size={18} /> : <PowerOff size={18} />}
-                  </button>
+                  {isFrozen ? (
+                    <button
+                      onClick={() => navigate('/account')}
+                      style={{
+                        ...buttonIcon,
+                        color: '#3b82f6',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      }}
+                      title="Fazer upgrade para descongelar"
+                    >
+                      <Snowflake size={18} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleToggleActive(shop.id, shop.is_active)}
+                      style={{
+                        ...buttonIcon,
+                        color: shop.is_active ? '#22c55e' : 'var(--text-secondary)',
+                      }}
+                      title={shop.is_active ? 'Desativar loja' : 'Ativar loja'}
+                    >
+                      {shop.is_active ? <Power size={18} /> : <PowerOff size={18} />}
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDeleteShop(shop.id)}
                     style={{ ...buttonIcon, color: '#ef4444' }}
@@ -481,6 +715,17 @@ export default function Shops() {
           })}
         </div>
       )}
+
+      {/* CSS para animação do ícone de congelado */}
+      <style>{`
+        @keyframes frost-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(1.1); }
+        }
+        .frozen-icon {
+          animation: frost-pulse 2s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   )
 }

@@ -31,6 +31,7 @@ export interface ClassificationResult {
     | 'duvidas_gerais'
     | 'rastreio'
     | 'troca_devolucao_reembolso'
+    | 'edicao_pedido'
     | 'suporte_humano';
   confidence: number;
   language: string;
@@ -159,7 +160,7 @@ LANGUAGE DETECTION (CRITICAL):
 - NEVER assume any language by default - analyze the actual text
 - If the email contains multiple languages, use the PRIMARY language the customer wrote in
 
-=== AVAILABLE CATEGORIES (ONLY 5) ===
+=== AVAILABLE CATEGORIES (ONLY 6) ===
 
 1. spam
    Marketing emails, unsolicited service offers from agencies/consultants/developers.
@@ -187,7 +188,16 @@ LANGUAGE DETECTION (CRITICAL):
    IMPORTANT: Only classify here if the customer CLEARLY states the intention.
    If customer just mentions an order without clear action request → classify as "rastreio" first.
 
-5. suporte_humano
+5. edicao_pedido
+   Requests to MODIFY/EDIT an existing order (NOT cancel, NOT return).
+   Examples: "I want to change my order", "Can I add/remove an item?", "Change the size/color",
+   "Update my shipping address", "Change the quantity", "I ordered wrong size, want to change before shipping",
+   "Can I add another product to my order?", "I want only 3 items instead of 4".
+   Key: Customer wants to MODIFY something in the order BEFORE receiving it.
+   This is different from troca_devolucao_reembolso (which is AFTER receiving or wanting to cancel completely).
+   IMPORTANT: These cases REQUIRE HUMAN INTERVENTION because the AI cannot modify orders in Shopify.
+
+6. suporte_humano
    ONLY for cases with EXPLICIT LEGAL THREATS (lawyer, lawsuit, legal action, consumer protection agency).
    These cases need human escalation.
    NOT for: angry customers, complaints, requests to "speak with a human" (respond normally to these).
@@ -262,6 +272,7 @@ Classifique este email e retorne o JSON.`;
       'duvidas_gerais',
       'rastreio',
       'troca_devolucao_reembolso',
+      'edicao_pedido',
       'suporte_humano',
     ];
     if (!validCategories.includes(result.category)) {
@@ -464,6 +475,36 @@ IMPORTANTE - MARCAÇÃO PARA ENCAMINHAMENTO:
 Se for o TERCEIRO CONTATO de cancelamento/devolução, adicione a tag [FORWARD_TO_HUMAN] no INÍCIO da sua resposta.
 Exemplo: "[FORWARD_TO_HUMAN] Olá João, entendo sua situação..."
 Essa tag será removida automaticamente e serve para sinalizar que o caso deve ir para humano.
+
+=== CATEGORIA ESPECIAL: EDIÇÃO DE PEDIDO (edicao_pedido) ===
+
+Se a categoria for "edicao_pedido", significa que o cliente quer MODIFICAR algo no pedido:
+- Alterar itens (adicionar, remover, trocar tamanho/cor)
+- Alterar quantidade
+- Alterar endereço de entrega
+- Qualquer modificação no pedido antes da entrega
+
+COMO RESPONDER PARA EDIÇÃO DE PEDIDO:
+1. Agradeça o contato e demonstre que entendeu o pedido
+2. Confirme os dados do pedido se disponíveis (número, itens atuais)
+3. Informe que a solicitação de alteração foi recebida
+4. Explique que nossa equipe de suporte PRIORITÁRIO entrará em contato para realizar a alteração
+5. Diga que a alteração será feita o mais breve possível
+6. NÃO prometa um prazo específico
+7. SEMPRE adicione a tag [FORWARD_TO_HUMAN] no início para encaminhar ao suporte humano
+
+Exemplo de resposta para edição de pedido:
+"[FORWARD_TO_HUMAN] Olá [Nome]!
+
+Recebi sua solicitação para alterar o pedido #[número].
+
+Entendi que você deseja [resumo da alteração solicitada].
+
+Essa alteração será realizada pela nossa equipe de suporte prioritário, que entrará em contato em breve para confirmar os detalhes e processar a modificação no seu pedido.
+
+Qualquer dúvida, estou à disposição!
+
+[Assinatura]"
 
 ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.signature_html}` : ''}`;
 

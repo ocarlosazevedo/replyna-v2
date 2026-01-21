@@ -185,6 +185,8 @@ const getCategoryBadge = (category: string | null) => {
       return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#16a34a' } // Verde
     case 'troca_devolucao_reembolso':
       return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' } // Laranja
+    case 'edicao_pedido':
+      return { ...base, backgroundColor: 'rgba(168, 85, 247, 0.18)', color: '#9333ea' } // Roxo
     case 'suporte_humano':
       return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' } // Vermelho
     default:
@@ -197,6 +199,7 @@ const categoryLabelMap: Record<string, string> = {
   duvidas_gerais: 'Dúvidas gerais',
   rastreio: 'Rastreio',
   troca_devolucao_reembolso: 'Troca/Devolução/Reembolso',
+  edicao_pedido: 'Edição de pedido',
   suporte_humano: 'Suporte humano',
 }
 
@@ -837,6 +840,7 @@ export default function Dashboard() {
                   <option value="duvidas_gerais">Dúvidas gerais</option>
                   <option value="rastreio">Rastreio</option>
                   <option value="troca_devolucao_reembolso">Troca/Devolução/Reembolso</option>
+                  <option value="edicao_pedido">Edição de pedido</option>
                   <option value="suporte_humano">Suporte humano</option>
                 </select>
               )}

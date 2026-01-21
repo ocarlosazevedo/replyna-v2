@@ -36,6 +36,7 @@ const categoryLabelMap: Record<string, string> = {
   duvidas_gerais: 'Dúvidas gerais',
   rastreio: 'Rastreio',
   troca_devolucao_reembolso: 'Troca/Devolução/Reembolso',
+  edicao_pedido: 'Edição de pedido',
   suporte_humano: 'Suporte humano',
 }
 
@@ -44,6 +45,7 @@ const availableCategories = [
   { value: 'duvidas_gerais', label: 'Dúvidas gerais' },
   { value: 'rastreio', label: 'Rastreio' },
   { value: 'troca_devolucao_reembolso', label: 'Troca/Devolução/Reembolso' },
+  { value: 'edicao_pedido', label: 'Edição de pedido' },
   { value: 'suporte_humano', label: 'Suporte humano' },
   { value: 'spam', label: 'Spam' },
 ]
@@ -65,6 +67,8 @@ const getCategoryBadge = (category: string | null): React.CSSProperties => {
       return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#16a34a' }
     case 'troca_devolucao_reembolso':
       return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
+    case 'edicao_pedido':
+      return { ...base, backgroundColor: 'rgba(168, 85, 247, 0.18)', color: '#9333ea' }
     case 'suporte_humano':
       return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' }
     default:
