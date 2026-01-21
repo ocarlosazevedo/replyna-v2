@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User, Store, Plus } from 'lucide-react'
+import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User, Store, Plus, Filter } from 'lucide-react'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -29,13 +29,26 @@ interface Shop {
   created_at: string
 }
 
+type CodFilter = 'all' | 'cod' | 'non-cod'
+
 export default function Shops() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [shops, setShops] = useState<Shop[]>([])
   const [loading, setLoading] = useState(true)
-  const [shopsLimit, setShopsLimit] = useState<number>(1)
+  const [shopsLimit, setShopsLimit] = useState<number | null>(1)
+  const [codFilter, setCodFilter] = useState<CodFilter>('all')
   const isMobile = useIsMobile()
+
+  // Filtrar lojas por COD
+  const filteredShops = shops.filter((shop) => {
+    if (codFilter === 'all') return true
+    if (codFilter === 'cod') return shop.is_cod
+    return !shop.is_cod
+  })
+
+  // Verificar se é ilimitado
+  const isUnlimited = shopsLimit === null
 
   useEffect(() => {
     loadShops()
@@ -52,7 +65,8 @@ export default function Shops() {
         .single()
 
       if (!error && data) {
-        setShopsLimit(data.shops_limit ?? 1)
+        // NULL = ilimitado, manter como null
+        setShopsLimit(data.shops_limit)
       }
     } catch (err) {
       console.error('Erro ao carregar limite de lojas:', err)
@@ -163,6 +177,9 @@ export default function Shops() {
     justifyContent: 'center',
   }
 
+  // Verificar se pode adicionar mais lojas (ilimitado ou abaixo do limite)
+  const canAddMoreShops = isUnlimited || shops.length < (shopsLimit ?? 0)
+
   return (
     <div>
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: '24px', gap: '16px' }}>
@@ -171,10 +188,14 @@ export default function Shops() {
             Minhas Lojas
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-            Gerencie suas lojas e integrações ({shops.length}/{shopsLimit} lojas)
+            Gerencie suas lojas e integrações ({shops.length} de {isUnlimited ? <span style={{ color: '#22c55e' }}>Ilimitado</span> : shopsLimit})
           </p>
         </div>
-        {shops.length >= shopsLimit ? (
+        {canAddMoreShops ? (
+          <button onClick={() => navigate('/shops/setup')} style={{ ...buttonPrimary, whiteSpace: 'nowrap', width: isMobile ? '100%' : 'auto' }}>
+            + Integrar nova loja
+          </button>
+        ) : (
           <button
             onClick={() => navigate('/account')}
             style={{
@@ -187,18 +208,71 @@ export default function Shops() {
           >
             Fazer upgrade
           </button>
-        ) : (
-          <button onClick={() => navigate('/shops/setup')} style={{ ...buttonPrimary, whiteSpace: 'nowrap', width: isMobile ? '100%' : 'auto' }}>
-            + Integrar nova loja
-          </button>
         )}
       </div>
+
+      {/* Filtro por COD */}
+      {shops.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+            <Filter size={16} />
+            <span>Filtrar:</span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => setCodFilter('all')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '500',
+                border: '1px solid var(--border-color)',
+                cursor: 'pointer',
+                backgroundColor: codFilter === 'all' ? 'var(--accent)' : 'transparent',
+                color: codFilter === 'all' ? '#fff' : 'var(--text-primary)',
+              }}
+            >
+              Todas ({shops.length})
+            </button>
+            <button
+              onClick={() => setCodFilter('cod')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '500',
+                border: '1px solid var(--border-color)',
+                cursor: 'pointer',
+                backgroundColor: codFilter === 'cod' ? '#8b5cf6' : 'transparent',
+                color: codFilter === 'cod' ? '#fff' : 'var(--text-primary)',
+              }}
+            >
+              COD ({shops.filter(s => s.is_cod).length})
+            </button>
+            <button
+              onClick={() => setCodFilter('non-cod')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '500',
+                border: '1px solid var(--border-color)',
+                cursor: 'pointer',
+                backgroundColor: codFilter === 'non-cod' ? 'var(--text-secondary)' : 'transparent',
+                color: codFilter === 'non-cod' ? '#fff' : 'var(--text-primary)',
+              }}
+            >
+              Não-COD ({shops.filter(s => !s.is_cod).length})
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '48px' }}>
           <div style={{ color: 'var(--text-secondary)' }}>Carregando...</div>
         </div>
-      ) : shops.length === 0 ? (
+      ) : filteredShops.length === 0 && shops.length === 0 ? (
         <div style={{ ...cardStyle, textAlign: 'center', padding: '80px 48px' }}>
           <div style={{
             width: '80px',
@@ -233,9 +307,15 @@ export default function Shops() {
             Integrar minha loja
           </button>
         </div>
+      ) : filteredShops.length === 0 ? (
+        <div style={{ ...cardStyle, textAlign: 'center', padding: '48px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+            Nenhuma loja encontrada com o filtro selecionado.
+          </p>
+        </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px' }}>
-          {shops.map((shop) => {
+          {filteredShops.map((shop) => {
             const emailStatus = getStatusIcon(shop.mail_status)
             const shopifyStatus = getStatusIcon(shop.shopify_status)
 
