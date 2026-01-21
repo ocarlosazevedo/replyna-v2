@@ -1310,13 +1310,11 @@ export default function LandingPage() {
               { icon: <Bot size={28} />, title: 'IA classifica', desc: 'Identifica automaticamente o problema' },
               { icon: <Zap size={28} />, title: 'Responde rápido', desc: 'Resposta enviada em menos de 2 min' },
             ].map((step, i) => (
-              <div key={i} className="lp-card-shine lp-gradient-border" style={{
-                padding: '32px 24px',
-                position: 'relative',
-              }}>
+              <div key={i} style={{ position: 'relative', paddingTop: '14px' }}>
+                {/* Number badge outside the card */}
                 <div style={{
                   position: 'absolute',
-                  top: '-14px',
+                  top: '0',
                   left: '50%',
                   transform: 'translateX(-50%)',
                   width: '28px',
@@ -1329,28 +1327,36 @@ export default function LandingPage() {
                   fontSize: '13px',
                   fontWeight: 700,
                   boxShadow: '0 4px 15px rgba(70, 114, 236, 0.4)',
+                  zIndex: 10,
                 }}>
                   {i + 1}
                 </div>
-                <div style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '16px',
-                  background: 'linear-gradient(135deg, rgba(70, 114, 236, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '8px auto 20px',
-                  color: '#4672ec',
+                {/* Card */}
+                <div className="lp-card-shine lp-gradient-border" style={{
+                  padding: '32px 24px',
+                  height: '100%',
+                  boxSizing: 'border-box',
                 }}>
-                  {step.icon}
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '16px',
+                    background: 'linear-gradient(135deg, rgba(70, 114, 236, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '8px auto 20px',
+                    color: '#4672ec',
+                  }}>
+                    {step.icon}
+                  </div>
+                  <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>
+                    {step.title}
+                  </h3>
+                  <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+                    {step.desc}
+                  </p>
                 </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>
-                  {step.title}
-                </h3>
-                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-                  {step.desc}
-                </p>
               </div>
             ))}
           </div>
