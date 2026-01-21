@@ -36,11 +36,12 @@ interface ConversationRow {
 }
 
 interface MetricSummary {
-  totalConversations: number
+  emailsReceived: number
+  emailsReplied: number
   automationRate: number
-  pendingHuman: number
   topCategoryName: string | null
   topCategoryPercent: number
+  pendingHuman: number
 }
 
 interface MessageRow {
@@ -227,11 +228,12 @@ export default function Dashboard() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [metrics, setMetrics] = useState<MetricSummary>({
-    totalConversations: 0,
+    emailsReceived: 0,
+    emailsReplied: 0,
     automationRate: 0,
-    pendingHuman: 0,
     topCategoryName: null,
     topCategoryPercent: 0,
+    pendingHuman: 0,
   })
   const [volumeData, setVolumeData] = useState<Array<{ label: string; received: number; replied: number }>>([])
   const [conversations, setConversations] = useState<ConversationRow[]>([])
@@ -380,47 +382,30 @@ export default function Dashboard() {
     setLoadingChart(true)
     setLoadingConversations(true)
 
-    const loadConversationMetrics = async () => {
+    const loadPendingHuman = async () => {
       const baseQuery = () =>
         supabase
           .from('conversations')
           .select('id', { count: 'exact', head: true })
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
+          .eq('status', 'pending_human')
 
-      const totalQuery =
+      const pendingQuery =
         selectedShopId === 'all'
           ? baseQuery().in('shop_id', effectiveShopIds)
           : baseQuery().eq('shop_id', selectedShopId)
 
-      const pendingQuery =
-        selectedShopId === 'all'
-          ? baseQuery().in('shop_id', effectiveShopIds).eq('status', 'pending_human')
-          : baseQuery().eq('shop_id', selectedShopId).eq('status', 'pending_human')
-
-      const [{ count: totalConversations }, { count: pendingHuman }] = await Promise.all([
-        cacheFetch(
-          `conversations-total:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
-          async () => {
-          const { count, error } = await totalQuery
+      const { count: pendingHuman } = await cacheFetch(
+        `conversations-pending:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
+        async () => {
+          const { count, error } = await pendingQuery
           if (error) throw error
           return { count }
         }
-        ),
-        cacheFetch(
-          `conversations-pending:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
-          async () => {
-            const { count, error } = await pendingQuery
-            if (error) throw error
-            return { count }
-          }
-        ),
-      ])
+      )
 
-      return {
-        totalConversations: totalConversations ?? 0,
-        pendingHuman: pendingHuman ?? 0,
-      }
+      return pendingHuman ?? 0
     }
 
     const loadMessages = async () => {
@@ -489,8 +474,8 @@ export default function Dashboard() {
 
     const loadAll = async () => {
       try {
-        const [conversationMetrics, messageRows, conversationRows, topCategoryData] = await Promise.all([
-          loadConversationMetrics(),
+        const [pendingHuman, messageRows, conversationRows, topCategoryData] = await Promise.all([
+          loadPendingHuman(),
           cacheFetch(
             `messages:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
             loadMessages
@@ -507,22 +492,26 @@ export default function Dashboard() {
 
         if (!isActive) return
 
-        // Taxa de automação = emails respondidos automaticamente / (respondidos + enviados para humano)
-        // Ignora emails sem resposta (spam antigo classificado como "outros")
+        // Calcular métricas de emails
         const inboundMessages = messageRows.filter((message) => message.direction === 'inbound')
-        const autoReplied = inboundMessages.filter((message) => message.was_auto_replied === true).length
-        const sentToHuman = inboundMessages.filter((message) => message.category === 'suporte_humano').length
-        const totalHandled = autoReplied + sentToHuman
-        const automationRate = totalHandled > 0
-          ? (autoReplied / totalHandled) * 100
+        const outboundMessages = messageRows.filter((message) => message.direction === 'outbound')
+        const emailsReceived = inboundMessages.length
+        const emailsReplied = outboundMessages.length
+
+        // Taxa de automação = emails respondidos automaticamente / total de emails recebidos (exceto spam)
+        const nonSpamInbound = inboundMessages.filter((message) => message.category !== 'spam')
+        const autoReplied = nonSpamInbound.filter((message) => message.was_auto_replied === true).length
+        const automationRate = nonSpamInbound.length > 0
+          ? (autoReplied / nonSpamInbound.length) * 100
           : 0
 
         setMetrics({
-          totalConversations: conversationMetrics.totalConversations,
-          pendingHuman: conversationMetrics.pendingHuman,
+          emailsReceived,
+          emailsReplied,
           automationRate,
           topCategoryName: topCategoryData.topCategoryName,
           topCategoryPercent: topCategoryData.topCategoryPercent,
+          pendingHuman,
         })
 
         setVolumeData(buildVolumeSeries(messageRows, granularity))
@@ -558,15 +547,18 @@ export default function Dashboard() {
             cacheRef.current.delete(
               `conversations:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`
             )
+            cacheRef.current.delete(
+              `messages:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`
+            )
             // Adicionar nova conversa no topo da lista
             setConversations((prev) => {
               const updated = [newConversation, ...prev.filter((c) => c.id !== newConversation.id)]
               return updated
             })
-            // Atualizar métricas
+            // Incrementar emails recebidos (nova conversa = novo email inbound)
             setMetrics((prev) => ({
               ...prev,
-              totalConversations: prev.totalConversations + 1,
+              emailsReceived: prev.emailsReceived + 1,
             }))
           }
         }
@@ -712,9 +704,10 @@ export default function Dashboard() {
       )}
 
       {/* Métricas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
         {loadingMetrics ? (
           <>
+            <Skeleton height={110} />
             <Skeleton height={110} />
             <Skeleton height={110} />
             <Skeleton height={110} />
@@ -723,21 +716,28 @@ export default function Dashboard() {
         ) : (
           <>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Total de Conversas</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>E-mails Recebidos</div>
               <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {renderValue(metrics.totalConversations)}
+                {renderValue(metrics.emailsReceived)}
               </div>
               <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>no período selecionado</div>
+            </div>
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>E-mails Respondidos</div>
+              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {renderValue(metrics.emailsReplied)}
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>respostas enviadas</div>
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Taxa de Automação</div>
               <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {renderValue(metrics.automationRate, 'percent')}
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>emails respondidos automaticamente</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>excluindo spam</div>
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Categoria mais frequente</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Categoria Frequente</div>
               <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {metrics.topCategoryName ? formatCategoryLabel(metrics.topCategoryName) : '--'}
               </div>
@@ -748,11 +748,11 @@ export default function Dashboard() {
               </div>
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Aguardando Humano</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Atendimento Humano</div>
               <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {renderValue(metrics.pendingHuman)}
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>conversas pendentes de atendimento</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>aguardando atendimento</div>
             </div>
           </>
         )}
