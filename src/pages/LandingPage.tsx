@@ -18,7 +18,9 @@ import {
   MessageCircle,
   Instagram,
   Menu,
-  X
+  X,
+  Play,
+  Sparkles
 } from 'lucide-react'
 
 // Dados dos planos
@@ -123,7 +125,7 @@ const influencers = [
   },
 ]
 
-// Depoimentos para o carrossel
+// Depoimentos
 const testimonials = [
   {
     text: 'Antes da Replyna eu tinha 3-4 chargebacks por semana. Agora tenho menos de 1 por mês. Salvou minha conta no Shopify Payments.',
@@ -154,16 +156,6 @@ const testimonials = [
     text: 'Tentei contratar atendentes mas ninguém respondia tão rápido quanto a Replyna. Melhor investimento.',
     name: 'Pedro H.',
     role: 'E-commerce de eletrônicos',
-  },
-  {
-    text: 'Meus clientes elogiam o atendimento e nem sabem que é IA. As respostas são muito naturais.',
-    name: 'Camila F.',
-    role: 'Moda feminina',
-  },
-  {
-    text: 'Reduzi 90% do tempo que gastava respondendo emails. Agora foco em escalar o negócio.',
-    name: 'Lucas A.',
-    role: 'Dropshipper',
   },
 ]
 
@@ -199,7 +191,8 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const carouselRef = useRef<HTMLDivElement>(null)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const heroRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -209,7 +202,32 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Função para scroll suave
+  // Mouse parallax effect for hero
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (heroRef.current) {
+        const rect = heroRef.current.getBoundingClientRect()
+        const x = (e.clientX - rect.left) / rect.width
+        const y = (e.clientY - rect.top) / rect.height
+        setMousePosition({ x, y })
+      }
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
+
+  // Bloquear scroll quando menu mobile está aberto
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [mobileMenuOpen])
+
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
     e.preventDefault()
     setMobileMenuOpen(false)
@@ -235,13 +253,238 @@ export default function LandingPage() {
 
   return (
     <div className="lp-container">
-      {/* CSS Global */}
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
         .lp-container {
           min-height: 100vh;
-          background-color: #0a0a0f;
+          background-color: #050508;
           color: #ffffff;
-          font-family: "Manrope", "Segoe UI", sans-serif;
+          font-family: "Inter", "Manrope", "Segoe UI", sans-serif;
+          overflow-x: hidden;
+        }
+
+        /* Gradient Orbs */
+        .lp-orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(80px);
+          opacity: 0.6;
+          pointer-events: none;
+        }
+        .lp-orb-1 {
+          width: 600px;
+          height: 600px;
+          background: radial-gradient(circle, rgba(70, 114, 236, 0.4) 0%, transparent 70%);
+          top: -200px;
+          left: -200px;
+          animation: orbFloat1 20s ease-in-out infinite;
+        }
+        .lp-orb-2 {
+          width: 500px;
+          height: 500px;
+          background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+          top: 30%;
+          right: -150px;
+          animation: orbFloat2 25s ease-in-out infinite;
+        }
+        .lp-orb-3 {
+          width: 400px;
+          height: 400px;
+          background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%);
+          bottom: 10%;
+          left: 10%;
+          animation: orbFloat3 18s ease-in-out infinite;
+        }
+        @keyframes orbFloat1 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(50px, 30px) scale(1.1); }
+          66% { transform: translate(-30px, 50px) scale(0.95); }
+        }
+        @keyframes orbFloat2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-60px, -40px) scale(1.15); }
+        }
+        @keyframes orbFloat3 {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(40px, -30px); }
+        }
+
+        /* Noise Texture Overlay */
+        .lp-noise {
+          position: fixed;
+          inset: 0;
+          opacity: 0.03;
+          pointer-events: none;
+          z-index: 1000;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Grid Pattern */
+        .lp-grid-pattern {
+          position: absolute;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+          background-size: 80px 80px;
+          mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 30%, transparent 70%);
+          z-index: 0;
+        }
+
+        /* Fade In Animation */
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(40px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .lp-fade-in {
+          animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .lp-fade-in-delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .lp-fade-in-delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .lp-fade-in-delay-3 { animation-delay: 0.35s; opacity: 0; }
+        .lp-fade-in-delay-4 { animation-delay: 0.5s; opacity: 0; }
+        .lp-fade-in-delay-5 { animation-delay: 0.65s; opacity: 0; }
+
+        /* Glow Effects */
+        .lp-glow-blue {
+          box-shadow: 0 0 80px rgba(70, 114, 236, 0.25), 0 0 160px rgba(70, 114, 236, 0.1);
+        }
+        .lp-glow-text {
+          text-shadow: 0 0 60px rgba(70, 114, 236, 0.6), 0 0 120px rgba(70, 114, 236, 0.3);
+        }
+
+        /* Glassmorphism Card */
+        .lp-glass {
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Card with Shine Effect */
+        .lp-card-shine {
+          position: relative;
+          overflow: hidden;
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .lp-card-shine::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.05),
+            transparent
+          );
+          transition: left 0.6s ease;
+        }
+        .lp-card-shine:hover::before {
+          left: 100%;
+        }
+        .lp-card-shine:hover {
+          transform: translateY(-8px);
+          border-color: rgba(70, 114, 236, 0.3);
+          box-shadow: 0 25px 50px rgba(0,0,0,0.4), 0 0 60px rgba(70, 114, 236, 0.15);
+        }
+
+        /* Gradient Border Card */
+        .lp-gradient-border {
+          position: relative;
+          background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+          border-radius: 20px;
+        }
+        .lp-gradient-border::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 20px;
+          padding: 1px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 100%);
+          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask-composite: exclude;
+          -webkit-mask-composite: xor;
+          pointer-events: none;
+        }
+
+        /* Primary Button */
+        .lp-btn-primary {
+          position: relative;
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          background: linear-gradient(135deg, #4672ec 0%, #3b5fd9 100%);
+        }
+        .lp-btn-primary::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .lp-btn-primary:hover::before {
+          opacity: 1;
+        }
+        .lp-btn-primary:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 15px 40px rgba(70, 114, 236, 0.4), 0 0 20px rgba(70, 114, 236, 0.3);
+        }
+
+        /* Secondary Button */
+        .lp-btn-secondary {
+          position: relative;
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+        .lp-btn-secondary:hover {
+          background: rgba(255,255,255,0.1);
+          border-color: rgba(255,255,255,0.2);
+          transform: translateY(-2px);
+        }
+
+        /* Animated Badge */
+        .lp-badge {
+          position: relative;
+          overflow: hidden;
+        }
+        .lp-badge::after {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: linear-gradient(
+            45deg,
+            transparent 40%,
+            rgba(255,255,255,0.1) 50%,
+            transparent 60%
+          );
+          animation: badgeShine 3s ease-in-out infinite;
+        }
+        @keyframes badgeShine {
+          0%, 100% { transform: translateX(-100%) rotate(45deg); }
+          50% { transform: translateX(100%) rotate(45deg); }
+        }
+
+        /* Number Counter Animation */
+        .lp-number {
+          background: linear-gradient(135deg, #4672ec 0%, #8b5cf6 50%, #06b6d4 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
 
         /* Header Mobile Menu */
@@ -258,8 +501,29 @@ export default function LandingPage() {
           cursor: pointer;
           padding: 8px;
         }
-        .lp-nav-mobile {
-          display: none;
+        .lp-nav-link {
+          color: rgba(255,255,255,0.6);
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          transition: color 0.2s ease;
+          position: relative;
+        }
+        .lp-nav-link:hover {
+          color: #fff;
+        }
+        .lp-nav-link::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          left: 0;
+          width: 0;
+          height: 2px;
+          background: linear-gradient(90deg, #4672ec, #8b5cf6);
+          transition: width 0.3s ease;
+        }
+        .lp-nav-link:hover::after {
+          width: 100%;
         }
 
         /* Stats Grid */
@@ -267,7 +531,7 @@ export default function LandingPage() {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 32px;
-          max-width: 600px;
+          max-width: 800px;
           margin: 80px auto 0;
         }
 
@@ -275,7 +539,7 @@ export default function LandingPage() {
         .lp-problem-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 60px;
+          gap: 32px;
           align-items: stretch;
         }
 
@@ -307,6 +571,11 @@ export default function LandingPage() {
           gap: 16px;
         }
 
+        /* Testimonials Grid for Mobile */
+        .lp-testimonials-grid {
+          display: none;
+        }
+
         /* Carousel Animation */
         @keyframes scroll {
           0% { transform: translateX(0); }
@@ -321,12 +590,44 @@ export default function LandingPage() {
           animation-play-state: paused;
         }
 
+        /* Floating Elements */
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-15px); }
+        }
+        .lp-float {
+          animation: float 5s ease-in-out infinite;
+        }
+
+        /* Pulse Ring Animation */
+        @keyframes pulseRing {
+          0% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
+        .lp-pulse-ring {
+          position: relative;
+        }
+        .lp-pulse-ring::before,
+        .lp-pulse-ring::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          border: 2px solid rgba(70, 114, 236, 0.3);
+        }
+        .lp-pulse-ring::before {
+          animation: pulseRing 2s ease-out infinite;
+        }
+        .lp-pulse-ring::after {
+          animation: pulseRing 2s ease-out infinite 1s;
+        }
+
         /* Section Divider */
         .lp-section-divider {
           height: 1px;
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-          max-width: 800px;
           margin: 0 auto;
+          max-width: 1200px;
         }
 
         /* Mobile Styles */
@@ -345,34 +646,8 @@ export default function LandingPage() {
           }
           .lp-nav-mobile-toggle {
             display: flex;
-          }
-          .lp-nav-mobile {
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(10, 10, 15, 0.98);
-            z-index: 200;
-            padding: 80px 24px 24px;
-            gap: 24px;
-          }
-          .lp-nav-mobile a {
-            font-size: 18px;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-          }
-          .lp-nav-mobile-close {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: none;
-            border: none;
-            color: #fff;
-            cursor: pointer;
-            padding: 8px;
+            align-items: center;
+            justify-content: center;
           }
 
           .lp-stats-grid {
@@ -380,13 +655,10 @@ export default function LandingPage() {
             gap: 16px;
             margin-top: 48px;
           }
-          .lp-stats-grid > div > div:first-child {
-            font-size: 28px !important;
-          }
 
           .lp-problem-grid {
             grid-template-columns: 1fr;
-            gap: 48px;
+            gap: 24px;
           }
 
           .lp-steps-grid {
@@ -425,6 +697,17 @@ export default function LandingPage() {
             text-align: center;
             gap: 24px;
           }
+
+          /* Hide carousel, show grid on mobile */
+          .testimonial-carousel-wrapper {
+            display: none;
+          }
+          .lp-testimonials-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            padding: 0 24px;
+          }
         }
 
         @media (max-width: 480px) {
@@ -440,6 +723,9 @@ export default function LandingPage() {
         }
       `}</style>
 
+      {/* Noise Overlay */}
+      <div className="lp-noise" />
+
       {/* Header */}
       <header style={{
         position: 'fixed',
@@ -447,10 +733,10 @@ export default function LandingPage() {
         left: 0,
         right: 0,
         zIndex: 100,
-        backgroundColor: scrolled ? 'rgba(10, 10, 15, 0.95)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(12px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.1)' : 'none',
-        transition: 'all 0.3s ease',
+        backgroundColor: scrolled ? 'rgba(5, 5, 8, 0.85)' : 'transparent',
+        backdropFilter: scrolled ? 'blur(20px)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : 'none',
+        transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
       }}>
         <div style={{
           maxWidth: '1200px',
@@ -468,26 +754,26 @@ export default function LandingPage() {
 
           {/* Desktop Nav */}
           <nav className="lp-nav-desktop">
-            <a href="#como-funciona" onClick={(e) => scrollToSection(e, 'como-funciona')} style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
+            <a href="#como-funciona" onClick={(e) => scrollToSection(e, 'como-funciona')} className="lp-nav-link">
               Como funciona
             </a>
-            <a href="#precos" onClick={(e) => scrollToSection(e, 'precos')} style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
+            <a href="#precos" onClick={(e) => scrollToSection(e, 'precos')} className="lp-nav-link">
               Preços
             </a>
-            <a href="#faq" onClick={(e) => scrollToSection(e, 'faq')} style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
+            <a href="#faq" onClick={(e) => scrollToSection(e, 'faq')} className="lp-nav-link">
               FAQ
             </a>
-            <Link to="/login" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>
+            <Link to="/login" className="lp-nav-link">
               Entrar
             </Link>
             <a
               href="#precos"
               onClick={(e) => scrollToSection(e, 'precos')}
+              className="lp-btn-primary"
               style={{
-                backgroundColor: '#4672ec',
                 color: '#ffffff',
-                padding: '10px 20px',
-                borderRadius: '8px',
+                padding: '12px 24px',
+                borderRadius: '10px',
                 textDecoration: 'none',
                 fontSize: '14px',
                 fontWeight: 600,
@@ -502,120 +788,214 @@ export default function LandingPage() {
           <button
             className="lp-nav-mobile-toggle"
             onClick={() => setMobileMenuOpen(true)}
+            aria-label="Abrir menu"
           >
             <Menu size={24} />
           </button>
         </div>
-
-        {/* Mobile Nav */}
-        {mobileMenuOpen && (
-          <nav className="lp-nav-mobile">
-            <button
-              className="lp-nav-mobile-close"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <X size={24} />
-            </button>
-            <a href="#como-funciona" onClick={(e) => scrollToSection(e, 'como-funciona')} style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>
-              Como funciona
-            </a>
-            <a href="#precos" onClick={(e) => scrollToSection(e, 'precos')} style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>
-              Preços
-            </a>
-            <a href="#faq" onClick={(e) => scrollToSection(e, 'faq')} style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>
-              FAQ
-            </a>
-            <Link to="/login" onClick={() => setMobileMenuOpen(false)} style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>
-              Entrar
-            </Link>
-            <a
-              href="#precos"
-              onClick={(e) => scrollToSection(e, 'precos')}
-              style={{
-                backgroundColor: '#4672ec',
-                color: '#ffffff',
-                padding: '14px 24px',
-                borderRadius: '10px',
-                textDecoration: 'none',
-                fontSize: '16px',
-                fontWeight: 600,
-                textAlign: 'center',
-                marginTop: '16px',
-              }}
-            >
-              Começar agora
-            </a>
-          </nav>
-        )}
       </header>
 
-      {/* Hero Section */}
-      <section style={{
-        paddingTop: '120px',
-        paddingBottom: '80px',
-        textAlign: 'center',
-        background: 'radial-gradient(ellipse at top, rgba(70, 114, 236, 0.15) 0%, transparent 60%)',
-      }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 24px' }}>
+      {/* Mobile Nav Overlay */}
+      {mobileMenuOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(5, 5, 8, 0.98)',
+          backdropFilter: 'blur(20px)',
+          zIndex: 200,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '24px',
+        }}>
+          {/* Mobile Nav Header */}
           <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '48px',
+          }}>
+            <img
+              src="/replyna-logo.webp"
+              alt="Replyna"
+              style={{ height: '32px', width: 'auto' }}
+            />
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '10px',
+                color: '#fff',
+                cursor: 'pointer',
+                padding: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              aria-label="Fechar menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Mobile Nav Links */}
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+            {[
+              { href: '#como-funciona', label: 'Como funciona', id: 'como-funciona' },
+              { href: '#precos', label: 'Preços', id: 'precos' },
+              { href: '#faq', label: 'FAQ', id: 'faq' },
+            ].map((item) => (
+              <a
+                key={item.id}
+                href={item.href}
+                onClick={(e) => scrollToSection(e, item.id)}
+                style={{
+                  color: '#fff',
+                  textDecoration: 'none',
+                  fontSize: '20px',
+                  fontWeight: 500,
+                  padding: '20px 16px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(255,255,255,0.02)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {item.label}
+              </a>
+            ))}
+            <Link
+              to="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                color: '#fff',
+                textDecoration: 'none',
+                fontSize: '20px',
+                fontWeight: 500,
+                padding: '20px 16px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(255,255,255,0.02)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              Entrar
+            </Link>
+          </nav>
+
+          {/* Mobile Nav CTA */}
+          <a
+            href="#precos"
+            onClick={(e) => scrollToSection(e, 'precos')}
+            className="lp-btn-primary"
+            style={{
+              color: '#ffffff',
+              padding: '18px 24px',
+              borderRadius: '14px',
+              textDecoration: 'none',
+              fontSize: '16px',
+              fontWeight: 600,
+              textAlign: 'center',
+              marginTop: '24px',
+            }}
+          >
+            Começar agora
+          </a>
+        </div>
+      )}
+
+      {/* Hero Section */}
+      <section
+        ref={heroRef}
+        style={{
+          position: 'relative',
+          paddingTop: '140px',
+          paddingBottom: '60px',
+          textAlign: 'center',
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Animated Gradient Orbs */}
+        <div
+          className="lp-orb lp-orb-1"
+          style={{
+            transform: `translate(${mousePosition.x * 30}px, ${mousePosition.y * 30}px)`,
+          }}
+        />
+        <div
+          className="lp-orb lp-orb-2"
+          style={{
+            transform: `translate(${-mousePosition.x * 20}px, ${mousePosition.y * 20}px)`,
+          }}
+        />
+        <div className="lp-grid-pattern" />
+
+        <div style={{ maxWidth: '950px', margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
+          {/* Badge */}
+          <div className="lp-fade-in lp-fade-in-delay-1 lp-badge" style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '8px',
-            backgroundColor: 'rgba(150, 191, 72, 0.15)',
-            border: '1px solid rgba(150, 191, 72, 0.3)',
-            padding: '8px 16px',
+            gap: '10px',
+            backgroundColor: 'rgba(150, 191, 72, 0.1)',
+            border: '1px solid rgba(150, 191, 72, 0.25)',
+            padding: '10px 20px',
             borderRadius: '50px',
-            marginBottom: '24px',
+            marginBottom: '32px',
           }}>
-            <Shield size={16} color="#96bf48" />
+            <div className="lp-pulse-ring" style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#96bf48',
+            }} />
             <span style={{ fontSize: '14px', color: '#96bf48', fontWeight: 500 }}>
-              Proteja sua conta Shopify Payments
+              Integrado com Shopify
             </span>
           </div>
 
-          <h1 style={{
-            fontSize: 'clamp(32px, 5vw, 56px)',
-            fontWeight: 700,
-            lineHeight: 1.1,
-            marginBottom: '24px',
-            background: 'linear-gradient(to right, #ffffff, rgba(255,255,255,0.8))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+          {/* Main Headline */}
+          <h1 className="lp-fade-in lp-fade-in-delay-2" style={{
+            fontSize: 'clamp(36px, 6vw, 72px)',
+            fontWeight: 800,
+            lineHeight: 1.05,
+            marginBottom: '28px',
+            letterSpacing: '-0.02em',
           }}>
-            Reduza seus chargebacks em até{' '}
-            <span style={{
-              background: 'linear-gradient(135deg, #4672ec, #6b8cff)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}>
-              90%
-            </span>{' '}
-            com IA
+            <span style={{ color: '#fff' }}>Reduza chargebacks</span>
+            <br />
+            <span style={{ color: '#fff' }}>em até </span>
+            <span className="lp-number" style={{ fontWeight: 900 }}>90%</span>
+            <span style={{ color: '#fff' }}> com IA</span>
           </h1>
 
-          <p style={{
-            fontSize: 'clamp(16px, 2vw, 18px)',
-            color: 'rgba(255,255,255,0.6)',
+          {/* Subtitle */}
+          <p className="lp-fade-in lp-fade-in-delay-3" style={{
+            fontSize: 'clamp(16px, 2vw, 20px)',
+            color: 'rgba(255,255,255,0.5)',
             maxWidth: '600px',
-            margin: '0 auto 40px',
-            lineHeight: 1.6,
+            margin: '0 auto 48px',
+            lineHeight: 1.7,
+            fontWeight: 400,
           }}>
             A Replyna responde automaticamente os emails dos seus clientes antes que eles abram disputas.
-            Mantenha seu Shopify Payments ativo e seu negócio funcionando.
+            Mantenha seu Shopify Payments ativo.
           </p>
 
-          <div className="lp-hero-buttons" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {/* CTA Buttons */}
+          <div className="lp-hero-buttons lp-fade-in lp-fade-in-delay-4" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <a
               href="#precos"
               onClick={(e) => scrollToSection(e, 'precos')}
+              className="lp-btn-primary"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
-                backgroundColor: '#4672ec',
+                gap: '10px',
                 color: '#ffffff',
-                padding: '16px 32px',
-                borderRadius: '10px',
+                padding: '18px 36px',
+                borderRadius: '14px',
                 textDecoration: 'none',
                 fontSize: '16px',
                 fontWeight: 600,
@@ -628,38 +1008,127 @@ export default function LandingPage() {
             <a
               href="#como-funciona"
               onClick={(e) => scrollToSection(e, 'como-funciona')}
+              className="lp-btn-secondary"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
-                backgroundColor: 'rgba(255,255,255,0.1)',
+                gap: '10px',
                 color: '#ffffff',
-                padding: '16px 32px',
-                borderRadius: '10px',
+                padding: '18px 36px',
+                borderRadius: '14px',
                 textDecoration: 'none',
                 fontSize: '16px',
                 fontWeight: 600,
-                border: '1px solid rgba(255,255,255,0.2)',
                 cursor: 'pointer',
               }}
             >
+              <Play size={18} />
               Ver demonstração
             </a>
           </div>
 
           {/* Stats */}
-          <div className="lp-stats-grid">
-            <div>
-              <div style={{ fontSize: '40px', fontWeight: 700, color: '#4672ec' }}>90%</div>
-              <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>Redução em chargebacks</div>
+          <div className="lp-stats-grid lp-fade-in lp-fade-in-delay-5">
+            {[
+              { value: '90%', label: 'Menos chargebacks' },
+              { value: '<2min', label: 'Tempo de resposta' },
+              { value: '24/7', label: 'Automação total' },
+            ].map((stat, i) => (
+              <div key={i} className="lp-float" style={{ animationDelay: `${i * 0.3}s` }}>
+                <div className="lp-gradient-border" style={{ padding: '24px 16px' }}>
+                  <div className="lp-number" style={{
+                    fontSize: 'clamp(28px, 4vw, 42px)',
+                    fontWeight: 800,
+                    marginBottom: '8px',
+                  }}>
+                    {stat.value}
+                  </div>
+                  <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+                    {stat.label}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Dashboard Preview Section */}
+      <section style={{
+        padding: '20px 24px 120px',
+        position: 'relative',
+      }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div className="lp-glow-blue lp-gradient-border" style={{
+            padding: '4px',
+            position: 'relative',
+          }}>
+            {/* Browser Chrome */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              backgroundColor: 'rgba(0,0,0,0.3)',
+              borderRadius: '18px 18px 0 0',
+            }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ff5f57' }} />
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#febc2e' }} />
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#28c840' }} />
+              </div>
+              <div style={{
+                flex: 1,
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                borderRadius: '8px',
+                padding: '8px 14px',
+                fontSize: '13px',
+                color: 'rgba(255,255,255,0.3)',
+                marginLeft: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                <div style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)' }} />
+                app.replyna.me/dashboard
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: '40px', fontWeight: 700, color: '#4672ec' }}>&lt;2min</div>
-              <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>Tempo de resposta</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '40px', fontWeight: 700, color: '#4672ec' }}>24/7</div>
-              <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>Atendimento automático</div>
+            {/* Screenshot placeholder */}
+            <div style={{
+              aspectRatio: '16/9',
+              backgroundColor: '#0a0a12',
+              borderRadius: '0 0 18px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}>
+              <img
+                src="/dashboard-preview.png"
+                alt="Dashboard Replyna"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  const parent = target.parentElement
+                  if (parent) {
+                    parent.innerHTML = `
+                      <div style="text-align: center; padding: 60px 40px;">
+                        <div style="width: 80px; height: 80px; margin: 0 auto 24px; border-radius: 20px; background: linear-gradient(135deg, rgba(70, 114, 236, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%); display: flex; align-items: center; justify-content: center;">
+                          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4672ec" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                        </div>
+                        <div style="font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 8px;">Dashboard intuitivo</div>
+                        <div style="font-size: 15px; color: rgba(255,255,255,0.4); max-width: 300px; margin: 0 auto;">Gerencie suas lojas, visualize emails e métricas em tempo real</div>
+                      </div>
+                    `
+                  }
+                }}
+              />
             </div>
           </div>
         </div>
@@ -669,23 +1138,44 @@ export default function LandingPage() {
       <div className="lp-section-divider" />
 
       {/* Problema/Solução */}
-      <section style={{ padding: '80px 24px' }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <section style={{
+        padding: '100px 24px',
+        position: 'relative',
+      }}>
+        {/* Background Orb */}
+        <div className="lp-orb lp-orb-3" />
+
+        <div style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
           <div className="lp-problem-grid">
-            <div style={{
-              backgroundColor: 'rgba(239, 68, 68, 0.05)',
-              borderRadius: '20px',
-              padding: '32px',
-              border: '1px solid rgba(239, 68, 68, 0.15)',
-            }}>
-              <h2 style={{
-                fontSize: 'clamp(24px, 3vw, 28px)',
-                fontWeight: 700,
+            {/* Problem Card */}
+            <div className="lp-card-shine lp-gradient-border" style={{ padding: '36px' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                padding: '8px 14px',
+                borderRadius: '50px',
                 marginBottom: '24px',
+              }}>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ef4444',
+                }} />
+                <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  O Problema
+                </span>
+              </div>
+              <h2 style={{
+                fontSize: 'clamp(22px, 3vw, 28px)',
+                fontWeight: 700,
+                marginBottom: '28px',
                 lineHeight: 1.3,
               }}>
-                Chargebacks estão matando seu negócio de{' '}
-                <span style={{ color: '#ef4444' }}>dropshipping</span>?
+                Chargebacks estão{' '}
+                <span style={{ color: '#ef4444' }}>matando</span> seu negócio?
               </h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {[
@@ -694,35 +1184,45 @@ export default function LandingPage() {
                   'Você perde dinheiro e produto no chargeback',
                   'Não consegue responder emails rápido o suficiente',
                 ].map((item, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}>
-                      <span style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700 }}>✕</span>
+                      <X size={14} color="#ef4444" strokeWidth={3} />
                     </div>
-                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px' }}>{item}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', lineHeight: 1.5 }}>{item}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div style={{
-              backgroundColor: 'rgba(34, 197, 94, 0.05)',
-              borderRadius: '20px',
-              padding: '32px',
-              border: '1px solid rgba(34, 197, 94, 0.15)',
-            }}>
-              <h2 style={{
-                fontSize: 'clamp(24px, 3vw, 28px)',
-                fontWeight: 700,
+            {/* Solution Card */}
+            <div className="lp-card-shine lp-gradient-border" style={{ padding: '36px' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                padding: '8px 14px',
+                borderRadius: '50px',
                 marginBottom: '24px',
+              }}>
+                <Sparkles size={14} color="#22c55e" />
+                <span style={{ fontSize: '12px', color: '#22c55e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  A Solução
+                </span>
+              </div>
+              <h2 style={{
+                fontSize: 'clamp(22px, 3vw, 28px)',
+                fontWeight: 700,
+                marginBottom: '28px',
                 lineHeight: 1.3,
               }}>
                 Com a Replyna, você tem{' '}
@@ -735,20 +1235,20 @@ export default function LandingPage() {
                   'Sua conta Shopify Payments fica segura',
                   'Funciona 24/7, mesmo quando você dorme',
                 ].map((item, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(34, 197, 94, 0.1)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}>
-                      <CheckCircle2 size={14} color="#22c55e" />
+                      <CheckCircle2 size={16} color="#22c55e" />
                     </div>
-                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px' }}>{item}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', lineHeight: 1.5 }}>{item}</span>
                   </div>
                 ))}
               </div>
@@ -757,91 +1257,91 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Divider */}
+      <div className="lp-section-divider" />
+
       {/* Como funciona */}
-      <section id="como-funciona" style={{
-        padding: '80px 24px',
-        backgroundColor: 'rgba(70, 114, 236, 0.03)',
-      }}>
+      <section id="como-funciona" style={{ padding: '100px 24px' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: 'rgba(70, 114, 236, 0.1)',
+            padding: '8px 16px',
+            borderRadius: '50px',
+            marginBottom: '20px',
+          }}>
+            <Zap size={14} color="#4672ec" />
+            <span style={{ fontSize: '13px', color: '#4672ec', fontWeight: 600 }}>
+              Simples e rápido
+            </span>
+          </div>
+
           <h2 className="lp-section-title" style={{
-            fontSize: '36px',
-            fontWeight: 700,
-            marginBottom: '12px',
+            fontSize: '40px',
+            fontWeight: 800,
+            marginBottom: '16px',
+            letterSpacing: '-0.02em',
           }}>
             Como a Replyna funciona
           </h2>
           <p style={{
-            fontSize: '16px',
-            color: 'rgba(255,255,255,0.5)',
-            marginBottom: '48px',
+            fontSize: '17px',
+            color: 'rgba(255,255,255,0.4)',
+            marginBottom: '60px',
+            maxWidth: '500px',
+            margin: '0 auto 60px',
           }}>
             Configure em minutos, proteja seu negócio para sempre
           </p>
 
           <div className="lp-steps-grid">
             {[
-              {
-                icon: <Store size={28} />,
-                title: 'Conecte sua loja',
-                desc: 'Integre com Shopify em 1 clique e configure seu email',
-              },
-              {
-                icon: <Mail size={28} />,
-                title: 'Email chega',
-                desc: 'A Replyna monitora sua caixa de entrada 24/7',
-              },
-              {
-                icon: <Bot size={28} />,
-                title: 'IA classifica',
-                desc: 'Identifica o tipo de problema e contexto do pedido',
-              },
-              {
-                icon: <Zap size={28} />,
-                title: 'Responde rápido',
-                desc: 'Envia resposta personalizada em menos de 2 minutos',
-              },
+              { icon: <Store size={28} />, title: 'Conecte sua loja', desc: 'Integre com Shopify em apenas 1 clique' },
+              { icon: <Mail size={28} />, title: 'Email chega', desc: 'Monitoramos sua caixa de entrada 24/7' },
+              { icon: <Bot size={28} />, title: 'IA classifica', desc: 'Identifica automaticamente o problema' },
+              { icon: <Zap size={28} />, title: 'Responde rápido', desc: 'Resposta enviada em menos de 2 min' },
             ].map((step, i) => (
-              <div key={i} style={{
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                borderRadius: '16px',
-                padding: '28px 20px',
-                border: '1px solid rgba(255,255,255,0.08)',
+              <div key={i} className="lp-card-shine lp-gradient-border" style={{
+                padding: '32px 24px',
                 position: 'relative',
               }}>
                 <div style={{
                   position: 'absolute',
-                  top: '-12px',
+                  top: '-14px',
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  width: '24px',
-                  height: '24px',
+                  width: '28px',
+                  height: '28px',
                   borderRadius: '50%',
-                  backgroundColor: '#4672ec',
+                  background: 'linear-gradient(135deg, #4672ec 0%, #8b5cf6 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '12px',
+                  fontSize: '13px',
                   fontWeight: 700,
+                  boxShadow: '0 4px 15px rgba(70, 114, 236, 0.4)',
                 }}>
                   {i + 1}
                 </div>
                 <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '12px',
-                  backgroundColor: 'rgba(70, 114, 236, 0.15)',
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, rgba(70, 114, 236, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: '0 auto 16px',
+                  margin: '8px auto 20px',
                   color: '#4672ec',
                 }}>
                   {step.icon}
                 </div>
-                <h3 style={{ fontSize: '17px', fontWeight: 600, marginBottom: '8px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>
                   {step.title}
                 </h3>
-                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
                   {step.desc}
                 </p>
               </div>
@@ -850,81 +1350,86 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Divider */}
+      <div className="lp-section-divider" />
+
       {/* Benefícios */}
-      <section style={{ padding: '80px 24px' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
+      <section style={{
+        padding: '100px 24px',
+        position: 'relative',
+      }}>
+        <div className="lp-orb" style={{
+          width: '500px',
+          height: '500px',
+          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 70%)',
+          top: '20%',
+          left: '-10%',
+        }} />
+
+        <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+            padding: '8px 16px',
+            borderRadius: '50px',
+            marginBottom: '20px',
+          }}>
+            <Shield size={14} color="#8b5cf6" />
+            <span style={{ fontSize: '13px', color: '#8b5cf6', fontWeight: 600 }}>
+              Benefícios
+            </span>
+          </div>
+
           <h2 className="lp-section-title" style={{
-            fontSize: '36px',
-            fontWeight: 700,
-            marginBottom: '12px',
+            fontSize: '40px',
+            fontWeight: 800,
+            marginBottom: '16px',
+            letterSpacing: '-0.02em',
           }}>
             Por que escolher a Replyna
           </h2>
           <p style={{
-            fontSize: '16px',
-            color: 'rgba(255,255,255,0.5)',
-            marginBottom: '48px',
+            fontSize: '17px',
+            color: 'rgba(255,255,255,0.4)',
+            marginBottom: '60px',
+            maxWidth: '500px',
+            margin: '0 auto 60px',
           }}>
             Feita especialmente para dropshippers que usam Shopify Payments
           </p>
 
           <div className="lp-benefits-grid">
             {[
-              {
-                icon: <Shield size={24} />,
-                title: 'Protege seu Shopify Payments',
-                desc: 'Mantenha sua taxa de chargebacks baixa e evite ter sua conta desativada.',
-              },
-              {
-                icon: <Clock size={24} />,
-                title: 'Resposta em menos de 2min',
-                desc: 'Clientes recebem resposta antes de pensar em abrir disputa.',
-              },
-              {
-                icon: <Bot size={24} />,
-                title: 'IA treinada para e-commerce',
-                desc: 'Entende contexto de pedidos, rastreamento e prazos de entrega.',
-              },
-              {
-                icon: <MessageSquare size={24} />,
-                title: 'Respostas humanizadas',
-                desc: 'Seus clientes nem percebem que estão falando com IA.',
-              },
-              {
-                icon: <TrendingUp size={24} />,
-                title: 'Escala sem contratar',
-                desc: 'Responda 1.000 emails por minuto sem precisar de funcionários.',
-              },
-              {
-                icon: <CreditCard size={24} />,
-                title: 'ROI garantido',
-                desc: 'Um chargeback evitado já paga meses de assinatura.',
-              },
+              { icon: <Shield size={24} />, title: 'Protege seu Shopify Payments', desc: 'Mantenha sua taxa de chargebacks baixa e evite ter sua conta desativada.' },
+              { icon: <Clock size={24} />, title: 'Resposta em menos de 2min', desc: 'Clientes recebem resposta antes de pensar em abrir disputa.' },
+              { icon: <Bot size={24} />, title: 'IA treinada para e-commerce', desc: 'Entende contexto de pedidos, rastreamento e prazos de entrega.' },
+              { icon: <MessageSquare size={24} />, title: 'Respostas humanizadas', desc: 'Seus clientes nem percebem que estão falando com IA.' },
+              { icon: <TrendingUp size={24} />, title: 'Escala sem contratar', desc: 'Responda 1.000 emails por minuto sem precisar de funcionários.' },
+              { icon: <CreditCard size={24} />, title: 'ROI garantido', desc: 'Um chargeback evitado já paga meses de assinatura.' },
             ].map((benefit, i) => (
-              <div key={i} style={{
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                borderRadius: '16px',
-                padding: '28px 24px',
-                border: '1px solid rgba(255,255,255,0.08)',
+              <div key={i} className="lp-card-shine lp-gradient-border" style={{
+                padding: '32px 28px',
                 textAlign: 'left',
               }}>
                 <div style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '10px',
-                  backgroundColor: 'rgba(70, 114, 236, 0.15)',
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, rgba(70, 114, 236, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: '16px',
+                  marginBottom: '20px',
                   color: '#4672ec',
                 }}>
                   {benefit.icon}
                 </div>
-                <h3 style={{ fontSize: '17px', fontWeight: 600, marginBottom: '8px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>
                   {benefit.title}
                 </h3>
-                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
                   {benefit.desc}
                 </p>
               </div>
@@ -933,24 +1438,41 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Divider */}
+      <div className="lp-section-divider" />
+
       {/* Quem usa */}
-      <section style={{
-        padding: '80px 24px',
-        backgroundColor: 'rgba(70, 114, 236, 0.03)',
-      }}>
+      <section style={{ padding: '100px 24px' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 className="lp-section-title" style={{
-            fontSize: '36px',
-            fontWeight: 700,
-            marginBottom: '12px',
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: 'rgba(228, 64, 95, 0.1)',
+            padding: '8px 16px',
+            borderRadius: '50px',
+            marginBottom: '20px',
           }}>
-            Quem usa a{' '}
-            <span style={{ color: '#4672ec' }}>Replyna</span>
+            <Instagram size={14} color="#E4405F" />
+            <span style={{ fontSize: '13px', color: '#E4405F', fontWeight: 600 }}>
+              Parceiros
+            </span>
+          </div>
+
+          <h2 className="lp-section-title" style={{
+            fontSize: '40px',
+            fontWeight: 800,
+            marginBottom: '16px',
+            letterSpacing: '-0.02em',
+          }}>
+            Quem usa a <span className="lp-number">Replyna</span>
           </h2>
           <p style={{
-            fontSize: '16px',
-            color: 'rgba(255,255,255,0.5)',
-            marginBottom: '48px',
+            fontSize: '17px',
+            color: 'rgba(255,255,255,0.4)',
+            marginBottom: '60px',
+            maxWidth: '500px',
+            margin: '0 auto 60px',
           }}>
             De pequenas a grandes operações, todos confiam na gente
           </p>
@@ -959,16 +1481,14 @@ export default function LandingPage() {
             {influencers.map((influencer, index) => (
               <div
                 key={index}
+                className="lp-card-shine lp-gradient-border"
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.03)',
-                  borderRadius: '16px',
                   overflow: 'hidden',
-                  border: '1px solid rgba(255,255,255,0.08)',
                 }}
               >
                 <div style={{
-                  height: '280px',
-                  backgroundColor: '#1a1a2e',
+                  height: '300px',
+                  backgroundColor: '#0a0a12',
                   position: 'relative',
                   overflow: 'hidden',
                 }}>
@@ -992,27 +1512,37 @@ export default function LandingPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: '#1a1a2e',
+                    background: 'linear-gradient(135deg, #0a0a12 0%, #1a1a2e 100%)',
                     zIndex: -1,
                   }}>
                     <div style={{
-                      width: '80px',
-                      height: '80px',
+                      width: '90px',
+                      height: '90px',
                       borderRadius: '50%',
-                      backgroundColor: 'rgba(70, 114, 236, 0.2)',
+                      background: 'linear-gradient(135deg, rgba(70, 114, 236, 0.3) 0%, rgba(139, 92, 246, 0.2) 100%)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '32px',
+                      fontSize: '36px',
                       color: '#4672ec',
+                      fontWeight: 700,
                     }}>
                       {influencer.name.charAt(0)}
                     </div>
                   </div>
+                  {/* Gradient overlay */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: '100px',
+                    background: 'linear-gradient(to top, rgba(5,5,8,1) 0%, transparent 100%)',
+                  }} />
                 </div>
-                <div style={{ padding: '20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 600 }}>
+                <div style={{ padding: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <h3 style={{ fontSize: '20px', fontWeight: 700 }}>
                       {influencer.name}
                     </h3>
                     <a
@@ -1024,16 +1554,17 @@ export default function LandingPage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '8px',
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '10px',
                         backgroundColor: 'rgba(228, 64, 95, 0.1)',
+                        transition: 'all 0.2s ease',
                       }}
                     >
                       <Instagram size={18} />
                     </a>
                   </div>
-                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
                     {influencer.role}
                   </p>
                 </div>
@@ -1043,90 +1574,126 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Divider */}
+      <div className="lp-section-divider" />
+
       {/* Preços */}
-      <section id="precos" style={{ padding: '80px 24px' }}>
-        <div style={{ maxWidth: '1300px', margin: '0 auto', textAlign: 'center' }}>
+      <section id="precos" style={{
+        padding: '100px 24px',
+        position: 'relative',
+      }}>
+        <div className="lp-orb" style={{
+          width: '600px',
+          height: '600px',
+          background: 'radial-gradient(circle, rgba(70, 114, 236, 0.15) 0%, transparent 70%)',
+          top: '10%',
+          right: '-15%',
+        }} />
+
+        <div style={{ maxWidth: '1300px', margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: 'rgba(70, 114, 236, 0.1)',
+            padding: '8px 16px',
+            borderRadius: '50px',
+            marginBottom: '20px',
+          }}>
+            <CreditCard size={14} color="#4672ec" />
+            <span style={{ fontSize: '13px', color: '#4672ec', fontWeight: 600 }}>
+              Preços transparentes
+            </span>
+          </div>
+
           <h2 className="lp-section-title" style={{
-            fontSize: '36px',
-            fontWeight: 700,
-            marginBottom: '12px',
+            fontSize: '40px',
+            fontWeight: 800,
+            marginBottom: '16px',
+            letterSpacing: '-0.02em',
           }}>
             Planos e preços
           </h2>
           <p style={{
-            fontSize: '16px',
-            color: 'rgba(255,255,255,0.5)',
-            marginBottom: '48px',
+            fontSize: '17px',
+            color: 'rgba(255,255,255,0.4)',
+            marginBottom: '60px',
+            maxWidth: '500px',
+            margin: '0 auto 60px',
           }}>
             Escolha o plano ideal para o tamanho da sua operação
           </p>
 
           <div className="lp-plans-grid">
             {plans.map((plan, i) => (
-              <div key={i} style={{
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                borderRadius: '16px',
-                padding: '24px 20px',
-                border: plan.popular ? '2px solid #4672ec' : '1px solid rgba(255,255,255,0.08)',
+              <div key={i} className={`lp-card-shine ${plan.popular ? '' : 'lp-gradient-border'}`} style={{
+                padding: '28px 22px',
                 position: 'relative',
                 textAlign: 'left',
                 display: 'flex',
                 flexDirection: 'column',
+                background: plan.popular
+                  ? 'linear-gradient(180deg, rgba(70, 114, 236, 0.1) 0%, rgba(70, 114, 236, 0.02) 100%)'
+                  : 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+                border: plan.popular ? '2px solid rgba(70, 114, 236, 0.5)' : undefined,
+                borderRadius: '20px',
               }}>
                 {plan.popular && (
                   <div style={{
                     position: 'absolute',
-                    top: '-12px',
+                    top: '-14px',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    backgroundColor: '#f59e0b',
+                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                     color: '#fff',
-                    padding: '4px 12px',
+                    padding: '6px 14px',
                     borderRadius: '999px',
                     fontSize: '12px',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
+                    gap: '6px',
                     whiteSpace: 'nowrap',
+                    boxShadow: '0 4px 15px rgba(245, 158, 11, 0.3)',
                   }}>
-                    <Star size={12} />
+                    <Star size={12} fill="#fff" />
                     Popular
                   </div>
                 )}
 
-                <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '4px', marginTop: plan.popular ? '8px' : 0 }}>
+                <h3 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '4px', marginTop: plan.popular ? '8px' : 0 }}>
                   {plan.name}
                 </h3>
 
                 <p style={{
-                  fontSize: '13px',
-                  color: 'rgba(255,255,255,0.5)',
-                  marginBottom: '16px',
+                  fontSize: '14px',
+                  color: 'rgba(255,255,255,0.4)',
+                  marginBottom: '20px',
                 }}>
                   {plan.description}
                 </p>
 
-                <div style={{ marginBottom: '16px' }}>
-                  <span style={{ fontSize: '28px', fontWeight: 700 }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <span className="lp-number" style={{ fontSize: '32px', fontWeight: 800 }}>
                     {formatPrice(plan.price)}
                   </span>
-                  <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginLeft: '4px' }}>
+                  <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginLeft: '4px' }}>
                     /mês
                   </span>
                 </div>
 
                 <div style={{
-                  padding: '12px',
+                  padding: '14px',
                   backgroundColor: 'rgba(70, 114, 236, 0.08)',
-                  borderRadius: '10px',
-                  marginBottom: '16px',
+                  borderRadius: '12px',
+                  marginBottom: '20px',
+                  border: '1px solid rgba(70, 114, 236, 0.1)',
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Emails/mês</span>
                     <span style={{
                       fontSize: '13px',
-                      fontWeight: 600,
+                      fontWeight: 700,
                       color: typeof plan.emails !== 'number' ? '#22c55e' : '#fff',
                     }}>
                       {typeof plan.emails === 'number' ? plan.emails.toLocaleString('pt-BR') : plan.emails}
@@ -1136,27 +1703,39 @@ export default function LandingPage() {
                     <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Lojas</span>
                     <span style={{
                       fontSize: '13px',
-                      fontWeight: 600,
+                      fontWeight: 700,
                       color: typeof plan.shops !== 'number' ? '#22c55e' : '#fff',
                     }}>
-                      {typeof plan.shops === 'number' ? plan.shops : plan.shops}
+                      {plan.shops}
                     </span>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '16px', flex: 1 }}>
+                <div style={{ marginBottom: '20px', flex: 1 }}>
                   {plan.features.map((feature, index) => (
                     <div
                       key={index}
                       style={{
                         display: 'flex',
                         alignItems: 'flex-start',
-                        gap: '8px',
-                        marginBottom: '8px',
+                        gap: '10px',
+                        marginBottom: '10px',
                       }}
                     >
-                      <Check size={14} style={{ color: '#22c55e', flexShrink: 0, marginTop: '2px' }} />
-                      <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '6px',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        marginTop: '1px',
+                      }}>
+                        <Check size={12} style={{ color: '#22c55e' }} />
+                      </div>
+                      <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
                         {feature}
                       </span>
                     </div>
@@ -1171,8 +1750,8 @@ export default function LandingPage() {
                     style={{
                       display: 'flex',
                       width: '100%',
-                      padding: '12px',
-                      borderRadius: '10px',
+                      padding: '14px',
+                      borderRadius: '12px',
                       border: 'none',
                       backgroundColor: '#25D366',
                       color: '#fff',
@@ -1185,6 +1764,7 @@ export default function LandingPage() {
                       textDecoration: 'none',
                       marginTop: 'auto',
                       boxSizing: 'border-box',
+                      transition: 'all 0.3s ease',
                     }}
                   >
                     <MessageCircle size={16} />
@@ -1193,13 +1773,12 @@ export default function LandingPage() {
                 ) : (
                   <Link
                     to={`/register?plan=${plan.name.toLowerCase().replace(' ', '-')}`}
+                    className={plan.popular ? 'lp-btn-primary' : 'lp-btn-secondary'}
                     style={{
                       display: 'flex',
                       width: '100%',
-                      padding: '12px',
-                      borderRadius: '10px',
-                      border: 'none',
-                      backgroundColor: plan.popular ? '#4672ec' : 'rgba(255,255,255,0.1)',
+                      padding: '14px',
+                      borderRadius: '12px',
                       color: '#fff',
                       fontWeight: 600,
                       fontSize: '14px',
@@ -1222,104 +1801,162 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Depoimentos - CARROSSEL */}
+      {/* Divider */}
+      <div className="lp-section-divider" />
+
+      {/* Depoimentos */}
       <section style={{
-        padding: '80px 0',
-        backgroundColor: 'rgba(70, 114, 236, 0.03)',
+        padding: '100px 0',
         overflow: 'hidden',
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            padding: '8px 16px',
+            borderRadius: '50px',
+            marginBottom: '20px',
+          }}>
+            <Star size={14} color="#f59e0b" fill="#f59e0b" />
+            <span style={{ fontSize: '13px', color: '#f59e0b', fontWeight: 600 }}>
+              Depoimentos
+            </span>
+          </div>
+
           <h2 className="lp-section-title" style={{
-            fontSize: '36px',
-            fontWeight: 700,
-            marginBottom: '12px',
+            fontSize: '40px',
+            fontWeight: 800,
+            marginBottom: '16px',
+            letterSpacing: '-0.02em',
           }}>
             O que nossos clientes dizem
           </h2>
           <p style={{
-            fontSize: '16px',
-            color: 'rgba(255,255,255,0.5)',
-            marginBottom: '48px',
+            fontSize: '17px',
+            color: 'rgba(255,255,255,0.4)',
+            marginBottom: '60px',
           }}>
             Resultados reais de quem já usa a Replyna
           </p>
         </div>
 
-        {/* Carrossel infinito */}
-        <div style={{ position: 'relative', width: '100%' }}>
-          <div
-            ref={carouselRef}
-            className="testimonial-carousel"
-          >
-            {/* Duplicar items para loop infinito */}
+        {/* Desktop Carousel */}
+        <div className="testimonial-carousel-wrapper" style={{ position: 'relative', width: '100%' }}>
+          <div className="testimonial-carousel">
             {[...testimonials, ...testimonials].map((testimonial, i) => (
-              <div key={i} style={{
-                flex: '0 0 320px',
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                borderRadius: '16px',
-                padding: '24px',
-                border: '1px solid rgba(255,255,255,0.08)',
+              <div key={i} className="lp-gradient-border" style={{
+                flex: '0 0 380px',
+                padding: '28px',
               }}>
-                <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', gap: '4px', marginBottom: '18px' }}>
                   {[...Array(5)].map((_, j) => (
                     <Star key={j} size={16} fill="#f59e0b" color="#f59e0b" />
                   ))}
                 </div>
                 <p style={{
-                  fontSize: '14px',
-                  color: 'rgba(255,255,255,0.8)',
-                  lineHeight: 1.6,
-                  marginBottom: '16px',
-                  minHeight: '84px',
+                  fontSize: '15px',
+                  color: 'rgba(255,255,255,0.7)',
+                  lineHeight: 1.7,
+                  marginBottom: '20px',
+                  minHeight: '90px',
                 }}>
                   "{testimonial.text}"
                 </p>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: '14px' }}>{testimonial.name}</div>
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{testimonial.role}</div>
+                  <div style={{ fontWeight: 700, fontSize: '15px' }}>{testimonial.name}</div>
+                  <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>{testimonial.role}</div>
                 </div>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Mobile Grid */}
+        <div className="lp-testimonials-grid">
+          {testimonials.slice(0, 4).map((testimonial, i) => (
+            <div key={i} className="lp-gradient-border" style={{
+              padding: '24px',
+            }}>
+              <div style={{ display: 'flex', gap: '4px', marginBottom: '14px' }}>
+                {[...Array(5)].map((_, j) => (
+                  <Star key={j} size={14} fill="#f59e0b" color="#f59e0b" />
+                ))}
+              </div>
+              <p style={{
+                fontSize: '14px',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1.7,
+                marginBottom: '16px',
+              }}>
+                "{testimonial.text}"
+              </p>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '14px' }}>{testimonial.name}</div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{testimonial.role}</div>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
+      {/* Divider */}
+      <div className="lp-section-divider" />
+
       {/* FAQ */}
-      <section id="faq" style={{ padding: '80px 24px' }}>
+      <section id="faq" style={{
+        padding: '100px 24px',
+      }}>
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-          <h2 className="lp-section-title" style={{
-            fontSize: '36px',
-            fontWeight: 700,
-            marginBottom: '12px',
-            textAlign: 'center',
-          }}>
-            Perguntas frequentes
-          </h2>
-          <p style={{
-            fontSize: '16px',
-            color: 'rgba(255,255,255,0.5)',
-            marginBottom: '48px',
-            textAlign: 'center',
-          }}>
-            Tire suas dúvidas sobre a Replyna
-          </p>
+          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'rgba(6, 182, 212, 0.1)',
+              padding: '8px 16px',
+              borderRadius: '50px',
+              marginBottom: '20px',
+            }}>
+              <MessageSquare size={14} color="#06b6d4" />
+              <span style={{ fontSize: '13px', color: '#06b6d4', fontWeight: 600 }}>
+                FAQ
+              </span>
+            </div>
+
+            <h2 className="lp-section-title" style={{
+              fontSize: '40px',
+              fontWeight: 800,
+              marginBottom: '16px',
+              letterSpacing: '-0.02em',
+            }}>
+              Perguntas frequentes
+            </h2>
+            <p style={{
+              fontSize: '17px',
+              color: 'rgba(255,255,255,0.4)',
+            }}>
+              Tire suas dúvidas sobre a Replyna
+            </p>
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {faqs.map((faq, i) => (
               <div
                 key={i}
+                className="lp-gradient-border"
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.03)',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(255,255,255,0.08)',
                   overflow: 'hidden',
+                  transition: 'all 0.3s ease',
+                  border: openFaq === i ? '1px solid rgba(6, 182, 212, 0.3)' : undefined,
                 }}
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   style={{
                     width: '100%',
-                    padding: '20px 24px',
+                    padding: '22px 24px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -1329,29 +1966,38 @@ export default function LandingPage() {
                     textAlign: 'left',
                   }}
                 >
-                  <span style={{ fontSize: '15px', fontWeight: 600, color: '#fff', paddingRight: '12px' }}>
+                  <span style={{ fontSize: '16px', fontWeight: 600, color: '#fff', paddingRight: '16px' }}>
                     {faq.question}
                   </span>
-                  <ChevronDown
-                    size={20}
-                    color="rgba(255,255,255,0.5)"
-                    style={{
-                      transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0)',
-                      transition: 'transform 0.2s ease',
-                      flexShrink: 0,
-                    }}
-                  />
-                </button>
-                {openFaq === i && (
                   <div style={{
-                    padding: '0 24px 20px',
-                    fontSize: '14px',
-                    color: 'rgba(255,255,255,0.6)',
-                    lineHeight: 1.6,
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    transition: 'all 0.3s ease',
+                    transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0)',
+                  }}>
+                    <ChevronDown size={18} color="rgba(255,255,255,0.5)" />
+                  </div>
+                </button>
+                <div style={{
+                  maxHeight: openFaq === i ? '200px' : '0',
+                  overflow: 'hidden',
+                  transition: 'max-height 0.3s ease',
+                }}>
+                  <div style={{
+                    padding: '0 24px 22px',
+                    fontSize: '15px',
+                    color: 'rgba(255,255,255,0.5)',
+                    lineHeight: 1.7,
                   }}>
                     {faq.answer}
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
@@ -1360,39 +2006,69 @@ export default function LandingPage() {
 
       {/* CTA Final */}
       <section style={{
-        padding: '80px 24px',
+        padding: '120px 24px',
         textAlign: 'center',
-        background: 'radial-gradient(ellipse at bottom, rgba(70, 114, 236, 0.15) 0%, transparent 60%)',
+        position: 'relative',
+        overflow: 'hidden',
       }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+        {/* Background Effects */}
+        <div className="lp-orb" style={{
+          width: '800px',
+          height: '800px',
+          background: 'radial-gradient(circle, rgba(70, 114, 236, 0.2) 0%, transparent 70%)',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+        }} />
+
+        <div style={{ maxWidth: '650px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            padding: '8px 16px',
+            borderRadius: '50px',
+            marginBottom: '24px',
+          }}>
+            <Sparkles size={14} color="#22c55e" />
+            <span style={{ fontSize: '13px', color: '#22c55e', fontWeight: 600 }}>
+              Comece hoje
+            </span>
+          </div>
+
           <h2 className="lp-section-title" style={{
-            fontSize: '36px',
-            fontWeight: 700,
-            marginBottom: '16px',
+            fontSize: 'clamp(32px, 5vw, 48px)',
+            fontWeight: 800,
+            marginBottom: '20px',
+            letterSpacing: '-0.02em',
           }}>
             Pronto para proteger seu negócio?
           </h2>
           <p style={{
-            fontSize: '16px',
-            color: 'rgba(255,255,255,0.5)',
-            marginBottom: '32px',
+            fontSize: '18px',
+            color: 'rgba(255,255,255,0.4)',
+            marginBottom: '40px',
+            lineHeight: 1.7,
           }}>
-            Comece agora e veja seus chargebacks despencarem
+            Comece agora e veja seus chargebacks despencarem.
+            <br />
+            Configuração em menos de 10 minutos.
           </p>
           <a
             href="#precos"
             onClick={(e) => scrollToSection(e, 'precos')}
+            className="lp-btn-primary"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
-              backgroundColor: '#4672ec',
+              gap: '10px',
               color: '#ffffff',
-              padding: '16px 40px',
-              borderRadius: '10px',
+              padding: '20px 48px',
+              borderRadius: '14px',
               textDecoration: 'none',
               fontSize: '18px',
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: 'pointer',
             }}
           >
@@ -1404,8 +2080,8 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer style={{
-        padding: '32px 24px',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
+        padding: '40px 24px',
+        borderTop: '1px solid rgba(255,255,255,0.05)',
       }}>
         <div className="lp-footer-content" style={{
           maxWidth: '1200px',
@@ -1419,16 +2095,16 @@ export default function LandingPage() {
           <img
             src="/replyna-logo.webp"
             alt="Replyna"
-            style={{ height: '28px', width: 'auto', opacity: 0.7 }}
+            style={{ height: '28px', width: 'auto', opacity: 0.6 }}
           />
-          <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)' }}>
+          <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.3)' }}>
             © {new Date().getFullYear()} Replyna. Todos os direitos reservados.
           </div>
           <div style={{ display: 'flex', gap: '24px' }}>
-            <a href="#" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: '14px' }}>
+            <a href="#" style={{ color: 'rgba(255,255,255,0.3)', textDecoration: 'none', fontSize: '14px', transition: 'color 0.2s' }}>
               Termos de uso
             </a>
-            <a href="#" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: '14px' }}>
+            <a href="#" style={{ color: 'rgba(255,255,255,0.3)', textDecoration: 'none', fontSize: '14px', transition: 'color 0.2s' }}>
               Privacidade
             </a>
           </div>
