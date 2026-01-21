@@ -16,14 +16,16 @@ import {
   Store,
   Check,
   MessageCircle,
-  Instagram
+  Instagram,
+  Menu,
+  X
 } from 'lucide-react'
 
 // Dados dos planos
 const plans = [
   {
     name: 'Starter',
-    description: 'Plano Starter - 300 emails/mês, 1 loja',
+    description: 'Ideal para quem está começando',
     price: 197,
     emails: 300,
     shops: 1,
@@ -38,7 +40,7 @@ const plans = [
   },
   {
     name: 'Business',
-    description: 'Plano Business - 900 emails/mês, 3 lojas',
+    description: 'Para operações em crescimento',
     price: 397,
     emails: 900,
     shops: 3,
@@ -53,7 +55,7 @@ const plans = [
   },
   {
     name: 'Scale',
-    description: 'Plano Scale - 1.500 emails/mês, 5 lojas',
+    description: 'Escale sem limites',
     price: 597,
     emails: 1500,
     shops: 5,
@@ -68,7 +70,7 @@ const plans = [
   },
   {
     name: 'High Scale',
-    description: 'Plano High Scale - 3.000 emails/mês, 10 lojas',
+    description: 'Para grandes operações',
     price: 997,
     emails: 3000,
     shops: 10,
@@ -83,7 +85,7 @@ const plans = [
   },
   {
     name: 'Enterprise',
-    description: 'Plano Enterprise - emails ilimitados, lojas ilimitadas',
+    description: 'Solução personalizada',
     price: 1497,
     emails: 'Ilimitado',
     shops: 'Ilimitado',
@@ -196,6 +198,7 @@ const faqs = [
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [scrolled, setScrolled] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const carouselRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -209,6 +212,7 @@ export default function LandingPage() {
   // Função para scroll suave
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
     e.preventDefault()
+    setMobileMenuOpen(false)
     const element = document.getElementById(targetId)
     if (element) {
       const headerOffset = 80
@@ -230,12 +234,212 @@ export default function LandingPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#0a0a0f',
-      color: '#ffffff',
-      fontFamily: '"Manrope", "Segoe UI", sans-serif',
-    }}>
+    <div className="lp-container">
+      {/* CSS Global */}
+      <style>{`
+        .lp-container {
+          min-height: 100vh;
+          background-color: #0a0a0f;
+          color: #ffffff;
+          font-family: "Manrope", "Segoe UI", sans-serif;
+        }
+
+        /* Header Mobile Menu */
+        .lp-nav-desktop {
+          display: flex;
+          gap: 32px;
+          align-items: center;
+        }
+        .lp-nav-mobile-toggle {
+          display: none;
+          background: none;
+          border: none;
+          color: #fff;
+          cursor: pointer;
+          padding: 8px;
+        }
+        .lp-nav-mobile {
+          display: none;
+        }
+
+        /* Stats Grid */
+        .lp-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 32px;
+          max-width: 600px;
+          margin: 80px auto 0;
+        }
+
+        /* Problem/Solution Grid */
+        .lp-problem-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 60px;
+          align-items: stretch;
+        }
+
+        /* Steps Grid */
+        .lp-steps-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 24px;
+        }
+
+        /* Benefits Grid */
+        .lp-benefits-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+        }
+
+        /* Influencers Grid */
+        .lp-influencers-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+        }
+
+        /* Plans Grid */
+        .lp-plans-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 16px;
+        }
+
+        /* Carousel Animation */
+        @keyframes scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .testimonial-carousel {
+          display: flex;
+          gap: 24px;
+          animation: scroll 40s linear infinite;
+        }
+        .testimonial-carousel:hover {
+          animation-play-state: paused;
+        }
+
+        /* Section Divider */
+        .lp-section-divider {
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+          max-width: 800px;
+          margin: 0 auto;
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 1024px) {
+          .lp-plans-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+          .lp-benefits-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 768px) {
+          .lp-nav-desktop {
+            display: none;
+          }
+          .lp-nav-mobile-toggle {
+            display: flex;
+          }
+          .lp-nav-mobile {
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 15, 0.98);
+            z-index: 200;
+            padding: 80px 24px 24px;
+            gap: 24px;
+          }
+          .lp-nav-mobile a {
+            font-size: 18px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+          }
+          .lp-nav-mobile-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            padding: 8px;
+          }
+
+          .lp-stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 48px;
+          }
+          .lp-stats-grid > div > div:first-child {
+            font-size: 28px !important;
+          }
+
+          .lp-problem-grid {
+            grid-template-columns: 1fr;
+            gap: 48px;
+          }
+
+          .lp-steps-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+          }
+
+          .lp-benefits-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .lp-influencers-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .lp-plans-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+
+          .lp-section-title {
+            font-size: 28px !important;
+          }
+
+          .lp-hero-buttons {
+            flex-direction: column;
+            width: 100%;
+          }
+          .lp-hero-buttons a {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .lp-footer-content {
+            flex-direction: column;
+            text-align: center;
+            gap: 24px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .lp-stats-grid {
+            grid-template-columns: 1fr;
+            gap: 24px;
+            text-align: center;
+          }
+
+          .lp-steps-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
       {/* Header */}
       <header style={{
         position: 'fixed',
@@ -259,9 +463,11 @@ export default function LandingPage() {
           <img
             src="/replyna-logo.webp"
             alt="Replyna"
-            style={{ height: '36px', width: 'auto' }}
+            style={{ height: '32px', width: 'auto' }}
           />
-          <nav style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+
+          {/* Desktop Nav */}
+          <nav className="lp-nav-desktop">
             <a href="#como-funciona" onClick={(e) => scrollToSection(e, 'como-funciona')} style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
               Como funciona
             </a>
@@ -271,15 +477,7 @@ export default function LandingPage() {
             <a href="#faq" onClick={(e) => scrollToSection(e, 'faq')} style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
               FAQ
             </a>
-            <Link
-              to="/login"
-              style={{
-                color: 'rgba(255,255,255,0.7)',
-                textDecoration: 'none',
-                fontSize: '14px',
-                fontWeight: 500
-              }}
-            >
+            <Link to="/login" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>
               Entrar
             </Link>
             <a
@@ -299,13 +497,62 @@ export default function LandingPage() {
               Começar agora
             </a>
           </nav>
+
+          {/* Mobile Menu Toggle */}
+          <button
+            className="lp-nav-mobile-toggle"
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <Menu size={24} />
+          </button>
         </div>
+
+        {/* Mobile Nav */}
+        {mobileMenuOpen && (
+          <nav className="lp-nav-mobile">
+            <button
+              className="lp-nav-mobile-close"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <X size={24} />
+            </button>
+            <a href="#como-funciona" onClick={(e) => scrollToSection(e, 'como-funciona')} style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>
+              Como funciona
+            </a>
+            <a href="#precos" onClick={(e) => scrollToSection(e, 'precos')} style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>
+              Preços
+            </a>
+            <a href="#faq" onClick={(e) => scrollToSection(e, 'faq')} style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>
+              FAQ
+            </a>
+            <Link to="/login" onClick={() => setMobileMenuOpen(false)} style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>
+              Entrar
+            </Link>
+            <a
+              href="#precos"
+              onClick={(e) => scrollToSection(e, 'precos')}
+              style={{
+                backgroundColor: '#4672ec',
+                color: '#ffffff',
+                padding: '14px 24px',
+                borderRadius: '10px',
+                textDecoration: 'none',
+                fontSize: '16px',
+                fontWeight: 600,
+                textAlign: 'center',
+                marginTop: '16px',
+              }}
+            >
+              Começar agora
+            </a>
+          </nav>
+        )}
       </header>
 
       {/* Hero Section */}
       <section style={{
-        paddingTop: '140px',
-        paddingBottom: '100px',
+        paddingTop: '120px',
+        paddingBottom: '80px',
         textAlign: 'center',
         background: 'radial-gradient(ellipse at top, rgba(70, 114, 236, 0.15) 0%, transparent 60%)',
       }}>
@@ -327,7 +574,7 @@ export default function LandingPage() {
           </div>
 
           <h1 style={{
-            fontSize: 'clamp(36px, 5vw, 60px)',
+            fontSize: 'clamp(32px, 5vw, 56px)',
             fontWeight: 700,
             lineHeight: 1.1,
             marginBottom: '24px',
@@ -347,7 +594,7 @@ export default function LandingPage() {
           </h1>
 
           <p style={{
-            fontSize: '18px',
+            fontSize: 'clamp(16px, 2vw, 18px)',
             color: 'rgba(255,255,255,0.6)',
             maxWidth: '600px',
             margin: '0 auto 40px',
@@ -357,7 +604,7 @@ export default function LandingPage() {
             Mantenha seu Shopify Payments ativo e seu negócio funcionando.
           </p>
 
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="lp-hero-buttons" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <a
               href="#precos"
               onClick={(e) => scrollToSection(e, 'precos')}
@@ -372,7 +619,6 @@ export default function LandingPage() {
                 textDecoration: 'none',
                 fontSize: '16px',
                 fontWeight: 600,
-                transition: 'transform 0.2s ease',
                 cursor: 'pointer',
               }}
             >
@@ -402,14 +648,7 @@ export default function LandingPage() {
           </div>
 
           {/* Stats */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '32px',
-            marginTop: '80px',
-            maxWidth: '600px',
-            margin: '80px auto 0',
-          }}>
+          <div className="lp-stats-grid">
             <div>
               <div style={{ fontSize: '40px', fontWeight: 700, color: '#4672ec' }}>90%</div>
               <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>Redução em chargebacks</div>
@@ -426,20 +665,21 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Divider */}
+      <div className="lp-section-divider" />
+
       {/* Problema/Solução */}
-      <section style={{
-        padding: '100px 24px',
-      }}>
+      <section style={{ padding: '80px 24px' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-            gap: '60px',
-            alignItems: 'center',
-          }}>
-            <div>
+          <div className="lp-problem-grid">
+            <div style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.05)',
+              borderRadius: '20px',
+              padding: '32px',
+              border: '1px solid rgba(239, 68, 68, 0.15)',
+            }}>
               <h2 style={{
-                fontSize: '32px',
+                fontSize: 'clamp(24px, 3vw, 28px)',
                 fontWeight: 700,
                 marginBottom: '24px',
                 lineHeight: 1.3,
@@ -459,12 +699,13 @@ export default function LandingPage() {
                       width: '24px',
                       height: '24px',
                       borderRadius: '50%',
-                      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                      backgroundColor: 'rgba(239, 68, 68, 0.2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      flexShrink: 0,
                     }}>
-                      <span style={{ color: '#ef4444', fontSize: '14px' }}>✕</span>
+                      <span style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700 }}>✕</span>
                     </div>
                     <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px' }}>{item}</span>
                   </div>
@@ -472,9 +713,14 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div>
+            <div style={{
+              backgroundColor: 'rgba(34, 197, 94, 0.05)',
+              borderRadius: '20px',
+              padding: '32px',
+              border: '1px solid rgba(34, 197, 94, 0.15)',
+            }}>
               <h2 style={{
-                fontSize: '32px',
+                fontSize: 'clamp(24px, 3vw, 28px)',
                 fontWeight: 700,
                 marginBottom: '24px',
                 lineHeight: 1.3,
@@ -494,10 +740,11 @@ export default function LandingPage() {
                       width: '24px',
                       height: '24px',
                       borderRadius: '50%',
-                      backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                      backgroundColor: 'rgba(34, 197, 94, 0.2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      flexShrink: 0,
                     }}>
                       <CheckCircle2 size={14} color="#22c55e" />
                     </div>
@@ -512,11 +759,11 @@ export default function LandingPage() {
 
       {/* Como funciona */}
       <section id="como-funciona" style={{
-        padding: '100px 24px',
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        padding: '80px 24px',
+        backgroundColor: 'rgba(70, 114, 236, 0.03)',
       }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{
+        <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
+          <h2 className="lp-section-title" style={{
             fontSize: '36px',
             fontWeight: 700,
             marginBottom: '12px',
@@ -526,16 +773,12 @@ export default function LandingPage() {
           <p style={{
             fontSize: '16px',
             color: 'rgba(255,255,255,0.5)',
-            marginBottom: '60px',
+            marginBottom: '48px',
           }}>
             Configure em minutos, proteja seu negócio para sempre
           </p>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '24px',
-          }}>
+          <div className="lp-steps-grid">
             {[
               {
                 icon: <Store size={28} />,
@@ -561,7 +804,7 @@ export default function LandingPage() {
               <div key={i} style={{
                 backgroundColor: 'rgba(255,255,255,0.03)',
                 borderRadius: '16px',
-                padding: '32px 24px',
+                padding: '28px 20px',
                 border: '1px solid rgba(255,255,255,0.08)',
                 position: 'relative',
               }}>
@@ -590,12 +833,12 @@ export default function LandingPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: '0 auto 20px',
+                  margin: '0 auto 16px',
                   color: '#4672ec',
                 }}>
                   {step.icon}
                 </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+                <h3 style={{ fontSize: '17px', fontWeight: 600, marginBottom: '8px' }}>
                   {step.title}
                 </h3>
                 <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
@@ -608,11 +851,9 @@ export default function LandingPage() {
       </section>
 
       {/* Benefícios */}
-      <section style={{
-        padding: '100px 24px',
-      }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{
+      <section style={{ padding: '80px 24px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
+          <h2 className="lp-section-title" style={{
             fontSize: '36px',
             fontWeight: 700,
             marginBottom: '12px',
@@ -622,16 +863,12 @@ export default function LandingPage() {
           <p style={{
             fontSize: '16px',
             color: 'rgba(255,255,255,0.5)',
-            marginBottom: '60px',
+            marginBottom: '48px',
           }}>
             Feita especialmente para dropshippers que usam Shopify Payments
           </p>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '24px',
-          }}>
+          <div className="lp-benefits-grid">
             {[
               {
                 icon: <Shield size={24} />,
@@ -667,7 +904,7 @@ export default function LandingPage() {
               <div key={i} style={{
                 backgroundColor: 'rgba(255,255,255,0.03)',
                 borderRadius: '16px',
-                padding: '32px 24px',
+                padding: '28px 24px',
                 border: '1px solid rgba(255,255,255,0.08)',
                 textAlign: 'left',
               }}>
@@ -679,15 +916,15 @@ export default function LandingPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: '20px',
+                  marginBottom: '16px',
                   color: '#4672ec',
                 }}>
                   {benefit.icon}
                 </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+                <h3 style={{ fontSize: '17px', fontWeight: 600, marginBottom: '8px' }}>
                   {benefit.title}
                 </h3>
-                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
+                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
                   {benefit.desc}
                 </p>
               </div>
@@ -696,13 +933,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Quem usa section - MOVIDO PARA ANTES DOS PREÇOS */}
+      {/* Quem usa */}
       <section style={{
         padding: '80px 24px',
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'rgba(70, 114, 236, 0.03)',
       }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{
+          <h2 className="lp-section-title" style={{
             fontSize: '36px',
             fontWeight: 700,
             marginBottom: '12px',
@@ -718,11 +955,7 @@ export default function LandingPage() {
             De pequenas a grandes operações, todos confiam na gente
           </p>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '24px',
-          }}>
+          <div className="lp-influencers-grid">
             {influencers.map((influencer, index) => (
               <div
                 key={index}
@@ -734,7 +967,7 @@ export default function LandingPage() {
                 }}
               >
                 <div style={{
-                  height: '320px',
+                  height: '280px',
                   backgroundColor: '#1a1a2e',
                   position: 'relative',
                   overflow: 'hidden',
@@ -777,9 +1010,9 @@ export default function LandingPage() {
                     </div>
                   </div>
                 </div>
-                <div style={{ padding: '24px' }}>
+                <div style={{ padding: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <h3 style={{ fontSize: '20px', fontWeight: 600 }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 600 }}>
                       {influencer.name}
                     </h3>
                     <a
@@ -800,7 +1033,7 @@ export default function LandingPage() {
                       <Instagram size={18} />
                     </a>
                   </div>
-                  <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
                     {influencer.role}
                   </p>
                 </div>
@@ -810,12 +1043,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Preços - ESTILO SIMILAR AO /register */}
-      <section id="precos" style={{
-        padding: '100px 24px',
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{
+      {/* Preços */}
+      <section id="precos" style={{ padding: '80px 24px' }}>
+        <div style={{ maxWidth: '1300px', margin: '0 auto', textAlign: 'center' }}>
+          <h2 className="lp-section-title" style={{
             fontSize: '36px',
             fontWeight: 700,
             marginBottom: '12px',
@@ -825,21 +1056,17 @@ export default function LandingPage() {
           <p style={{
             fontSize: '16px',
             color: 'rgba(255,255,255,0.5)',
-            marginBottom: '60px',
+            marginBottom: '48px',
           }}>
             Escolha o plano ideal para o tamanho da sua operação
           </p>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '20px',
-          }}>
+          <div className="lp-plans-grid">
             {plans.map((plan, i) => (
               <div key={i} style={{
                 backgroundColor: 'rgba(255,255,255,0.03)',
                 borderRadius: '16px',
-                padding: '24px',
+                padding: '24px 20px',
                 border: plan.popular ? '2px solid #4672ec' : '1px solid rgba(255,255,255,0.08)',
                 position: 'relative',
                 textAlign: 'left',
@@ -850,7 +1077,8 @@ export default function LandingPage() {
                   <div style={{
                     position: 'absolute',
                     top: '-12px',
-                    right: '16px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
                     backgroundColor: '#f59e0b',
                     color: '#fff',
                     padding: '4px 12px',
@@ -860,13 +1088,14 @@ export default function LandingPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
+                    whiteSpace: 'nowrap',
                   }}>
                     <Star size={12} />
                     Popular
                   </div>
                 )}
 
-                <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '4px' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '4px', marginTop: plan.popular ? '8px' : 0 }}>
                   {plan.name}
                 </h3>
 
@@ -874,40 +1103,26 @@ export default function LandingPage() {
                   fontSize: '13px',
                   color: 'rgba(255,255,255,0.5)',
                   marginBottom: '16px',
-                  minHeight: '36px',
                 }}>
                   {plan.description}
                 </p>
 
-                <div style={{ marginBottom: '20px' }}>
-                  {plan.isEnterprise ? (
-                    <>
-                      <span style={{ fontSize: '32px', fontWeight: 700 }}>
-                        {formatPrice(plan.price)}
-                      </span>
-                      <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginLeft: '4px' }}>
-                        /mês
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span style={{ fontSize: '32px', fontWeight: 700 }}>
-                        {formatPrice(plan.price)}
-                      </span>
-                      <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginLeft: '4px' }}>
-                        /mês
-                      </span>
-                    </>
-                  )}
+                <div style={{ marginBottom: '16px' }}>
+                  <span style={{ fontSize: '28px', fontWeight: 700 }}>
+                    {formatPrice(plan.price)}
+                  </span>
+                  <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginLeft: '4px' }}>
+                    /mês
+                  </span>
                 </div>
 
                 <div style={{
                   padding: '12px',
                   backgroundColor: 'rgba(70, 114, 236, 0.08)',
                   borderRadius: '10px',
-                  marginBottom: '20px',
+                  marginBottom: '16px',
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Emails/mês</span>
                     <span style={{
                       fontSize: '13px',
@@ -929,19 +1144,19 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '20px', flex: 1 }}>
+                <div style={{ marginBottom: '16px', flex: 1 }}>
                   {plan.features.map((feature, index) => (
                     <div
                       key={index}
                       style={{
                         display: 'flex',
-                        alignItems: 'center',
+                        alignItems: 'flex-start',
                         gap: '8px',
-                        marginBottom: '10px',
+                        marginBottom: '8px',
                       }}
                     >
-                      <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
-                      <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
+                      <Check size={14} style={{ color: '#22c55e', flexShrink: 0, marginTop: '2px' }} />
+                      <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>
                         {feature}
                       </span>
                     </div>
@@ -977,7 +1192,7 @@ export default function LandingPage() {
                   </a>
                 ) : (
                   <Link
-                    to={`/register?plan=${plan.name.toLowerCase()}`}
+                    to={`/register?plan=${plan.name.toLowerCase().replace(' ', '-')}`}
                     style={{
                       display: 'flex',
                       width: '100%',
@@ -1009,12 +1224,12 @@ export default function LandingPage() {
 
       {/* Depoimentos - CARROSSEL */}
       <section style={{
-        padding: '100px 0',
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        padding: '80px 0',
+        backgroundColor: 'rgba(70, 114, 236, 0.03)',
         overflow: 'hidden',
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
-          <h2 style={{
+          <h2 className="lp-section-title" style={{
             fontSize: '36px',
             fontWeight: 700,
             marginBottom: '12px',
@@ -1035,16 +1250,11 @@ export default function LandingPage() {
           <div
             ref={carouselRef}
             className="testimonial-carousel"
-            style={{
-              display: 'flex',
-              gap: '24px',
-              animation: 'scroll 40s linear infinite',
-            }}
           >
             {/* Duplicar items para loop infinito */}
             {[...testimonials, ...testimonials].map((testimonial, i) => (
               <div key={i} style={{
-                flex: '0 0 350px',
+                flex: '0 0 320px',
                 backgroundColor: 'rgba(255,255,255,0.03)',
                 borderRadius: '16px',
                 padding: '24px',
@@ -1072,28 +1282,12 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-
-        <style>{`
-          @keyframes scroll {
-            0% {
-              transform: translateX(0);
-            }
-            100% {
-              transform: translateX(-50%);
-            }
-          }
-          .testimonial-carousel:hover {
-            animation-play-state: paused;
-          }
-        `}</style>
       </section>
 
       {/* FAQ */}
-      <section id="faq" style={{
-        padding: '100px 24px',
-      }}>
+      <section id="faq" style={{ padding: '80px 24px' }}>
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-          <h2 style={{
+          <h2 className="lp-section-title" style={{
             fontSize: '36px',
             fontWeight: 700,
             marginBottom: '12px',
@@ -1135,7 +1329,7 @@ export default function LandingPage() {
                     textAlign: 'left',
                   }}
                 >
-                  <span style={{ fontSize: '16px', fontWeight: 600, color: '#fff' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 600, color: '#fff', paddingRight: '12px' }}>
                     {faq.question}
                   </span>
                   <ChevronDown
@@ -1145,14 +1339,13 @@ export default function LandingPage() {
                       transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0)',
                       transition: 'transform 0.2s ease',
                       flexShrink: 0,
-                      marginLeft: '12px',
                     }}
                   />
                 </button>
                 {openFaq === i && (
                   <div style={{
                     padding: '0 24px 20px',
-                    fontSize: '15px',
+                    fontSize: '14px',
                     color: 'rgba(255,255,255,0.6)',
                     lineHeight: 1.6,
                   }}>
@@ -1167,12 +1360,12 @@ export default function LandingPage() {
 
       {/* CTA Final */}
       <section style={{
-        padding: '100px 24px',
+        padding: '80px 24px',
         textAlign: 'center',
         background: 'radial-gradient(ellipse at bottom, rgba(70, 114, 236, 0.15) 0%, transparent 60%)',
       }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2 style={{
+          <h2 className="lp-section-title" style={{
             fontSize: '36px',
             fontWeight: 700,
             marginBottom: '16px',
@@ -1211,10 +1404,10 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer style={{
-        padding: '40px 24px',
+        padding: '32px 24px',
         borderTop: '1px solid rgba(255,255,255,0.08)',
       }}>
-        <div style={{
+        <div className="lp-footer-content" style={{
           maxWidth: '1200px',
           margin: '0 auto',
           display: 'flex',
