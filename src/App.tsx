@@ -14,6 +14,7 @@ import ShopSetup from './pages/ShopSetup'
 import ShopDetails from './pages/ShopDetails'
 import Account from './pages/Account'
 import ConversationDetails from './pages/ConversationDetails'
+import LandingPage from './pages/LandingPage'
 
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin'
@@ -243,8 +244,10 @@ function App() {
             </AdminRoute>
           } />
 
+          {/* Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* Redirect padrao */}
-          <Route path="/" element={<Navigate to="/dashboard" />} />
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
       </AdminProvider>
