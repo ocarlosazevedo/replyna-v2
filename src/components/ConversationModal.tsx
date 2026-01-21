@@ -125,6 +125,8 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     category: string | null
     created_at: string
     shop_id: string
+    shop_email?: string | null
+    shop_name?: string | null
   } | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
@@ -142,15 +144,29 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     setReprocessSuccess(false)
 
     try {
-      // Carregar conversa
+      // Carregar conversa com dados da loja
       const { data: convData, error: convError } = await supabase
         .from('conversations')
-        .select('id, customer_email, customer_name, subject, category, created_at, shop_id')
+        .select('id, customer_email, customer_name, subject, category, created_at, shop_id, shops(name, email_user)')
         .eq('id', conversationId)
         .single()
 
       if (convError) throw convError
-      setConversation(convData)
+
+      // Extrair dados da loja do join
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const shopData = (convData as any)?.shops
+      setConversation({
+        id: convData.id,
+        customer_email: convData.customer_email,
+        customer_name: convData.customer_name,
+        subject: convData.subject,
+        category: convData.category,
+        created_at: convData.created_at,
+        shop_id: convData.shop_id,
+        shop_email: shopData?.email_user || (Array.isArray(shopData) ? shopData[0]?.email_user : null),
+        shop_name: shopData?.name || (Array.isArray(shopData) ? shopData[0]?.name : null),
+      })
 
       // Carregar mensagens
       const { data: msgData, error: msgError } = await supabase
@@ -365,7 +381,12 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
             </h2>
             {conversation && (
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                {conversation.customer_name || conversation.customer_email}
+                <span>{conversation.customer_name || conversation.customer_email}</span>
+                {conversation.shop_email && (
+                  <span style={{ marginLeft: '8px', opacity: 0.7 }}>
+                    → {conversation.shop_email}
+                  </span>
+                )}
               </div>
             )}
           </div>
