@@ -32,8 +32,8 @@ interface Plan {
   description: string | null
   price_monthly: number
   price_yearly: number | null
-  emails_limit: number
-  shops_limit: number
+  emails_limit: number | null  // null = ilimitado
+  shops_limit: number | null   // null = ilimitado
   features: string[]
   is_popular: boolean
 }
@@ -655,40 +655,44 @@ export default function Account() {
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                         <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Lojas integradas</span>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          {shopsCount} / {shopsLimit !== null && shopsLimit !== undefined ? formatNumber(shopsLimit) : '--'}
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: shopsLimit === null ? '#22c55e' : 'var(--text-primary)' }}>
+                          {shopsCount} / {shopsLimit === null ? 'Ilimitado' : formatNumber(shopsLimit)}
                         </span>
                       </div>
-                      <div style={{ height: '8px', backgroundColor: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div
-                          style={{
-                            height: '100%',
-                            width: `${shopsLimit ? Math.min((shopsCount / shopsLimit) * 100, 100) : 0}%`,
-                            backgroundColor: shopsLimit && shopsCount >= shopsLimit ? '#ef4444' : 'var(--accent)',
-                            borderRadius: '4px',
-                            transition: 'width 0.3s ease',
-                          }}
-                        />
-                      </div>
+                      {shopsLimit !== null && (
+                        <div style={{ height: '8px', backgroundColor: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              height: '100%',
+                              width: `${shopsLimit ? Math.min((shopsCount / shopsLimit) * 100, 100) : 0}%`,
+                              backgroundColor: shopsLimit && shopsCount >= shopsLimit ? '#ef4444' : 'var(--accent)',
+                              borderRadius: '4px',
+                              transition: 'width 0.3s ease',
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                         <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Emails enviados</span>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          {profile?.emails_used !== null && profile?.emails_used !== undefined ? formatNumber(profile.emails_used) : '0'} / {emailsLimit !== null && emailsLimit !== undefined ? formatNumber(emailsLimit) : '--'}
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: emailsLimit === null ? '#22c55e' : 'var(--text-primary)' }}>
+                          {profile?.emails_used !== null && profile?.emails_used !== undefined ? formatNumber(profile.emails_used) : '0'} / {emailsLimit === null ? 'Ilimitado' : formatNumber(emailsLimit)}
                         </span>
                       </div>
-                      <div style={{ height: '8px', backgroundColor: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div
-                          style={{
-                            height: '100%',
-                            width: `${emailsLimit && profile?.emails_used !== null && profile?.emails_used !== undefined ? Math.min((profile.emails_used / emailsLimit) * 100, 100) : 0}%`,
-                            backgroundColor: emailsLimit && profile?.emails_used !== null && profile.emails_used >= emailsLimit ? '#ef4444' : 'var(--accent)',
-                            borderRadius: '4px',
-                            transition: 'width 0.3s ease',
-                          }}
-                        />
-                      </div>
+                      {emailsLimit !== null && (
+                        <div style={{ height: '8px', backgroundColor: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              height: '100%',
+                              width: `${emailsLimit && profile?.emails_used !== null && profile?.emails_used !== undefined ? Math.min((profile.emails_used / emailsLimit) * 100, 100) : 0}%`,
+                              backgroundColor: emailsLimit && profile?.emails_used !== null && profile.emails_used >= emailsLimit ? '#ef4444' : 'var(--accent)',
+                              borderRadius: '4px',
+                              transition: 'width 0.3s ease',
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -848,8 +852,12 @@ export default function Account() {
                             )}
                           </div>
                           <ul style={{ paddingLeft: '16px', margin: 0, color: 'var(--text-secondary)', fontSize: '12px', display: 'grid', gap: '2px' }}>
-                            <li>{isEnterprise || plan.emails_limit >= 999999 ? 'Emails ilimitados' : `${formatNumber(plan.emails_limit)} emails/mês`}</li>
-                            <li>{isEnterprise || plan.shops_limit >= 999 ? 'Lojas ilimitadas' : `${formatNumber(plan.shops_limit)} ${plan.shops_limit === 1 ? 'loja' : 'lojas'}`}</li>
+                            <li style={{ color: isEnterprise || plan.emails_limit === null ? '#22c55e' : 'inherit' }}>
+                              {isEnterprise || plan.emails_limit === null ? 'Emails ilimitados' : `${formatNumber(plan.emails_limit)} emails/mês`}
+                            </li>
+                            <li style={{ color: isEnterprise || plan.shops_limit === null ? '#22c55e' : 'inherit' }}>
+                              {isEnterprise || plan.shops_limit === null ? 'Lojas ilimitadas' : `${formatNumber(plan.shops_limit)} ${plan.shops_limit === 1 ? 'loja' : 'lojas'}`}
+                            </li>
                             {Array.isArray(plan.features) && plan.features
                               .filter((f) => {
                                 const lower = f.toLowerCase()

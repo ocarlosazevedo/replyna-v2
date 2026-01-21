@@ -564,8 +564,9 @@ export default function Dashboard() {
   }, [cacheFetch, dateEnd, dateStart, effectiveShopIds, granularity, selectedShopId, user])
 
   const renewalDate = useMemo(() => calculateRenewalDate(profile?.created_at ?? null), [profile?.created_at])
-  const emailsLimit = profile?.emails_limit ?? 0
+  const emailsLimit = profile?.emails_limit  // null = ilimitado
   const emailsUsed = profile?.emails_used ?? 0
+  const isUnlimited = emailsLimit === null
   const usagePercent = emailsLimit ? Math.min((emailsUsed / emailsLimit) * 100, 100) : 0
 
   const shopName = profile?.name || user?.user_metadata?.name || 'Cliente'
@@ -603,8 +604,8 @@ export default function Dashboard() {
         }}
       />
 
-      {/* Banner de créditos */}
-      {profile && profile.emails_limit && profile.emails_used !== null && (
+      {/* Banner de créditos - não mostrar para planos ilimitados (emails_limit === null) */}
+      {profile && profile.emails_limit !== null && profile.emails_used !== null && (
         <CreditsWarningBanner
           emailsUsed={profile.emails_used ?? 0}
           emailsLimit={profile.emails_limit}
@@ -969,21 +970,31 @@ export default function Dashboard() {
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Emails respondidos</div>
                 <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
-                  {formatNumber(emailsUsed)} de {formatNumber(emailsLimit)}
+                  {isUnlimited ? (
+                    <>
+                      {formatNumber(emailsUsed)} de <span style={{ color: '#22c55e' }}>Ilimitado</span>
+                    </>
+                  ) : (
+                    <>{formatNumber(emailsUsed)} de {formatNumber(emailsLimit ?? 0)}</>
+                  )}
                 </div>
-                <div style={{ marginTop: '8px', backgroundColor: 'var(--border-color)', borderRadius: '999px', height: '8px' }}>
-                  <div
-                    style={{
-                      width: `${usagePercent}%`,
-                      backgroundColor: 'var(--accent)',
-                      height: '8px',
-                      borderRadius: '999px',
-                    }}
-                  />
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', fontWeight: 600 }}>
-                  {formatPercent(usagePercent)} utilizado
-                </div>
+                {!isUnlimited && (
+                  <>
+                    <div style={{ marginTop: '8px', backgroundColor: 'var(--border-color)', borderRadius: '999px', height: '8px' }}>
+                      <div
+                        style={{
+                          width: `${usagePercent}%`,
+                          backgroundColor: 'var(--accent)',
+                          height: '8px',
+                          borderRadius: '999px',
+                        }}
+                      />
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', fontWeight: 600 }}>
+                      {formatPercent(usagePercent)} utilizado
+                    </div>
+                  </>
+                )}
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Renovação do plano</div>

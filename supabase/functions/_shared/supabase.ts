@@ -61,9 +61,9 @@ export interface User {
   email: string;
   name: string | null;
   plan: string;
-  emails_limit: number;
+  emails_limit: number | null;  // null = ilimitado
   emails_used: number;
-  shops_limit: number;
+  shops_limit: number | null;   // null = ilimitado
   last_credits_warning_at: string | null;
   credits_warning_count: number;
   created_at: string;

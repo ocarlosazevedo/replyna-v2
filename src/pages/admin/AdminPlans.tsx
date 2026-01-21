@@ -20,13 +20,13 @@ interface Plan {
   description: string | null
   price_monthly: number
   price_yearly: number | null
-  emails_limit: number
-  shops_limit: number
+  emails_limit: number | null  // null = ilimitado
+  shops_limit: number | null   // null = ilimitado
   features: string[]
   stripe_product_id: string | null
   stripe_price_monthly_id: string | null
   stripe_price_yearly_id: string | null
-  extra_email_price: number | null
+  extra_email_price: number | null  // null = sem cobrança extra
   extra_email_package_size: number | null
   stripe_extra_email_price_id: string | null
   is_active: boolean
@@ -46,14 +46,14 @@ export default function AdminPlans() {
     description: '',
     price_monthly: 0,
     price_yearly: 0,
-    emails_limit: 100,
-    shops_limit: 1,
+    emails_limit: '' as string | number,  // vazio = ilimitado
+    shops_limit: '' as string | number,   // vazio = ilimitado
     features: [] as string[],
     stripe_product_id: '',
     stripe_price_monthly_id: '',
     stripe_price_yearly_id: '',
-    extra_email_price: 1.0,
-    extra_email_package_size: 100,
+    extra_email_price: '' as string | number,  // vazio = sem cobrança
+    extra_email_package_size: '' as string | number,
     stripe_extra_email_price_id: '',
     is_active: true,
     is_popular: false,
@@ -89,14 +89,14 @@ export default function AdminPlans() {
         description: plan.description || '',
         price_monthly: plan.price_monthly,
         price_yearly: plan.price_yearly || 0,
-        emails_limit: plan.emails_limit,
-        shops_limit: plan.shops_limit,
+        emails_limit: plan.emails_limit ?? '',  // null vira vazio (ilimitado)
+        shops_limit: plan.shops_limit ?? '',    // null vira vazio (ilimitado)
         features: plan.features || [],
         stripe_product_id: plan.stripe_product_id || '',
         stripe_price_monthly_id: plan.stripe_price_monthly_id || '',
         stripe_price_yearly_id: plan.stripe_price_yearly_id || '',
-        extra_email_price: plan.extra_email_price || 1.0,
-        extra_email_package_size: plan.extra_email_package_size || 100,
+        extra_email_price: plan.extra_email_price ?? '',  // null vira vazio
+        extra_email_package_size: plan.extra_email_package_size ?? '',
         stripe_extra_email_price_id: plan.stripe_extra_email_price_id || '',
         is_active: plan.is_active,
         is_popular: plan.is_popular,
@@ -128,19 +128,31 @@ export default function AdminPlans() {
 
   const handleSavePlan = async () => {
     try {
+      // Converter strings vazias para null (ilimitado)
+      const parseLimit = (value: string | number): number | null => {
+        if (value === '' || value === null || value === undefined) return null
+        const num = typeof value === 'string' ? parseInt(value) : value
+        return isNaN(num) ? null : num
+      }
+      const parsePrice = (value: string | number): number | null => {
+        if (value === '' || value === null || value === undefined) return null
+        const num = typeof value === 'string' ? parseFloat(value) : value
+        return isNaN(num) ? null : num
+      }
+
       const planData = {
         name: formData.name,
         description: formData.description || null,
         price_monthly: formData.price_monthly,
         price_yearly: formData.price_yearly || null,
-        emails_limit: formData.emails_limit,
-        shops_limit: formData.shops_limit,
+        emails_limit: parseLimit(formData.emails_limit),  // null = ilimitado
+        shops_limit: parseLimit(formData.shops_limit),    // null = ilimitado
         features: formData.features,
         stripe_product_id: formData.stripe_product_id || null,
         stripe_price_monthly_id: formData.stripe_price_monthly_id || null,
         stripe_price_yearly_id: formData.stripe_price_yearly_id || null,
-        extra_email_price: formData.extra_email_price || null,
-        extra_email_package_size: formData.extra_email_package_size || null,
+        extra_email_price: parsePrice(formData.extra_email_price),  // null = sem cobrança extra
+        extra_email_package_size: parseLimit(formData.extra_email_package_size),
         stripe_extra_email_price_id: formData.stripe_extra_email_price_id || null,
         is_active: formData.is_active,
         is_popular: formData.is_popular,
@@ -330,17 +342,28 @@ export default function AdminPlans() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Emails/mes</span>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{plan.emails_limit.toLocaleString('pt-BR')}</span>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: plan.emails_limit === null ? '#22c55e' : 'var(--text-primary)' }}>
+                  {plan.emails_limit === null ? 'Ilimitado' : plan.emails_limit.toLocaleString('pt-BR')}
+                </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Lojas</span>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{plan.shops_limit}</span>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: plan.shops_limit === null ? '#22c55e' : 'var(--text-primary)' }}>
+                  {plan.shops_limit === null ? 'Ilimitado' : plan.shops_limit}
+                </span>
               </div>
-              {plan.extra_email_price && (
+              {plan.extra_email_price !== null && plan.extra_email_price > 0 ? (
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Email extra</span>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: '#f59e0b' }}>
                     R$ {plan.extra_email_price.toFixed(2)} ({plan.extra_email_package_size || 100}/pacote)
+                  </span>
+                </div>
+              ) : plan.emails_limit !== null && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Email extra</span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Nao configurado
                   </span>
                 </div>
               )}
@@ -515,20 +538,28 @@ export default function AdminPlans() {
                 <div>
                   <label style={labelStyle}>Limite de Emails/mes</label>
                   <input
-                    type="number"
+                    type="text"
                     value={formData.emails_limit}
-                    onChange={(e) => setFormData({ ...formData, emails_limit: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, emails_limit: e.target.value })}
                     style={inputStyle}
+                    placeholder="Vazio = Ilimitado"
                   />
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
+                    Deixe vazio para ilimitado
+                  </span>
                 </div>
                 <div>
                   <label style={labelStyle}>Limite de Lojas</label>
                   <input
-                    type="number"
+                    type="text"
                     value={formData.shops_limit}
-                    onChange={(e) => setFormData({ ...formData, shops_limit: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, shops_limit: e.target.value })}
                     style={inputStyle}
+                    placeholder="Vazio = Ilimitado"
                   />
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
+                    Deixe vazio para ilimitado
+                  </span>
                 </div>
               </div>
 

@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 interface CreditsWarningBannerProps {
   emailsUsed: number
-  emailsLimit: number
+  emailsLimit: number | null  // null = ilimitado
   plan: string
 }
 
@@ -16,6 +16,9 @@ export default function CreditsWarningBanner({
   const [dismissed, setDismissed] = useState(false)
 
   if (dismissed) return null
+
+  // Não mostrar para planos ilimitados (emailsLimit === null)
+  if (emailsLimit === null) return null
 
   const percentUsed = emailsLimit > 0 ? (emailsUsed / emailsLimit) * 100 : 0
   const isExhausted = emailsUsed >= emailsLimit

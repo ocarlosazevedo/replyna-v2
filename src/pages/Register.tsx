@@ -17,8 +17,8 @@ interface Plan {
   name: string
   description: string | null
   price_monthly: number
-  emails_limit: number
-  shops_limit: number
+  emails_limit: number | null  // null = ilimitado
+  shops_limit: number | null   // null = ilimitado
   features: string[]
   is_popular: boolean
   stripe_price_monthly_id: string | null
@@ -480,9 +480,9 @@ export default function Register() {
                     <span style={{
                       fontSize: '13px',
                       fontWeight: 600,
-                      color: 'var(--text-primary)',
+                      color: plan.emails_limit === null ? '#22c55e' : 'var(--text-primary)',
                     }}>
-                      {isEnterprisePlan(plan) ? 'Personalizado' : plan.emails_limit.toLocaleString('pt-BR')}
+                      {isEnterprisePlan(plan) || plan.emails_limit === null ? 'Ilimitado' : plan.emails_limit.toLocaleString('pt-BR')}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -492,9 +492,9 @@ export default function Register() {
                     <span style={{
                       fontSize: '13px',
                       fontWeight: 600,
-                      color: 'var(--text-primary)',
+                      color: plan.shops_limit === null ? '#22c55e' : 'var(--text-primary)',
                     }}>
-                      {isEnterprisePlan(plan) ? 'Ilimitado' : plan.shops_limit}
+                      {isEnterprisePlan(plan) || plan.shops_limit === null ? 'Ilimitado' : plan.shops_limit}
                     </span>
                   </div>
                 </div>
@@ -624,8 +624,8 @@ export default function Register() {
                 }}>
                   Plano {selectedPlan.name}
                 </div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  {selectedPlan.emails_limit.toLocaleString('pt-BR')} emails/mes
+                <div style={{ fontSize: '13px', color: selectedPlan.emails_limit === null ? '#22c55e' : 'var(--text-secondary)' }}>
+                  {selectedPlan.emails_limit === null ? 'Emails ilimitados' : `${selectedPlan.emails_limit.toLocaleString('pt-BR')} emails/mes`}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
