@@ -184,7 +184,22 @@ export default function AdminPlans() {
       loadPlans()
     } catch (err) {
       console.error('Erro ao salvar plano:', err)
-      setSaveError(err instanceof Error ? err.message : 'Erro ao salvar plano')
+      // Capturar detalhes do erro do Supabase
+      const errorMessage = err && typeof err === 'object' && 'message' in err
+        ? (err as { message: string; details?: string; hint?: string }).message
+        : 'Erro desconhecido'
+      const errorDetails = err && typeof err === 'object' && 'details' in err
+        ? (err as { details?: string }).details
+        : null
+      const errorHint = err && typeof err === 'object' && 'hint' in err
+        ? (err as { hint?: string }).hint
+        : null
+
+      let fullError = errorMessage
+      if (errorDetails) fullError += ` - ${errorDetails}`
+      if (errorHint) fullError += ` (${errorHint})`
+
+      setSaveError(fullError)
     } finally {
       setSaving(false)
     }
