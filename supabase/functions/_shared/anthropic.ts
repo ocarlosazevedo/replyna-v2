@@ -250,7 +250,7 @@ Classifique este email e retorne o JSON.`;
   } catch {
     // Fallback se não conseguir fazer parse
     return {
-      category: 'outros',
+      category: 'duvidas_gerais',
       confidence: 0.5,
       language: 'en',
       order_id_found: null,

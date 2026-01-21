@@ -51,23 +51,23 @@ const formatDateTime = (date: Date) =>
   }).format(date)
 
 const categoryLabelMap: Record<string, string> = {
-  duvidas_gerais: 'Duvidas gerais',
+  spam: 'Spam',
+  duvidas_gerais: 'Dúvidas gerais',
   rastreio: 'Rastreio',
-  reembolso: 'Reembolso',
-  institucional: 'Institucional',
+  troca_devolucao_reembolso: 'Troca/Devolução/Reembolso',
   suporte_humano: 'Suporte humano',
-  produto: 'Produto',
-  pagamento: 'Pagamento',
-  entrega: 'Entrega',
-  outros: 'Outros',
 }
 
 const getCategoryBadge = (category: string | null) => {
   const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
   switch (category) {
+    case 'spam':
+      return { ...base, backgroundColor: 'rgba(220, 38, 38, 0.20)', color: '#b91c1c' }
+    case 'duvidas_gerais':
+      return { ...base, backgroundColor: 'rgba(96, 165, 250, 0.16)', color: '#60a5fa' }
     case 'rastreio':
-      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#2563eb' }
-    case 'reembolso':
+      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#16a34a' }
+    case 'troca_devolucao_reembolso':
       return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
     case 'suporte_humano':
       return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' }
@@ -259,7 +259,7 @@ export default function ConversationDetails() {
 
         <div style={{ display: 'flex', gap: '8px' }}>
           <span style={getCategoryBadge(conversation.category)}>
-            {categoryLabelMap[conversation.category || 'outros'] || 'Outros'}
+            {conversation.category ? categoryLabelMap[conversation.category] : 'Sem categoria'}
           </span>
         </div>
       </div>
