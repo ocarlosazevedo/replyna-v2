@@ -147,7 +147,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
       // Carregar conversa com dados da loja
       const { data: convData, error: convError } = await supabase
         .from('conversations')
-        .select('id, customer_email, customer_name, subject, category, created_at, shop_id, shops(name, email_user)')
+        .select('id, customer_email, customer_name, subject, category, created_at, shop_id, shops(name, imap_user)')
         .eq('id', conversationId)
         .single()
 
@@ -164,7 +164,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
         category: convData.category,
         created_at: convData.created_at,
         shop_id: convData.shop_id,
-        shop_email: shopData?.email_user || (Array.isArray(shopData) ? shopData[0]?.email_user : null),
+        shop_email: shopData?.imap_user || (Array.isArray(shopData) ? shopData[0]?.imap_user : null),
         shop_name: shopData?.name || (Array.isArray(shopData) ? shopData[0]?.name : null),
       })
 

@@ -897,9 +897,8 @@ export default function Dashboard() {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            color: 'var(--accent)',
+                            color: 'var(--text-primary)',
                             fontWeight: 600,
-                            fontSize: '12px',
                           }}
                         >
                           {conversation.shop_name || 'Loja'}

@@ -89,7 +89,7 @@ body {
 
 .replyna-dashboard-bottom {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 240px;
   gap: 24px;
 }
 
