@@ -181,21 +181,27 @@ LANGUAGE DETECTION (CRITICAL):
    Key: Customer already made a purchase and wants to know about their order.
 
 4. troca_devolucao_reembolso
-   EXPLICIT requests for exchange, return, refund, or order cancellation.
-   Examples: "I want to return this", "Cancel my order", "Request refund", "Exchange for different size",
-   "Product arrived damaged", "Wrong item received", "I don't want it anymore".
-   Key: Customer EXPLICITLY states they want to undo, change, or get money back.
-   IMPORTANT: Only classify here if the customer CLEARLY states the intention.
-   If customer just mentions an order without clear action request → classify as "rastreio" first.
+   Requests for exchange, return, or refund for orders that have ALREADY BEEN SHIPPED OR DELIVERED.
+   Examples: "I received the product and want to return it", "Product arrived damaged", "Wrong item received",
+   "I want a refund for what I received", "Exchange for different size (already delivered)", "Money back please".
+   Key: The order has ALREADY BEEN SHIPPED or DELIVERED and customer wants to undo/return/get money back.
+   IMPORTANT: If the order has NOT been shipped yet and customer wants to cancel → use "edicao_pedido" instead.
 
 5. edicao_pedido
-   Requests to MODIFY/EDIT an existing order (NOT cancel, NOT return).
-   Examples: "I want to change my order", "Can I add/remove an item?", "Change the size/color",
-   "Update my shipping address", "Change the quantity", "I ordered wrong size, want to change before shipping",
-   "Can I add another product to my order?", "I want only 3 items instead of 4".
-   Key: Customer wants to MODIFY something in the order BEFORE receiving it.
-   This is different from troca_devolucao_reembolso (which is AFTER receiving or wanting to cancel completely).
-   IMPORTANT: These cases REQUIRE HUMAN INTERVENTION because the AI cannot modify orders in Shopify.
+   Requests to MODIFY/EDIT an existing order OR CANCEL an order that has NOT been shipped yet.
+   This includes:
+   - MODIFICATIONS: "Change my order", "Add/remove an item", "Change size/color", "Update shipping address",
+     "Change quantity", "I ordered wrong size, want to change before shipping".
+   - CANCELLATIONS (NOT SHIPPED): "Cancel my order" (when order hasn't been shipped), "I don't want it anymore",
+     "Please cancel", "Foi engano" (it was a mistake), "Quero cancelar antes de enviar".
+   Key: Customer wants to MODIFY or CANCEL something in the order BEFORE it is shipped/delivered.
+   This is different from troca_devolucao_reembolso (which is for orders ALREADY shipped/delivered).
+   IMPORTANT: These cases REQUIRE HUMAN INTERVENTION because the AI cannot modify/cancel orders in Shopify.
+
+   DECISION RULE FOR CANCELLATIONS:
+   - If customer says "cancel" and order is NOT shipped → edicao_pedido
+   - If customer says "cancel"/"return"/"refund" and order IS shipped/delivered → troca_devolucao_reembolso
+   - If unsure about shipping status, assume NOT shipped → edicao_pedido (safer to escalate to human)
 
 6. suporte_humano
    ONLY for cases with EXPLICIT LEGAL THREATS (lawyer, lawsuit, legal action, consumer protection agency).
@@ -230,10 +236,25 @@ REAL CUSTOMERS (NOT spam):
 === AMBIGUOUS MESSAGES (IMPORTANT) ===
 - Short messages like "my order", "help", "hello" → classify as "rastreio" (need more info)
 - Customer mentions order but doesn't say what they want → classify as "rastreio" (info request)
-- Only classify as "troca_devolucao_reembolso" when customer EXPLICITLY says:
-  - "cancel", "refund", "return", "exchange", "money back", "don't want", etc.
-- If unsure between rastreio and troca_devolucao_reembolso → prefer "rastreio"
+- If unsure between rastreio and any other category → prefer "rastreio"
 - The response generator will ask clarifying questions if needed
+
+=== CANCELLATION CLASSIFICATION (CRITICAL) ===
+When customer wants to CANCEL an order:
+1. Check if order has been SHIPPED/DELIVERED:
+   - Signals order IS shipped: "já recebi", "chegou", "received", "arrived", "delivered", mentions tracking updates
+   - Signals order NOT shipped: "ainda não enviou", "not shipped yet", "antes de enviar", "foi engano", "mudei de ideia"
+
+2. Apply this rule:
+   - Order NOT shipped + cancel request → "edicao_pedido" (human can still cancel in system)
+   - Order SHIPPED/DELIVERED + cancel/return/refund request → "troca_devolucao_reembolso"
+   - If UNSURE about shipping status → default to "edicao_pedido" (safer to escalate)
+
+3. Examples:
+   - "Quero cancelar, foi engano" → edicao_pedido (mistake, likely not shipped)
+   - "Cancel my order please" (no delivery mention) → edicao_pedido (assume not shipped)
+   - "I received it but want to return" → troca_devolucao_reembolso (already delivered)
+   - "Product arrived damaged, refund please" → troca_devolucao_reembolso (already delivered)
 
 Respond ONLY with the JSON, no additional text.`;
 
@@ -478,22 +499,42 @@ Essa tag será removida automaticamente e serve para sinalizar que o caso deve i
 
 === CATEGORIA ESPECIAL: EDIÇÃO DE PEDIDO (edicao_pedido) ===
 
-Se a categoria for "edicao_pedido", significa que o cliente quer MODIFICAR algo no pedido:
+Se a categoria for "edicao_pedido", significa que o cliente quer MODIFICAR ou CANCELAR algo no pedido ANTES do envio:
 - Alterar itens (adicionar, remover, trocar tamanho/cor)
 - Alterar quantidade
 - Alterar endereço de entrega
+- CANCELAR o pedido (quando ainda não foi enviado)
 - Qualquer modificação no pedido antes da entrega
 
-COMO RESPONDER PARA EDIÇÃO DE PEDIDO:
+IMPORTANTE: Cancelamentos de pedidos que AINDA NÃO FORAM ENVIADOS entram nessa categoria porque:
+- A IA não consegue cancelar pedidos no Shopify
+- Um humano precisa processar o cancelamento no sistema
+- É diferente de troca/devolução (que é para pedidos já entregues)
+
+COMO RESPONDER PARA EDIÇÃO/CANCELAMENTO DE PEDIDO:
 1. Agradeça o contato e demonstre que entendeu o pedido
 2. Confirme os dados do pedido se disponíveis (número, itens atuais)
-3. Informe que a solicitação de alteração foi recebida
-4. Explique que nossa equipe de suporte PRIORITÁRIO entrará em contato para realizar a alteração
-5. Diga que a alteração será feita o mais breve possível
-6. NÃO prometa um prazo específico
-7. SEMPRE adicione a tag [FORWARD_TO_HUMAN] no início para encaminhar ao suporte humano
+3. Informe que a solicitação foi recebida
+4. Para CANCELAMENTOS: confirme que como o pedido ainda não foi enviado, podemos processá-lo sem problema
+5. Explique que nossa equipe de suporte PRIORITÁRIO entrará em contato para realizar a alteração/cancelamento
+6. Diga que será feito o mais breve possível
+7. NÃO prometa um prazo específico
+8. SEMPRE adicione a tag [FORWARD_TO_HUMAN] no início para encaminhar ao suporte humano
 
-Exemplo de resposta para edição de pedido:
+Exemplo de resposta para CANCELAMENTO (não enviado):
+"[FORWARD_TO_HUMAN] Olá [Nome]!
+
+Recebi sua solicitação de cancelamento do pedido #[número].
+
+Como o pedido ainda não foi enviado, podemos processá-lo sem problema.
+
+Nossa equipe de suporte prioritário entrará em contato em breve para confirmar o cancelamento.
+
+Qualquer dúvida, estou à disposição!
+
+[Assinatura]"
+
+Exemplo de resposta para EDIÇÃO de pedido:
 "[FORWARD_TO_HUMAN] Olá [Nome]!
 
 Recebi sua solicitação para alterar o pedido #[número].
