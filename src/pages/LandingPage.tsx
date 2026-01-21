@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Shield,
@@ -13,7 +13,10 @@ import {
   ArrowRight,
   Star,
   CreditCard,
-  Store
+  Store,
+  Check,
+  MessageCircle,
+  Instagram
 } from 'lucide-react'
 
 // Dados dos planos
@@ -25,6 +28,7 @@ const plans = [
     shops: 1,
     extraPrice: '1,00',
     popular: false,
+    features: ['Respostas automáticas com IA', 'Integração Shopify', 'Suporte por email'],
   },
   {
     name: 'Business',
@@ -33,6 +37,7 @@ const plans = [
     shops: 3,
     extraPrice: '0,70',
     popular: true,
+    features: ['Tudo do Starter', 'Múltiplas lojas', 'Prioridade no suporte'],
   },
   {
     name: 'Scale',
@@ -41,6 +46,7 @@ const plans = [
     shops: 5,
     extraPrice: '0,60',
     popular: false,
+    features: ['Tudo do Business', 'Relatórios avançados', 'API access'],
   },
   {
     name: 'High Scale',
@@ -49,6 +55,7 @@ const plans = [
     shops: 10,
     extraPrice: '0,50',
     popular: false,
+    features: ['Tudo do Scale', 'Account manager', 'SLA garantido'],
   },
   {
     name: 'Enterprise',
@@ -57,6 +64,8 @@ const plans = [
     shops: 'Ilimitado',
     extraPrice: 'Incluso',
     popular: false,
+    features: ['Tudo do High Scale', 'Customizações', 'Onboarding dedicado'],
+    isEnterprise: true,
   },
 ]
 
@@ -64,18 +73,65 @@ const plans = [
 const influencers = [
   {
     name: 'Carlos Azevedo',
-    role: 'Especialista em operações globais e expansão internacional de e-commerce',
+    role: 'Mentor de +1.000 alunos em Dropshipping Global. Referência em operações internacionais e escala de e-commerce.',
     image: '/influencers/carlos-azevedo.webp',
+    instagram: 'https://www.instagram.com/ocarlosazevedo/',
   },
   {
     name: 'Lhucas Maciel',
-    role: 'Empreendedor digital com foco em vendas e estratégias de crescimento',
+    role: 'Especialista em Dropshipping Global com foco em estratégias de crescimento acelerado e alta performance.',
     image: '/influencers/lhucas-maciel.webp',
+    instagram: 'https://www.instagram.com/lhucas_maciel/',
   },
   {
     name: 'Guilherme Smith',
-    role: 'Gestor de múltiplas lojas online e especialista em vendas',
+    role: 'Mentor e gestor de múltiplas operações de Dropshipping Global. Expert em vendas e conversão.',
     image: '/influencers/guilherme-smith.webp',
+    instagram: 'https://www.instagram.com/oguilhermesmith/',
+  },
+]
+
+// Depoimentos para o carrossel
+const testimonials = [
+  {
+    text: 'Antes da Replyna eu tinha 3-4 chargebacks por semana. Agora tenho menos de 1 por mês. Salvou minha conta no Shopify Payments.',
+    name: 'Ricardo M.',
+    role: 'Dropshipper, São Paulo',
+  },
+  {
+    text: 'A IA responde melhor que meus funcionários respondiam. Os clientes ficam satisfeitos e eu durmo tranquilo.',
+    name: 'Ana Paula S.',
+    role: 'E-commerce de moda',
+  },
+  {
+    text: 'ROI absurdo. Em um mês a Replyna evitou pelo menos 5 chargebacks que me custariam R$2.000+ cada.',
+    name: 'Fernando L.',
+    role: 'Múltiplas lojas',
+  },
+  {
+    text: 'Minha taxa de chargeback caiu de 2.1% para 0.3%. O Shopify Payments parou de me ameaçar.',
+    name: 'Marcos T.',
+    role: 'Dropshipping Global',
+  },
+  {
+    text: 'Configurei em 15 minutos e já no primeiro dia a IA respondeu 47 emails. Impressionante.',
+    name: 'Juliana R.',
+    role: 'Loja de acessórios',
+  },
+  {
+    text: 'Tentei contratar atendentes mas ninguém respondia tão rápido quanto a Replyna. Melhor investimento.',
+    name: 'Pedro H.',
+    role: 'E-commerce de eletrônicos',
+  },
+  {
+    text: 'Meus clientes elogiam o atendimento e nem sabem que é IA. As respostas são muito naturais.',
+    name: 'Camila F.',
+    role: 'Moda feminina',
+  },
+  {
+    text: 'Reduzi 90% do tempo que gastava respondendo emails. Agora foco em escalar o negócio.',
+    name: 'Lucas A.',
+    role: 'Dropshipper',
   },
 ]
 
@@ -110,6 +166,7 @@ const faqs = [
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [scrolled, setScrolled] = useState(false)
+  const carouselRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -132,6 +189,14 @@ export default function LandingPage() {
         behavior: 'smooth'
       })
     }
+  }
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+    }).format(price)
   }
 
   return (
@@ -217,14 +282,14 @@ export default function LandingPage() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
-            backgroundColor: 'rgba(70, 114, 236, 0.15)',
-            border: '1px solid rgba(70, 114, 236, 0.3)',
+            backgroundColor: 'rgba(150, 191, 72, 0.15)',
+            border: '1px solid rgba(150, 191, 72, 0.3)',
             padding: '8px 16px',
             borderRadius: '50px',
             marginBottom: '24px',
           }}>
-            <Shield size={16} color="#4672ec" />
-            <span style={{ fontSize: '14px', color: '#4672ec', fontWeight: 500 }}>
+            <Shield size={16} color="#96bf48" />
+            <span style={{ fontSize: '14px', color: '#96bf48', fontWeight: 500 }}>
               Proteja sua conta Shopify Payments
             </span>
           </div>
@@ -327,103 +392,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Quem usa section */}
-      <section style={{
-        padding: '80px 24px',
-        backgroundColor: 'rgba(255,255,255,0.02)',
-      }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{
-            fontSize: '36px',
-            fontWeight: 700,
-            marginBottom: '12px',
-          }}>
-            Quem usa a{' '}
-            <span style={{ color: '#4672ec' }}>Replyna</span>
-          </h2>
-          <p style={{
-            fontSize: '16px',
-            color: 'rgba(255,255,255,0.5)',
-            marginBottom: '48px',
-          }}>
-            De pequenas a grandes operações, todos confiam na gente
-          </p>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '24px',
-          }}>
-            {influencers.map((influencer, index) => (
-              <div
-                key={index}
-                style={{
-                  backgroundColor: 'rgba(255,255,255,0.03)',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                <div style={{
-                  height: '320px',
-                  backgroundColor: '#1a1a2e',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}>
-                  <img
-                    src={influencer.image}
-                    alt={influencer.name}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      objectPosition: 'center top',
-                    }}
-                    onError={(e) => {
-                      // Fallback: esconder a imagem e mostrar placeholder
-                      const target = e.target as HTMLImageElement
-                      target.style.display = 'none'
-                    }}
-                  />
-                  {/* Placeholder caso a imagem não carregue */}
-                  <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: '#1a1a2e',
-                    zIndex: -1,
-                  }}>
-                    <div style={{
-                      width: '80px',
-                      height: '80px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(70, 114, 236, 0.2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '32px',
-                      color: '#4672ec',
-                    }}>
-                      {influencer.name.charAt(0)}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ padding: '24px' }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>
-                    {influencer.name}
-                  </h3>
-                  <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
-                    {influencer.role}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Problema/Solução */}
       <section style={{
         padding: '100px 24px',
@@ -431,7 +399,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
             gap: '60px',
             alignItems: 'center',
           }}>
@@ -531,7 +499,7 @@ export default function LandingPage() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
             gap: '24px',
           }}>
             {[
@@ -627,7 +595,7 @@ export default function LandingPage() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
             gap: '24px',
           }}>
             {[
@@ -654,7 +622,7 @@ export default function LandingPage() {
               {
                 icon: <TrendingUp size={24} />,
                 title: 'Escala sem contratar',
-                desc: 'Responda 1000 emails/mês sem precisar de funcionários.',
+                desc: 'Responda 1.000 emails por minuto sem precisar de funcionários.',
               },
               {
                 icon: <CreditCard size={24} />,
@@ -694,12 +662,125 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Preços */}
-      <section id="precos" style={{
-        padding: '100px 24px',
+      {/* Quem usa section - MOVIDO PARA ANTES DOS PREÇOS */}
+      <section style={{
+        padding: '80px 24px',
         backgroundColor: 'rgba(255,255,255,0.02)',
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{
+            fontSize: '36px',
+            fontWeight: 700,
+            marginBottom: '12px',
+          }}>
+            Quem usa a{' '}
+            <span style={{ color: '#4672ec' }}>Replyna</span>
+          </h2>
+          <p style={{
+            fontSize: '16px',
+            color: 'rgba(255,255,255,0.5)',
+            marginBottom: '48px',
+          }}>
+            De pequenas a grandes operações, todos confiam na gente
+          </p>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '24px',
+          }}>
+            {influencers.map((influencer, index) => (
+              <div
+                key={index}
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.03)',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                }}
+              >
+                <div style={{
+                  height: '320px',
+                  backgroundColor: '#1a1a2e',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                  <img
+                    src={influencer.image}
+                    alt={influencer.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: 'center top',
+                    }}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                    }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#1a1a2e',
+                    zIndex: -1,
+                  }}>
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(70, 114, 236, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '32px',
+                      color: '#4672ec',
+                    }}>
+                      {influencer.name.charAt(0)}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ padding: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <h3 style={{ fontSize: '20px', fontWeight: 600 }}>
+                      {influencer.name}
+                    </h3>
+                    <a
+                      href={influencer.instagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        color: '#E4405F',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(228, 64, 95, 0.1)',
+                      }}
+                    >
+                      <Instagram size={18} />
+                    </a>
+                  </div>
+                  <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
+                    {influencer.role}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Preços - ESTILO SIMILAR AO /register */}
+      <section id="precos" style={{
+        padding: '100px 24px',
+      }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{
             fontSize: '36px',
             fontWeight: 700,
@@ -717,90 +798,168 @@ export default function LandingPage() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(5, 1fr)',
-            gap: '16px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '20px',
           }}>
             {plans.map((plan, i) => (
               <div key={i} style={{
-                backgroundColor: plan.popular ? 'rgba(70, 114, 236, 0.1)' : 'rgba(255,255,255,0.03)',
+                backgroundColor: 'rgba(255,255,255,0.03)',
                 borderRadius: '16px',
-                padding: '32px 20px',
+                padding: '24px',
                 border: plan.popular ? '2px solid #4672ec' : '1px solid rgba(255,255,255,0.08)',
                 position: 'relative',
+                textAlign: 'left',
               }}>
                 {plan.popular && (
                   <div style={{
                     position: 'absolute',
                     top: '-12px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    backgroundColor: '#4672ec',
+                    right: '16px',
+                    backgroundColor: '#f59e0b',
                     color: '#fff',
                     padding: '4px 12px',
-                    borderRadius: '20px',
+                    borderRadius: '999px',
                     fontSize: '12px',
                     fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
                   }}>
-                    Mais popular
+                    <Star size={12} />
+                    Popular
                   </div>
                 )}
-                <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>
+
+                <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>
                   {plan.name}
                 </h3>
-                <div style={{ marginBottom: '24px' }}>
-                  <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>R$</span>
-                  <span style={{ fontSize: '40px', fontWeight: 700 }}>{plan.price}</span>
-                  <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>/mês</span>
+
+                <div style={{ marginBottom: '20px' }}>
+                  {plan.isEnterprise ? (
+                    <span style={{ fontSize: '28px', fontWeight: 700 }}>
+                      Personalizado
+                    </span>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '36px', fontWeight: 700 }}>
+                        {formatPrice(plan.price)}
+                      </span>
+                      <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginLeft: '4px' }}>
+                        /mês
+                      </span>
+                    </>
+                  )}
                 </div>
+
                 <div style={{
-                  borderTop: '1px solid rgba(255,255,255,0.1)',
-                  paddingTop: '24px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                  marginBottom: '24px',
+                  padding: '12px',
+                  backgroundColor: 'rgba(70, 114, 236, 0.08)',
+                  borderRadius: '10px',
+                  marginBottom: '20px',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-                    <Mail size={16} color="#4672ec" />
-                    <span>{typeof plan.emails === 'number' ? `${plan.emails} emails/mês` : plan.emails}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Emails/mês</span>
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: typeof plan.emails !== 'number' ? '#22c55e' : '#fff',
+                    }}>
+                      {typeof plan.emails === 'number' ? plan.emails.toLocaleString('pt-BR') : plan.emails}
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-                    <Store size={16} color="#4672ec" />
-                    <span>{typeof plan.shops === 'number' ? `${plan.shops} ${plan.shops === 1 ? 'loja' : 'lojas'}` : plan.shops}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-                    <CreditCard size={16} color="#4672ec" />
-                    <span>R${plan.extraPrice}/email extra</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Lojas</span>
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: typeof plan.shops !== 'number' ? '#22c55e' : '#fff',
+                    }}>
+                      {typeof plan.shops === 'number' ? plan.shops : plan.shops}
+                    </span>
                   </div>
                 </div>
-                <Link
-                  to="/register"
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    padding: '12px',
-                    backgroundColor: plan.popular ? '#4672ec' : 'rgba(255,255,255,0.1)',
-                    color: '#fff',
-                    borderRadius: '8px',
-                    textDecoration: 'none',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    textAlign: 'center',
-                  }}
-                >
-                  Começar agora
-                </Link>
+
+                <div style={{ marginBottom: '20px' }}>
+                  {plan.features.map((feature, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginBottom: '8px',
+                      }}
+                    >
+                      <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
+                      <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
+                        {feature}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {plan.isEnterprise ? (
+                  <a
+                    href="https://wa.me/5531973210191?text=Olá! Tenho interesse no plano Enterprise da Replyna."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'flex',
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: '#25D366',
+                      color: '#fff',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <MessageCircle size={16} />
+                    Fale conosco
+                  </a>
+                ) : (
+                  <Link
+                    to={`/register?plan=${plan.name.toLowerCase()}`}
+                    style={{
+                      display: 'flex',
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: plan.popular ? '#4672ec' : 'rgba(255,255,255,0.1)',
+                      color: '#fff',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Selecionar
+                    <ArrowRight size={16} />
+                  </Link>
+                )}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Depoimentos */}
+      {/* Depoimentos - CARROSSEL */}
       <section style={{
-        padding: '100px 24px',
+        padding: '100px 0',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        overflow: 'hidden',
       }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
           <h2 style={{
             fontSize: '36px',
             fontWeight: 700,
@@ -811,39 +970,31 @@ export default function LandingPage() {
           <p style={{
             fontSize: '16px',
             color: 'rgba(255,255,255,0.5)',
-            marginBottom: '60px',
+            marginBottom: '48px',
           }}>
             Resultados reais de quem já usa a Replyna
           </p>
+        </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '24px',
-          }}>
-            {[
-              {
-                text: 'Antes da Replyna eu tinha 3-4 chargebacks por semana. Agora tenho menos de 1 por mês. Salvou minha conta no Shopify Payments.',
-                name: 'Ricardo M.',
-                role: 'Dropshipper, São Paulo',
-              },
-              {
-                text: 'A IA responde melhor que meus funcionários respondiam. Os clientes ficam satisfeitos e eu durmo tranquilo.',
-                name: 'Ana Paula S.',
-                role: 'E-commerce de moda',
-              },
-              {
-                text: 'ROI absurdo. Em um mês a Replyna evitou pelo menos 5 chargebacks que me custariam R$2.000+ cada.',
-                name: 'Fernando L.',
-                role: 'Múltiplas lojas',
-              },
-            ].map((testimonial, i) => (
+        {/* Carrossel infinito */}
+        <div style={{ position: 'relative', width: '100%' }}>
+          <div
+            ref={carouselRef}
+            className="testimonial-carousel"
+            style={{
+              display: 'flex',
+              gap: '24px',
+              animation: 'scroll 40s linear infinite',
+            }}
+          >
+            {/* Duplicar items para loop infinito */}
+            {[...testimonials, ...testimonials].map((testimonial, i) => (
               <div key={i} style={{
+                flex: '0 0 350px',
                 backgroundColor: 'rgba(255,255,255,0.03)',
                 borderRadius: '16px',
-                padding: '32px 24px',
+                padding: '24px',
                 border: '1px solid rgba(255,255,255,0.08)',
-                textAlign: 'left',
               }}>
                 <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
                   {[...Array(5)].map((_, j) => (
@@ -851,27 +1002,41 @@ export default function LandingPage() {
                   ))}
                 </div>
                 <p style={{
-                  fontSize: '15px',
+                  fontSize: '14px',
                   color: 'rgba(255,255,255,0.8)',
                   lineHeight: 1.6,
-                  marginBottom: '20px',
+                  marginBottom: '16px',
+                  minHeight: '84px',
                 }}>
                   "{testimonial.text}"
                 </p>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: '15px' }}>{testimonial.name}</div>
-                  <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>{testimonial.role}</div>
+                  <div style={{ fontWeight: 600, fontSize: '14px' }}>{testimonial.name}</div>
+                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{testimonial.role}</div>
                 </div>
               </div>
             ))}
           </div>
         </div>
+
+        <style>{`
+          @keyframes scroll {
+            0% {
+              transform: translateX(0);
+            }
+            100% {
+              transform: translateX(-50%);
+            }
+          }
+          .testimonial-carousel:hover {
+            animation-play-state: paused;
+          }
+        `}</style>
       </section>
 
       {/* FAQ */}
       <section id="faq" style={{
         padding: '100px 24px',
-        backgroundColor: 'rgba(255,255,255,0.02)',
       }}>
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
           <h2 style={{
@@ -925,6 +1090,8 @@ export default function LandingPage() {
                     style={{
                       transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0)',
                       transition: 'transform 0.2s ease',
+                      flexShrink: 0,
+                      marginLeft: '12px',
                     }}
                   />
                 </button>
@@ -997,6 +1164,8 @@ export default function LandingPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px',
         }}>
           <img
             src="/replyna-logo.webp"
