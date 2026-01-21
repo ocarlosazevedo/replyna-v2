@@ -614,7 +614,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                     >
                       {message.direction === 'inbound' ? 'Cliente' : 'Resposta'}
                     </span>
-                    {message.was_auto_replied && (
+                    {message.direction === 'outbound' && message.was_auto_replied && (
                       <span
                         style={{
                           padding: '2px 8px',
