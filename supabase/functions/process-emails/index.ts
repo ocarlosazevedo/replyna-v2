@@ -701,6 +701,12 @@ async function processMessage(
       shopifyData,
       classification.language
     );
+
+    // Se a IA detectou que é terceiro contato de cancelamento, encaminhar para humano
+    if (responseResult.forward_to_human) {
+      finalStatus = 'pending_human';
+      await forwardToHuman(shop, message, emailCredentials);
+    }
   }
 
   await logProcessingEvent({

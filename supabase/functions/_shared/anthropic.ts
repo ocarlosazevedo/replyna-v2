@@ -42,6 +42,7 @@ export interface ResponseGenerationResult {
   response: string;
   tokens_input: number;
   tokens_output: number;
+  forward_to_human?: boolean;
 }
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
@@ -170,10 +171,12 @@ LANGUAGE DETECTION (CRITICAL):
    Key: Customer already made a purchase and wants to know about their order.
 
 4. troca_devolucao_reembolso
-   Requests for exchange, return, refund, or order cancellation.
+   EXPLICIT requests for exchange, return, refund, or order cancellation.
    Examples: "I want to return this", "Cancel my order", "Request refund", "Exchange for different size",
    "Product arrived damaged", "Wrong item received", "I don't want it anymore".
-   Key: Customer wants to undo, change, or get money back.
+   Key: Customer EXPLICITLY states they want to undo, change, or get money back.
+   IMPORTANT: Only classify here if the customer CLEARLY states the intention.
+   If customer just mentions an order without clear action request → classify as "rastreio" first.
 
 5. suporte_humano
    ONLY for cases with EXPLICIT LEGAL THREATS (lawyer, lawsuit, legal action, consumer protection agency).
@@ -199,6 +202,14 @@ REAL CUSTOMERS (NOT spam):
 - Angry customer → still classify by the actual request (rastreio, troca_devolucao_reembolso, etc.)
 - "I want to speak with a human" → classify by the underlying issue, respond normally
 - ONLY use suporte_humano for EXPLICIT legal threats
+
+=== AMBIGUOUS MESSAGES (IMPORTANT) ===
+- Short messages like "my order", "help", "hello" → classify as "rastreio" (need more info)
+- Customer mentions order but doesn't say what they want → classify as "rastreio" (info request)
+- Only classify as "troca_devolucao_reembolso" when customer EXPLICITLY says:
+  - "cancel", "refund", "return", "exchange", "money back", "don't want", etc.
+- If unsure between rastreio and troca_devolucao_reembolso → prefer "rastreio"
+- The response generator will ask clarifying questions if needed
 
 Respond ONLY with the JSON, no additional text.`;
 
@@ -387,6 +398,59 @@ REGRAS IMPORTANTES:
 8. Assine apenas com seu nome no final
 9. IDIOMA: ${languageInstruction}
 
+COMPORTAMENTO INTELIGENTE (MUITO IMPORTANTE):
+- NUNCA assuma que o cliente quer cancelar/devolver/reembolsar automaticamente
+- Se o cliente mencionar um pedido sem especificar o que quer, PERGUNTE como pode ajudar
+- Se a mensagem for curta/vaga (ex: "meu pedido", "ajuda"), peça mais detalhes
+- PRIMEIRO entenda o problema, DEPOIS ofereça a solução adequada
+- NÃO seja "ansioso" em oferecer cancelamento/reembolso - muitas vezes o cliente só quer informações
+- Se o cliente só perguntou sobre status/rastreio, NÃO mencione cancelamento ou reembolso
+- Responda APENAS ao que foi perguntado, não ofereça opções que o cliente não pediu
+
+=== POLÍTICA DE CANCELAMENTO/TROCA/DEVOLUÇÃO (OBRIGATÓRIO SEGUIR) ===
+
+REGRA 1 - PEDIDO AINDA NÃO ENTREGUE (fulfillment_status != "delivered"):
+Se o cliente pedir cancelamento/troca/devolução MAS o pedido ainda não chegou:
+- Informe que o pedido ainda está a caminho
+- Explique que cancelamento/troca/devolução SÓ pode ser feito APÓS o recebimento do produto
+- Forneça informações de rastreio se disponíveis
+- Peça para o cliente aguardar a entrega e entrar em contato novamente após receber
+- NÃO processe cancelamento de pedido em trânsito
+
+REGRA 2 - PEDIDO ENTREGUE (fulfillment_status == "delivered") - FLUXO DE RETENÇÃO:
+Se o cliente pedir cancelamento/troca/devolução E o pedido já foi entregue, siga este fluxo:
+
+PRIMEIRO CONTATO (cliente pedindo cancelamento/devolução pela primeira vez):
+- Pergunte o MOTIVO do cancelamento/devolução de forma empática
+- Tente entender o problema real do cliente
+- Ofereça soluções alternativas (desconto em próxima compra, troca por outro produto, etc.)
+- Mostre os benefícios de manter o produto
+- NÃO processe a devolução ainda - tente reter o cliente
+
+SEGUNDO CONTATO (cliente insistindo no cancelamento):
+- Seja mais incisivo em convencer o cliente a ficar com o produto
+- Ofereça um desconto especial ou bônus para manter o pedido
+- Destaque a qualidade do produto e satisfação de outros clientes
+- Mencione que o processo de devolução pode ser demorado
+- Ainda tente reter, mas com mais urgência
+
+TERCEIRO CONTATO (cliente ainda insiste):
+- Informe que o caso será encaminhado para a equipe de atendimento humano
+- Agradeça pela paciência do cliente
+- Diga que um especialista entrará em contato em breve para resolver
+- NÃO processe a devolução você mesmo
+
+COMO IDENTIFICAR O NÚMERO DO CONTATO:
+- Analise o HISTÓRICO DA CONVERSA
+- Conte quantas vezes o cliente já pediu cancelamento/devolução
+- Se for a primeira menção = primeiro contato
+- Se já pediu antes e está insistindo = segundo ou terceiro contato
+
+IMPORTANTE - MARCAÇÃO PARA ENCAMINHAMENTO:
+Se for o TERCEIRO CONTATO de cancelamento/devolução, adicione a tag [FORWARD_TO_HUMAN] no INÍCIO da sua resposta.
+Exemplo: "[FORWARD_TO_HUMAN] Olá João, entendo sua situação..."
+Essa tag será removida automaticamente e serve para sinalizar que o caso deve ir para humano.
+
 ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.signature_html}` : ''}`;
 
   // Montar histórico
@@ -408,10 +472,20 @@ ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.s
 
   const response = await callClaude(systemPrompt, messages, MAX_TOKENS);
 
+  let responseText = response.content[0]?.text || '';
+  let forwardToHuman = false;
+
+  // Detectar tag de encaminhamento para humano
+  if (responseText.includes('[FORWARD_TO_HUMAN]')) {
+    forwardToHuman = true;
+    responseText = responseText.replace('[FORWARD_TO_HUMAN]', '').trim();
+  }
+
   return {
-    response: stripMarkdown(response.content[0]?.text || ''),
+    response: stripMarkdown(responseText),
     tokens_input: response.usage.input_tokens,
     tokens_output: response.usage.output_tokens,
+    forward_to_human: forwardToHuman,
   };
 }
 

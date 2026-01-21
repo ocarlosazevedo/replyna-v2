@@ -269,23 +269,23 @@ serve(async (req) => {
           tone_of_voice: shop.tone_of_voice,
           store_description: shop.store_description,
           delivery_time: shop.delivery_time,
-          exchange_policy: shop.exchange_policy,
-          support_email: shop.support_email,
-          support_phone: shop.support_phone,
-          faq_data: shop.faq_data,
+          dispatch_time: null,
+          warranty_info: null,
           signature_html: shop.signature_html,
+          is_cod: shop.is_cod,
         },
-        {
-          subject: message.subject || '',
-          body: cleanBody,
-          customer_email: message.from_email || '',
-          customer_name: shopifyData?.customer_name || conversation.customer_name,
-        },
-        conversationHistory.slice(0, -1),
+        message.subject || '',
+        cleanBody,
         category,
+        conversationHistory.slice(0, -1),
         shopifyData,
         conversation.language || 'pt-BR'
       );
+
+      // Se a IA detectou que é terceiro contato de cancelamento, encaminhar para humano
+      if (responseResult.forward_to_human) {
+        finalStatus = 'pending_human';
+      }
     }
 
     // 11. Enviar email
