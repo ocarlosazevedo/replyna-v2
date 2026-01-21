@@ -24,6 +24,7 @@ interface UserProfile {
   emails_used: number | null
   shops_limit: number | null
   created_at: string | null
+  pending_extra_emails: number | null // Emails extras pendentes de cobrança (0-100)
 }
 
 interface Plan {
@@ -98,7 +99,7 @@ export default function Account() {
       try {
         const { data, error } = await supabase
           .from('users')
-          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at')
+          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, pending_extra_emails')
           .eq('id', user.id)
           .maybeSingle()
 
@@ -114,6 +115,7 @@ export default function Account() {
             emails_limit: 500,
             emails_used: 0,
             shops_limit: 1,
+            pending_extra_emails: 0,
           }
 
           const { error: insertError } = await supabase
@@ -132,6 +134,7 @@ export default function Account() {
             emails_used: newUserData.emails_used,
             shops_limit: newUserData.shops_limit,
             created_at: new Date().toISOString(),
+            pending_extra_emails: newUserData.pending_extra_emails,
           })
           setName(newUserData.name || '')
           setEmail(newUserData.email || '')
@@ -331,7 +334,7 @@ export default function Account() {
       // Recarregar profile do banco para garantir dados sincronizados
       const { data: updatedProfile, error: profileError } = await supabase
         .from('users')
-        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at')
+        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, pending_extra_emails')
         .eq('id', user.id)
         .single()
 
@@ -696,6 +699,52 @@ export default function Account() {
                     </div>
                   </div>
                 </div>
+
+                {/* Seção de Emails Extras - aparece apenas quando excedeu o limite do plano */}
+                {emailsLimit !== null && emailsLimit !== undefined && profile?.emails_used !== null && profile?.emails_used !== undefined && profile.emails_used >= emailsLimit && (
+                  <div style={{
+                    borderRadius: '14px',
+                    border: '1px solid #f59e0b',
+                    padding: '16px',
+                    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      <span style={{ fontSize: '14px', fontWeight: 600, color: '#f59e0b' }}>
+                        Emails Extras
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 12px 0', lineHeight: '1.5' }}>
+                      Você atingiu o limite do seu plano. Os emails adicionais são cobrados em pacotes de 100 por R$ 29,90.
+                    </p>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Pacote atual</span>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#f59e0b' }}>
+                          {profile?.pending_extra_emails ?? 0} / 100 emails
+                        </span>
+                      </div>
+                      <div style={{ height: '8px', backgroundColor: 'rgba(245, 158, 11, 0.2)', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${Math.min(((profile?.pending_extra_emails ?? 0) / 100) * 100, 100)}%`,
+                            backgroundColor: '#f59e0b',
+                            borderRadius: '4px',
+                            transition: 'width 0.3s ease',
+                          }}
+                        />
+                      </div>
+                      <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '8px 0 0 0' }}>
+                        Ao atingir 100 emails extras, será cobrado automaticamente R$ 29,90 e o contador será reiniciado.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </section>
