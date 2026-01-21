@@ -1114,7 +1114,6 @@ export default function LandingPage() {
                   padding: '12px 16px',
                   borderBottom: '1px solid rgba(255,255,255,0.06)',
                   backgroundColor: '#1a1a2e',
-                  borderRadius: '19px 19px 0 0',
                 }}>
                   <div style={{ display: 'flex', gap: '6px' }}>
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ff5f57' }} />
@@ -1140,7 +1139,6 @@ export default function LandingPage() {
                 {/* Dashboard Mockup Compacto */}
                 <div style={{
                   backgroundColor: '#0f172a',
-                  borderRadius: '0 0 19px 19px',
                   padding: '16px',
                 }}>
                   {/* Header */}
