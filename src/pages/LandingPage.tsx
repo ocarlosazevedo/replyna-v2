@@ -23,48 +23,78 @@ import {
 const plans = [
   {
     name: 'Starter',
+    description: 'Plano Starter - 300 emails/mês, 1 loja',
     price: 197,
     emails: 300,
     shops: 1,
-    extraPrice: '1,00',
+    extraPrice: 'R$1,00',
     popular: false,
-    features: ['Respostas automáticas com IA', 'Integração Shopify', 'Suporte por email'],
+    features: [
+      'Integração com 1 loja',
+      '300 e-mails/mês inclusos',
+      'R$1,00 por email extra',
+      'Atendimento 24 horas por dia',
+    ],
   },
   {
     name: 'Business',
+    description: 'Plano Business - 900 emails/mês, 3 lojas',
     price: 397,
     emails: 900,
     shops: 3,
-    extraPrice: '0,70',
+    extraPrice: 'R$0,70',
     popular: true,
-    features: ['Tudo do Starter', 'Múltiplas lojas', 'Prioridade no suporte'],
+    features: [
+      'Integração com 3 lojas',
+      '900 e-mails/mês inclusos',
+      'R$0,70 por e-mail extra',
+      'Atendimento 24 horas por dia',
+    ],
   },
   {
     name: 'Scale',
+    description: 'Plano Scale - 1.500 emails/mês, 5 lojas',
     price: 597,
     emails: 1500,
     shops: 5,
-    extraPrice: '0,60',
+    extraPrice: 'R$0,60',
     popular: false,
-    features: ['Tudo do Business', 'Relatórios avançados', 'API access'],
+    features: [
+      'Integração com 5 lojas',
+      '1.500 e-mails/mês inclusos',
+      'R$0,60 por email extra',
+      'Atendimento 24 horas por dia',
+    ],
   },
   {
     name: 'High Scale',
+    description: 'Plano High Scale - 3.000 emails/mês, 10 lojas',
     price: 997,
     emails: 3000,
     shops: 10,
-    extraPrice: '0,50',
+    extraPrice: 'R$0,50',
     popular: false,
-    features: ['Tudo do Scale', 'Account manager', 'SLA garantido'],
+    features: [
+      'Integração com 10 lojas',
+      '3.000 e-mails/mês inclusos',
+      'R$0,50 por email extra',
+      'Atendimento 24 horas por dia',
+    ],
   },
   {
     name: 'Enterprise',
+    description: 'Plano Enterprise - emails ilimitados, lojas ilimitadas',
     price: 1497,
     emails: 'Ilimitado',
     shops: 'Ilimitado',
     extraPrice: 'Incluso',
     popular: false,
-    features: ['Tudo do High Scale', 'Customizações', 'Onboarding dedicado'],
+    features: [
+      'Lojas ilimitadas',
+      'Emails ilimitados',
+      'Sem custo extra por email',
+      'Atendimento 24 horas por dia',
+    ],
     isEnterprise: true,
   },
 ]
@@ -252,8 +282,9 @@ export default function LandingPage() {
             >
               Entrar
             </Link>
-            <Link
-              to="/register"
+            <a
+              href="#precos"
+              onClick={(e) => scrollToSection(e, 'precos')}
               style={{
                 backgroundColor: '#4672ec',
                 color: '#ffffff',
@@ -262,10 +293,11 @@ export default function LandingPage() {
                 textDecoration: 'none',
                 fontSize: '14px',
                 fontWeight: 600,
+                cursor: 'pointer',
               }}
             >
               Começar agora
-            </Link>
+            </a>
           </nav>
         </div>
       </header>
@@ -326,8 +358,9 @@ export default function LandingPage() {
           </p>
 
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link
-              to="/register"
+            <a
+              href="#precos"
+              onClick={(e) => scrollToSection(e, 'precos')}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -340,11 +373,12 @@ export default function LandingPage() {
                 fontSize: '16px',
                 fontWeight: 600,
                 transition: 'transform 0.2s ease',
+                cursor: 'pointer',
               }}
             >
               Começar agora
               <ArrowRight size={18} />
-            </Link>
+            </a>
             <a
               href="#como-funciona"
               onClick={(e) => scrollToSection(e, 'como-funciona')}
@@ -809,6 +843,8 @@ export default function LandingPage() {
                 border: plan.popular ? '2px solid #4672ec' : '1px solid rgba(255,255,255,0.08)',
                 position: 'relative',
                 textAlign: 'left',
+                display: 'flex',
+                flexDirection: 'column',
               }}>
                 {plan.popular && (
                   <div style={{
@@ -830,18 +866,32 @@ export default function LandingPage() {
                   </div>
                 )}
 
-                <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>
+                <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '4px' }}>
                   {plan.name}
                 </h3>
 
+                <p style={{
+                  fontSize: '13px',
+                  color: 'rgba(255,255,255,0.5)',
+                  marginBottom: '16px',
+                  minHeight: '36px',
+                }}>
+                  {plan.description}
+                </p>
+
                 <div style={{ marginBottom: '20px' }}>
                   {plan.isEnterprise ? (
-                    <span style={{ fontSize: '28px', fontWeight: 700 }}>
-                      Personalizado
-                    </span>
+                    <>
+                      <span style={{ fontSize: '32px', fontWeight: 700 }}>
+                        {formatPrice(plan.price)}
+                      </span>
+                      <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginLeft: '4px' }}>
+                        /mês
+                      </span>
+                    </>
                   ) : (
                     <>
-                      <span style={{ fontSize: '36px', fontWeight: 700 }}>
+                      <span style={{ fontSize: '32px', fontWeight: 700 }}>
                         {formatPrice(plan.price)}
                       </span>
                       <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginLeft: '4px' }}>
@@ -879,7 +929,7 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '20px' }}>
+                <div style={{ marginBottom: '20px', flex: 1 }}>
                   {plan.features.map((feature, index) => (
                     <div
                       key={index}
@@ -887,7 +937,7 @@ export default function LandingPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        marginBottom: '8px',
+                        marginBottom: '10px',
                       }}
                     >
                       <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
@@ -918,6 +968,8 @@ export default function LandingPage() {
                       justifyContent: 'center',
                       gap: '8px',
                       textDecoration: 'none',
+                      marginTop: 'auto',
+                      boxSizing: 'border-box',
                     }}
                   >
                     <MessageCircle size={16} />
@@ -941,6 +993,8 @@ export default function LandingPage() {
                       justifyContent: 'center',
                       gap: '8px',
                       textDecoration: 'none',
+                      marginTop: 'auto',
+                      boxSizing: 'border-box',
                     }}
                   >
                     Selecionar
@@ -1132,8 +1186,9 @@ export default function LandingPage() {
           }}>
             Comece agora e veja seus chargebacks despencarem
           </p>
-          <Link
-            to="/register"
+          <a
+            href="#precos"
+            onClick={(e) => scrollToSection(e, 'precos')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -1145,11 +1200,12 @@ export default function LandingPage() {
               textDecoration: 'none',
               fontSize: '18px',
               fontWeight: 600,
+              cursor: 'pointer',
             }}
           >
-            Criar minha conta
+            Ver planos
             <ArrowRight size={20} />
-          </Link>
+          </a>
         </div>
       </section>
 
