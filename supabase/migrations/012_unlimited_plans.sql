@@ -30,6 +30,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 2. ATUALIZAR FUNÇÃO get_user_credits_status PARA TRATAR NULL COMO ILIMITADO
+-- Precisa fazer DROP primeiro porque a assinatura mudou (novo campo is_unlimited)
+DROP FUNCTION IF EXISTS get_user_credits_status(UUID);
 CREATE OR REPLACE FUNCTION get_user_credits_status(p_user_id UUID)
 RETURNS TABLE (
     plan_limit INTEGER,
