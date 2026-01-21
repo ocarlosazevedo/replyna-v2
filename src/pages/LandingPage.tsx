@@ -961,7 +961,7 @@ export default function LandingPage() {
           paddingBottom: '80px',
           minHeight: 'auto',
           overflow: 'hidden',
-          background: '#080810',
+          background: '#0a0a14',
         }}
       >
         {/* Animated Gradient Orbs */}
