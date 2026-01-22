@@ -313,13 +313,20 @@ async function handleCheckoutCompleted(
       }
 
       // Agora criar na tabela users
+      // Parsear limites: 'unlimited' = null, número = valor numérico
+      const parseLimit = (value: string | undefined, defaultValue: number): number | null => {
+        if (!value || value === 'unlimited') return null;
+        const parsed = parseInt(value);
+        return isNaN(parsed) ? defaultValue : parsed;
+      };
+
       const userData = {
         id: newUserId,
         email: email.toLowerCase(),
         name: name || null,
         plan: metadata.plan_name?.toLowerCase() || 'starter',
-        emails_limit: parseInt(metadata.emails_limit || '500'),
-        shops_limit: parseInt(metadata.shops_limit || '1'),
+        emails_limit: parseLimit(metadata.emails_limit, 500),
+        shops_limit: parseLimit(metadata.shops_limit, 1),
         emails_used: 0,
         stripe_customer_id: customerId,
         status: 'active',
@@ -341,13 +348,20 @@ async function handleCheckoutCompleted(
   }
 
   // Atualizar usuário com stripe_customer_id e plano
+  // Parsear limites: 'unlimited' = null, número = valor numérico
+  const parseLimitForUpdate = (value: string | undefined, defaultValue: number): number | null => {
+    if (!value || value === 'unlimited') return null;
+    const parsed = parseInt(value);
+    return isNaN(parsed) ? defaultValue : parsed;
+  };
+
   await supabase
     .from('users')
     .update({
       stripe_customer_id: customerId,
       plan: metadata.plan_name?.toLowerCase() || 'starter',
-      emails_limit: parseInt(metadata.emails_limit || '500'),
-      shops_limit: parseInt(metadata.shops_limit || '1'),
+      emails_limit: parseLimitForUpdate(metadata.emails_limit, 500),
+      shops_limit: parseLimitForUpdate(metadata.shops_limit, 1),
       status: 'active',
     })
     .eq('id', userId);

@@ -133,8 +133,16 @@ serve(async (req) => {
       .single();
 
     const plan = metadata.plan_name?.toLowerCase() || 'starter';
-    const emailsLimit = parseInt(metadata.emails_limit || '500');
-    const shopsLimit = parseInt(metadata.shops_limit || '1');
+
+    // Parsear limites: 'unlimited' = null, número = valor numérico
+    const parseLimit = (value: string | undefined, defaultValue: number): number | null => {
+      if (!value || value === 'unlimited') return null;
+      const parsed = parseInt(value);
+      return isNaN(parsed) ? defaultValue : parsed;
+    };
+
+    const emailsLimit = parseLimit(metadata.emails_limit, 500);
+    const shopsLimit = parseLimit(metadata.shops_limit, 1);
 
     if (existingDbUser) {
       // Atualizar

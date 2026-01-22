@@ -146,8 +146,8 @@ serve(async (req) => {
         user_email: user_email,
         user_name: user_name || '',
         user_id: user_id || 'pending',
-        emails_limit: plan.emails_limit.toString(),
-        shops_limit: plan.shops_limit.toString(),
+        emails_limit: plan.emails_limit?.toString() ?? 'unlimited',
+        shops_limit: plan.shops_limit?.toString() ?? 'unlimited',
       },
       allow_promotion_codes: true, // Permite cupons do Stripe
       billing_address_collection: 'auto',

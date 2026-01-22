@@ -160,6 +160,13 @@ serve(async (req) => {
         .eq('email', customer.email.toLowerCase())
         .single();
 
+      // Parsear limites: 'unlimited' = null, número = valor numérico
+      const parseLimit = (value: string | undefined, defaultValue: number): number | null => {
+        if (!value || value === 'unlimited') return null;
+        const parsed = parseInt(value);
+        return isNaN(parsed) ? defaultValue : parsed;
+      };
+
       let userId: string;
 
       if (existingUser) {
@@ -170,8 +177,8 @@ serve(async (req) => {
           .update({
             stripe_customer_id: customerId,
             plan: metadata.plan_name?.toLowerCase() || 'starter',
-            emails_limit: parseInt(metadata.emails_limit || '500'),
-            shops_limit: parseInt(metadata.shops_limit || '1'),
+            emails_limit: parseLimit(metadata.emails_limit, 500),
+            shops_limit: parseLimit(metadata.shops_limit, 1),
             status: subscription.status === 'active' ? 'active' : 'inactive',
           })
           .eq('id', userId);
@@ -187,8 +194,8 @@ serve(async (req) => {
             email: customer.email.toLowerCase(),
             name: customer.name || metadata.user_name || null,
             plan: metadata.plan_name?.toLowerCase() || 'starter',
-            emails_limit: parseInt(metadata.emails_limit || '500'),
-            shops_limit: parseInt(metadata.shops_limit || '1'),
+            emails_limit: parseLimit(metadata.emails_limit, 500),
+            shops_limit: parseLimit(metadata.shops_limit, 1),
             emails_used: 0,
             stripe_customer_id: customerId,
             status: subscription.status === 'active' ? 'active' : 'inactive',
