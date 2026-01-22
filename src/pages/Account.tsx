@@ -168,17 +168,19 @@ export default function Account() {
 
         // Buscar preço de email extra do plano atual
         const planName = data?.plan || 'Starter'
-        const { data: planData } = await supabase
+        const { data: planData, error: planError } = await supabase
           .from('plans')
           .select('extra_email_price, extra_email_package_size')
           .eq('name', planName)
           .single()
 
-        if (planData && data) {
+        console.log('Plan lookup:', { planName, planData, planError })
+
+        if (data) {
           setProfile({
             ...data,
-            extra_email_price: planData.extra_email_price,
-            extra_email_package_size: planData.extra_email_package_size,
+            extra_email_price: planData?.extra_email_price ?? 1,
+            extra_email_package_size: planData?.extra_email_package_size ?? 100,
           })
         }
       } catch (err) {
@@ -849,28 +851,17 @@ export default function Account() {
                       </span>
                     </div>
                     <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 12px 0', lineHeight: '1.5' }}>
-                      Você atingiu o limite do seu plano. Os emails adicionais são cobrados em pacotes de {profile?.extra_email_package_size ?? 100} por R$ {((profile?.extra_email_price ?? 1) * (profile?.extra_email_package_size ?? 100)).toFixed(2).replace('.', ',')}.
+                      Você atingiu o limite do seu plano. Emails adicionais são cobrados em pacotes de {profile?.extra_email_package_size ?? 100} emails por R$ {((profile?.extra_email_price ?? 1) * (profile?.extra_email_package_size ?? 100)).toFixed(2).replace('.', ',')}.
                     </p>
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Pacote atual</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Créditos extras disponíveis</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#f59e0b' }}>
-                          {profile?.pending_extra_emails ?? 0} / {profile?.extra_email_package_size ?? 100} emails
+                          {profile?.pending_extra_emails ?? 0} emails
                         </span>
                       </div>
-                      <div style={{ height: '8px', backgroundColor: 'rgba(245, 158, 11, 0.2)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div
-                          style={{
-                            height: '100%',
-                            width: `${Math.min(((profile?.pending_extra_emails ?? 0) / (profile?.extra_email_package_size ?? 100)) * 100, 100)}%`,
-                            backgroundColor: '#f59e0b',
-                            borderRadius: '4px',
-                            transition: 'width 0.3s ease',
-                          }}
-                        />
-                      </div>
                       <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '8px 0 0 0' }}>
-                        Ao atingir {profile?.extra_email_package_size ?? 100} emails extras, será cobrado automaticamente R$ {((profile?.extra_email_price ?? 1) * (profile?.extra_email_package_size ?? 100)).toFixed(2).replace('.', ',')} e o contador será reiniciado.
+                        Quando seus créditos extras acabarem, um novo pacote será cobrado automaticamente no cartão da sua assinatura.
                       </p>
                     </div>
                   </div>
