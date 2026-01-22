@@ -24,9 +24,10 @@ interface UserProfile {
   emails_used: number | null
   shops_limit: number | null
   created_at: string | null
-  pending_extra_emails: number | null // Emails extras pendentes de cobrança (0-100)
-  extra_email_price: number | null // Preço por email extra
-  extra_email_package_size: number | null // Tamanho do pacote de emails extras
+  extra_emails_purchased: number | null // Total de emails extras comprados
+  extra_emails_used: number | null // Total de emails extras usados
+  extra_email_price: number | null // Preço por email extra (do plano)
+  extra_email_package_size: number | null // Tamanho do pacote de emails extras (do plano)
 }
 
 interface Plan {
@@ -113,7 +114,7 @@ export default function Account() {
       try {
         const { data, error } = await supabase
           .from('users')
-          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, pending_extra_emails')
+          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
           .eq('id', user.id)
           .maybeSingle()
 
@@ -129,7 +130,8 @@ export default function Account() {
             emails_limit: 500,
             emails_used: 0,
             shops_limit: 1,
-            pending_extra_emails: 0,
+            extra_emails_purchased: 0,
+            extra_emails_used: 0,
           }
 
           const { error: insertError } = await supabase
@@ -148,7 +150,8 @@ export default function Account() {
             emails_used: newUserData.emails_used,
             shops_limit: newUserData.shops_limit,
             created_at: new Date().toISOString(),
-            pending_extra_emails: newUserData.pending_extra_emails,
+            extra_emails_purchased: newUserData.extra_emails_purchased,
+            extra_emails_used: newUserData.extra_emails_used,
             extra_email_price: null,
             extra_email_package_size: null,
           })
@@ -401,7 +404,7 @@ export default function Account() {
         // Recarregar profile para atualizar créditos
         const { data: newProfile } = await supabase
           .from('users')
-          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, pending_extra_emails')
+          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
           .eq('id', user.id)
           .single()
         if (newProfile) setProfile(prev => ({ ...prev, ...newProfile, extra_email_price: prev?.extra_email_price ?? null, extra_email_package_size: prev?.extra_email_package_size ?? null }))
@@ -422,7 +425,7 @@ export default function Account() {
         // Recarregar profile para atualizar créditos
         const { data: newProfile } = await supabase
           .from('users')
-          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, pending_extra_emails')
+          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
           .eq('id', user.id)
           .single()
         if (newProfile) setProfile(prev => ({ ...prev, ...newProfile, extra_email_price: prev?.extra_email_price ?? null, extra_email_package_size: prev?.extra_email_package_size ?? null }))
@@ -472,7 +475,7 @@ export default function Account() {
       // Recarregar profile do banco para garantir dados sincronizados
       const { data: updatedProfile, error: profileError } = await supabase
         .from('users')
-        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, pending_extra_emails')
+        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
         .eq('id', user.id)
         .single()
 
@@ -863,7 +866,7 @@ export default function Account() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                         <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Créditos extras disponíveis</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#f59e0b' }}>
-                          {profile?.pending_extra_emails ?? 0} emails
+                          {((profile?.extra_emails_purchased ?? 0) - (profile?.extra_emails_used ?? 0))} emails
                         </span>
                       </div>
                       <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '8px 0 0 0' }}>
