@@ -102,7 +102,6 @@ export default function Account() {
   const [changingPlanId, setChangingPlanId] = useState<string | null>(null)
 
   const [pendingInvoices, setPendingInvoices] = useState<PendingInvoice[]>([])
-  const [invoicesLoading, setInvoicesLoading] = useState(false)
   const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -179,7 +178,6 @@ export default function Account() {
   useEffect(() => {
     if (!user) return
     const loadPendingInvoices = async () => {
-      setInvoicesLoading(true)
       try {
         const { data, error } = await supabase
           .from('email_extra_purchases')
@@ -192,8 +190,6 @@ export default function Account() {
         setPendingInvoices(data || [])
       } catch (err) {
         console.error('Erro ao carregar invoices pendentes:', err)
-      } finally {
-        setInvoicesLoading(false)
       }
     }
 
