@@ -6,14 +6,12 @@ interface CreditsWarningBannerProps {
   emailsUsed: number
   emailsLimit: number | null  // null = ilimitado
   extraEmailsPurchased?: number  // Emails extras comprados
-  extraEmailsUsed?: number  // Emails extras usados
 }
 
 export default function CreditsWarningBanner({
   emailsUsed,
   emailsLimit,
   extraEmailsPurchased = 0,
-  extraEmailsUsed = 0,
 }: CreditsWarningBannerProps) {
   const [dismissed, setDismissed] = useState(false)
 
@@ -22,14 +20,11 @@ export default function CreditsWarningBanner({
   // Não mostrar para planos ilimitados (emailsLimit === null)
   if (emailsLimit === null) return null
 
-  // Calcular créditos extras disponíveis
-  const extraCreditsAvailable = extraEmailsPurchased - extraEmailsUsed
-
-  // Total de créditos disponíveis = limite do plano + extras disponíveis
-  const totalCreditsAvailable = emailsLimit + extraCreditsAvailable
+  // Total de créditos = limite do plano + extras comprados
+  const totalCreditsAvailable = emailsLimit + extraEmailsPurchased
 
   // Só está "exausto" se usou TODOS os créditos (plano + extras)
-  const isExhausted = emailsUsed >= totalCreditsAvailable && extraCreditsAvailable <= 0
+  const isExhausted = emailsUsed >= totalCreditsAvailable
 
   // Só mostrar quando acabar completamente
   if (!isExhausted) return null

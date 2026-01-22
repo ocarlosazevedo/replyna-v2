@@ -572,9 +572,8 @@ export default function Dashboard() {
   const emailsLimit = profile?.emails_limit  // null = ilimitado
   const emailsUsed = profile?.emails_used ?? 0
   const extraEmailsPurchased = profile?.extra_emails_purchased ?? 0
-  const extraEmailsUsed = profile?.extra_emails_used ?? 0
-  const extraCreditsAvailable = extraEmailsPurchased - extraEmailsUsed
-  const totalCreditsAvailable = (emailsLimit ?? 0) + extraCreditsAvailable
+  // Total = limite do plano + extras comprados
+  const totalCreditsAvailable = (emailsLimit ?? 0) + extraEmailsPurchased
   const isUnlimited = emailsLimit === null
   const usagePercent = totalCreditsAvailable > 0 ? Math.min((emailsUsed / totalCreditsAvailable) * 100, 100) : 0
   const shopsLimit = profile?.shops_limit  // null = ilimitado
@@ -621,7 +620,6 @@ export default function Dashboard() {
           emailsUsed={profile.emails_used ?? 0}
           emailsLimit={profile.emails_limit}
           extraEmailsPurchased={profile.extra_emails_purchased ?? 0}
-          extraEmailsUsed={profile.extra_emails_used ?? 0}
         />
       )}
 
@@ -990,9 +988,9 @@ export default function Dashboard() {
                   ) : (
                     <>
                       {formatNumber(emailsUsed)} de {formatNumber(totalCreditsAvailable)}
-                      {extraCreditsAvailable > 0 && (
+                      {extraEmailsPurchased > 0 && (
                         <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, marginLeft: '6px' }}>
-                          ({formatNumber(emailsLimit ?? 0)} + {formatNumber(extraCreditsAvailable)} extras)
+                          ({formatNumber(emailsLimit ?? 0)} + {formatNumber(extraEmailsPurchased)} extras)
                         </span>
                       )}
                     </>
