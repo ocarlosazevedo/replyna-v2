@@ -51,6 +51,7 @@ export default function AdminMigration() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
   const [createdInviteUrl, setCreatedInviteUrl] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'accepted'>('all')
 
   useEffect(() => {
     loadInvites()
@@ -238,6 +239,11 @@ export default function AdminMigration() {
     color: 'var(--text-primary)',
   }
 
+  const filteredInvites = invites.filter((invite) => {
+    if (statusFilter === 'all') return true
+    return invite.status === statusFilter
+  })
+
   if (loading) {
     return (
       <div style={{ padding: '24px' }}>
@@ -305,11 +311,52 @@ export default function AdminMigration() {
         </ol>
       </div>
 
+      {/* Filtros de Status */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        {[
+          { value: 'all', label: 'Todos', count: invites.length },
+          { value: 'pending', label: 'Pendentes', count: invites.filter(i => i.status === 'pending').length },
+          { value: 'accepted', label: 'Aceitos', count: invites.filter(i => i.status === 'accepted').length },
+        ].map((filter) => (
+          <button
+            key={filter.value}
+            onClick={() => setStatusFilter(filter.value as 'all' | 'pending' | 'accepted')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: '1px solid',
+              borderColor: statusFilter === filter.value ? 'var(--accent)' : 'var(--border-color)',
+              backgroundColor: statusFilter === filter.value ? 'rgba(70, 114, 236, 0.1)' : 'transparent',
+              color: statusFilter === filter.value ? 'var(--accent)' : 'var(--text-secondary)',
+              fontWeight: 500,
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+            }}
+          >
+            {filter.label}
+            <span style={{
+              padding: '2px 8px',
+              borderRadius: '999px',
+              backgroundColor: statusFilter === filter.value ? 'var(--accent)' : 'var(--border-color)',
+              color: statusFilter === filter.value ? '#fff' : 'var(--text-secondary)',
+              fontSize: '11px',
+              fontWeight: 600,
+            }}>
+              {filter.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
       <div style={cardStyle}>
         {isMobile ? (
           /* Mobile: Card Layout */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {invites.map((invite) => (
+            {filteredInvites.map((invite) => (
               <div key={invite.id} style={{
                 backgroundColor: 'var(--bg-primary)',
                 borderRadius: '12px',
@@ -408,7 +455,7 @@ export default function AdminMigration() {
               </tr>
             </thead>
             <tbody>
-              {invites.map((invite) => (
+              {filteredInvites.map((invite) => (
                 <tr key={invite.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <td style={{ padding: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -515,9 +562,12 @@ export default function AdminMigration() {
           </table>
         )}
 
-        {invites.length === 0 && (
+        {filteredInvites.length === 0 && (
           <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
-            Nenhum convite de migração criado ainda
+            {invites.length === 0
+              ? 'Nenhum convite de migração criado ainda'
+              : `Nenhum convite ${statusFilter === 'pending' ? 'pendente' : 'aceito'} encontrado`
+            }
           </div>
         )}
       </div>
