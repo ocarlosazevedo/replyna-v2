@@ -93,6 +93,57 @@ function extractEmailFromShopifyContactForm(bodyText: string): { email: string; 
   return { email, name };
 }
 
+/**
+ * Verifica se a mensagem é apenas um agradecimento/confirmação que não precisa de resposta
+ */
+function isAcknowledgmentMessage(body: string, subject: string): boolean {
+  const cleanBody = (body || '').toLowerCase().trim();
+  const cleanSubject = (subject || '').toLowerCase().trim();
+
+  // Remover saudações e assinaturas comuns para analisar apenas o conteúdo principal
+  const bodyWithoutGreetings = cleanBody
+    .replace(/^(ol[aá]|oi|bom dia|boa tarde|boa noite|hi|hello|hey)[,!.\s]*/gi, '')
+    .replace(/(obrigad[oa]|valeu|grat[oa]|thanks|thank you|thx)[,!.\s]*$/gi, '')
+    .replace(/^(atenciosamente|att|abraços?|regards)[,.\s]*.*/gim, '')
+    .trim();
+
+  // Se o corpo ficar muito curto após remover saudações, provavelmente é só agradecimento
+  if (bodyWithoutGreetings.length < 20) {
+    // Padrões de mensagens que são apenas agradecimento/confirmação
+    const acknowledgmentPatterns = [
+      /^(ok|okay|certo|entendi|perfeito|beleza|blz|show|top|massa|legal)\.?!?$/i,
+      /^(obrigad[oa]|muito obrigad[oa]|valeu|grat[oa])\.?!?$/i,
+      /^(thanks|thank you|thx|ty)\.?!?$/i,
+      /^(recebi|recebido)\.?!?$/i,
+      /^(sim|n[aã]o)\.?!?$/i,
+      /^[\.\!\?\s]*$/,  // Mensagens vazias ou só pontuação
+    ];
+
+    for (const pattern of acknowledgmentPatterns) {
+      if (pattern.test(cleanBody) || pattern.test(bodyWithoutGreetings)) {
+        return true;
+      }
+    }
+  }
+
+  // Verificar se o assunto indica resposta automática ou out-of-office
+  const autoReplySubjectPatterns = [
+    /^(re:\s*)*(fora do escrit[oó]rio|out of office|automatic reply|resposta autom[aá]tica)/i,
+    /^(re:\s*)*(obrigad[oa]|thanks)/i,
+  ];
+
+  for (const pattern of autoReplySubjectPatterns) {
+    if (pattern.test(cleanSubject)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Set para controlar conversas em processamento (evitar duplicatas)
+const conversationsInProcessing = new Set<string>();
+
 // Tipos
 interface ProcessingStats {
   shops_total: number;
@@ -405,41 +456,51 @@ async function saveIncomingEmail(shopId: string, email: IncomingEmail): Promise<
   let finalFromName = email.from_name;
 
   if (!finalFromEmail || !finalFromEmail.includes('@')) {
-    const bodyContent = email.body_text || email.body_html || '';
-    const extracted = extractEmailFromShopifyContactForm(bodyContent);
-
-    if (extracted) {
-      finalFromEmail = extracted.email;
-      finalFromName = extracted.name || finalFromName;
+    // Tentar usar Reply-To como fallback
+    if (email.reply_to && email.reply_to.includes('@')) {
+      console.log(`[saveIncomingEmail] Usando Reply-To (${email.reply_to}) como fallback para from_email`);
+      finalFromEmail = email.reply_to;
     } else {
-      const conversationId = await getOrCreateConversation(
-        shopId,
-        'unknown@invalid.local',
-        email.subject || '',
-        email.in_reply_to || undefined
-      );
+      // Tentar extrair do corpo do email (formulários Shopify)
+      const bodyContent = email.body_text || email.body_html || '';
+      const extracted = extractEmailFromShopifyContactForm(bodyContent);
 
-      await saveMessage({
-        conversation_id: conversationId,
-        from_email: '',
-        from_name: email.from_name,
-        to_email: email.to_email,
-        subject: email.subject,
-        body_text: email.body_text,
-        body_html: email.body_html,
-        message_id: email.message_id,
-        in_reply_to: email.in_reply_to,
-        references_header: email.references,
-        has_attachments: email.has_attachments,
-        attachment_count: email.attachment_count,
-        direction: 'inbound',
-        status: 'failed',
-        error_message: 'Email do remetente inválido ou ausente',
-        received_at: email.received_at.toISOString(),
-      });
-
-      return;
+      if (extracted) {
+        finalFromEmail = extracted.email;
+        finalFromName = extracted.name || finalFromName;
+      }
     }
+  }
+
+  // Se ainda não encontrou email válido, marcar como falha
+  if (!finalFromEmail || !finalFromEmail.includes('@')) {
+    const conversationId = await getOrCreateConversation(
+      shopId,
+      'unknown@invalid.local',
+      email.subject || '',
+      email.in_reply_to || undefined
+    );
+
+    await saveMessage({
+      conversation_id: conversationId,
+      from_email: '',
+      from_name: email.from_name,
+      to_email: email.to_email,
+      subject: email.subject,
+      body_text: email.body_text,
+      body_html: email.body_html,
+      message_id: email.message_id,
+      in_reply_to: email.in_reply_to,
+      references_header: email.references,
+      has_attachments: email.has_attachments,
+      attachment_count: email.attachment_count,
+      direction: 'inbound',
+      status: 'failed',
+      error_message: 'Email do remetente inválido ou ausente',
+      received_at: email.received_at.toISOString(),
+    });
+
+    return;
   }
 
   const conversationId = await getOrCreateConversation(
@@ -491,12 +552,38 @@ async function processMessage(
   shop: Shop,
   message: Message & { conversation?: Conversation },
   emailCredentials: Awaited<ReturnType<typeof decryptEmailCredentials>>
-): Promise<'replied' | 'pending_credits' | 'forwarded_human' | 'spam' | 'skipped'> {
+): Promise<'replied' | 'pending_credits' | 'forwarded_human' | 'spam' | 'skipped' | 'acknowledgment'> {
   if (!emailCredentials) return 'skipped';
 
   const conversation = message.conversation as Conversation | undefined;
   if (!conversation) return 'skipped';
 
+  // CONTROLE DE CONCORRÊNCIA: Verificar se já está processando esta conversa
+  if (conversationsInProcessing.has(conversation.id)) {
+    console.log(`[Shop ${shop.name}] Conversa ${conversation.id} já está sendo processada, pulando msg ${message.id}`);
+    return 'skipped';
+  }
+
+  // Marcar conversa como em processamento
+  conversationsInProcessing.add(conversation.id);
+
+  try {
+    return await processMessageInternal(shop, message, conversation, emailCredentials);
+  } finally {
+    // Sempre remover da lista ao terminar
+    conversationsInProcessing.delete(conversation.id);
+  }
+}
+
+/**
+ * Lógica interna de processamento de mensagem (separada para controle de concorrência)
+ */
+async function processMessageInternal(
+  shop: Shop,
+  message: Message & { conversation?: Conversation },
+  conversation: Conversation,
+  emailCredentials: NonNullable<Awaited<ReturnType<typeof decryptEmailCredentials>>>
+): Promise<'replied' | 'pending_credits' | 'forwarded_human' | 'spam' | 'skipped' | 'acknowledgment'> {
   if (!message.from_email || !message.from_email.includes('@')) {
     await updateMessage(message.id, {
       status: 'failed',
@@ -553,6 +640,30 @@ async function processMessage(
       error_message: 'Corpo e assunto do email vazios',
     });
     return 'skipped';
+  }
+
+  // 2.1 Verificar se é apenas uma mensagem de agradecimento/confirmação
+  if (isAcknowledgmentMessage(cleanBody, message.subject || '')) {
+    console.log(`[Shop ${shop.name}] Msg ${message.id} é agradecimento, marcando como replied sem responder`);
+    await updateMessage(message.id, {
+      status: 'replied',
+      category: 'acknowledgment',
+      error_message: 'Mensagem de agradecimento - não requer resposta',
+      processed_at: new Date().toISOString(),
+    });
+
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'acknowledgment_skipped',
+      event_data: {
+        body_preview: cleanBody.substring(0, 100),
+        reason: 'Mensagem de agradecimento/confirmação',
+      },
+    });
+
+    return 'acknowledgment';
   }
 
   // 3. Buscar histórico da conversa

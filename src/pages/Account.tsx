@@ -407,7 +407,11 @@ export default function Account() {
           .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
           .eq('id', user.id)
           .single()
-        if (newProfile) setProfile(prev => ({ ...prev, ...newProfile, extra_email_price: prev?.extra_email_price ?? null, extra_email_package_size: prev?.extra_email_package_size ?? null }))
+        if (newProfile) setProfile({
+          ...newProfile,
+          extra_email_price: profile?.extra_email_price ?? null,
+          extra_email_package_size: profile?.extra_email_package_size ?? null,
+        })
       } else if (result.checkout_url) {
         // Redirecionar para checkout do Stripe
         window.location.href = result.checkout_url
@@ -428,7 +432,11 @@ export default function Account() {
           .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
           .eq('id', user.id)
           .single()
-        if (newProfile) setProfile(prev => ({ ...prev, ...newProfile, extra_email_price: prev?.extra_email_price ?? null, extra_email_package_size: prev?.extra_email_package_size ?? null }))
+        if (newProfile) setProfile({
+          ...newProfile,
+          extra_email_price: profile?.extra_email_price ?? null,
+          extra_email_package_size: profile?.extra_email_package_size ?? null,
+        })
       } else {
         setNotice({ type: 'error', message })
       }
@@ -482,7 +490,11 @@ export default function Account() {
       console.log('Profile recarregado:', { updatedProfile, profileError })
 
       if (updatedProfile) {
-        setProfile(prev => ({ ...prev, ...updatedProfile, extra_email_price: prev?.extra_email_price ?? null, extra_email_package_size: prev?.extra_email_package_size ?? null }))
+        setProfile({
+          ...updatedProfile,
+          extra_email_price: profile?.extra_email_price ?? null,
+          extra_email_package_size: profile?.extra_email_package_size ?? null,
+        })
       } else {
         // Fallback: atualizar localmente se não conseguir recarregar
         setProfile((prev) =>

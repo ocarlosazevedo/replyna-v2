@@ -23,6 +23,7 @@ export interface IncomingEmail {
   message_id: string;
   from_email: string;
   from_name: string | null;
+  reply_to: string | null; // Email de Reply-To (pode ser diferente do From)
   to_email: string;
   subject: string | null;
   body_text: string | null;
@@ -212,6 +213,7 @@ class SimpleImapClient {
       messageId: string;
       from: string;
       fromName: string | null;
+      replyTo: string | null;
       to: string;
       subject: string;
       date: string;
@@ -221,8 +223,8 @@ class SimpleImapClient {
     references: string;
   }> {
     const tag = this.getTag();
-    // Buscar headers From, To, Subject, Message-ID diretamente além do corpo
-    await this.sendCommand(`${tag} FETCH ${uid} (BODY[HEADER.FIELDS (From To Subject Message-ID Date In-Reply-To References)] BODY[TEXT])`);
+    // Buscar headers From, To, Subject, Message-ID, Reply-To diretamente além do corpo
+    await this.sendCommand(`${tag} FETCH ${uid} (BODY[HEADER.FIELDS (From To Subject Message-ID Date In-Reply-To References Reply-To)] BODY[TEXT])`);
     const response = await this.readUntilTag(tag);
 
     console.log('IMAP FETCH response (primeiros 2000 chars):', response.substring(0, 2000));
@@ -230,6 +232,7 @@ class SimpleImapClient {
     let messageId = '';
     let from = '';
     let fromName: string | null = null;
+    let replyTo: string | null = null;
     let to = '';
     let subject = '';
     let date = '';
@@ -301,6 +304,17 @@ class SimpleImapClient {
       if (refMatch) {
         references = refMatch[1].trim();
       }
+
+      // Reply-To
+      const replyToMatch = headers.match(/^Reply-To:\s*(.+?)(?:\r?\n(?!\s)|\r?\n$)/im);
+      if (replyToMatch) {
+        const replyToValue = replyToMatch[1].trim();
+        const emailMatch = replyToValue.match(/<([^>]+)>/) || replyToValue.match(/([^\s<>]+@[^\s<>]+)/);
+        if (emailMatch) {
+          replyTo = emailMatch[1].toLowerCase();
+        }
+        console.log('Reply-To extraído:', replyTo, 'do valor:', replyToValue);
+      }
     }
 
     // Extrair corpo
@@ -314,6 +328,7 @@ class SimpleImapClient {
         messageId: messageId || `<${Date.now()}.${Math.random()}@generated>`,
         from,
         fromName,
+        replyTo,
         to,
         subject,
         date: date || new Date().toISOString(),
@@ -506,6 +521,7 @@ export async function fetchUnreadEmails(
           message_id: msg.envelope.messageId,
           from_email: msg.envelope.from,
           from_name: msg.envelope.fromName,
+          reply_to: msg.envelope.replyTo,
           to_email: credentials.imap_user,
           subject: msg.envelope.subject || null,
           body_text: bodyText || null,

@@ -81,6 +81,53 @@ function stripMarkdown(text: string): string {
 }
 
 /**
+ * Remove pensamentos internos e formatação incorreta da resposta
+ */
+function cleanAIResponse(text: string): string {
+  let cleaned = text;
+
+  // Remover aspas no início e fim da mensagem
+  cleaned = cleaned.replace(/^["']+/, '').replace(/["']+$/, '');
+
+  // Remover pensamentos internos comuns que vazam
+  const internalThoughtsPatterns = [
+    /^Entendi que (preciso|devo|vou)[^.]*\.\s*/i,
+    /^Com base nas informações[^.]*\.\s*/i,
+    /^Analisando (a solicitação|o pedido|a mensagem)[^.]*\.\s*/i,
+    /^Vou (verificar|analisar|processar)[^.]*\.\s*/i,
+    /^Preciso (verificar|analisar|processar)[^.]*\.\s*/i,
+    /^(Deixe-me|Let me) (verificar|analisar|check|analyze)[^.]*\.\s*/i,
+    /^(Primeiro|First),?\s+(vou|let me|I'll)[^.]*\.\s*/i,
+    /^(Okay|Ok|Certo),?\s+(vou|let me|I'll)[^.]*\.\s*/i,
+    /^Como (assistente|atendente)[^.]*,?\s*/i,
+    /^De acordo com (as informações|os dados)[^.]*,?\s*/i,
+  ];
+
+  for (const pattern of internalThoughtsPatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+
+  // Remover linhas que parecem ser instruções internas
+  const lines = cleaned.split('\n');
+  const cleanedLines = lines.filter(line => {
+    const lowerLine = line.toLowerCase().trim();
+    // Remover linhas que são claramente instruções internas
+    if (lowerLine.startsWith('nota:') || lowerLine.startsWith('note:')) return false;
+    if (lowerLine.startsWith('importante:') || lowerLine.startsWith('important:')) return false;
+    if (lowerLine.startsWith('observação:')) return false;
+    if (lowerLine.includes('[forward_to_human]')) return false;  // Já tratado separadamente
+    return true;
+  });
+
+  cleaned = cleanedLines.join('\n').trim();
+
+  // Garantir que não começa com aspas
+  cleaned = cleaned.replace(/^["']+/, '');
+
+  return cleaned;
+}
+
+/**
  * Obtém a API key do ambiente
  */
 function getApiKey(): string {
@@ -443,6 +490,12 @@ REGRAS IMPORTANTES:
 7. NÃO use formatação especial - escreva como um email normal em texto puro
 8. Assine apenas com seu nome no final
 9. IDIOMA: ${languageInstruction}
+10. MUITO IMPORTANTE - NÃO inclua pensamentos internos na resposta:
+    - NÃO comece com "Entendi que preciso...", "Vou verificar...", "Analisando..."
+    - NÃO comece com "Com base nas informações...", "De acordo com os dados..."
+    - NÃO inclua notas ou observações para você mesmo
+    - Comece DIRETAMENTE com a saudação ao cliente (ex: "Olá [Nome]!")
+    - A resposta deve parecer escrita por um humano, não por uma IA
 
 COMPORTAMENTO INTELIGENTE (MUITO IMPORTANTE):
 - NUNCA assuma que o cliente quer cancelar/devolver/reembolsar automaticamente
@@ -577,8 +630,11 @@ ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.s
     responseText = responseText.replace('[FORWARD_TO_HUMAN]', '').trim();
   }
 
+  // Aplicar limpeza de pensamentos internos e formatação
+  const cleanedResponse = cleanAIResponse(stripMarkdown(responseText));
+
   return {
-    response: stripMarkdown(responseText),
+    response: cleanedResponse,
     tokens_input: response.usage.input_tokens,
     tokens_output: response.usage.output_tokens,
     forward_to_human: forwardToHuman,
@@ -662,7 +718,7 @@ ${urgencyNote}`;
   );
 
   return {
-    response: stripMarkdown(response.content[0]?.text || ''),
+    response: cleanAIResponse(stripMarkdown(response.content[0]?.text || '')),
     tokens_input: response.usage.input_tokens,
     tokens_output: response.usage.output_tokens,
   };
@@ -742,7 +798,7 @@ IMPORTANT - LANGUAGE: ${languageInstruction}`;
   );
 
   return {
-    response: stripMarkdown(response.content[0]?.text || ''),
+    response: cleanAIResponse(stripMarkdown(response.content[0]?.text || '')),
     tokens_input: response.usage.input_tokens,
     tokens_output: response.usage.output_tokens,
   };
