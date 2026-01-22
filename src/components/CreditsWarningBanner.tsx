@@ -35,23 +35,13 @@ export default function CreditsWarningBanner({
   // Só está "exausto" se usou TODOS os créditos (plano + extras)
   const isExhausted = emailsUsed >= totalCreditsAvailable && extraCreditsAvailable <= 0
 
-  // Está "baixo" se usou 80% do total e ainda não exauriu
-  const isLow = percentUsed >= 80 && !isExhausted
+  // Só mostrar quando acabar completamente
+  if (!isExhausted) return null
 
-  // Não mostrar se ainda tem bastante crédito
-  if (!isExhausted && !isLow) return null
-
-  const backgroundColor = isExhausted
-    ? 'rgba(239, 68, 68, 0.1)' // Vermelho
-    : 'rgba(245, 158, 11, 0.1)' // Amarelo
-
-  const borderColor = isExhausted
-    ? 'rgba(239, 68, 68, 0.3)'
-    : 'rgba(245, 158, 11, 0.3)'
-
-  const iconColor = isExhausted ? '#ef4444' : '#f59e0b'
-
-  const textColor = isExhausted ? '#dc2626' : '#d97706'
+  const backgroundColor = 'rgba(239, 68, 68, 0.1)' // Vermelho
+  const borderColor = 'rgba(239, 68, 68, 0.3)'
+  const iconColor = '#ef4444'
+  const textColor = '#dc2626'
 
   return (
     <div
@@ -78,9 +68,7 @@ export default function CreditsWarningBanner({
             marginBottom: '4px',
           }}
         >
-          {isExhausted
-            ? 'Seus créditos acabaram!'
-            : 'Seus créditos estão acabando'}
+          Seus créditos acabaram!
         </p>
         <p
           style={{
@@ -89,26 +77,15 @@ export default function CreditsWarningBanner({
             margin: 0,
           }}
         >
-          {isExhausted ? (
-            <>
-              Você usou todos os <strong>{emailsLimit}</strong> emails do plano{' '}
-              <strong>{plan}</strong>. Novos emails não estão sendo respondidos
-              automaticamente.
-            </>
-          ) : (
-            <>
-              Você já usou <strong>{emailsUsed}</strong> de{' '}
-              <strong>{emailsLimit}</strong> emails ({Math.round(percentUsed)}
-              %).
-            </>
-          )}
+          Você usou todos os seus créditos. Novos emails não estão sendo respondidos
+          automaticamente.
         </p>
       </div>
 
       <Link
         to="/account"
         style={{
-          backgroundColor: isExhausted ? '#ef4444' : '#f59e0b',
+          backgroundColor: '#ef4444',
           color: 'white',
           padding: '10px 20px',
           borderRadius: '8px',
@@ -118,7 +95,7 @@ export default function CreditsWarningBanner({
           whiteSpace: 'nowrap',
         }}
       >
-        {isExhausted ? 'Fazer upgrade' : 'Ver planos'}
+        Fazer upgrade
       </Link>
 
       <button
