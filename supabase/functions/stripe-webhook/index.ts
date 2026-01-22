@@ -201,6 +201,28 @@ async function handleCheckoutCompleted(
   const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
 
+  // Verificar se é pagamento de emails extras
+  if (metadata.type === 'extra_emails_payment' && metadata.purchase_id) {
+    console.log('=== Processando pagamento de emails extras ===');
+    const purchaseId = metadata.purchase_id;
+    const paymentIntentId = session.payment_intent as string;
+
+    // Confirmar a compra no banco
+    const { error: confirmError } = await supabase.rpc('confirm_extra_email_purchase', {
+      p_purchase_id: purchaseId,
+      p_stripe_invoice_id: null,
+      p_stripe_charge_id: paymentIntentId,
+    });
+
+    if (confirmError) {
+      console.error('Erro ao confirmar compra de emails extras:', confirmError);
+      throw new Error(`Erro ao confirmar compra: ${confirmError.message}`);
+    }
+
+    console.log('Compra de emails extras confirmada:', purchaseId);
+    return;
+  }
+
   if (!subscriptionId) {
     console.error('ERRO: subscriptionId não encontrado na sessão');
     throw new Error('Subscription ID não encontrado');

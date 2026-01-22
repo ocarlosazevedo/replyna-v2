@@ -39,6 +39,15 @@ interface Plan {
   is_popular: boolean
 }
 
+interface PendingInvoice {
+  id: string
+  stripe_invoice_id: string
+  package_size: number
+  total_amount: number
+  status: string
+  created_at: string
+}
+
 const formatNumber = (value: number) =>
   new Intl.NumberFormat('pt-BR').format(value)
 
@@ -91,6 +100,10 @@ export default function Account() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [plansLoading, setPlansLoading] = useState(false)
   const [changingPlanId, setChangingPlanId] = useState<string | null>(null)
+
+  const [pendingInvoices, setPendingInvoices] = useState<PendingInvoice[]>([])
+  const [invoicesLoading, setInvoicesLoading] = useState(false)
+  const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -160,6 +173,31 @@ export default function Account() {
     }
 
     loadProfile()
+  }, [user])
+
+  // Carregar invoices pendentes de emails extras
+  useEffect(() => {
+    if (!user) return
+    const loadPendingInvoices = async () => {
+      setInvoicesLoading(true)
+      try {
+        const { data, error } = await supabase
+          .from('email_extra_purchases')
+          .select('id, stripe_invoice_id, package_size, total_amount, status, created_at')
+          .eq('user_id', user.id)
+          .in('status', ['pending', 'processing'])
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+        setPendingInvoices(data || [])
+      } catch (err) {
+        console.error('Erro ao carregar invoices pendentes:', err)
+      } finally {
+        setInvoicesLoading(false)
+      }
+    }
+
+    loadPendingInvoices()
   }, [user])
 
   const renewalDate = useMemo(
@@ -293,6 +331,54 @@ export default function Account() {
       setNotice({ type: 'error', message: 'Não foi possível carregar os planos disponíveis.' })
     } finally {
       setPlansLoading(false)
+    }
+  }
+
+  const handlePayInvoice = async (invoice: PendingInvoice) => {
+    if (!user) return
+    setPayingInvoiceId(invoice.id)
+    setNotice(null)
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pay-pending-invoice`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            purchase_id: invoice.id,
+            stripe_invoice_id: invoice.stripe_invoice_id,
+          }),
+        }
+      )
+
+      const result = await response.json()
+
+      if (result.success) {
+        setNotice({ type: 'success', message: 'Pagamento realizado com sucesso! Seus créditos extras foram liberados.' })
+        // Remover invoice da lista
+        setPendingInvoices(prev => prev.filter(i => i.id !== invoice.id))
+        // Recarregar profile para atualizar créditos
+        const { data: newProfile } = await supabase
+          .from('users')
+          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, pending_extra_emails')
+          .eq('id', user.id)
+          .single()
+        if (newProfile) setProfile(newProfile)
+      } else if (result.checkout_url) {
+        // Redirecionar para checkout do Stripe
+        window.location.href = result.checkout_url
+      } else {
+        throw new Error(result.error || 'Erro ao processar pagamento')
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao processar pagamento.'
+      setNotice({ type: 'error', message })
+    } finally {
+      setPayingInvoiceId(null)
     }
   }
 
@@ -742,6 +828,73 @@ export default function Account() {
                       <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '8px 0 0 0' }}>
                         Ao atingir 100 emails extras, será cobrado automaticamente R$ 29,90 e o contador será reiniciado.
                       </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Seção de Pagamentos Pendentes */}
+                {pendingInvoices.length > 0 && (
+                  <div style={{
+                    borderRadius: '14px',
+                    border: '1px solid #ef4444',
+                    padding: '16px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      <span style={{ fontSize: '14px', fontWeight: 600, color: '#ef4444' }}>
+                        Pagamento Pendente
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 12px 0', lineHeight: '1.5' }}>
+                      Você possui faturas de emails extras aguardando pagamento. Regularize para continuar respondendo automaticamente.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {pendingInvoices.map((invoice) => (
+                        <div
+                          key={invoice.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px',
+                            backgroundColor: 'var(--bg-card)',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-color)',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              Pacote de {invoice.package_size} emails
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                              R$ {invoice.total_amount.toFixed(2).replace('.', ',')}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handlePayInvoice(invoice)}
+                            disabled={payingInvoiceId === invoice.id}
+                            style={{
+                              borderRadius: '8px',
+                              border: 'none',
+                              backgroundColor: '#ef4444',
+                              color: '#ffffff',
+                              padding: '8px 16px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              cursor: payingInvoiceId === invoice.id ? 'not-allowed' : 'pointer',
+                              opacity: payingInvoiceId === invoice.id ? 0.7 : 1,
+                            }}
+                          >
+                            {payingInvoiceId === invoice.id ? 'Processando...' : 'Pagar agora'}
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

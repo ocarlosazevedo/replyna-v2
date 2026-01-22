@@ -455,11 +455,24 @@ async function processMessage(
     return 'skipped';
   }
 
-  const hasCredits = await checkCreditsAvailable(user.id);
+  let hasCredits = await checkCreditsAvailable(user.id);
   if (!hasCredits) {
-    await updateMessage(message.id, { status: 'pending_credits' });
-    await handleCreditsExhausted(shop, user, message);
-    return 'pending_credits';
+    // Tentar cobrar pacote de emails extras automaticamente
+    console.log(`[Worker] Usuário ${user.id} sem créditos - tentando cobrar pacote extra automaticamente`);
+    const chargeSuccess = await tryChargeExtraEmailsPackage(user.id, shop.id);
+
+    if (chargeSuccess) {
+      // Cobrança OK, verificar créditos novamente
+      hasCredits = await checkCreditsAvailable(user.id);
+      console.log(`[Worker] Cobrança realizada, créditos disponíveis: ${hasCredits}`);
+    }
+
+    if (!hasCredits) {
+      // Cobrança falhou ou ainda sem créditos - não processar
+      await updateMessage(message.id, { status: 'pending_credits' });
+      await handleCreditsExhausted(shop, user, message);
+      return 'pending_credits';
+    }
   }
 
   // 2. Limpar corpo do email
@@ -836,6 +849,72 @@ Replyna - Atendimento Inteligente
       emails_limit: user.emails_limit,
     },
   });
+}
+
+/**
+ * Tenta cobrar pacote de emails extras automaticamente quando os créditos acabam
+ * Retorna true se a cobrança foi bem sucedida e os créditos foram liberados
+ */
+async function tryChargeExtraEmailsPackage(userId: string, shopId: string): Promise<boolean> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+  try {
+    console.log(`[Worker] Tentando cobrar pacote de emails extras para usuário ${userId}`);
+
+    const chargeResponse = await fetch(
+      `${supabaseUrl}/functions/v1/charge-extra-emails`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({ user_id: userId }),
+      }
+    );
+
+    const chargeResult = await chargeResponse.json();
+
+    if (chargeResult.success) {
+      console.log(`[Worker] Pacote de emails extras cobrado com sucesso: ${chargeResult.invoice_id}`);
+
+      await logProcessingEvent({
+        shop_id: shopId,
+        event_type: 'extra_emails_auto_charged',
+        event_data: {
+          user_id: userId,
+          invoice_id: chargeResult.invoice_id,
+          amount: chargeResult.amount,
+          purchase_id: chargeResult.purchase_id,
+        },
+      });
+
+      return true;
+    } else {
+      console.error(`[Worker] Falha ao cobrar emails extras: ${chargeResult.error}`);
+
+      await logProcessingEvent({
+        shop_id: shopId,
+        event_type: 'extra_emails_auto_charge_failed',
+        error_message: chargeResult.error,
+        event_data: { user_id: userId },
+      });
+
+      return false;
+    }
+  } catch (error) {
+    console.error('[Worker] Erro ao chamar charge-extra-emails:', error);
+
+    await logProcessingEvent({
+      shop_id: shopId,
+      event_type: 'extra_emails_auto_charge_error',
+      error_message: error instanceof Error ? error.message : 'Erro desconhecido',
+      event_data: { user_id: userId },
+    });
+
+    return false;
+  }
 }
 
 /**

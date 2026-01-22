@@ -108,6 +108,18 @@ serve(async (req) => {
 
     const purchaseId = purchaseData;
 
+    // Buscar método de pagamento da assinatura no Stripe
+    let defaultPaymentMethod: string | null = null;
+    if (subscription.stripe_subscription_id) {
+      try {
+        const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id);
+        defaultPaymentMethod = stripeSubscription.default_payment_method as string | null;
+        console.log('Método de pagamento da assinatura:', defaultPaymentMethod);
+      } catch (e) {
+        console.log('Não foi possível obter método de pagamento da assinatura:', e);
+      }
+    }
+
     // Criar Invoice Item no Stripe (será cobrado na próxima fatura ou imediatamente)
     try {
       // Criar um invoice item para o pacote de emails extras
@@ -127,24 +139,45 @@ serve(async (req) => {
       console.log('Invoice item criado:', invoiceItem.id);
 
       // Criar e finalizar invoice imediatamente
-      const invoice = await stripe.invoices.create({
+      const invoiceParams: Record<string, unknown> = {
         customer: user.stripe_customer_id,
         auto_advance: true, // Finaliza automaticamente
         collection_method: 'charge_automatically',
+        pending_invoice_items_behavior: 'include', // IMPORTANTE: incluir items pendentes
         description: `Emails extras - ${plan.name}`,
         metadata: {
           user_id: user_id,
           purchase_id: purchaseId,
           type: 'extra_emails',
         },
-      });
+      };
 
-      // Finalizar a invoice (isso vai cobrar automaticamente)
-      const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
+      // Usar método de pagamento da assinatura se disponível
+      if (defaultPaymentMethod) {
+        invoiceParams.default_payment_method = defaultPaymentMethod;
+      }
+
+      const invoice = await stripe.invoices.create(invoiceParams);
+
+      // Finalizar a invoice (isso vai cobrar automaticamente se tiver método de pagamento)
+      let finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
 
       console.log('Invoice finalizada:', finalizedInvoice.id, 'Status:', finalizedInvoice.status);
 
-      // Se a invoice foi paga automaticamente
+      // Se não foi paga automaticamente, tentar pagar explicitamente
+      if (finalizedInvoice.status === 'open' && defaultPaymentMethod) {
+        console.log('Tentando pagar invoice explicitamente com método:', defaultPaymentMethod);
+        try {
+          finalizedInvoice = await stripe.invoices.pay(finalizedInvoice.id, {
+            payment_method: defaultPaymentMethod,
+          });
+          console.log('Invoice paga explicitamente. Novo status:', finalizedInvoice.status);
+        } catch (payError) {
+          console.error('Erro ao pagar invoice explicitamente:', payError);
+        }
+      }
+
+      // Se a invoice foi paga
       if (finalizedInvoice.status === 'paid') {
         // Confirmar compra no banco
         await supabase.rpc('confirm_extra_email_purchase', {
@@ -166,21 +199,25 @@ serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
-        // Invoice criada mas não paga ainda (pode ser pending)
-        // Atualizar purchase com invoice_id
+        // Invoice criada mas não paga - cliente não tem método de pagamento
+        // Atualizar purchase com invoice_id e URL de pagamento
+        const hostedInvoiceUrl = finalizedInvoice.hosted_invoice_url;
+
         await supabase
           .from('email_extra_purchases')
           .update({
             stripe_invoice_id: finalizedInvoice.id,
-            status: 'processing',
+            status: 'pending', // Cliente precisa pagar manualmente
           })
           .eq('id', purchaseId);
 
+        // NÃO liberar créditos - manter mensagem como pending_credits
         return new Response(
           JSON.stringify({
-            success: true,
-            message: 'Invoice criada, aguardando pagamento',
+            success: false,
+            message: 'Cliente não possui método de pagamento. Invoice criada aguardando pagamento manual.',
             invoice_id: finalizedInvoice.id,
+            invoice_url: hostedInvoiceUrl,
             invoice_status: finalizedInvoice.status,
             purchase_id: purchaseId,
           }),

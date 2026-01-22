@@ -315,7 +315,7 @@ export async function getPendingMessages(shopId: string): Promise<Message[]> {
       )
     `
     )
-    .eq('status', 'pending')
+    .in('status', ['pending', 'pending_credits'])
     .eq('direction', 'inbound')
     .eq('conversation.shop_id', shopId)
     .order('created_at', { ascending: true })
