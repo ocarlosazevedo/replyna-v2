@@ -616,7 +616,6 @@ export default function Dashboard() {
         <CreditsWarningBanner
           emailsUsed={profile.emails_used ?? 0}
           emailsLimit={profile.emails_limit}
-          plan={profile.plan ?? 'Starter'}
           extraEmailsPurchased={profile.extra_emails_purchased ?? 0}
           extraEmailsUsed={profile.extra_emails_used ?? 0}
         />

@@ -5,7 +5,6 @@ import { useState } from 'react'
 interface CreditsWarningBannerProps {
   emailsUsed: number
   emailsLimit: number | null  // null = ilimitado
-  plan: string
   extraEmailsPurchased?: number  // Emails extras comprados
   extraEmailsUsed?: number  // Emails extras usados
 }
@@ -13,7 +12,6 @@ interface CreditsWarningBannerProps {
 export default function CreditsWarningBanner({
   emailsUsed,
   emailsLimit,
-  plan,
   extraEmailsPurchased = 0,
   extraEmailsUsed = 0,
 }: CreditsWarningBannerProps) {
@@ -29,8 +27,6 @@ export default function CreditsWarningBanner({
 
   // Total de créditos disponíveis = limite do plano + extras disponíveis
   const totalCreditsAvailable = emailsLimit + extraCreditsAvailable
-
-  const percentUsed = totalCreditsAvailable > 0 ? (emailsUsed / totalCreditsAvailable) * 100 : 0
 
   // Só está "exausto" se usou TODOS os créditos (plano + extras)
   const isExhausted = emailsUsed >= totalCreditsAvailable && extraCreditsAvailable <= 0
