@@ -192,25 +192,25 @@ export default function Account() {
     loadProfile()
   }, [user])
 
-  // Carregar invoices pendentes de emails extras
-  useEffect(() => {
+  // Função para carregar invoices pendentes de emails extras
+  const loadPendingInvoices = async () => {
     if (!user) return
-    const loadPendingInvoices = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('email_extra_purchases')
-          .select('id, stripe_invoice_id, package_size, total_amount, status, created_at')
-          .eq('user_id', user.id)
-          .in('status', ['pending', 'processing'])
-          .order('created_at', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('email_extra_purchases')
+        .select('id, stripe_invoice_id, package_size, total_amount, status, created_at')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'processing'])
+        .order('created_at', { ascending: false })
 
-        if (error) throw error
-        setPendingInvoices(data || [])
-      } catch (err) {
-        console.error('Erro ao carregar invoices pendentes:', err)
-      }
+      if (error) throw error
+      setPendingInvoices(data || [])
+    } catch (err) {
+      console.error('Erro ao carregar invoices pendentes:', err)
     }
+  }
 
+  useEffect(() => {
     loadPendingInvoices()
   }, [user])
 
@@ -354,13 +354,22 @@ export default function Account() {
     setNotice(null)
 
     try {
+      const session = await supabase.auth.getSession()
+      const accessToken = session.data.session?.access_token
+
+      if (!accessToken) {
+        throw new Error('Sessão expirada. Por favor, faça login novamente.')
+      }
+
+      console.log('Pagando invoice:', { purchase_id: invoice.id, stripe_invoice_id: invoice.stripe_invoice_id })
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pay-pending-invoice`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Authorization': `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
             purchase_id: invoice.id,
@@ -369,7 +378,13 @@ export default function Account() {
         }
       )
 
+      console.log('Response status:', response.status)
       const result = await response.json()
+      console.log('Response body:', result)
+
+      if (!response.ok) {
+        throw new Error(result.error || `Erro ${response.status}: ${response.statusText}`)
+      }
 
       if (result.success) {
         setNotice({ type: 'success', message: 'Pagamento realizado com sucesso! Seus créditos extras foram liberados.' })
@@ -389,8 +404,23 @@ export default function Account() {
         throw new Error(result.error || 'Erro ao processar pagamento')
       }
     } catch (err: unknown) {
+      console.error('Erro ao pagar invoice:', err)
       const message = err instanceof Error ? err.message : 'Erro ao processar pagamento.'
-      setNotice({ type: 'error', message })
+
+      // Se a fatura não foi encontrada ou já foi paga, recarregar a lista
+      if (message.includes('não encontrada') || message.includes('já foi paga')) {
+        setNotice({ type: 'success', message: 'Esta fatura já foi paga! Atualizando lista...' })
+        await loadPendingInvoices()
+        // Recarregar profile para atualizar créditos
+        const { data: newProfile } = await supabase
+          .from('users')
+          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, pending_extra_emails')
+          .eq('id', user.id)
+          .single()
+        if (newProfile) setProfile(newProfile)
+      } else {
+        setNotice({ type: 'error', message })
+      }
     } finally {
       setPayingInvoiceId(null)
     }
