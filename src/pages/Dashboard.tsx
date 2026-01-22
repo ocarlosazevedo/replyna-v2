@@ -24,6 +24,8 @@ interface UserProfile {
   emails_used: number | null
   shops_limit: number | null
   created_at: string | null
+  extra_emails_purchased: number | null
+  extra_emails_used: number | null
 }
 
 interface ConversationRow {
@@ -322,7 +324,7 @@ export default function Dashboard() {
         const data = await cacheFetch(`profile:${user.id}`, async () => {
           const { data, error } = await supabase
             .from('users')
-            .select('name, plan, emails_limit, emails_used, shops_limit, created_at')
+            .select('name, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
             .eq('id', user.id)
             .maybeSingle()
           if (error) throw error
@@ -615,6 +617,8 @@ export default function Dashboard() {
           emailsUsed={profile.emails_used ?? 0}
           emailsLimit={profile.emails_limit}
           plan={profile.plan ?? 'Starter'}
+          extraEmailsPurchased={profile.extra_emails_purchased ?? 0}
+          extraEmailsUsed={profile.extra_emails_used ?? 0}
         />
       )}
 
