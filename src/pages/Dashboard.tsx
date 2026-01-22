@@ -571,8 +571,12 @@ export default function Dashboard() {
   const renewalDate = useMemo(() => calculateRenewalDate(profile?.created_at ?? null), [profile?.created_at])
   const emailsLimit = profile?.emails_limit  // null = ilimitado
   const emailsUsed = profile?.emails_used ?? 0
+  const extraEmailsPurchased = profile?.extra_emails_purchased ?? 0
+  const extraEmailsUsed = profile?.extra_emails_used ?? 0
+  const extraCreditsAvailable = extraEmailsPurchased - extraEmailsUsed
+  const totalCreditsAvailable = (emailsLimit ?? 0) + extraCreditsAvailable
   const isUnlimited = emailsLimit === null
-  const usagePercent = emailsLimit ? Math.min((emailsUsed / emailsLimit) * 100, 100) : 0
+  const usagePercent = totalCreditsAvailable > 0 ? Math.min((emailsUsed / totalCreditsAvailable) * 100, 100) : 0
   const shopsLimit = profile?.shops_limit  // null = ilimitado
   const isShopsUnlimited = shopsLimit === null
 
@@ -984,7 +988,14 @@ export default function Dashboard() {
                       {formatNumber(emailsUsed)} de <span style={{ color: '#22c55e' }}>Ilimitado</span>
                     </>
                   ) : (
-                    <>{formatNumber(emailsUsed)} de {formatNumber(emailsLimit ?? 0)}</>
+                    <>
+                      {formatNumber(emailsUsed)} de {formatNumber(totalCreditsAvailable)}
+                      {extraCreditsAvailable > 0 && (
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, marginLeft: '6px' }}>
+                          ({formatNumber(emailsLimit ?? 0)} + {formatNumber(extraCreditsAvailable)} extras)
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
                 {!isUnlimited && (
