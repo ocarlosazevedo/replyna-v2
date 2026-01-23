@@ -1,8 +1,9 @@
 /**
  * Cliente Stripe para Edge Functions
+ * Atualizado para v20.2.0 (compatível com Deno v2)
  */
 
-import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno';
+import Stripe from 'https://esm.sh/stripe@20.2.0?target=deno';
 
 let stripeClient: Stripe | null = null;
 
