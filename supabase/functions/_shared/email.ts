@@ -25,7 +25,7 @@ export interface IncomingEmail {
   from_name: string | null;
   reply_to: string | null; // Email de Reply-To (pode ser diferente do From)
   to_email: string;
-  subject: string | null;
+  subject: string; // Sempre tem valor, default "(Sem assunto)" se vazio
   body_text: string | null;
   body_html: string | null;
   in_reply_to: string | null;
@@ -523,7 +523,7 @@ export async function fetchUnreadEmails(
           from_name: msg.envelope.fromName,
           reply_to: msg.envelope.replyTo,
           to_email: credentials.imap_user,
-          subject: msg.envelope.subject || null,
+          subject: msg.envelope.subject?.trim() || '(Sem assunto)',
           body_text: bodyText || null,
           body_html: decodedBody.html,
           in_reply_to: msg.inReplyTo || null,
