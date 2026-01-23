@@ -3,6 +3,9 @@
  *
  * Extração e adaptação da lógica de processamento de process-emails/index.ts
  * para trabalhar com a arquitetura de filas.
+ *
+ * CORRIGIDO: Todas as chamadas de função agora usam as assinaturas corretas
+ * dos módulos _shared.
  */
 
 // deno-lint-ignore-file no-explicit-any
@@ -26,6 +29,7 @@ import {
   buildReplyHeaders,
   buildReplySubject,
   cleanEmailBody,
+  decryptEmailCredentials,
 } from '../_shared/email.ts';
 
 import {
@@ -58,7 +62,7 @@ const systemEmailPatterns = [
  * Processa um job de email da fila
  */
 export async function processMessageFromQueue(job: any, supabase: any): Promise<void> {
-  const { message_id, shop_id, payload } = job;
+  const { message_id, shop_id } = job;
 
   // Load message from database
   const { data: message, error: messageError } = await supabase
@@ -115,7 +119,7 @@ async function processMessage(
   message: Message,
   conversation: Conversation,
   shop: Shop,
-  supabase: any
+  _supabase: any
 ): Promise<void> {
   console.log(`[Processor] Processing message ${message.id} from ${message.from_email}`);
 
@@ -186,8 +190,20 @@ async function processMessage(
     throw new Error('Créditos insuficientes');
   }
 
-  // 7. Classificar email
-  const classification = await classifyEmail(cleanBody, message.subject || '', shop);
+  // 7. Buscar histórico da conversa ANTES de classificar
+  const rawHistory = await getConversationHistory(conversation.id, 3);
+  const conversationHistory = (rawHistory || []).map((msg: Message) => ({
+    role: msg.direction === 'inbound' ? ('customer' as const) : ('assistant' as const),
+    content: cleanEmailBody(msg.body_text || '', msg.body_html || ''),
+  }));
+
+  // 8. Classificar email (ordem correta: subject, body, history)
+  const classification = await classifyEmail(
+    message.subject || '',
+    cleanBody,
+    conversationHistory.slice(0, -1) // Excluir a mensagem atual
+  );
+
   await updateMessage(message.id, {
     category: classification.category,
     category_confidence: classification.confidence,
@@ -201,6 +217,7 @@ async function processMessage(
     event_data: {
       category: classification.category,
       confidence: classification.confidence,
+      language: classification.language,
     },
   });
 
@@ -208,10 +225,11 @@ async function processMessage(
   if (!conversation.category && classification.category !== 'spam') {
     await updateConversation(conversation.id, {
       category: classification.category,
+      language: classification.language,
     });
   }
 
-  // 8. Se for spam, não responder
+  // 9. Se for spam, não responder
   if (classification.category === 'spam') {
     await updateMessage(message.id, {
       status: 'failed',
@@ -221,7 +239,7 @@ async function processMessage(
     return; // Success without replying
   }
 
-  // 9. Buscar dados do Shopify se necessário
+  // 10. Buscar dados do Shopify se necessário
   let shopifyData: OrderSummary | null = null;
   let needsOrderData = false;
 
@@ -233,12 +251,22 @@ async function processMessage(
 
   if (categoriasQueNeedShopify.includes(classification.category)) {
     needsOrderData = true;
-    const orderNumber = extractOrderNumber(cleanBody, message.subject || '');
 
-    if (orderNumber) {
+    // extractOrderNumber aceita apenas 1 parâmetro
+    const orderNumberFromSubject = extractOrderNumber(message.subject || '');
+    const orderNumberFromBody = extractOrderNumber(cleanBody);
+    const orderNumber = orderNumberFromSubject || orderNumberFromBody || conversation.shopify_order_id;
+
+    const shopifyCredentials = await decryptShopifyCredentials(shop);
+
+    if (shopifyCredentials) {
       try {
-        const shopifyCredentials = decryptShopifyCredentials(shop);
-        shopifyData = await getOrderDataForAI(orderNumber, shopifyCredentials);
+        // getOrderDataForAI: (credentials, customerEmail, orderNumber?)
+        shopifyData = await getOrderDataForAI(
+          shopifyCredentials,
+          message.from_email,
+          orderNumber
+        );
 
         await logProcessingEvent({
           shop_id: shop.id,
@@ -247,6 +275,13 @@ async function processMessage(
           event_type: 'shopify_lookup',
           event_data: { order_number: orderNumber, found: !!shopifyData },
         });
+
+        if (shopifyData) {
+          await updateConversation(conversation.id, {
+            shopify_order_id: shopifyData.order_number,
+            customer_name: shopifyData.customer_name,
+          });
+        }
       } catch (error: any) {
         console.error(`[Processor] Shopify lookup failed:`, error.message);
         // Continue without Shopify data
@@ -254,10 +289,22 @@ async function processMessage(
     }
   }
 
-  // 10. Fluxo de solicitação de dados (se não tiver número do pedido)
+  // 11. Fluxo de solicitação de dados (se não tiver número do pedido)
   if (needsOrderData && !shopifyData && conversation.data_request_count < MAX_DATA_REQUESTS) {
-    const dataRequestMsg = generateDataRequestMessage(classification.category, shop);
-    await sendReply(message, conversation, shop, dataRequestMsg, 'data_requested', supabase);
+    // generateDataRequestMessage: (shopContext, emailSubject, emailBody, attemptNumber, language)
+    const dataRequestResult = await generateDataRequestMessage(
+      {
+        name: shop.name,
+        attendant_name: shop.attendant_name,
+        tone_of_voice: shop.tone_of_voice || 'friendly',
+      },
+      message.subject || '',
+      cleanBody,
+      (conversation.data_request_count || 0) + 1,
+      classification.language || 'en'
+    );
+
+    await sendReply(message, conversation, shop, dataRequestResult.response, 'data_requested');
 
     await updateConversation(conversation.id, {
       data_request_count: (conversation.data_request_count || 0) + 1,
@@ -274,10 +321,25 @@ async function processMessage(
     return; // Success
   }
 
-  // 11. Escalate para humano se MAX_DATA_REQUESTS excedido
-  if (needsOrderData && !shopifyData && conversation.data_request_count >= MAX_DATA_REQUESTS) {
-    const humanFallbackMsg = generateHumanFallbackMessage(shop);
-    await sendReply(message, conversation, shop, humanFallbackMsg, 'forwarded_to_human', supabase);
+  // 12. Escalate para humano se MAX_DATA_REQUESTS excedido ou categoria suporte_humano
+  if (
+    classification.category === 'suporte_humano' ||
+    (needsOrderData && !shopifyData && conversation.data_request_count >= MAX_DATA_REQUESTS)
+  ) {
+    // generateHumanFallbackMessage: (shopContext, customerName, language)
+    const humanFallbackResult = await generateHumanFallbackMessage(
+      {
+        name: shop.name,
+        attendant_name: shop.attendant_name,
+        support_email: shop.support_email,
+        tone_of_voice: shop.tone_of_voice || 'friendly',
+        fallback_message_template: shop.fallback_message_template,
+      },
+      shopifyData?.customer_name || conversation.customer_name || null,
+      classification.language || 'en'
+    );
+
+    await sendReply(message, conversation, shop, humanFallbackResult.response, 'forwarded_to_human');
 
     await updateMessage(message.id, {
       status: 'pending_human',
@@ -288,26 +350,53 @@ async function processMessage(
       status: 'pending_human',
     });
 
+    // Forward to human support
+    await forwardToHuman(shop, message);
+
     await logProcessingEvent({
       shop_id: shop.id,
       message_id: message.id,
       conversation_id: conversation.id,
       event_type: 'forwarded_to_human',
-      event_data: { reason: 'max_data_requests_exceeded' },
+      event_data: {
+        reason: classification.category === 'suporte_humano'
+          ? 'suporte_humano_category'
+          : 'max_data_requests_exceeded'
+      },
     });
 
     return; // Success
   }
 
-  // 12. Gerar resposta com IA
-  const conversationHistory = await getConversationHistory(conversation.id, 3);
+  // 13. Gerar resposta com IA
   const aiResponse = await generateResponse(
-    cleanBody,
+    {
+      name: shop.name,
+      attendant_name: shop.attendant_name,
+      tone_of_voice: shop.tone_of_voice || 'friendly',
+      store_description: shop.store_description,
+      delivery_time: shop.delivery_time,
+      dispatch_time: shop.dispatch_time,
+      warranty_info: shop.warranty_info,
+      signature_html: shop.signature_html,
+      is_cod: shop.is_cod,
+    },
     message.subject || '',
+    cleanBody,
     classification.category,
-    shop,
-    shopifyData,
-    conversationHistory
+    conversationHistory,
+    shopifyData ? {
+      order_number: shopifyData.order_number,
+      order_date: shopifyData.order_date,
+      order_status: shopifyData.order_status,
+      order_total: shopifyData.order_total,
+      tracking_number: shopifyData.tracking_number,
+      tracking_url: shopifyData.tracking_url,
+      fulfillment_status: shopifyData.fulfillment_status,
+      items: shopifyData.items || [],
+      customer_name: shopifyData.customer_name,
+    } : null,
+    classification.language || 'en'
   );
 
   await logProcessingEvent({
@@ -323,10 +412,30 @@ async function processMessage(
     tokens_output: aiResponse.tokens_output,
   });
 
-  // 13. Enviar resposta por email
-  await sendReply(message, conversation, shop, aiResponse.response, 'response_sent', supabase);
+  // Check if AI wants to forward to human
+  let finalStatus: 'replied' | 'pending_human' = 'replied';
+  if (aiResponse.forward_to_human) {
+    finalStatus = 'pending_human';
+    await forwardToHuman(shop, message);
+  }
 
-  // 14. Incrementar uso de créditos
+  // 14. Enviar resposta por email
+  await sendReply(message, conversation, shop, aiResponse.response, 'response_sent');
+
+  // 15. Atualizar status da mensagem
+  await updateMessage(message.id, {
+    status: finalStatus,
+    tokens_input: aiResponse.tokens_input,
+    tokens_output: aiResponse.tokens_output,
+    processed_at: new Date().toISOString(),
+    replied_at: new Date().toISOString(),
+  });
+
+  if (finalStatus === 'pending_human') {
+    await updateConversation(conversation.id, { status: 'pending_human' });
+  }
+
+  // 16. Incrementar uso de créditos
   await incrementEmailsUsed(user.id);
 
   console.log(`[Processor] Message ${message.id} processed successfully`);
@@ -340,30 +449,28 @@ async function sendReply(
   conversation: Conversation,
   shop: Shop,
   replyText: string,
-  eventType: string,
-  supabase: any
+  eventType: string
 ): Promise<void> {
   // Build reply headers
   const replyHeaders = buildReplyHeaders(message.message_id, message.references_header);
   const replySubject = buildReplySubject(message.subject || '');
 
-  // Send via SMTP
-  const emailCredentials = {
-    host: shop.email_imap_host || '',
-    port: parseInt(shop.email_smtp_port || '587', 10),
-    user: shop.email_imap_user || '',
-    password: shop.email_imap_password || '', // Already decrypted by caller
-    secure: shop.email_smtp_port === '465',
-  };
+  // Decrypt email credentials properly
+  const emailCredentials = await decryptEmailCredentials(shop);
+
+  if (!emailCredentials) {
+    console.error(`[Processor] Failed to decrypt email credentials for shop ${shop.id}`);
+    throw new Error('Failed to decrypt email credentials');
+  }
 
   try {
     await sendEmail(emailCredentials, {
-      from: shop.email_imap_user || '',
       to: message.from_email,
       subject: replySubject,
-      text: replyText,
-      inReplyTo: message.message_id,
+      body_text: replyText,
+      in_reply_to: message.message_id || undefined,
       references: replyHeaders.references,
+      from_name: shop.attendant_name || shop.name,
     });
   } catch (error: any) {
     console.error(`[Processor] SMTP send failed:`, error.message);
@@ -373,8 +480,8 @@ async function sendReply(
   // Save outbound message
   await saveMessage({
     conversation_id: conversation.id,
-    from_email: shop.email_imap_user || '',
-    from_name: shop.name,
+    from_email: emailCredentials.smtp_user || shop.imap_user || '',
+    from_name: shop.attendant_name || shop.name,
     to_email: message.from_email,
     subject: replySubject,
     body_text: replyText,
@@ -411,6 +518,59 @@ async function sendReply(
 }
 
 /**
+ * Encaminha email para suporte humano
+ */
+async function forwardToHuman(shop: Shop, message: Message): Promise<void> {
+  const emailCredentials = await decryptEmailCredentials(shop);
+  if (!emailCredentials) return;
+
+  const forwardSubject = `[ENCAMINHADO] ${message.subject || 'Sem assunto'} - De: ${message.from_email}`;
+
+  const forwardBody = `
+Este email foi encaminhado automaticamente pelo Replyna porque requer atendimento humano.
+
+═══════════════════════════════════════
+DADOS DO CLIENTE
+═══════════════════════════════════════
+Email: ${message.from_email}
+Nome: ${message.from_name || 'Não informado'}
+
+═══════════════════════════════════════
+MENSAGEM ORIGINAL
+═══════════════════════════════════════
+Assunto: ${message.subject || 'Sem assunto'}
+Data: ${message.received_at || message.created_at}
+
+${message.body_text || message.body_html || '(Sem conteúdo)'}
+
+═══════════════════════════════════════
+Responda diretamente ao cliente em: ${message.from_email}
+`;
+
+  try {
+    await sendEmail(emailCredentials, {
+      to: shop.support_email,
+      subject: forwardSubject,
+      body_text: forwardBody,
+      from_name: 'Replyna Bot',
+    });
+
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      event_type: 'forwarded_to_human',
+      event_data: {
+        forwarded_to: shop.support_email,
+        reason: 'email_forwarded',
+      },
+    });
+  } catch (error: any) {
+    console.error(`[Processor] Failed to forward to human:`, error.message);
+    // Don't throw - this is not critical
+  }
+}
+
+/**
  * Verifica se mensagem é apenas agradecimento
  */
 function isAcknowledgmentMessage(body: string, subject: string): boolean {
@@ -420,7 +580,7 @@ function isAcknowledgmentMessage(body: string, subject: string): boolean {
   const acknowledgmentPatterns = [
     /^(ok|okay|obrigad[oa]|thanks?|thank you|gracias|grazie|merci|danke)\s*[!.]*$/,
     /^(entendido|perfeito|perfect|perfetto|excelente|excellent)\s*[!.]*$/,
-    /^(recebido|received|re\u00e7u|ricevuto)\s*[!.]*$/,
+    /^(recebido|received|reçu|ricevuto)\s*[!.]*$/,
   ];
 
   for (const pattern of acknowledgmentPatterns) {
