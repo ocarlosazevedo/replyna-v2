@@ -3,7 +3,7 @@
  * Usa a Service Role Key para bypass de RLS quando necessário
  */
 
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 
 // Tipos das tabelas
 export interface Shop {

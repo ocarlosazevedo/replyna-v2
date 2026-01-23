@@ -5,7 +5,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { ImapFlow } from 'npm:imapflow@1.0.162';
 
 const corsHeaders = {

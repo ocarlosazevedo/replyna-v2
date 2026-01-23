@@ -11,7 +11,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { getStripeClient, verifyWebhookSignature, Stripe } from '../_shared/stripe.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
 
@@ -470,6 +470,13 @@ async function handleSubscriptionUpdate(
   const status = mapStripeStatus(subscription.status);
   const priceId = subscription.items.data[0]?.price.id;
 
+  // Helper para converter timestamp Stripe para ISO string (previne Invalid Date)
+  const toISOStringOrNull = (timestamp: number | null | undefined): string | null => {
+    if (!timestamp || typeof timestamp !== 'number' || timestamp <= 0) return null;
+    const date = new Date(timestamp * 1000);
+    return isNaN(date.getTime()) ? null : date.toISOString();
+  };
+
   // Atualizar assinatura
   const { error } = await supabase
     .from('subscriptions')
@@ -479,9 +486,7 @@ async function handleSubscriptionUpdate(
       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
       cancel_at_period_end: subscription.cancel_at_period_end,
-      canceled_at: subscription.canceled_at && typeof subscription.canceled_at === 'number'
-        ? new Date(subscription.canceled_at * 1000).toISOString()
-        : null,
+      canceled_at: toISOStringOrNull(subscription.canceled_at as number | null),
     })
     .eq('stripe_subscription_id', subscription.id);
 
