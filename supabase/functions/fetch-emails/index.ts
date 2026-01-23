@@ -183,7 +183,14 @@ async function processShop(shop: Shop, supabase: any): Promise<ShopResult> {
     console.log(`[Shop:${shop.name}] Starting email fetch`);
 
     // Decrypt email credentials
-    const emailCredentials = decryptEmailCredentials(shop);
+    const emailCredentials = await decryptEmailCredentials(shop);
+
+    if (!emailCredentials) {
+      console.error(`[Shop:${shop.name}] Failed to decrypt email credentials`);
+      shopResult.errors++;
+      shopResult.error_message = 'Failed to decrypt email credentials';
+      return shopResult;
+    }
 
     // Calculate IMAP start date (fetch emails from last 7 days)
     const emailStartDate = new Date();

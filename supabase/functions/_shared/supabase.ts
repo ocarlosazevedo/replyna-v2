@@ -180,7 +180,7 @@ export function getSupabaseClient(): SupabaseClient {
 export async function getActiveShopsWithEmail(): Promise<Shop[]> {
   const supabase = getSupabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error} = await supabase
     .from('shops')
     .select('*')
     .eq('is_active', true)
