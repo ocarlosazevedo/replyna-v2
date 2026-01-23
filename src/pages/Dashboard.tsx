@@ -74,7 +74,8 @@ const formatDateTime = (date: Date) =>
 const getDefaultRange = (): DateRange => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  return { from: subDays(today, 6), to: today }
+  // Sempre retornar apenas "Hoje" como padrão
+  return { from: today, to: today }
 }
 
 const toLocalDateString = (date: Date) => {
@@ -284,14 +285,26 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return
+
+    // Sempre verificar se a data salva é de hoje
     const storedRange = localStorage.getItem(`${storagePrefix}.range`)
     if (storedRange) {
       try {
         const parsed = JSON.parse(storedRange)
         const from = parsed?.from ? parseLocalDateString(parsed.from) : null
         const to = parsed?.to ? parseLocalDateString(parsed.to) : null
-        if (from && to) {
-          setRange({ from, to })
+
+        // Verificar se o range salvo é de hoje
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const todayStr = toLocalDateString(today)
+
+        // Só restaurar se a data "to" for hoje, senão resetar para hoje
+        if (to && toLocalDateString(to) === todayStr) {
+          setRange({ from: from || today, to })
+        } else {
+          // Resetar para "Hoje" se a data salva não for de hoje
+          setRange(getDefaultRange())
         }
       } catch {
         setRange(getDefaultRange())
@@ -815,7 +828,7 @@ export default function Dashboard() {
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  Spam ({conversations.filter(c => c.category === 'spam').length})
+                  Spam ({conversations.filter(c => c.category === 'spam' && c.category).length})
                 </button>
               </div>
             </div>
@@ -854,8 +867,8 @@ export default function Dashboard() {
                   {categoryFilter === 'spam'
                     ? `${conversations.filter(c => c.category === 'spam').length} spam`
                     : categoryFilter === 'all'
-                      ? `${conversations.filter(c => c.category !== 'spam').length} conversas`
-                      : `${conversations.filter(c => c.category === categoryFilter).length} de ${conversations.filter(c => c.category !== 'spam').length}`}
+                      ? `${conversations.filter(c => c.category && c.category !== 'spam').length} conversas`
+                      : `${conversations.filter(c => c.category === categoryFilter).length} de ${conversations.filter(c => c.category && c.category !== 'spam').length}`}
                 </div>
               )}
             </div>
@@ -885,6 +898,9 @@ export default function Dashboard() {
                 <tbody>
                   {conversations
                     .filter((c) => {
+                      // Não mostrar conversas sem categoria (mensagens failed)
+                      if (!c.category) return false
+
                       if (categoryFilter === 'spam') return c.category === 'spam'
                       if (categoryFilter === 'all') return c.category !== 'spam'
                       return c.category === categoryFilter
