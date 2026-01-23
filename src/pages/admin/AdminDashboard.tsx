@@ -51,15 +51,6 @@ interface DashboardStats {
   categories: Record<string, number>
 }
 
-interface RecentUser {
-  id: string
-  name: string | null
-  email: string
-  plan: string
-  created_at: string
-  shops_count: number
-}
-
 interface Plan {
   name: string
   count: number
@@ -146,7 +137,6 @@ const filterCategories = [
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [recentUsers, setRecentUsers] = useState<RecentUser[]>([])
   const [planDistribution, setPlanDistribution] = useState<Plan[]>([])
   const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([])
   const [loading, setLoading] = useState(true)
@@ -188,7 +178,6 @@ export default function AdminDashboard() {
       const data = await response.json()
 
       setStats(data.stats)
-      setRecentUsers(data.recentUsers || [])
       setRecentConversations(data.recentConversations || [])
 
       // Processar distribuição por plano
