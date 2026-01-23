@@ -587,6 +587,7 @@ async function processMessageInternal(
   if (!message.from_email || !message.from_email.includes('@')) {
     await updateMessage(message.id, {
       status: 'failed',
+      category: 'spam', // Emails inválidos são tratados como spam
       error_message: 'Email do remetente inválido',
     });
     return 'skipped';
@@ -604,6 +605,7 @@ async function processMessageInternal(
   if (systemEmailPatterns.some(pattern => fromLower.includes(pattern))) {
     await updateMessage(message.id, {
       status: 'failed',
+      category: 'spam', // Emails de sistema são tratados como spam
       error_message: 'Email de sistema ignorado',
     });
     return 'skipped';
@@ -616,13 +618,20 @@ async function processMessageInternal(
   // 1. Verificar créditos
   const user = await getUserById(shop.user_id);
   if (!user) {
-    await updateMessage(message.id, { status: 'failed', error_message: 'Usuário não encontrado' });
+    await updateMessage(message.id, {
+      status: 'failed',
+      category: 'duvidas_gerais', // Categoria padrão para erros de sistema
+      error_message: 'Usuário não encontrado',
+    });
     return 'skipped';
   }
 
   const hasCredits = await checkCreditsAvailable(user.id);
   if (!hasCredits) {
-    await updateMessage(message.id, { status: 'pending_credits' });
+    await updateMessage(message.id, {
+      status: 'pending_credits',
+      category: 'duvidas_gerais', // Categoria padrão temporária até ter créditos
+    });
     await handleCreditsExhausted(shop, user, message);
     return 'pending_credits';
   }
@@ -637,6 +646,7 @@ async function processMessageInternal(
   if (!cleanBody || cleanBody.trim().length < 3) {
     await updateMessage(message.id, {
       status: 'failed',
+      category: 'spam', // Emails vazios são tratados como spam
       error_message: 'Corpo e assunto do email vazios',
     });
     return 'skipped';
