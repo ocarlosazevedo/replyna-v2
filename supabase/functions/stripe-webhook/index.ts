@@ -8,9 +8,10 @@
  * - customer.subscription.deleted
  * - invoice.paid
  * - invoice.payment_failed
+ *
+ * Compatível com Deno v2.x (Supabase Edge Runtime 1.70+)
  */
 
-import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { getStripeClient, verifyWebhookSignature, Stripe } from '../_shared/stripe.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
@@ -36,7 +37,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   console.log('=== WEBHOOK STRIPE CHAMADO ===');
   console.log('Method:', req.method);
   console.log('URL:', req.url);
