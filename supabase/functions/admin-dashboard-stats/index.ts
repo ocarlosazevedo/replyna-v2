@@ -52,6 +52,7 @@ serve(async (req) => {
       shopsRes,
       allUsersForPlansRes,
       usersWithLimitsRes,
+      recentConversationsRes,
     ] = await Promise.all([
       supabase.from('users').select('*', { count: 'exact', head: true }),
       supabase.from('users').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -98,9 +99,17 @@ serve(async (req) => {
         .select('id, name, email, plan, created_at')
         .order('created_at', { ascending: false })
         .limit(5),
-      supabase.from('shops').select('user_id'),
+      supabase.from('shops').select('user_id, id, name'),
       supabase.from('users').select('plan'),
       supabase.from('users').select('emails_used, emails_limit'),
+      // Conversas recentes para o Super Inbox
+      supabase
+        .from('conversations')
+        .select('id, shop_id, customer_email, customer_name, subject, category, created_at, last_message_at')
+        .gte('created_at', dateStart)
+        .lte('created_at', dateEnd)
+        .order('last_message_at', { ascending: false })
+        .limit(50),
     ]);
 
     // Contar usuários no limite (emails_used >= emails_limit)
@@ -115,16 +124,35 @@ serve(async (req) => {
       categories[cat] = (categories[cat] || 0) + 1;
     });
 
-    // Processar usuários recentes com contagem de lojas
+    // Processar lojas para lookup
     const shopCountByUser: Record<string, number> = {};
-    (shopsRes.data || []).forEach((shop: { user_id: string }) => {
+    const shopById: Record<string, { id: string; name: string; user_id: string }> = {};
+    (shopsRes.data || []).forEach((shop: { user_id: string; id: string; name: string }) => {
       shopCountByUser[shop.user_id] = (shopCountByUser[shop.user_id] || 0) + 1;
+      shopById[shop.id] = shop;
     });
 
     const recentUsers = (recentUsersRes.data || []).map(
       (user: { id: string; name: string | null; email: string; plan: string; created_at: string }) => ({
         ...user,
         shops_count: shopCountByUser[user.id] || 0,
+      })
+    );
+
+    // Processar conversas recentes com dados da loja
+    const recentConversations = (recentConversationsRes.data || []).map(
+      (conv: {
+        id: string;
+        shop_id: string;
+        customer_email: string;
+        customer_name: string | null;
+        subject: string | null;
+        category: string | null;
+        created_at: string;
+        last_message_at: string | null;
+      }) => ({
+        ...conv,
+        shop_name: shopById[conv.shop_id]?.name || 'Loja desconhecida',
       })
     );
 
@@ -164,6 +192,7 @@ serve(async (req) => {
         stats,
         recentUsers,
         planDistribution,
+        recentConversations,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
