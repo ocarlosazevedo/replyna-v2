@@ -93,7 +93,11 @@ const categoryIcons: Record<string, typeof Package> = {
   pagamento: CreditCard,
   entrega: Truck,
   suporte_humano: Headphones,
-  outros: HelpCircle,
+  duvidas_gerais: HelpCircle,
+  troca_devolucao_reembolso: RefreshCw,
+  edicao_pedido: Package,
+  spam: AlertTriangle,
+  acknowledgment: CheckCircle,
 }
 
 const categoryLabels: Record<string, string> = {
@@ -107,7 +111,7 @@ const categoryLabels: Record<string, string> = {
   produto: 'Produto',
   pagamento: 'Pagamento',
   entrega: 'Entrega',
-  outros: 'Outros',
+  acknowledgment: 'Confirmacao',
 }
 
 const categoryColors: Record<string, string> = {
@@ -121,7 +125,7 @@ const categoryColors: Record<string, string> = {
   produto: '#8b5cf6',
   pagamento: '#22c55e',
   entrega: '#f59e0b',
-  outros: '#6b7280',
+  acknowledgment: '#10b981',
 }
 
 // Categorias disponíveis para filtro no Super Inbox
@@ -132,7 +136,7 @@ const filterCategories = [
   { value: 'troca_devolucao_reembolso', label: 'Troca/Devolucao/Reembolso' },
   { value: 'edicao_pedido', label: 'Edicao de pedido' },
   { value: 'suporte_humano', label: 'Suporte humano' },
-  { value: 'outros', label: 'Outros' },
+  { value: 'acknowledgment', label: 'Confirmacao' },
 ]
 
 export default function AdminDashboard() {
@@ -219,7 +223,7 @@ export default function AdminDashboard() {
   })
 
   const formatDate = (date: string) =>
-    format(new Date(date), "dd 'de' MMM", { locale: ptBR })
+    format(new Date(date), "dd 'de' MMM, HH:mm", { locale: ptBR })
 
   if (loading) {
     return (
@@ -664,7 +668,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {filteredConversations.map((conv) => {
-                    const categoryColor = categoryColors[conv.category || 'outros'] || '#6b7280'
+                    const categoryColor = (conv.category && categoryColors[conv.category]) || '#6b7280'
                     return (
                       <tr
                         key={conv.id}
@@ -725,7 +729,7 @@ export default function AdminDashboard() {
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            {categoryLabels[conv.category || 'outros'] || conv.category || 'Outros'}
+                            {(conv.category && categoryLabels[conv.category]) || conv.category || 'Sem categoria'}
                           </span>
                         </td>
                         <td style={{ padding: '12px 8px', textAlign: 'right' }}>
