@@ -1108,6 +1108,40 @@ export function extractName(emailString: string): string | null {
 }
 
 /**
+ * Extrai um nome "humanizado" a partir do endereço de email
+ * Ex: "joao.silva@gmail.com" -> "Joao Silva"
+ * Ex: "maria_santos123@example.com" -> "Maria Santos"
+ * Usado como fallback quando não há display name no header From
+ */
+export function extractNameFromEmail(email: string): string | null {
+  if (!email || !email.includes('@')) return null;
+
+  // Pegar a parte antes do @
+  const localPart = email.split('@')[0];
+  if (!localPart) return null;
+
+  // Remover números do final (ex: joao.silva123 -> joao.silva)
+  const withoutTrailingNumbers = localPart.replace(/\d+$/, '');
+
+  // Substituir separadores comuns por espaços
+  const withSpaces = withoutTrailingNumbers
+    .replace(/[._-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Se ficou muito curto ou só números, retornar null
+  if (!withSpaces || withSpaces.length < 2) return null;
+
+  // Capitalizar cada palavra
+  const capitalized = withSpaces
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+
+  return capitalized;
+}
+
+/**
  * Limpa o corpo do email removendo assinaturas e quotes anteriores
  */
 export function cleanEmailBody(body: string): string {

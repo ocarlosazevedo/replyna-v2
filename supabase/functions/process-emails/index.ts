@@ -18,9 +18,9 @@ declare const Deno: {
   env: {
     get(key: string): string | undefined;
   };
+  serve(handler: (req: Request) => Response | Promise<Response>): void;
 };
 
-import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import {
   getSupabaseClient,
   getActiveShopsWithEmail,
@@ -48,6 +48,7 @@ import {
   buildReplyHeaders,
   buildReplySubject,
   cleanEmailBody,
+  extractNameFromEmail,
   type IncomingEmail,
 } from '../_shared/email.ts';
 
@@ -211,7 +212,7 @@ async function processInBatches<T, R>(
 /**
  * Handler principal da Edge Function
  */
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method !== 'POST' && req.method !== 'GET') {
     return new Response('Method not allowed', { status: 405 });
   }
@@ -510,8 +511,10 @@ async function saveIncomingEmail(shopId: string, email: IncomingEmail): Promise<
     email.in_reply_to || undefined
   );
 
-  if (finalFromName) {
-    await updateConversation(conversationId, { customer_name: finalFromName });
+  // Usar nome do email se disponível, senão tentar extrair do endereço de email
+  const customerName = finalFromName || extractNameFromEmail(finalFromEmail);
+  if (customerName) {
+    await updateConversation(conversationId, { customer_name: customerName });
   }
 
   await saveMessage({
