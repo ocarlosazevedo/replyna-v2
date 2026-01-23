@@ -315,6 +315,8 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
   const [reprocessing, setReprocessing] = useState(false)
   const [reprocessError, setReprocessError] = useState<string | null>(null)
   const [reprocessSuccess, setReprocessSuccess] = useState(false)
+  const [translations, setTranslations] = useState<Record<string, string>>({})
+  const [translatingId, setTranslatingId] = useState<string | null>(null)
 
   const loadConversation = useCallback(async () => {
     if (!conversationId) return
@@ -521,6 +523,38 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
       setReprocessError(err instanceof Error ? err.message : 'Erro ao reprocessar email. Tente novamente.')
     } finally {
       setReprocessing(false)
+    }
+  }
+
+  const handleTranslate = async (messageId: string, text: string) => {
+    if (translatingId || translations[messageId]) return
+
+    setTranslatingId(messageId)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-message`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ text }),
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao traduzir')
+      }
+
+      const data = await response.json()
+      setTranslations(prev => ({ ...prev, [messageId]: data.translated }))
+    } catch (err) {
+      console.error('Erro ao traduzir:', err)
+      alert('Erro ao traduzir mensagem. Tente novamente.')
+    } finally {
+      setTranslatingId(null)
     }
   }
 
@@ -867,7 +901,51 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                   </span>
                 </div>
 
-                {message.body_html && isValidEmailHtml(message.body_html) ? (
+                {/* Conteúdo original ou traduzido */}
+                {translations[message.id] ? (
+                  <div>
+                    <div
+                      style={{
+                        fontSize: '14px',
+                        color: 'var(--text-primary)',
+                        lineHeight: '1.6',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        padding: '12px',
+                        backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                      }}
+                    >
+                      <div style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 600, marginBottom: '8px', textTransform: 'uppercase' }}>
+                        Traduzido para Portugues
+                      </div>
+                      {translations[message.id]}
+                    </div>
+                    <details style={{ marginTop: '8px' }}>
+                      <summary style={{ fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                        Ver original
+                      </summary>
+                      <div
+                        style={{
+                          fontSize: '13px',
+                          color: 'var(--text-secondary)',
+                          lineHeight: '1.5',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          marginTop: '8px',
+                          padding: '8px',
+                          backgroundColor: 'var(--bg-primary)',
+                          borderRadius: '6px',
+                        }}
+                      >
+                        {message.body_html && isValidEmailHtml(message.body_html)
+                          ? htmlToText(message.body_html)
+                          : cleanMessageBody(message.body_text)}
+                      </div>
+                    </details>
+                  </div>
+                ) : message.body_html && isValidEmailHtml(message.body_html) ? (
                   <div
                     style={{
                       fontSize: '14px',
@@ -892,8 +970,63 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                   </div>
                 )}
 
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                  {message.direction === 'inbound' ? `De: ${message.from_email}` : `Para: ${message.to_email}`}
+                {/* Botao de traduzir e info do email */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    {message.direction === 'inbound' ? `De: ${message.from_email}` : `Para: ${message.to_email}`}
+                  </div>
+                  {message.direction === 'inbound' && !translations[message.id] && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const text = message.body_html && isValidEmailHtml(message.body_html)
+                          ? htmlToText(message.body_html)
+                          : cleanMessageBody(message.body_text)
+                        handleTranslate(message.id, text)
+                      }}
+                      disabled={translatingId === message.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-secondary)',
+                        fontSize: '12px',
+                        cursor: translatingId === message.id ? 'not-allowed' : 'pointer',
+                        opacity: translatingId === message.id ? 0.7 : 1,
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {translatingId === message.id ? (
+                        <>
+                          <span style={{
+                            width: '10px',
+                            height: '10px',
+                            border: '2px solid var(--border-color)',
+                            borderTopColor: 'var(--text-secondary)',
+                            borderRadius: '50%',
+                            animation: 'spin 0.8s linear infinite',
+                          }} />
+                          Traduzindo...
+                        </>
+                      ) : (
+                        <>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M5 8l6 6" />
+                            <path d="M4 14l6-6 2-3" />
+                            <path d="M2 5h12" />
+                            <path d="M7 2h1" />
+                            <path d="M22 22l-5-10-5 10" />
+                            <path d="M14 18h6" />
+                          </svg>
+                          Traduzir
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             ))
