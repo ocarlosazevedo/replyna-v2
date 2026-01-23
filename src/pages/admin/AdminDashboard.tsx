@@ -755,6 +755,7 @@ export default function AdminDashboard() {
             )
           )
         }}
+        isAdmin={true}
       />
     </div>
   )

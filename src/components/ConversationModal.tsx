@@ -20,6 +20,7 @@ interface ConversationModalProps {
   conversationId: string | null
   onClose: () => void
   onCategoryChange?: (conversationId: string, newCategory: string) => void
+  isAdmin?: boolean
 }
 
 const formatDateTime = (date: Date) =>
@@ -295,7 +296,7 @@ function cleanMessageBody(body: string | null): string {
   return cleaned || '(Sem conteudo)'
 }
 
-export default function ConversationModal({ conversationId, onClose, onCategoryChange }: ConversationModalProps) {
+export default function ConversationModal({ conversationId, onClose, onCategoryChange, isAdmin = false }: ConversationModalProps) {
   const [conversation, setConversation] = useState<{
     id: string
     customer_email: string
@@ -323,45 +324,67 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     setReprocessSuccess(false)
 
     try {
-      // Carregar conversa com dados da loja
-      const { data: convData, error: convError } = await supabase
-        .from('conversations')
-        .select('id, customer_email, customer_name, subject, category, created_at, shop_id, shops(name, imap_user)')
-        .eq('id', conversationId)
-        .single()
+      if (isAdmin) {
+        // Admin: usar edge function para bypassar RLS
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-conversation-details?conversation_id=${conversationId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+          }
+        )
 
-      if (convError) throw convError
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Erro ao carregar conversa')
+        }
 
-      // Extrair dados da loja do join
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const shopData = (convData as any)?.shops
-      setConversation({
-        id: convData.id,
-        customer_email: convData.customer_email,
-        customer_name: convData.customer_name,
-        subject: convData.subject,
-        category: convData.category,
-        created_at: convData.created_at,
-        shop_id: convData.shop_id,
-        shop_email: shopData?.imap_user || (Array.isArray(shopData) ? shopData[0]?.imap_user : null),
-        shop_name: shopData?.name || (Array.isArray(shopData) ? shopData[0]?.name : null),
-      })
+        const data = await response.json()
+        setConversation(data.conversation)
+        setMessages((data.messages || []) as Message[])
+      } else {
+        // Usuário normal: usar cliente supabase com RLS
+        // Carregar conversa com dados da loja
+        const { data: convData, error: convError } = await supabase
+          .from('conversations')
+          .select('id, customer_email, customer_name, subject, category, created_at, shop_id, shops(name, imap_user)')
+          .eq('id', conversationId)
+          .single()
 
-      // Carregar mensagens
-      const { data: msgData, error: msgError } = await supabase
-        .from('messages')
-        .select('id, direction, from_email, to_email, subject, body_text, body_html, status, was_auto_replied, created_at, category')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
+        if (convError) throw convError
 
-      if (msgError) throw msgError
-      setMessages((msgData || []) as Message[])
+        // Extrair dados da loja do join
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const shopData = (convData as any)?.shops
+        setConversation({
+          id: convData.id,
+          customer_email: convData.customer_email,
+          customer_name: convData.customer_name,
+          subject: convData.subject,
+          category: convData.category,
+          created_at: convData.created_at,
+          shop_id: convData.shop_id,
+          shop_email: shopData?.imap_user || (Array.isArray(shopData) ? shopData[0]?.imap_user : null),
+          shop_name: shopData?.name || (Array.isArray(shopData) ? shopData[0]?.name : null),
+        })
+
+        // Carregar mensagens
+        const { data: msgData, error: msgError } = await supabase
+          .from('messages')
+          .select('id, direction, from_email, to_email, subject, body_text, body_html, status, was_auto_replied, created_at, category')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true })
+
+        if (msgError) throw msgError
+        setMessages((msgData || []) as Message[])
+      }
     } catch (err) {
       console.error('Erro ao carregar conversa:', err)
     } finally {
       setLoading(false)
     }
-  }, [conversationId])
+  }, [conversationId, isAdmin])
 
   useEffect(() => {
     if (conversationId) {
