@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
-import { subDays, format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { subDays } from 'date-fns'
 import {
   MessageSquare,
   Users,
@@ -223,7 +222,13 @@ export default function AdminDashboard() {
   })
 
   const formatDate = (date: string) =>
-    format(new Date(date), "dd 'de' MMM, HH:mm", { locale: ptBR })
+    new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo',
+    }).format(new Date(date))
 
   if (loading) {
     return (

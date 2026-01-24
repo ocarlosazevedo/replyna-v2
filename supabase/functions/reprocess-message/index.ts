@@ -14,9 +14,9 @@ declare const Deno: {
   env: {
     get(key: string): string | undefined;
   };
+  serve(handler: (req: Request) => Response | Promise<Response>): void;
 };
 
-import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import {
   getSupabaseClient,
   getUserById,
@@ -61,7 +61,7 @@ const corsHeaders = {
 
 const MAX_DATA_REQUESTS = 3;
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

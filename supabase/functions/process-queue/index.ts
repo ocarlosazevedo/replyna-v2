@@ -16,13 +16,6 @@
  */
 
 // deno-lint-ignore-file no-explicit-any
-declare const Deno: {
-  env: {
-    get(key: string): string | undefined;
-  };
-};
-
-import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
 
 // Importar lógica de processamento existente
@@ -52,7 +45,7 @@ interface ProcessResult {
   jobs_to_dlq: number;
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   const startTime = Date.now();
   const supabase = getSupabaseClient();
 

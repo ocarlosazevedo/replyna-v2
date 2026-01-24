@@ -264,6 +264,24 @@ async function handleCheckoutCompleted(
     if (existingUser) {
       userId = existingUser.id;
       console.log('Usuário já existe, usando ID:', userId);
+
+      // Se é fluxo de migração, enviar email de reset de senha mesmo para usuário existente
+      if (metadata.migration_invite_id) {
+        const supabaseAdmin = getSupabaseAdminClient();
+        try {
+          console.log('Enviando email de reset de senha para usuário existente (migração):', email);
+          const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+            redirectTo: 'https://app.replyna.me/reset-password',
+          });
+          if (resetError) {
+            console.error('Erro ao enviar email de reset:', resetError);
+          } else {
+            console.log('Email de definição de senha enviado com sucesso para:', email);
+          }
+        } catch (resetErr) {
+          console.error('Exceção ao enviar email de reset:', resetErr);
+        }
+      }
     } else {
       // Usuário não existe no banco - vamos criar usando Admin API
       console.log('Usuário não existe, criando via Admin API...');

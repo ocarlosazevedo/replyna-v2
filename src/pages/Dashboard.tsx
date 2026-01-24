@@ -68,6 +68,7 @@ const formatDateTime = (date: Date) =>
     month: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'America/Sao_Paulo',
   }).format(date)
 
 const getDefaultRange = (): DateRange => {

@@ -22,7 +22,6 @@ declare const Deno: {
   };
 };
 
-import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import {
   getSupabaseClient,
   getActiveShopsWithEmail,
@@ -67,7 +66,7 @@ interface FetchResult {
   shop_results: ShopResult[];
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   const startTime = Date.now();
   const supabase = getSupabaseClient();
 
