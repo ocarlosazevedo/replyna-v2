@@ -79,6 +79,7 @@ export interface Conversation {
   category: string | null;
   status: 'open' | 'resolved' | 'pending_human' | 'closed';
   data_request_count: number;
+  retention_contact_count: number;
   language: string;
   shopify_order_id: string | null;
   shopify_customer_id: string | null;

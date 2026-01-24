@@ -392,6 +392,16 @@ async function processMessage(
     return; // Success
   }
 
+  // 12.5 Incrementar contador de retenção se for cancelamento/reembolso
+  let currentRetentionCount = conversation.retention_contact_count || 0;
+  if (classification.category === 'troca_devolucao_reembolso') {
+    currentRetentionCount += 1;
+    await updateConversation(conversation.id, {
+      retention_contact_count: currentRetentionCount,
+    });
+    console.log(`[Processor] Retention contact #${currentRetentionCount} for conversation ${conversation.id}`);
+  }
+
   // 13. Gerar resposta com IA
   const aiResponse = await generateResponse(
     {
@@ -421,7 +431,8 @@ async function processMessage(
       items: shopifyData.items || [],
       customer_name: shopifyData.customer_name,
     } : null,
-    classification.language || 'en'
+    classification.language || 'en',
+    currentRetentionCount
   );
 
   await logProcessingEvent({
