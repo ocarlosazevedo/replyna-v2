@@ -513,17 +513,18 @@ async function processMessage(
     tokens_output: aiResponse.tokens_output,
   });
 
-  // Check if AI wants to forward to human OR if it's a refund/cancellation request
-  // Refund/cancellation requests need human validation from store owners
+  // Check if AI wants to forward to human
+  // Note: troca_devolucao_reembolso is handled by the AI directing customer to support email
   let finalStatus: 'replied' | 'pending_human' = 'replied';
-  const needsHumanValidation =
-    aiResponse.forward_to_human ||
-    classification.category === 'troca_devolucao_reembolso';
 
-  if (needsHumanValidation) {
+  if (aiResponse.forward_to_human) {
     finalStatus = 'pending_human';
     await forwardToHuman(shop, message);
-    console.log(`[Processor] Forwarding to human - category: ${classification.category}, ai_forward: ${aiResponse.forward_to_human}`);
+    console.log(`[Processor] Forwarding to human - ai_forward: true`);
+  } else if (classification.category === 'troca_devolucao_reembolso') {
+    // Mark as pending_human but don't forward - AI directs customer to contact support email
+    finalStatus = 'pending_human';
+    console.log(`[Processor] Marked as pending_human - category: troca_devolucao_reembolso (customer directed to support email)`);
   }
 
   // 14. Enviar resposta por email
@@ -541,15 +542,17 @@ async function processMessage(
   if (finalStatus === 'pending_human') {
     await updateConversation(conversation.id, { status: 'pending_human' });
 
-    // Log forwarding event
+    // Log event - different reasons for different scenarios
     await logProcessingEvent({
       shop_id: shop.id,
       message_id: message.id,
       conversation_id: conversation.id,
-      event_type: 'forwarded_to_human',
+      event_type: classification.category === 'troca_devolucao_reembolso'
+        ? 'directed_to_support'  // Customer directed to contact support email
+        : 'forwarded_to_human',  // Email actually forwarded to human
       event_data: {
         reason: classification.category === 'troca_devolucao_reembolso'
-          ? 'refund_cancellation_validation'
+          ? 'customer_directed_to_support_email'
           : 'ai_requested_forward',
         category: classification.category,
       },
