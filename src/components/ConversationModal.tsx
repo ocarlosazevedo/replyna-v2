@@ -1049,6 +1049,14 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
           max-width: 100% !important;
           box-sizing: border-box;
         }
+        /* Forçar cor do texto para o tema atual - evita texto preto em fundo escuro */
+        .email-html-content,
+        .email-html-content * {
+          color: var(--text-primary) !important;
+        }
+        .email-html-content a {
+          color: var(--accent) !important;
+        }
         .email-html-content img {
           max-width: 100% !important;
           height: auto !important;
