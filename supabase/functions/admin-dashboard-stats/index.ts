@@ -102,12 +102,13 @@ serve(async (req) => {
       supabase.from('shops').select('user_id, id, name'),
       supabase.from('users').select('id, name, email, plan'),
       supabase.from('users').select('emails_used, emails_limit'),
-      // Conversas recentes para o Super Inbox (todas as conversas, incluindo pendentes)
+      // Conversas recentes para o Super Inbox (apenas conversas finalizadas)
       supabase
         .from('conversations')
         .select('id, shop_id, customer_email, customer_name, subject, category, created_at, last_message_at')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd)
+        .in('status', ['completed', 'pending_human', 'closed'])
         .order('last_message_at', { ascending: false, nullsFirst: false })
         .limit(100),
     ]);
