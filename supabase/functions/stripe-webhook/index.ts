@@ -208,6 +208,13 @@ async function handleCheckoutCompleted(
     const purchaseId = metadata.purchase_id;
     const paymentIntentId = session.payment_intent as string;
 
+    // Buscar user_id da compra antes de confirmar
+    const { data: purchase } = await supabase
+      .from('extra_email_purchases')
+      .select('user_id')
+      .eq('id', purchaseId)
+      .single();
+
     // Confirmar a compra no banco
     const { error: confirmError } = await supabase.rpc('confirm_extra_email_purchase', {
       p_purchase_id: purchaseId,
@@ -221,6 +228,12 @@ async function handleCheckoutCompleted(
     }
 
     console.log('Compra de emails extras confirmada:', purchaseId);
+
+    // Reprocessar mensagens pendentes de créditos para este usuário
+    if (purchase?.user_id) {
+      await processPendingCreditsForUser(purchase.user_id);
+    }
+
     return;
   }
 
@@ -616,6 +629,9 @@ async function handleInvoicePaid(
         .eq('id', sub.user_id);
 
       console.log('Créditos resetados para usuário:', sub.user_id);
+
+      // Reprocessar mensagens pendentes de créditos para este usuário
+      await processPendingCreditsForUser(sub.user_id);
     }
   }
 }
@@ -668,4 +684,37 @@ function mapStripeStatus(stripeStatus: string): string {
     incomplete_expired: 'canceled',
   };
   return statusMap[stripeStatus] || 'active';
+}
+
+/**
+ * Reprocessa mensagens pendentes de créditos
+ * Chamada automaticamente quando o usuário compra créditos extras ou renova assinatura
+ */
+async function processPendingCreditsForUser(userId: string): Promise<void> {
+  try {
+    console.log('[stripe-webhook] Chamando process-pending-credits para user:', userId);
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/process-pending-credits`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ user_id: userId }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[stripe-webhook] Erro ao chamar process-pending-credits:', response.status, errorText);
+    } else {
+      const result = await response.json();
+      console.log('[stripe-webhook] process-pending-credits resultado:', JSON.stringify(result));
+    }
+  } catch (error) {
+    console.error('[stripe-webhook] Exceção ao chamar process-pending-credits:', error);
+    // Não lançamos erro aqui para não interromper o fluxo do webhook
+  }
 }
