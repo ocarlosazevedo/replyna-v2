@@ -48,7 +48,7 @@ import {
 
 const MAX_DATA_REQUESTS = 3;
 
-// System email patterns to ignore
+// System email patterns to ignore (expanded list)
 const systemEmailPatterns = [
   'no-reply',
   'noreply',
@@ -56,6 +56,22 @@ const systemEmailPatterns = [
   'postmaster',
   'bounce',
   'do-not-reply',
+  'donotreply',
+  'daemon',
+  'auto-reply',
+  'autoreply',
+  'automated',
+  'notification',
+  'notifications',
+  'alert@',
+  'alerts@',
+  'system@',
+  'admin@',
+  'support@shopify',
+  'mail-daemon',
+  'failure',
+  'undeliverable',
+  'returned',
 ];
 
 /**
@@ -228,6 +244,31 @@ async function processMessage(
     conversationHistory.slice(0, -1) // Excluir a mensagem atual
   );
 
+  // 9. Se for spam, NÃO salvar categoria, NÃO atualizar conversa, NÃO responder
+  if (classification.category === 'spam') {
+    await updateMessage(message.id, {
+      status: 'failed',
+      error_message: 'Email classificado como spam',
+      processed_at: new Date().toISOString(),
+      // NÃO salva categoria para spam
+    });
+
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'spam_detected',
+      event_data: {
+        confidence: classification.confidence,
+        summary: classification.summary,
+      },
+    });
+
+    console.log(`[Processor] Message ${message.id} classified as SPAM, ignoring`);
+    return; // Success without replying - NO category saved
+  }
+
+  // 10. Salvar categoria apenas para emails NÃO-spam
   await updateMessage(message.id, {
     category: classification.category,
     category_confidence: classification.confidence,
@@ -245,22 +286,12 @@ async function processMessage(
     },
   });
 
-  // Update conversation category
-  if (!conversation.category && classification.category !== 'spam') {
+  // Update conversation category (apenas para NÃO-spam)
+  if (!conversation.category) {
     await updateConversation(conversation.id, {
       category: classification.category,
       language: classification.language,
     });
-  }
-
-  // 9. Se for spam, não responder
-  if (classification.category === 'spam') {
-    await updateMessage(message.id, {
-      status: 'failed',
-      error_message: 'Email classificado como spam',
-      processed_at: new Date().toISOString(),
-    });
-    return; // Success without replying
   }
 
   // 10. Buscar dados do Shopify se necessário
