@@ -123,6 +123,30 @@ async function processMessage(
 ): Promise<void> {
   console.log(`[Processor] Processing message ${message.id} from ${message.from_email}`);
 
+  // Check if message was already processed (prevent duplicate processing)
+  if (message.status === 'replied' || message.status === 'processing') {
+    console.log(`[Processor] Message ${message.id} already processed (status: ${message.status}), skipping`);
+    return;
+  }
+
+  // Check if there's a recent reply to this conversation (prevent duplicate responses)
+  const recentReplyCheck = await getConversationHistory(conversation.id, 5);
+  const recentOutbound = (recentReplyCheck || []).filter((msg: Message) =>
+    msg.direction === 'outbound' &&
+    msg.was_auto_replied === true &&
+    msg.created_at > new Date(Date.now() - 30 * 60 * 1000).toISOString() // Last 30 minutes
+  );
+
+  if (recentOutbound.length > 0) {
+    console.log(`[Processor] Conversation ${conversation.id} already has recent auto-reply (${recentOutbound.length} in last 30min), skipping to avoid duplicate`);
+    await updateMessage(message.id, {
+      status: 'replied',
+      error_message: 'Skipped - recent auto-reply exists',
+      processed_at: new Date().toISOString(),
+    });
+    return;
+  }
+
   // Mark as processing
   await updateMessage(message.id, { status: 'processing' });
 
