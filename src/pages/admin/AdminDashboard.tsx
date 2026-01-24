@@ -2,13 +2,11 @@ import { useEffect, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 import { subDays } from 'date-fns'
 import {
-  MessageSquare,
   Users,
   Store,
   CheckCircle,
   Mail,
   AlertTriangle,
-  UserPlus,
   TrendingUp,
   Package,
   RefreshCw,
@@ -37,20 +35,14 @@ function useIsMobile() {
 }
 
 interface DashboardStats {
-  totalUsers: number
-  activeUsers: number
-  totalShops: number
-  activeShops: number
-  totalConversations: number
-  totalMessages: number
-  // Novas métricas de email
+  totalUsers: number // usado para calcular % de planos
+  // Métricas de email
   emailsReceived: number
   emailsReplied: number
   humanEmails: number
   automationRate: number
   successRate: number
-  // Métricas existentes
-  newUsersInPeriod: number
+  // Métricas de conversas
   usersAtLimit: number
   categories: Record<string, number>
 }
@@ -329,68 +321,7 @@ export default function AdminDashboard() {
         <DateRangePicker value={range} onChange={setRange} />
       </div>
 
-      {/* Metricas principais - Linha 1 */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px', marginBottom: isMobile ? '12px' : '24px' }}>
-        <div style={statCardStyle}>
-          <div style={iconBoxStyle('#3b82f6')}>
-            <Users size={isMobile ? 20 : 24} style={{ color: '#3b82f6' }} />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Total de Clientes</div>
-            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {stats?.totalUsers || 0}
-            </div>
-            <div style={{ fontSize: isMobile ? '10px' : '12px', color: '#22c55e', marginTop: '4px' }}>{stats?.activeUsers || 0} ativos</div>
-          </div>
-        </div>
-
-        <div style={statCardStyle}>
-          <div style={iconBoxStyle('#8b5cf6')}>
-            <Store size={isMobile ? 20 : 24} style={{ color: '#8b5cf6' }} />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Total de Lojas</div>
-            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {stats?.totalShops || 0}
-            </div>
-            <div style={{ fontSize: isMobile ? '10px' : '12px', color: '#22c55e', marginTop: '4px' }}>{stats?.activeShops || 0} ativas</div>
-          </div>
-        </div>
-
-        <div style={statCardStyle}>
-          <div style={iconBoxStyle('#f59e0b')}>
-            <MessageSquare size={isMobile ? 20 : 24} style={{ color: '#f59e0b' }} />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Conversas
-            </div>
-            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {stats?.totalConversations || 0}
-            </div>
-            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              {stats?.totalMessages || 0} mensagens
-            </div>
-          </div>
-        </div>
-
-        <div style={statCardStyle}>
-          <div style={iconBoxStyle('#10b981')}>
-            <UserPlus size={isMobile ? 20 : 24} style={{ color: '#10b981' }} />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Novos Cadastros</div>
-            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {stats?.newUsersInPeriod || 0}
-            </div>
-            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              no periodo
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Metricas de Email - Linha 2 */}
+      {/* Metricas de Email */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? '12px' : '24px', marginBottom: isMobile ? '12px' : '24px' }}>
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#06b6d4')}>
