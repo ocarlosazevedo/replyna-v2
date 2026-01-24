@@ -44,9 +44,10 @@ serve(async (req) => {
       activeShopsRes,
       conversationsRes,
       totalMessagesRes,
-      autoRepliedRes,
+      inboundEmailsRes,
+      outboundEmailsRes,
+      humanEmailsRes,
       newUsersInPeriodRes,
-      emailsProcessedRes,
       categoriesRes,
       recentUsersRes,
       shopsRes,
@@ -68,25 +69,32 @@ serve(async (req) => {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
-      // Mensagens inbound que foram auto-respondidas
+      // E-mails recebidos (inbound, excluindo spam)
       supabase
         .from('messages')
         .select('*', { count: 'exact', head: true })
         .eq('direction', 'inbound')
-        .eq('was_auto_replied', true)
+        .neq('category', 'spam')
+        .gte('created_at', dateStart)
+        .lte('created_at', dateEnd),
+      // E-mails respondidos (outbound)
+      supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('direction', 'outbound')
+        .gte('created_at', dateStart)
+        .lte('created_at', dateEnd),
+      // E-mails humanos (status pending_human)
+      supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('direction', 'inbound')
+        .eq('status', 'pending_human')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
       supabase
         .from('users')
         .select('*', { count: 'exact', head: true })
-        .gte('created_at', dateStart)
-        .lte('created_at', dateEnd),
-      // Mensagens inbound enviadas para suporte humano
-      supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('direction', 'inbound')
-        .eq('category', 'suporte_humano')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
       supabase
@@ -189,11 +197,21 @@ serve(async (req) => {
       return nameA.localeCompare(nameB);
     });
 
-    // Taxa de automação = auto-respondidos / (auto-respondidos + enviados para humano)
-    // Ignora emails sem resposta (spam antigo classificado como "outros")
-    const autoRepliedCount = autoRepliedRes.count || 0;
-    const sentToHumanCount = emailsProcessedRes.count || 0; // Agora é a query de suporte_humano
-    const totalHandled = autoRepliedCount + sentToHumanCount;
+    // Métricas de email
+    const emailsReceived = inboundEmailsRes.count || 0;
+    const emailsReplied = outboundEmailsRes.count || 0;
+    const humanEmails = humanEmailsRes.count || 0;
+
+    // Taxa de automação = emails respondidos / emails recebidos
+    const automationRate = emailsReceived > 0
+      ? Math.round((emailsReplied / emailsReceived) * 100)
+      : 0;
+
+    // Taxa de sucesso = (emails respondidos - emails humanos) / emails respondidos
+    // Representa % de emails resolvidos automaticamente sem intervenção humana
+    const successRate = emailsReplied > 0
+      ? Math.round(((emailsReplied - humanEmails) / emailsReplied) * 100)
+      : 0;
 
     const stats = {
       totalUsers: totalUsersRes.count || 0,
@@ -202,11 +220,14 @@ serve(async (req) => {
       activeShops: activeShopsRes.count || 0,
       totalConversations: conversationsRes.count || 0,
       totalMessages: totalMessagesRes.count || 0,
-      automationRate: totalHandled > 0
-        ? Math.round((autoRepliedCount / totalHandled) * 100)
-        : 0,
+      // Novas métricas de email
+      emailsReceived,
+      emailsReplied,
+      humanEmails,
+      automationRate,
+      successRate,
+      // Métricas existentes
       newUsersInPeriod: newUsersInPeriodRes.count || 0,
-      emailsProcessed: autoRepliedCount,
       usersAtLimit: usersAtLimitCount,
       categories,
     };

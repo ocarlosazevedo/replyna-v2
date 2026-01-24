@@ -43,9 +43,14 @@ interface DashboardStats {
   activeShops: number
   totalConversations: number
   totalMessages: number
+  // Novas métricas de email
+  emailsReceived: number
+  emailsReplied: number
+  humanEmails: number
   automationRate: number
+  successRate: number
+  // Métricas existentes
   newUsersInPeriod: number
-  emailsProcessed: number
   usersAtLimit: number
   categories: Record<string, number>
 }
@@ -370,24 +375,6 @@ export default function AdminDashboard() {
         </div>
 
         <div style={statCardStyle}>
-          <div style={iconBoxStyle('#22c55e')}>
-            <CheckCircle size={isMobile ? 20 : 24} style={{ color: '#22c55e' }} />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Taxa Automacao</div>
-            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {stats?.automationRate || 0}%
-            </div>
-            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              no periodo
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Metricas secundarias - Linha 2 */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px', marginBottom: isMobile ? '12px' : '24px' }}>
-        <div style={statCardStyle}>
           <div style={iconBoxStyle('#10b981')}>
             <UserPlus size={isMobile ? 20 : 24} style={{ color: '#10b981' }} />
           </div>
@@ -396,50 +383,93 @@ export default function AdminDashboard() {
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {stats?.newUsersInPeriod || 0}
             </div>
-            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>no periodo</div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              no periodo
+            </div>
           </div>
         </div>
+      </div>
 
+      {/* Metricas de Email - Linha 2 */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? '12px' : '24px', marginBottom: isMobile ? '12px' : '24px' }}>
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#06b6d4')}>
             <Mail size={isMobile ? 20 : 24} style={{ color: '#06b6d4' }} />
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Emails Recebidos
+              E-mails Recebidos
             </div>
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {stats?.emailsProcessed || 0}
+              {stats?.emailsReceived || 0}
             </div>
             <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>no periodo</div>
           </div>
         </div>
 
         <div style={statCardStyle}>
-          <div style={iconBoxStyle('#ef4444')}>
-            <AlertTriangle size={isMobile ? 20 : 24} style={{ color: '#ef4444' }} />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>No Limite</div>
-            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {stats?.usersAtLimit || 0}
-            </div>
-            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>sem creditos</div>
-          </div>
-        </div>
-
-        <div style={statCardStyle}>
-          <div style={iconBoxStyle('#a855f7')}>
-            <TrendingUp size={isMobile ? 20 : 24} style={{ color: '#a855f7' }} />
+          <div style={iconBoxStyle('#10b981')}>
+            <CheckCircle size={isMobile ? 20 : 24} style={{ color: '#10b981' }} />
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Media/Cliente
+              E-mails Respondidos
             </div>
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {stats?.totalUsers ? Math.round((stats?.emailsProcessed || 0) / stats.totalUsers) : 0}
+              {stats?.emailsReplied || 0}
             </div>
             <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>no periodo</div>
+          </div>
+        </div>
+
+        <div style={statCardStyle}>
+          <div style={iconBoxStyle('#8b5cf6')}>
+            <TrendingUp size={isMobile ? 20 : 24} style={{ color: '#8b5cf6' }} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+              Taxa de Automacao
+            </div>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              {stats?.automationRate || 0}%
+            </div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              respondidos/recebidos
+            </div>
+          </div>
+        </div>
+
+        <div style={statCardStyle}>
+          <div style={iconBoxStyle('#22c55e')}>
+            <CheckCircle size={isMobile ? 20 : 24} style={{ color: '#22c55e' }} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+              Taxa de Sucesso
+            </div>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              {stats?.successRate || 0}%
+            </div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              sem intervencao humana
+            </div>
+          </div>
+        </div>
+
+        <div style={statCardStyle}>
+          <div style={iconBoxStyle('#f59e0b')}>
+            <Headphones size={isMobile ? 20 : 24} style={{ color: '#f59e0b' }} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+              E-mails Humanos
+            </div>
+            <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              {stats?.humanEmails || 0}
+            </div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              encaminhados
+            </div>
           </div>
         </div>
       </div>
