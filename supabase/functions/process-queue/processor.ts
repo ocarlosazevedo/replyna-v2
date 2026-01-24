@@ -170,8 +170,8 @@ async function processMessage(
   if (!message.from_email || !message.from_email.includes('@')) {
     await updateMessage(message.id, {
       status: 'failed',
-      category: 'spam',
       error_message: 'Email do remetente inválido',
+      // NÃO salva categoria para emails inválidos
     });
     throw new Error('Email do remetente inválido');
   }
@@ -181,9 +181,10 @@ async function processMessage(
   if (systemEmailPatterns.some((pattern) => fromLower.includes(pattern))) {
     await updateMessage(message.id, {
       status: 'failed',
-      category: 'spam',
       error_message: 'Email de sistema ignorado',
+      // NÃO salva categoria para emails de sistema
     });
+    console.log(`[Processor] System email ignored: ${message.from_email}`);
     throw new Error('Email de sistema ignorado');
   }
 
@@ -192,8 +193,8 @@ async function processMessage(
   if (!cleanBody || cleanBody.trim().length < 3) {
     await updateMessage(message.id, {
       status: 'failed',
-      category: 'spam',
       error_message: 'Corpo do email vazio',
+      // NÃO salva categoria para emails vazios
     });
     throw new Error('Corpo do email vazio');
   }

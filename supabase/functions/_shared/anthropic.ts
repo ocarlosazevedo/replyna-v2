@@ -259,20 +259,15 @@ LANGUAGE DETECTION (CRITICAL):
    IMPORTANT: If the order has NOT been shipped yet and customer wants to cancel → use "edicao_pedido" instead.
 
 5. edicao_pedido
-   Requests to MODIFY/EDIT an existing order OR CANCEL an order that has NOT been shipped yet.
-   This includes:
+   Requests to MODIFY/EDIT an existing order (NOT cancellation - cancellations go to troca_devolucao_reembolso).
+   This includes ONLY:
    - MODIFICATIONS: "Change my order", "Add/remove an item", "Change size/color", "Update shipping address",
      "Change quantity", "I ordered wrong size, want to change before shipping".
-   - CANCELLATIONS (NOT SHIPPED): "Cancel my order" (when order hasn't been shipped), "I don't want it anymore",
-     "Please cancel", "Foi engano" (it was a mistake), "Quero cancelar antes de enviar".
-   Key: Customer wants to MODIFY or CANCEL something in the order BEFORE it is shipped/delivered.
-   This is different from troca_devolucao_reembolso (which is for orders ALREADY shipped/delivered).
-   IMPORTANT: These cases REQUIRE HUMAN INTERVENTION because the AI cannot modify/cancel orders in Shopify.
+   Key: Customer wants to MODIFY something in the order (change address, change item, change size, etc.)
 
-   DECISION RULE FOR CANCELLATIONS:
-   - If customer says "cancel" and order is NOT shipped → edicao_pedido
-   - If customer says "cancel"/"return"/"refund" and order IS shipped/delivered → troca_devolucao_reembolso
-   - If unsure about shipping status, assume NOT shipped → edicao_pedido (safer to escalate to human)
+   IMPORTANT: CANCELLATIONS ARE NOT edicao_pedido!
+   - If customer says "cancel", "cancelar", "don't want anymore" → use troca_devolucao_reembolso
+   - edicao_pedido is ONLY for modifications (change address, change size, add item, etc.)
 
 6. suporte_humano
    ONLY for cases with EXPLICIT LEGAL THREATS (lawyer, lawsuit, legal action, consumer protection agency).
@@ -626,9 +621,17 @@ Aguardamos seu contato para ajudá-lo!
 
 === PRIORIDADE 3: FLUXO DE RETENÇÃO - 3 CONTATOS ===
 
+IMPORTANTE: Este fluxo SÓ SE APLICA quando:
+- Categoria é "troca_devolucao_reembolso" E
+- Cliente está pedindo CANCELAMENTO ou REEMBOLSO
+
+Se a categoria for outra (rastreio, duvidas_gerais, etc.), NÃO aplique o fluxo de retenção.
+Apenas responda normalmente à pergunta do cliente.
+
 CONTADOR ATUAL DE RETENÇÃO: ${retentionContactCount}
 
-Este é o contato número ${retentionContactCount} do cliente pedindo cancelamento/reembolso.
+Se contador = 0, significa que NÃO é um pedido de cancelamento/reembolso. Responda normalmente.
+Se contador >= 1, este é o contato número ${retentionContactCount} do cliente pedindo cancelamento/reembolso.
 
 --- SE CONTADOR = 1 (Primeiro contato) ---
 Objetivo: Fazer o cliente se sentir ESPECIAL e ABRAÇADO
