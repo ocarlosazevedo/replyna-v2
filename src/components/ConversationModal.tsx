@@ -194,6 +194,62 @@ function isValidEmailHtml(html: string | null): boolean {
 }
 
 /**
+ * Trunca URLs muito longas (como tracking links do Shopify)
+ */
+function truncateLongUrls(text: string, maxLength: number = 80): string {
+  // Regex para encontrar URLs
+  const urlRegex = /(https?:\/\/[^\s\)>\]"']+)/gi
+
+  return text.replace(urlRegex, (url) => {
+    if (url.length > maxLength) {
+      // Extrair dominio e truncar o resto
+      try {
+        const urlObj = new URL(url)
+        const domain = urlObj.hostname
+        return `${urlObj.protocol}//${domain}/... [link truncado]`
+      } catch {
+        return url.substring(0, maxLength) + '... [link truncado]'
+      }
+    }
+    return url
+  })
+}
+
+/**
+ * Remove ou colapsa conteudo de email encaminhado/citado
+ */
+function cleanForwardedContent(text: string): string {
+  // Detectar separadores de email encaminhado em varios idiomas
+  const forwardSeparators = [
+    /^-{3,}\s*(Forwarded|Original|Původní|Oorspronkelijk|Originale|Original-Nachricht|Mensaje original|Message original|Mensagem original)[^-]*-{3,}.*$/gim,
+    /^>{1,}\s*.*$/gm, // Linhas citadas com >
+    /^On\s+.+wrote:$/gim, // "On ... wrote:"
+    /^Em\s+.+escreveu:$/gim, // Portugues
+    /^Le\s+.+a écrit\s*:$/gim, // Frances
+    /^Am\s+.+schrieb.*:$/gim, // Alemao
+    /^El\s+.+escribió:$/gim, // Espanhol
+    /^Dne\s+.+napsal.*:$/gim, // Tcheco
+  ]
+
+  let result = text
+
+  // Encontrar o primeiro separador de encaminhamento e manter apenas o texto antes dele
+  for (const separator of forwardSeparators) {
+    const match = result.match(separator)
+    if (match && match.index !== undefined) {
+      // Manter apenas o texto antes do separador + indicacao de que ha mais
+      const beforeForward = result.substring(0, match.index).trim()
+      if (beforeForward.length > 0) {
+        result = beforeForward + '\n\n[... email original/encaminhado omitido ...]'
+        break
+      }
+    }
+  }
+
+  return result
+}
+
+/**
  * Limpa o corpo da mensagem removendo MIME boundaries e headers
  */
 function cleanMessageBody(body: string | null): string {
@@ -293,6 +349,12 @@ function cleanMessageBody(body: string | null): string {
 
   // Remover linhas vazias multiplas
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim()
+
+  // Limpar conteudo de email encaminhado/citado
+  cleaned = cleanForwardedContent(cleaned)
+
+  // Truncar URLs muito longas (como tracking links do Shopify)
+  cleaned = truncateLongUrls(cleaned)
 
   return cleaned || '(Sem conteudo)'
 }
