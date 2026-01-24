@@ -50,6 +50,7 @@ interface MessageRow {
   direction: string
   was_auto_replied: boolean | null
   category: string | null
+  conversation_id: string
   conversations: { shop_id: string; category: string | null }[]
 }
 
@@ -123,11 +124,23 @@ const getWeekStart = (date: Date) => {
   return start
 }
 
-const buildVolumeSeries = (messages: MessageRow[], granularity: 'day' | 'week' | 'month') => {
+const buildVolumeSeries = (messages: MessageRow[], granularity: 'day' | 'week' | 'month', inboundConversationIds?: Set<string>) => {
   const buckets = new Map<string, { date: Date; received: number; replied: number }>()
+
+  // Helper para obter categoria da conversa
+  const getConvCategory = (message: MessageRow) => {
+    const conv = message.conversations?.[0] || (message.conversations as unknown as { category: string | null })
+    return conv?.category || message.category
+  }
+
   messages.forEach((message) => {
-    // Ignorar spam no gráfico de volume
-    if (message.category === 'spam') return
+    // Ignorar spam no gráfico de volume (usa categoria da conversa)
+    if (getConvCategory(message) === 'spam') return
+
+    // Para outbound, só contar se tiver inbound correspondente no período
+    if (message.direction === 'outbound' && inboundConversationIds && !inboundConversationIds.has(message.conversation_id)) {
+      return
+    }
 
     const date = new Date(message.created_at)
     let key = ''
@@ -428,7 +441,7 @@ export default function Dashboard() {
     const loadMessages = async () => {
       const query = supabase
         .from('messages')
-        .select('created_at, direction, was_auto_replied, category, conversations!inner(shop_id, category)')
+        .select('created_at, direction, was_auto_replied, category, conversation_id, conversations!inner(shop_id, category)')
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
 
@@ -491,8 +504,21 @@ export default function Dashboard() {
           const conv = message.conversations?.[0] || (message.conversations as unknown as { category: string | null })
           return conv?.category || message.category
         }
+
+        // Filtrar inbound não-spam
         const inboundMessages = messageRows.filter((message) => message.direction === 'inbound' && getConversationCategory(message) !== 'spam')
-        const outboundMessages = messageRows.filter((message) => message.direction === 'outbound' && getConversationCategory(message) !== 'spam')
+
+        // Obter IDs das conversas que têm inbound no período (não-spam)
+        const inboundConversationIds = new Set(inboundMessages.map((m) => m.conversation_id))
+
+        // Filtrar outbound: deve ser não-spam E ter inbound correspondente no período
+        // Isso garante que nunca haverá mais respondidos que recebidos
+        const outboundMessages = messageRows.filter((message) =>
+          message.direction === 'outbound' &&
+          getConversationCategory(message) !== 'spam' &&
+          inboundConversationIds.has(message.conversation_id)
+        )
+
         const emailsReceived = inboundMessages.length
         const emailsReplied = outboundMessages.length
 
@@ -515,7 +541,7 @@ export default function Dashboard() {
           pendingHuman,
         })
 
-        setVolumeData(buildVolumeSeries(messageRows, granularity))
+        setVolumeData(buildVolumeSeries(messageRows, granularity, inboundConversationIds))
         setConversations(conversationRows)
       } catch (err) {
         console.error('Erro ao carregar dados do dashboard:', err)
