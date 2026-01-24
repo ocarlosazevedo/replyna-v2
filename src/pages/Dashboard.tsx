@@ -50,7 +50,7 @@ interface MessageRow {
   direction: string
   was_auto_replied: boolean | null
   category: string | null
-  conversations: { shop_id: string }[]
+  conversations: { shop_id: string; category: string | null }[]
 }
 
 const formatNumber = (value: number) =>
@@ -428,7 +428,7 @@ export default function Dashboard() {
     const loadMessages = async () => {
       const query = supabase
         .from('messages')
-        .select('created_at, direction, was_auto_replied, category, conversations!inner(shop_id)')
+        .select('created_at, direction, was_auto_replied, category, conversations!inner(shop_id, category)')
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
 
@@ -486,8 +486,13 @@ export default function Dashboard() {
         if (!isActive) return
 
         // Calcular métricas de emails (excluindo spam)
-        const inboundMessages = messageRows.filter((message) => message.direction === 'inbound' && message.category !== 'spam')
-        const outboundMessages = messageRows.filter((message) => message.direction === 'outbound')
+        // Usa categoria da conversa para garantir consistência entre inbound e outbound
+        const getConversationCategory = (message: MessageRow) => {
+          const conv = message.conversations?.[0] || (message.conversations as unknown as { category: string | null })
+          return conv?.category || message.category
+        }
+        const inboundMessages = messageRows.filter((message) => message.direction === 'inbound' && getConversationCategory(message) !== 'spam')
+        const outboundMessages = messageRows.filter((message) => message.direction === 'outbound' && getConversationCategory(message) !== 'spam')
         const emailsReceived = inboundMessages.length
         const emailsReplied = outboundMessages.length
 
