@@ -238,6 +238,7 @@ export async function incrementEmailsUsed(userId: string): Promise<number> {
 
 /**
  * Busca ou cria uma conversation
+ * A RPC retorna uma TABLE com uma row, então pegamos o ID da primeira row
  */
 export async function getOrCreateConversation(
   shopId: string,
@@ -255,7 +256,13 @@ export async function getOrCreateConversation(
   });
 
   if (error) throw error;
-  return data as string;
+
+  // A RPC retorna um array de rows (TABLE result)
+  if (!data || data.length === 0) {
+    throw new Error('Failed to get or create conversation: no data returned');
+  }
+
+  return data[0].id as string;
 }
 
 /**

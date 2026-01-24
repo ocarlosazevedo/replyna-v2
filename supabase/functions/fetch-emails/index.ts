@@ -269,15 +269,18 @@ async function saveAndEnqueueEmail(
     }
   );
 
-  if (convError || !conversation) {
+  if (convError || !conversation || conversation.length === 0) {
     throw new Error(`Failed to get/create conversation: ${convError?.message || 'Unknown error'}`);
   }
+
+  // A RPC retorna um array de rows, pegamos o primeiro
+  const conversationData = conversation[0];
 
   // Insert message
   const { data: savedMessage, error: messageError } = await supabase
     .from('messages')
     .insert({
-      conversation_id: conversation.id,
+      conversation_id: conversationData.id,
       message_id: email.message_id,
       from_email: email.from_email,
       from_name: email.from_name,
@@ -305,7 +308,7 @@ async function saveAndEnqueueEmail(
     p_shop_id: shop.id,
     p_message_id: savedMessage.id,
     p_payload: {
-      conversation_id: conversation.id,
+      conversation_id: conversationData.id,
       from_email: email.from_email,
       subject: email.subject,
     },
