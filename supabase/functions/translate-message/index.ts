@@ -1,10 +1,11 @@
 /**
  * Edge Function: Translate Message
  *
- * Traduz o conteúdo de uma mensagem para português usando OpenAI
+ * Traduz o conteúdo de uma mensagem para português usando Anthropic Claude
  */
 
-import OpenAI from 'https://esm.sh/openai@4.90.0';
+const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const MODEL = 'claude-3-haiku-20240307';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,34 +36,46 @@ Deno.serve(async (req) => {
       );
     }
 
-    const openaiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiKey) {
-      console.error('OPENAI_API_KEY não configurada');
+    const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!apiKey) {
+      console.error('ANTHROPIC_API_KEY não configurada');
       return new Response(
         JSON.stringify({ error: 'Serviço de tradução não configurado' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const openai = new OpenAI({ apiKey: openaiKey });
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'Você é um tradutor profissional. Traduza o texto a seguir para português brasileiro. Mantenha a formatação original (parágrafos, quebras de linha). Retorne APENAS a tradução, sem explicações ou comentários adicionais.',
-        },
-        {
-          role: 'user',
-          content: text,
-        },
-      ],
-      temperature: 0.3,
-      max_tokens: 4000,
+    const response = await fetch(ANTHROPIC_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 4000,
+        system: 'Você é um tradutor. Sua ÚNICA tarefa é traduzir o texto do usuário para português brasileiro. NÃO responda ao conteúdo, NÃO adicione comentários, NÃO explique nada. Retorne APENAS a tradução literal do texto. Mantenha a formatação original. Se o texto já estiver em português, retorne-o exatamente como está.',
+        messages: [
+          {
+            role: 'user',
+            content: text,
+          },
+        ],
+      }),
     });
 
-    const translatedText = response.choices[0]?.message?.content?.trim();
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Erro na API do Claude:', error);
+      return new Response(
+        JSON.stringify({ error: 'Erro ao traduzir mensagem' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const data = await response.json();
+    const translatedText = data.content?.[0]?.text?.trim();
 
     if (!translatedText) {
       return new Response(

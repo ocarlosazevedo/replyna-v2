@@ -975,7 +975,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                   <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                     {message.direction === 'inbound' ? `De: ${message.from_email}` : `Para: ${message.to_email}`}
                   </div>
-                  {message.direction === 'inbound' && !translations[message.id] && (
+                  {!translations[message.id] && (
                     <button
                       type="button"
                       onClick={() => {
