@@ -245,14 +245,24 @@ async function processMessage(
     conversationHistory.slice(0, -1) // Excluir a mensagem atual
   );
 
-  // 9. Se for spam, NÃO salvar categoria, NÃO atualizar conversa, NÃO responder
+  // 9. Se for spam, salvar categoria na MENSAGEM (para aparecer no painel), mas NÃO atualizar CONVERSA
   if (classification.category === 'spam') {
+    // Salvar categoria 'spam' na MENSAGEM para aparecer no filtro do painel
     await updateMessage(message.id, {
       status: 'failed',
+      category: 'spam',
+      category_confidence: classification.confidence,
       error_message: 'Email classificado como spam',
       processed_at: new Date().toISOString(),
-      // NÃO salva categoria para spam
     });
+
+    // Atualizar a CONVERSA com categoria spam apenas se não tiver categoria ainda
+    // Isso permite que o spam apareça no filtro de spam do painel
+    if (!conversation.category) {
+      await updateConversation(conversation.id, {
+        category: 'spam',
+      });
+    }
 
     await logProcessingEvent({
       shop_id: shop.id,
@@ -266,7 +276,7 @@ async function processMessage(
     });
 
     console.log(`[Processor] Message ${message.id} classified as SPAM, ignoring`);
-    return; // Success without replying - NO category saved
+    return; // Success without replying
   }
 
   // 10. Salvar categoria apenas para emails NÃO-spam
