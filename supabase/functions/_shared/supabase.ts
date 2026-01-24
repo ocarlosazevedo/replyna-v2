@@ -511,3 +511,113 @@ export async function updateCreditsWarning(userId: string): Promise<void> {
       .eq('id', userId);
   }
 }
+
+/**
+ * Dispara cobrança de emails extras automaticamente quando usuário não tem créditos.
+ * Retorna true se a cobrança foi disparada (sucesso ou pendente de pagamento).
+ */
+export async function triggerExtraEmailBilling(userId: string): Promise<{
+  triggered: boolean;
+  success: boolean;
+  invoiceId?: string;
+  invoiceUrl?: string;
+  error?: string;
+}> {
+  const supabase = getSupabaseClient();
+
+  // Buscar dados do usuário
+  const { data: user } = await supabase
+    .from('users')
+    .select('id, emails_used, emails_limit, extra_emails_purchased, pending_extra_emails')
+    .eq('id', userId)
+    .single();
+
+  if (!user) {
+    return { triggered: false, success: false, error: 'Usuário não encontrado' };
+  }
+
+  // Verificar se usuário já excedeu o limite do plano (usa créditos extras)
+  // emails_limit pode ser null para planos ilimitados
+  if (user.emails_limit === null) {
+    return { triggered: false, success: false, error: 'Plano ilimitado' };
+  }
+
+  // Se ainda está dentro do limite do plano, não precisa cobrar extras
+  if (user.emails_used < user.emails_limit) {
+    return { triggered: false, success: false, error: 'Ainda dentro do limite do plano' };
+  }
+
+  // Incrementar pending_extra_emails e verificar se precisa cobrar
+  const { data: billingCheck, error: billingError } = await supabase.rpc('increment_pending_extra_email', {
+    p_user_id: userId,
+  });
+
+  if (billingError) {
+    console.error('[Billing] Erro ao incrementar pending_extra_emails:', billingError);
+    return { triggered: false, success: false, error: billingError.message };
+  }
+
+  if (!billingCheck || billingCheck.length === 0) {
+    return { triggered: false, success: false, error: 'Sem dados de billing' };
+  }
+
+  const result = billingCheck[0];
+  console.log(`[Billing] User ${userId}: pending=${result.new_pending_count}, needs_billing=${result.needs_billing}`);
+
+  // Se ainda não atingiu o tamanho do pacote, retorna que foi incrementado mas não cobrado
+  if (!result.needs_billing) {
+    return {
+      triggered: true,
+      success: true,
+      error: `Pendentes: ${result.new_pending_count}/${result.package_size}`
+    };
+  }
+
+  // Precisa cobrar - chamar charge-extra-emails
+  console.log(`[Billing] User ${userId} atingiu ${result.new_pending_count} emails extras - disparando cobrança`);
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+  try {
+    const chargeResponse = await fetch(
+      `${supabaseUrl}/functions/v1/charge-extra-emails`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({ user_id: userId }),
+      }
+    );
+
+    const chargeResult = await chargeResponse.json();
+
+    if (chargeResult.success) {
+      console.log(`[Billing] Pacote de emails extras cobrado com sucesso: ${chargeResult.invoice_id}`);
+      return {
+        triggered: true,
+        success: true,
+        invoiceId: chargeResult.invoice_id,
+      };
+    } else {
+      // Pode ser que o cliente não tenha método de pagamento - invoice criada aguardando
+      console.log(`[Billing] Cobrança pendente: ${chargeResult.message}`);
+      return {
+        triggered: true,
+        success: false,
+        invoiceId: chargeResult.invoice_id,
+        invoiceUrl: chargeResult.invoice_url,
+        error: chargeResult.message,
+      };
+    }
+  } catch (error) {
+    console.error('[Billing] Erro ao chamar charge-extra-emails:', error);
+    return {
+      triggered: true,
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+    };
+  }
+}

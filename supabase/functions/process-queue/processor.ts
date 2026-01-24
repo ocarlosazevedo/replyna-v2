@@ -19,6 +19,7 @@ import {
   updateConversation,
   logProcessingEvent,
   saveMessage,
+  triggerExtraEmailBilling,
   type Message,
   type Conversation,
   type Shop,
@@ -238,6 +239,24 @@ async function processMessage(
   // 8. Verificar créditos disponíveis (APÓS classificar)
   const hasCredits = await checkCreditsAvailable(user.id);
   if (!hasCredits) {
+    // Disparar cobrança automática de emails extras
+    // Isso garante que o usuário pode comprar +100 emails infinitamente
+    console.log(`[Processor] User ${user.id} sem créditos - disparando cobrança de extras`);
+    const billingResult = await triggerExtraEmailBilling(user.id);
+
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'extra_email_billing_triggered',
+      event_data: {
+        triggered: billingResult.triggered,
+        success: billingResult.success,
+        invoiceId: billingResult.invoiceId,
+        error: billingResult.error,
+      },
+    });
+
     // Salvar categoria mesmo sem créditos
     await updateMessage(message.id, {
       status: 'pending_credits',
@@ -261,10 +280,11 @@ async function processMessage(
       event_data: {
         category: classification.category,
         confidence: classification.confidence,
+        billingTriggered: billingResult.triggered,
       },
     });
 
-    console.log(`[Processor] Message ${message.id} classified as ${classification.category}, but no credits available`);
+    console.log(`[Processor] Message ${message.id} classified as ${classification.category}, no credits available. Billing triggered: ${billingResult.triggered}`);
     throw new Error('Créditos insuficientes');
   }
 
