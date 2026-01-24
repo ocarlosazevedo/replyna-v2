@@ -102,15 +102,14 @@ serve(async (req) => {
       supabase.from('shops').select('user_id, id, name'),
       supabase.from('users').select('id, name, email, plan'),
       supabase.from('users').select('emails_used, emails_limit'),
-      // Conversas recentes para o Super Inbox (só com categoria = já processadas)
+      // Conversas recentes para o Super Inbox (todas as conversas, incluindo pendentes)
       supabase
         .from('conversations')
         .select('id, shop_id, customer_email, customer_name, subject, category, created_at, last_message_at')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd)
-        .not('category', 'is', null)
-        .order('last_message_at', { ascending: false })
-        .limit(50),
+        .order('last_message_at', { ascending: false, nullsFirst: false })
+        .limit(100),
     ]);
 
     // Contar usuários no limite (emails_used >= emails_limit)

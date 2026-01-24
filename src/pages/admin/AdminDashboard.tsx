@@ -137,6 +137,7 @@ const categoryColors: Record<string, string> = {
 // Categorias disponíveis para filtro no Super Inbox
 const filterCategories = [
   { value: 'all', label: 'Todas categorias' },
+  { value: 'pending', label: '⏳ Pendentes' },
   { value: 'duvidas_gerais', label: 'Duvidas gerais' },
   { value: 'rastreio', label: 'Rastreio' },
   { value: 'troca_devolucao_reembolso', label: 'Troca/Devolucao/Reembolso' },
@@ -144,6 +145,9 @@ const filterCategories = [
   { value: 'suporte_humano', label: 'Suporte humano' },
   { value: 'acknowledgment', label: 'Confirmacao' },
 ]
+
+// Intervalo de atualização automática (30 segundos)
+const AUTO_REFRESH_INTERVAL = 30000
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -159,9 +163,20 @@ export default function AdminDashboard() {
   const [showSpam, setShowSpam] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('all')
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
+  // Carregar dados inicialmente e quando o range mudar
   useEffect(() => {
     loadStats()
+  }, [range])
+
+  // Auto-refresh a cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadStats()
+    }, AUTO_REFRESH_INTERVAL)
+
+    return () => clearInterval(interval)
   }, [range])
 
   const loadStats = async () => {
@@ -199,6 +214,7 @@ export default function AdminDashboard() {
         .sort((a, b) => b.count - a.count)
 
       setPlanDistribution(planDist)
+      setLastUpdate(new Date())
     } catch (err) {
       console.error('Erro ao carregar estatisticas:', err)
     } finally {
@@ -595,8 +611,30 @@ export default function AdminDashboard() {
             </div>
             <div>
               <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Super Inbox</h2>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>Todas as conversas de todas as lojas</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
+                Atualizado: {new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'America/Sao_Paulo' }).format(lastUpdate)}
+              </p>
             </div>
+            <button
+              type="button"
+              onClick={() => loadStats()}
+              disabled={loading}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-primary)',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.5 : 1,
+              }}
+              title="Atualizar agora"
+            >
+              <RefreshCw size={14} style={{ color: 'var(--text-secondary)', animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+            </button>
           </div>
 
           {/* Filtros */}
@@ -687,7 +725,8 @@ export default function AdminDashboard() {
             // Filtrar por SPAM
             if (!showSpam && conv.category === 'spam') return false
             // Filtrar por categoria
-            if (categoryFilter !== 'all' && conv.category !== categoryFilter) return false
+            if (categoryFilter === 'pending' && conv.category !== null) return false
+            if (categoryFilter !== 'all' && categoryFilter !== 'pending' && conv.category !== categoryFilter) return false
             return true
           })
 
@@ -766,19 +805,39 @@ export default function AdminDashboard() {
                           </span>
                         </td>
                         <td style={{ padding: '12px 8px' }}>
-                          <span
-                            style={{
-                              padding: '4px 10px',
-                              borderRadius: '999px',
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              backgroundColor: `${categoryColor}15`,
-                              color: categoryColor,
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {(conv.category && categoryLabels[conv.category]) || conv.category || 'Sem categoria'}
-                          </span>
+                          {conv.category ? (
+                            <span
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '999px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                backgroundColor: `${categoryColor}15`,
+                                color: categoryColor,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {categoryLabels[conv.category] || conv.category}
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '999px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                backgroundColor: 'rgba(251, 191, 36, 0.15)',
+                                color: '#f59e0b',
+                                whiteSpace: 'nowrap',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <span style={{ animation: 'replyna-pulse 1.5s ease-in-out infinite' }}>⏳</span>
+                              Processando...
+                            </span>
+                          )}
                         </td>
                         <td style={{ padding: '12px 8px', textAlign: 'right' }}>
                           <span style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
