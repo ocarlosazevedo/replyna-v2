@@ -33,6 +33,7 @@ interface ConversationRow {
   customer_name: string | null
   subject: string | null
   category: string | null
+  status: string | null
   created_at: string
   shop_name?: string
 }
@@ -205,6 +206,9 @@ const getCategoryBadge = (category: string | null) => {
       return { ...base, backgroundColor: 'rgba(168, 85, 247, 0.18)', color: '#9333ea' } // Roxo
     case 'suporte_humano':
       return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' } // Vermelho
+    case null:
+    case undefined:
+      return { ...base, backgroundColor: 'rgba(251, 191, 36, 0.18)', color: '#d97706' } // Amarelo - Processando
     default:
       return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' } // Cinza claro
   }
@@ -220,7 +224,7 @@ const categoryLabelMap: Record<string, string> = {
 }
 
 const formatCategoryLabel = (category: string | null) => {
-  if (!category) return 'Outros'
+  if (!category) return 'Processando...'
   return categoryLabelMap[category] ?? 'Outros'
 }
 
@@ -457,10 +461,9 @@ export default function Dashboard() {
     const loadConversationsList = async () => {
       const query = supabase
         .from('conversations')
-        .select('id, shop_id, customer_name, subject, category, created_at, shops(name)')
+        .select('id, shop_id, customer_name, subject, category, status, created_at, shops(name)')
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
-        .in('status', ['replied', 'pending_human', 'closed'])
         .order('created_at', { ascending: false })
 
       const { data, error } =
@@ -469,7 +472,7 @@ export default function Dashboard() {
           : await query.eq('shop_id', selectedShopId)
 
       if (error) throw error
-      // Mapear para incluir shop_name
+      // Mapear para incluir shop_name e status
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (data || []).map((row: any) => ({
         id: row.id,
@@ -477,6 +480,7 @@ export default function Dashboard() {
         customer_name: row.customer_name,
         subject: row.subject,
         category: row.category,
+        status: row.status,
         created_at: row.created_at,
         shop_name: row.shops?.name || (Array.isArray(row.shops) ? row.shops[0]?.name : null) || null,
       })) as ConversationRow[]
@@ -825,7 +829,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Conversas do Período
+                Inbox
               </div>
               {/* Toggle Spam / Conversas */}
               <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
@@ -899,8 +903,8 @@ export default function Dashboard() {
                   {categoryFilter === 'spam'
                     ? `${conversations.filter(c => c.category === 'spam').length} spam`
                     : categoryFilter === 'all'
-                      ? `${conversations.filter(c => c.category && c.category !== 'spam').length} conversas`
-                      : `${conversations.filter(c => c.category === categoryFilter).length} de ${conversations.filter(c => c.category && c.category !== 'spam').length}`}
+                      ? `${conversations.filter(c => c.category !== 'spam').length} emails`
+                      : `${conversations.filter(c => c.category === categoryFilter).length} de ${conversations.filter(c => c.category !== 'spam').length}`}
                 </div>
               )}
             </div>
@@ -930,11 +934,11 @@ export default function Dashboard() {
                 <tbody>
                   {conversations
                     .filter((c) => {
-                      // Não mostrar conversas sem categoria (mensagens failed)
-                      if (!c.category) return false
-
+                      // Filtrar por spam
                       if (categoryFilter === 'spam') return c.category === 'spam'
+                      // Mostrar todos exceto spam (incluindo sem categoria = processando)
                       if (categoryFilter === 'all') return c.category !== 'spam'
+                      // Filtro específico de categoria
                       return c.category === categoryFilter
                     })
                     .map((conversation) => (
