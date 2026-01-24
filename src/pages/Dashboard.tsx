@@ -447,7 +447,7 @@ export default function Dashboard() {
         .select('id, shop_id, customer_name, subject, category, created_at, shops(name)')
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
-        .in('status', ['completed', 'pending_human', 'closed'])
+        .in('status', ['replied', 'pending_human', 'closed'])
         .order('created_at', { ascending: false })
 
       const { data, error } =

@@ -108,7 +108,7 @@ serve(async (req) => {
         .select('id, shop_id, customer_email, customer_name, subject, category, created_at, last_message_at')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd)
-        .in('status', ['completed', 'pending_human', 'closed'])
+        .in('status', ['replied', 'pending_human', 'closed'])
         .order('last_message_at', { ascending: false, nullsFirst: false })
         .limit(100),
     ]);
