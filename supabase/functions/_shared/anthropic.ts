@@ -374,6 +374,7 @@ export async function generateResponse(
     warranty_info: string | null;
     signature_html: string | null;
     is_cod?: boolean;
+    support_email?: string;
   },
   emailSubject: string,
   emailBody: string,
