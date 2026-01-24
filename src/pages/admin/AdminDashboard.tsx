@@ -35,7 +35,6 @@ function useIsMobile() {
 }
 
 interface DashboardStats {
-  totalUsers: number // usado para calcular % de planos
   // Métricas de email
   emailsReceived: number
   emailsReplied: number
@@ -45,11 +44,6 @@ interface DashboardStats {
   // Métricas de conversas
   usersAtLimit: number
   categories: Record<string, number>
-}
-
-interface Plan {
-  name: string
-  count: number
 }
 
 interface RecentConversation {
@@ -148,7 +142,6 @@ const AUTO_REFRESH_INTERVAL = 30000
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [planDistribution, setPlanDistribution] = useState<Plan[]>([])
   const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([])
   const [loading, setLoading] = useState(true)
   const [range, setRange] = useState<DateRange>(getDefaultRange())
@@ -204,13 +197,6 @@ export default function AdminDashboard() {
       setStats(data.stats)
       setRecentConversations(data.recentConversations || [])
       setClients(data.clients || [])
-
-      // Processar distribuição por plano
-      const planDist: Plan[] = Object.entries(data.planDistribution || {})
-        .map(([name, count]) => ({ name, count: count as number }))
-        .sort((a, b) => b.count - a.count)
-
-      setPlanDistribution(planDist)
       setLastUpdate(new Date())
     } catch (err) {
       console.error('Erro ao carregar estatisticas:', err)
@@ -405,98 +391,25 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Grid de 2 colunas - Distribuição por categoria e Distribuição por plano */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '24px', marginBottom: isMobile ? '12px' : '24px' }}>
-        {/* Distribuição por categoria */}
-        <div style={cardStyle}>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px' }}>
-            Conversas por Categoria
-          </h2>
-          {totalCategorized === 0 ? (
-            <div style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '24px' }}>
-              Nenhuma conversa no periodo selecionado
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {Object.entries(stats?.categories || {})
-                .sort(([, a], [, b]) => b - a)
-                .map(([category, count]) => {
-                  const Icon = categoryIcons[category] || HelpCircle
-                  const color = categoryColors[category] || '#6b7280'
-                  const percentage = totalCategorized ? Math.round((count / totalCategorized) * 100) : 0
-                  return (
-                    <div key={category} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '8px',
-                          backgroundColor: `${color}15`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Icon size={16} style={{ color }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            marginBottom: '4px',
-                          }}
-                        >
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            {categoryLabels[category] || category}
-                          </span>
-                          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                            {count} ({percentage}%)
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            height: '6px',
-                            backgroundColor: 'var(--border-color)',
-                            borderRadius: '3px',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: `${percentage}%`,
-                              height: '100%',
-                              backgroundColor: color,
-                              borderRadius: '3px',
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-            </div>
-          )}
-        </div>
-
-        {/* Distribuição por plano */}
-        <div style={cardStyle}>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px' }}>
-            Distribuicao por Plano
-          </h2>
-          {planDistribution.length === 0 ? (
-            <div style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '24px' }}>
-              Nenhum usuario cadastrado
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {planDistribution.map((plan, index) => {
-                const colors = ['#3b82f6', '#8b5cf6', '#22c55e', '#f59e0b', '#ef4444']
-                const color = colors[index % colors.length]
-                const percentage = stats?.totalUsers ? Math.round((plan.count / stats.totalUsers) * 100) : 0
+      {/* Distribuição por categoria */}
+      <div style={{ ...cardStyle, marginBottom: isMobile ? '12px' : '24px' }}>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px' }}>
+          Conversas por Categoria
+        </h2>
+        {totalCategorized === 0 ? (
+          <div style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '24px' }}>
+            Nenhuma conversa no periodo selecionado
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {Object.entries(stats?.categories || {})
+              .sort(([, a], [, b]) => b - a)
+              .map(([category, count]) => {
+                const Icon = categoryIcons[category] || HelpCircle
+                const color = categoryColors[category] || '#6b7280'
+                const percentage = totalCategorized ? Math.round((count / totalCategorized) * 100) : 0
                 return (
-                  <div key={plan.name} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div key={category} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div
                       style={{
                         width: '32px',
@@ -507,13 +420,9 @@ export default function AdminDashboard() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexShrink: 0,
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        color,
-                        textTransform: 'uppercase',
                       }}
                     >
-                      {plan.name.charAt(0)}
+                      <Icon size={16} style={{ color }} />
                     </div>
                     <div style={{ flex: 1 }}>
                       <div
@@ -523,18 +432,11 @@ export default function AdminDashboard() {
                           marginBottom: '4px',
                         }}
                       >
-                        <span
-                          style={{
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            color: 'var(--text-primary)',
-                            textTransform: 'capitalize',
-                          }}
-                        >
-                          {plan.name}
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {categoryLabels[category] || category}
                         </span>
                         <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                          {plan.count} ({percentage}%)
+                          {count} ({percentage}%)
                         </span>
                       </div>
                       <div
@@ -558,9 +460,8 @@ export default function AdminDashboard() {
                   </div>
                 )
               })}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Super Inbox */}
