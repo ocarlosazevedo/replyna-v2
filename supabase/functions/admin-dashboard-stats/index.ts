@@ -100,7 +100,7 @@ serve(async (req) => {
         .order('created_at', { ascending: false })
         .limit(5),
       supabase.from('shops').select('user_id, id, name'),
-      supabase.from('users').select('plan'),
+      supabase.from('users').select('id, name, email, plan'),
       supabase.from('users').select('emails_used, emails_limit'),
       // Conversas recentes para o Super Inbox (só com categoria = já processadas)
       supabase
@@ -157,11 +157,34 @@ serve(async (req) => {
       })
     );
 
-    // Distribuição de planos
+    // Distribuição de planos e lista de clientes
     const planDistribution: Record<string, number> = {};
-    (allUsersForPlansRes.data || []).forEach((user: { plan: string }) => {
+    const clients: Array<{ id: string; name: string | null; email: string; shops: string[] }> = [];
+
+    (allUsersForPlansRes.data || []).forEach((user: { id: string; name: string | null; email: string; plan: string }) => {
       const plan = user.plan || 'starter';
       planDistribution[plan] = (planDistribution[plan] || 0) + 1;
+
+      // Encontrar as lojas deste usuário
+      const userShops = (shopsRes.data || [])
+        .filter((shop: { user_id: string }) => shop.user_id === user.id)
+        .map((shop: { id: string }) => shop.id);
+
+      if (userShops.length > 0) {
+        clients.push({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          shops: userShops,
+        });
+      }
+    });
+
+    // Ordenar clientes por nome/email
+    clients.sort((a, b) => {
+      const nameA = a.name || a.email;
+      const nameB = b.name || b.email;
+      return nameA.localeCompare(nameB);
     });
 
     // Taxa de automação = auto-respondidos / (auto-respondidos + enviados para humano)
@@ -194,6 +217,7 @@ serve(async (req) => {
         recentUsers,
         planDistribution,
         recentConversations,
+        clients,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

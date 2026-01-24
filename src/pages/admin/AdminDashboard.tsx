@@ -67,6 +67,13 @@ interface RecentConversation {
   last_message_at: string | null
 }
 
+interface Client {
+  id: string
+  name: string | null
+  email: string
+  shops: string[]
+}
+
 const getDefaultRange = (): DateRange => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -150,6 +157,8 @@ export default function AdminDashboard() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [showSpam, setShowSpam] = useState(false)
+  const [clients, setClients] = useState<Client[]>([])
+  const [selectedClientId, setSelectedClientId] = useState<string>('all')
 
   useEffect(() => {
     loadStats()
@@ -182,6 +191,7 @@ export default function AdminDashboard() {
 
       setStats(data.stats)
       setRecentConversations(data.recentConversations || [])
+      setClients(data.clients || [])
 
       // Processar distribuição por plano
       const planDist: Plan[] = Object.entries(data.planDistribution || {})
@@ -591,6 +601,33 @@ export default function AdminDashboard() {
 
           {/* Filtros */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {/* Filtro de cliente */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Users size={14} style={{ color: 'var(--text-secondary)' }} />
+              <select
+                value={selectedClientId}
+                onChange={(e) => setSelectedClientId(e.target.value)}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: selectedClientId !== 'all' ? 'rgba(139, 92, 246, 0.1)' : 'var(--bg-primary)',
+                  color: selectedClientId !== 'all' ? '#8b5cf6' : 'var(--text-primary)',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  maxWidth: '180px',
+                }}
+              >
+                <option value="all">Todos os clientes</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name || client.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Filtro de categoria */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Filter size={14} style={{ color: 'var(--text-secondary)' }} />
@@ -640,7 +677,13 @@ export default function AdminDashboard() {
 
         {/* Lista de conversas */}
         {(() => {
+          // Obter shops do cliente selecionado
+          const selectedClient = clients.find(c => c.id === selectedClientId)
+          const clientShops = selectedClient?.shops || []
+
           const filteredConversations = recentConversations.filter((conv) => {
+            // Filtrar por cliente (verificar se a loja pertence ao cliente)
+            if (selectedClientId !== 'all' && !clientShops.includes(conv.shop_id)) return false
             // Filtrar por SPAM
             if (!showSpam && conv.category === 'spam') return false
             // Filtrar por categoria
