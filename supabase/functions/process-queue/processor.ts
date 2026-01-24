@@ -513,11 +513,17 @@ async function processMessage(
     tokens_output: aiResponse.tokens_output,
   });
 
-  // Check if AI wants to forward to human
+  // Check if AI wants to forward to human OR if it's a refund/cancellation request
+  // Refund/cancellation requests need human validation from store owners
   let finalStatus: 'replied' | 'pending_human' = 'replied';
-  if (aiResponse.forward_to_human) {
+  const needsHumanValidation =
+    aiResponse.forward_to_human ||
+    classification.category === 'troca_devolucao_reembolso';
+
+  if (needsHumanValidation) {
     finalStatus = 'pending_human';
     await forwardToHuman(shop, message);
+    console.log(`[Processor] Forwarding to human - category: ${classification.category}, ai_forward: ${aiResponse.forward_to_human}`);
   }
 
   // 14. Enviar resposta por email
@@ -534,6 +540,20 @@ async function processMessage(
 
   if (finalStatus === 'pending_human') {
     await updateConversation(conversation.id, { status: 'pending_human' });
+
+    // Log forwarding event
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'forwarded_to_human',
+      event_data: {
+        reason: classification.category === 'troca_devolucao_reembolso'
+          ? 'refund_cancellation_validation'
+          : 'ai_requested_forward',
+        category: classification.category,
+      },
+    });
   }
 
   // 16. Incrementar uso de créditos
