@@ -187,6 +187,7 @@ export async function getOrdersByCustomerEmail(
 
 /**
  * Busca um pedido pelo número
+ * Tenta múltiplos formatos: #2202, 2202, order_number
  */
 export async function getOrderByNumber(
   credentials: ShopifyCredentials,
@@ -194,20 +195,46 @@ export async function getOrderByNumber(
 ): Promise<ShopifyOrder | null> {
   try {
     // Remover # se presente
-    const cleanNumber = orderNumber.replace(/^#/, '');
+    const cleanNumber = orderNumber.replace(/^#/, '').trim();
 
-    console.log(`Buscando pedido no Shopify: #${cleanNumber}`);
+    console.log(`[Shopify] Buscando pedido: ${cleanNumber}`);
 
-    const data = await shopifyRequest<{ orders: ShopifyOrder[] }>(
+    // Tentar busca pelo campo name (formato Shopify padrão: #1234)
+    const formats = [
+      `#${cleanNumber}`,  // #2202
+      cleanNumber,         // 2202 (alguns stores usam sem #)
+    ];
+
+    for (const format of formats) {
+      console.log(`[Shopify] Tentando formato: ${format}`);
+
+      const data = await shopifyRequest<{ orders: ShopifyOrder[] }>(
+        credentials,
+        `orders.json?name=${encodeURIComponent(format)}&status=any&limit=1`
+      );
+
+      if (data.orders && data.orders.length > 0) {
+        console.log(`[Shopify] Pedido encontrado com formato ${format}: ${data.orders[0].name}`);
+        return data.orders[0];
+      }
+    }
+
+    // Tentar busca pelo order_number (ID interno do Shopify)
+    console.log(`[Shopify] Tentando busca por order_number: ${cleanNumber}`);
+    const dataByNumber = await shopifyRequest<{ orders: ShopifyOrder[] }>(
       credentials,
-      `orders.json?name=${encodeURIComponent('#' + cleanNumber)}&status=any&limit=1`
+      `orders.json?order_number=${cleanNumber}&status=any&limit=1`
     );
 
-    console.log(`Resultado da busca: ${data.orders?.length || 0} pedidos encontrados`);
+    if (dataByNumber.orders && dataByNumber.orders.length > 0) {
+      console.log(`[Shopify] Pedido encontrado por order_number: ${dataByNumber.orders[0].name}`);
+      return dataByNumber.orders[0];
+    }
 
-    return data.orders?.[0] || null;
+    console.log(`[Shopify] Nenhum pedido encontrado para: ${cleanNumber}`);
+    return null;
   } catch (error) {
-    console.error('Erro ao buscar pedido por número:', error);
+    console.error('[Shopify] Erro ao buscar pedido por número:', error);
     return null;
   }
 }
@@ -330,18 +357,34 @@ export function extractOrderNumber(text: string): string | null {
   if (!text) return null;
 
   // Padrões comuns de número de pedido (incluindo formatos com letras como #W185ES1320)
+  // IMPORTANTE: Patterns mais específicos primeiro, mais genéricos depois
   const patterns = [
-    /#([A-Z]*\d+[A-Z]*\d*)/i,     // #W185ES1320, #12345, #ES1234
-    /pedido\s*#?\s*([A-Z]*\d+[A-Z]*\d*)/i,    // pedido W185ES1320
-    /order\s*#?\s*([A-Z]*\d+[A-Z]*\d*)/i,     // order W185ES1320
-    /nº?\s*([A-Z]*\d+[A-Z]*\d*)/i,            // nº W185ES1320
-    /número\s*([A-Z]*\d+[A-Z]*\d*)/i,         // número W185ES1320
+    // Formatos explícitos com palavra-chave
+    /order\s*#?\s*:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i,     // order #2202, order: 2202, order# 2202
+    /pedido\s*#?\s*:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i,   // pedido #2202, pedido: 2202
+    /número\s*(?:do\s*)?(?:pedido\s*)?:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i, // número do pedido: 2202
+    /nº\s*:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i,            // nº 2202, nº: 2202
+    /commande\s*#?\s*:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i, // commande (francês)
+    /bestellung\s*#?\s*:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i, // bestellung (alemão)
+    /ordine\s*#?\s*:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i,   // ordine (italiano)
+
+    // Formato com # (ex: #2202, # 2202)
+    /#\s*([A-Z]*\d+[A-Z]*\d*)/i,
+
+    // Número isolado no início da linha (provavelmente número de pedido)
+    /^([A-Z]*\d{4,}[A-Z]*\d*)$/im,
   ];
 
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (match && match[1].length >= 4) {
-      return match[1];
+    if (match && match[1]) {
+      const orderNum = match[1].trim();
+      // Validar: pelo menos 3 dígitos para evitar falsos positivos
+      const digitCount = (orderNum.match(/\d/g) || []).length;
+      if (digitCount >= 3) {
+        console.log(`[extractOrderNumber] Found order number: ${orderNum} from pattern: ${pattern}`);
+        return orderNum;
+      }
     }
   }
 

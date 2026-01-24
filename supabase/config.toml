@@ -1,0 +1,19 @@
+# Supabase Edge Functions Configuration
+# Documentação: https://supabase.com/docs/guides/functions/function-configuration
+
+# Stripe Webhook - NÃO requer JWT (Stripe não envia Authorization header)
+# Referência: https://supabase.com/docs/guides/functions/examples/stripe-webhooks
+[functions.stripe-webhook]
+verify_jwt = false
+
+# Accept Migration Invite - Público (usuários não autenticados acessam)
+[functions.accept-migration-invite]
+verify_jwt = false
+
+# Fetch Emails - Chamado via pg_cron
+[functions.fetch-emails]
+verify_jwt = false
+
+# Process Queue - Chamado via pg_cron
+[functions.process-queue]
+verify_jwt = false

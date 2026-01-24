@@ -358,10 +358,27 @@ async function processMessage(
   if (categoriasQueNeedShopify.includes(classification.category)) {
     needsOrderData = true;
 
-    // extractOrderNumber aceita apenas 1 parâmetro
+    // Extrair número do pedido de múltiplas fontes (incluindo corpo ORIGINAL, não apenas limpo)
     const orderNumberFromSubject = extractOrderNumber(message.subject || '');
-    const orderNumberFromBody = extractOrderNumber(cleanBody);
-    const orderNumber = orderNumberFromSubject || orderNumberFromBody || conversation.shopify_order_id;
+    const orderNumberFromCleanBody = extractOrderNumber(cleanBody);
+    // IMPORTANTE: Também buscar no corpo ORIGINAL (antes de limpar) para pegar números em citações
+    const originalBody = message.body_text || message.body_html || '';
+    const orderNumberFromOriginalBody = extractOrderNumber(originalBody);
+    // Também buscar no histórico de mensagens da conversa
+    let orderNumberFromHistory: string | null = null;
+    for (const historyMsg of rawHistory || []) {
+      const fromSubject = extractOrderNumber(historyMsg.subject || '');
+      const fromBody = extractOrderNumber(historyMsg.body_text || '');
+      if (fromSubject || fromBody) {
+        orderNumberFromHistory = fromSubject || fromBody;
+        console.log(`[Processor] Found order number in conversation history: ${orderNumberFromHistory}`);
+        break;
+      }
+    }
+
+    const orderNumber = orderNumberFromSubject || orderNumberFromCleanBody || orderNumberFromOriginalBody || orderNumberFromHistory || conversation.shopify_order_id;
+
+    console.log(`[Processor] Order number extraction: subject=${orderNumberFromSubject}, cleanBody=${orderNumberFromCleanBody}, originalBody=${orderNumberFromOriginalBody}, history=${orderNumberFromHistory}, conversation=${conversation.shopify_order_id}, final=${orderNumber}`);
 
     const shopifyCredentials = await decryptShopifyCredentials(shop);
 
@@ -387,10 +404,22 @@ async function processMessage(
             shopify_order_id: shopifyData.order_number,
             customer_name: shopifyData.customer_name,
           });
+        } else if (orderNumber) {
+          // IMPORTANTE: Salvar o número do pedido mesmo se Shopify não encontrou
+          // Isso permite tentar novamente em mensagens futuras
+          console.log(`[Processor] Saving customer-provided order number to conversation: ${orderNumber}`);
+          await updateConversation(conversation.id, {
+            shopify_order_id: orderNumber,
+          });
         }
       } catch (error: any) {
         console.error(`[Processor] Shopify lookup failed:`, error.message);
-        // Continue without Shopify data
+        // Salvar o número do pedido mesmo em caso de erro, para tentar novamente depois
+        if (orderNumber && !conversation.shopify_order_id) {
+          await updateConversation(conversation.id, {
+            shopify_order_id: orderNumber,
+          });
+        }
       }
     }
   }
