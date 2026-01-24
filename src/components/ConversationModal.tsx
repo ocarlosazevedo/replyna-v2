@@ -250,12 +250,41 @@ function cleanForwardedContent(text: string): string {
 }
 
 /**
+ * Detecta se o texto é HTML
+ */
+function isHtmlContent(text: string): boolean {
+  // Verificar se começa com tags HTML comuns ou tem estrutura HTML significativa
+  const trimmed = text.trim()
+
+  // Se começa com DOCTYPE, html, head, body, div, table - é HTML
+  if (/^<!DOCTYPE|^<html|^<head|^<body|^<div|^<table|^<p\s|^<span/i.test(trimmed)) {
+    return true
+  }
+
+  // Se tem muitas tags HTML, provavelmente é HTML
+  const tagCount = (trimmed.match(/<[a-z][a-z0-9]*[^>]*>/gi) || []).length
+  const textLength = trimmed.length
+
+  // Se mais de 5% do conteúdo são tags HTML
+  if (tagCount > 5 && tagCount / (textLength / 50) > 0.1) {
+    return true
+  }
+
+  return false
+}
+
+/**
  * Limpa o corpo da mensagem removendo MIME boundaries e headers
  */
 function cleanMessageBody(body: string | null): string {
   if (!body) return '(Sem conteudo)'
 
   let cleaned = body.trim()
+
+  // Se o body_text contém HTML, converter para texto primeiro
+  if (isHtmlContent(cleaned)) {
+    cleaned = htmlToText(cleaned)
+  }
 
   // Verificar se é MIME multipart buscando boundary no header ou diretamente
   const boundaryHeaderMatch = cleaned.match(/Content-Type:\s*multipart\/[^;]+;\s*boundary=["']?([^"'\r\n;]+)/i)
