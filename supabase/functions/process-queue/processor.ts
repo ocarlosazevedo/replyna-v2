@@ -215,35 +215,58 @@ async function processMessage(
   if (!user) {
     await updateMessage(message.id, {
       status: 'failed',
-      category: 'duvidas_gerais',
       error_message: 'Usuário não encontrado',
     });
     throw new Error('Usuário não encontrado');
   }
 
-  // 6. Verificar créditos disponíveis
-  const hasCredits = await checkCreditsAvailable(user.id);
-  if (!hasCredits) {
-    await updateMessage(message.id, {
-      status: 'pending_credits',
-      category: 'duvidas_gerais',
-    });
-    throw new Error('Créditos insuficientes');
-  }
-
-  // 7. Buscar histórico da conversa ANTES de classificar
+  // 6. Buscar histórico da conversa ANTES de classificar
   const rawHistory = await getConversationHistory(conversation.id, 3);
   const conversationHistory = (rawHistory || []).map((msg: Message) => ({
     role: msg.direction === 'inbound' ? ('customer' as const) : ('assistant' as const),
     content: cleanEmailBody(msg.body_text || '', msg.body_html || ''),
   }));
 
-  // 8. Classificar email (ordem correta: subject, body, history)
+  // 7. Classificar email PRIMEIRO (antes de verificar créditos)
+  // Isso garante que a categoria seja salva mesmo sem créditos
   const classification = await classifyEmail(
     message.subject || '',
     cleanBody,
     conversationHistory.slice(0, -1) // Excluir a mensagem atual
   );
+
+  // 8. Verificar créditos disponíveis (APÓS classificar)
+  const hasCredits = await checkCreditsAvailable(user.id);
+  if (!hasCredits) {
+    // Salvar categoria mesmo sem créditos
+    await updateMessage(message.id, {
+      status: 'pending_credits',
+      category: classification.category,
+      category_confidence: classification.confidence,
+    });
+
+    // Atualizar conversa com categoria se não tiver
+    if (!conversation.category && classification.category !== 'spam') {
+      await updateConversation(conversation.id, {
+        category: classification.category,
+        language: classification.language,
+      });
+    }
+
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'pending_credits',
+      event_data: {
+        category: classification.category,
+        confidence: classification.confidence,
+      },
+    });
+
+    console.log(`[Processor] Message ${message.id} classified as ${classification.category}, but no credits available`);
+    throw new Error('Créditos insuficientes');
+  }
 
   // 9. Se for spam, salvar categoria na MENSAGEM (para aparecer no painel), mas NÃO atualizar CONVERSA
   if (classification.category === 'spam') {
