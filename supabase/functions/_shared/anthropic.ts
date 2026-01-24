@@ -288,20 +288,17 @@ REAL CUSTOMERS (NOT spam):
 
 === CANCELLATION CLASSIFICATION (CRITICAL) ===
 When customer wants to CANCEL an order:
-1. Check if order has been SHIPPED/DELIVERED:
-   - Signals order IS shipped: "já recebi", "chegou", "received", "arrived", "delivered", mentions tracking updates
-   - Signals order NOT shipped: "ainda não enviou", "not shipped yet", "antes de enviar", "foi engano", "mudei de ideia"
+ALL cancellation requests MUST be classified as "troca_devolucao_reembolso", regardless of shipping status.
 
-2. Apply this rule:
-   - Order NOT shipped + cancel request → "edicao_pedido" (human can still cancel in system)
-   - Order SHIPPED/DELIVERED + cancel/return/refund request → "troca_devolucao_reembolso"
-   - If UNSURE about shipping status → default to "edicao_pedido" (safer to escalate)
+Examples:
+- "Quero cancelar, foi engano" → troca_devolucao_reembolso
+- "Cancel my order please" → troca_devolucao_reembolso
+- "I received it but want to return" → troca_devolucao_reembolso
+- "Product arrived damaged, refund please" → troca_devolucao_reembolso
+- "Quero cancelar antes de enviar" → troca_devolucao_reembolso
+- "Cancel order not shipped yet" → troca_devolucao_reembolso
 
-3. Examples:
-   - "Quero cancelar, foi engano" → edicao_pedido (mistake, likely not shipped)
-   - "Cancel my order please" (no delivery mention) → edicao_pedido (assume not shipped)
-   - "I received it but want to return" → troca_devolucao_reembolso (already delivered)
-   - "Product arrived damaged, refund please" → troca_devolucao_reembolso (already delivered)
+The response generator will handle different scenarios based on fulfillment status.
 
 Respond ONLY with the JSON, no additional text.`;
 
@@ -506,86 +503,88 @@ COMPORTAMENTO INTELIGENTE (MUITO IMPORTANTE):
 - Se o cliente só perguntou sobre status/rastreio, NÃO mencione cancelamento ou reembolso
 - Responda APENAS ao que foi perguntado, não ofereça opções que o cliente não pediu
 
-=== POLÍTICA DE CANCELAMENTO/TROCA/DEVOLUÇÃO (OBRIGATÓRIO SEGUIR) ===
+=== POLÍTICA DE CANCELAMENTO (OBRIGATÓRIO SEGUIR) ===
 
-REGRA 1 - PEDIDO AINDA NÃO ENTREGUE (fulfillment_status != "delivered"):
-Se o cliente pedir cancelamento/troca/devolução MAS o pedido ainda não chegou:
-- Informe que o pedido ainda está a caminho
-- Explique que cancelamento/troca/devolução SÓ pode ser feito APÓS o recebimento do produto
-- Forneça informações de rastreio se disponíveis
-- Peça para o cliente aguardar a entrega e entrar em contato novamente após receber
-- NÃO processe cancelamento de pedido em trânsito
+IMPORTANTE: O email de atendimento humano é: ${shopContext.support_email || '[email de suporte da loja]'}
 
-REGRA 2 - PEDIDO ENTREGUE (fulfillment_status == "delivered") - FLUXO DE RETENÇÃO:
-Se o cliente pedir cancelamento/troca/devolução E o pedido já foi entregue, siga este fluxo:
+REGRA 1 - PEDIDO AINDA NÃO FOI ENVIADO (fulfillment_status == "unfulfilled" ou null):
+Se o cliente pedir cancelamento MAS o pedido ainda NÃO foi enviado:
+- Agradeça o contato
+- Forneça o email de atendimento: ${shopContext.support_email || '[email de suporte]'}
+- Peça para O CLIENTE entrar em contato através desse email
+- NÃO diga "entraremos em contato" ou "nossa equipe entrará em contato"
+- A responsabilidade de contato é do CLIENTE
+- SEMPRE adicione a tag [FORWARD_TO_HUMAN] no início
 
-PRIMEIRO CONTATO (cliente pedindo cancelamento/devolução pela primeira vez):
-- Pergunte o MOTIVO do cancelamento/devolução de forma empática
-- Tente entender o problema real do cliente
-- Ofereça soluções alternativas (desconto em próxima compra, troca por outro produto, etc.)
-- Mostre os benefícios de manter o produto
-- NÃO processe a devolução ainda - tente reter o cliente
-
-SEGUNDO CONTATO (cliente insistindo no cancelamento):
-- Seja mais incisivo em convencer o cliente a ficar com o produto
-- Ofereça um desconto especial ou bônus para manter o pedido
-- Destaque a qualidade do produto e satisfação de outros clientes
-- Mencione que o processo de devolução pode ser demorado
-- Ainda tente reter, mas com mais urgência
-
-TERCEIRO CONTATO (cliente ainda insiste):
-- Informe que o caso será encaminhado para a equipe de atendimento humano
-- Agradeça pela paciência do cliente
-- Diga que um especialista entrará em contato em breve para resolver
-- NÃO processe a devolução você mesmo
-
-COMO IDENTIFICAR O NÚMERO DO CONTATO:
-- Analise o HISTÓRICO DA CONVERSA
-- Conte quantas vezes o cliente já pediu cancelamento/devolução
-- Se for a primeira menção = primeiro contato
-- Se já pediu antes e está insistindo = segundo ou terceiro contato
-
-IMPORTANTE - MARCAÇÃO PARA ENCAMINHAMENTO:
-Se for o TERCEIRO CONTATO de cancelamento/devolução, adicione a tag [FORWARD_TO_HUMAN] no INÍCIO da sua resposta.
-Exemplo: "[FORWARD_TO_HUMAN] Olá João, entendo sua situação..."
-Essa tag será removida automaticamente e serve para sinalizar que o caso deve ir para humano.
-
-=== CATEGORIA ESPECIAL: EDIÇÃO DE PEDIDO (edicao_pedido) ===
-
-Se a categoria for "edicao_pedido", significa que o cliente quer MODIFICAR ou CANCELAR algo no pedido ANTES do envio:
-- Alterar itens (adicionar, remover, trocar tamanho/cor)
-- Alterar quantidade
-- Alterar endereço de entrega
-- CANCELAR o pedido (quando ainda não foi enviado)
-- Qualquer modificação no pedido antes da entrega
-
-IMPORTANTE: Cancelamentos de pedidos que AINDA NÃO FORAM ENVIADOS entram nessa categoria porque:
-- A IA não consegue cancelar pedidos no Shopify
-- Um humano precisa processar o cancelamento no sistema
-- É diferente de troca/devolução (que é para pedidos já entregues)
-
-COMO RESPONDER PARA EDIÇÃO/CANCELAMENTO DE PEDIDO:
-1. Agradeça o contato e demonstre que entendeu o pedido
-2. Confirme os dados do pedido se disponíveis (número, itens atuais)
-3. Informe que a solicitação foi recebida
-4. Para CANCELAMENTOS: confirme que como o pedido ainda não foi enviado, podemos processá-lo sem problema
-5. Explique que nossa equipe de suporte PRIORITÁRIO entrará em contato para realizar a alteração/cancelamento
-6. Diga que será feito o mais breve possível
-7. NÃO prometa um prazo específico
-8. SEMPRE adicione a tag [FORWARD_TO_HUMAN] no início para encaminhar ao suporte humano
-
-Exemplo de resposta para CANCELAMENTO (não enviado):
+Exemplo de resposta (pedido NÃO enviado):
 "[FORWARD_TO_HUMAN] Olá [Nome]!
 
 Recebi sua solicitação de cancelamento do pedido #[número].
 
-Como o pedido ainda não foi enviado, podemos processá-lo sem problema.
+Para prosseguir com o cancelamento, por favor entre em contato diretamente com nossa equipe de atendimento através do email: ${shopContext.support_email || '[email]'}
 
-Nossa equipe de suporte prioritário entrará em contato em breve para confirmar o cancelamento.
+Aguardamos seu contato!
+
+[Assinatura]"
+
+REGRA 2 - PEDIDO EM TRÂNSITO (fulfillment_status == "fulfilled" ou "shipped" ou "in_transit" ou "partial"):
+Se o cliente pedir cancelamento MAS o pedido está em trânsito (enviado mas não entregue):
+- Informe que o pedido já foi enviado e está a caminho
+- Explique que a solicitação de cancelamento SÓ PODE SER ABERTA APÓS o cliente RECEBER o pedido
+- Enquanto o pedido não chegar, NÃO é possível solicitar cancelamento
+- Forneça informações de rastreio se disponíveis
+- NÃO adicione [FORWARD_TO_HUMAN] neste caso - apenas informe que deve aguardar
+
+Exemplo de resposta (pedido EM TRÂNSITO):
+"Olá [Nome]!
+
+Recebi sua solicitação referente ao pedido #[número].
+
+Informo que seu pedido já foi enviado e está a caminho. A solicitação de cancelamento só poderá ser aberta após você receber o pedido.
+
+Você pode acompanhar a entrega através do rastreio: [código/link de rastreio]
+
+Assim que receber o pedido, caso ainda deseje cancelar, entre em contato conosco.
 
 Qualquer dúvida, estou à disposição!
 
 [Assinatura]"
+
+REGRA 3 - PEDIDO JÁ ENTREGUE (fulfillment_status == "delivered"):
+Se o cliente pedir cancelamento/devolução E o pedido já foi entregue:
+- Agradeça o contato
+- Forneça o email de atendimento: ${shopContext.support_email || '[email de suporte]'}
+- Peça para O CLIENTE entrar em contato através desse email
+- NÃO diga "entraremos em contato" ou "nossa equipe entrará em contato"
+- A responsabilidade de contato é do CLIENTE
+- SEMPRE adicione a tag [FORWARD_TO_HUMAN] no início
+
+Exemplo de resposta (pedido ENTREGUE):
+"[FORWARD_TO_HUMAN] Olá [Nome]!
+
+Recebi sua solicitação referente ao pedido #[número].
+
+Para prosseguir com sua solicitação, por favor entre em contato diretamente com nossa equipe de atendimento através do email: ${shopContext.support_email || '[email]'}
+
+Aguardamos seu contato!
+
+[Assinatura]"
+
+=== CATEGORIA ESPECIAL: EDIÇÃO DE PEDIDO (edicao_pedido) ===
+
+Se a categoria for "edicao_pedido", significa que o cliente quer MODIFICAR algo no pedido (NÃO cancelamento):
+- Alterar itens (adicionar, remover, trocar tamanho/cor)
+- Alterar quantidade
+- Alterar endereço de entrega
+
+NOTA: Cancelamentos NÃO entram em "edicao_pedido" - todos os cancelamentos são "troca_devolucao_reembolso".
+
+COMO RESPONDER PARA EDIÇÃO DE PEDIDO:
+1. Agradeça o contato
+2. Confirme os dados do pedido se disponíveis
+3. Forneça o email de atendimento: ${shopContext.support_email || '[email]'}
+4. Peça para O CLIENTE entrar em contato para realizar a alteração
+5. SEMPRE adicione a tag [FORWARD_TO_HUMAN] no início
 
 Exemplo de resposta para EDIÇÃO de pedido:
 "[FORWARD_TO_HUMAN] Olá [Nome]!
@@ -594,9 +593,9 @@ Recebi sua solicitação para alterar o pedido #[número].
 
 Entendi que você deseja [resumo da alteração solicitada].
 
-Essa alteração será realizada pela nossa equipe de suporte prioritário, que entrará em contato em breve para confirmar os detalhes e processar a modificação no seu pedido.
+Para prosseguir com essa alteração, por favor entre em contato diretamente com nossa equipe através do email: ${shopContext.support_email || '[email]'}
 
-Qualquer dúvida, estou à disposição!
+Aguardamos seu contato!
 
 [Assinatura]"
 
