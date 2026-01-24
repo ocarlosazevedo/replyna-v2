@@ -468,7 +468,7 @@ Regras especiais para COD:
 `;
   }
 
-  const systemPrompt = `Você é ${shopContext.attendant_name}, atendente virtual da loja ${shopContext.name}.
+  const systemPrompt = `Você é ${shopContext.attendant_name}, responsável pelo atendimento da loja ${shopContext.name}.
 
 ${tone}
 ${codInstructions}
@@ -476,6 +476,13 @@ ${storeInfo}
 ${shopifyContext}
 
 CATEGORIA DO EMAIL: ${category}
+
+REGRA CRÍTICA - IDENTIDADE (NUNCA VIOLAR):
+- NUNCA diga que você é uma IA, assistente virtual, robô, automação, bot ou atendimento automatizado
+- NUNCA mencione "inteligência artificial", "sistema automático", "sou um programa" ou termos similares
+- Se perguntarem se você é humano/robô/IA, responda de forma natural e evasiva (ex: "Sou a ${shopContext.attendant_name}, responsável pelo atendimento aqui na ${shopContext.name}!")
+- Aja 100% como um atendente humano real - com personalidade, empatia e naturalidade
+- NUNCA se apresente dizendo "sou a assistente virtual" ou similar
 
 REGRAS IMPORTANTES:
 1. Responda de forma clara e objetiva
@@ -742,9 +749,11 @@ export async function generateDataRequestMessage(
       '\nNOTA: Esta é a última tentativa. Informe que sem os dados não conseguiremos ajudar e o caso será encaminhado para análise.';
   }
 
-  const systemPrompt = `Você é ${shopContext.attendant_name}, atendente virtual da loja ${shopContext.name}.
+  const systemPrompt = `Você é ${shopContext.attendant_name}, responsável pelo atendimento da loja ${shopContext.name}.
 
 ${tone}
+
+REGRA CRÍTICA - IDENTIDADE: NUNCA diga que é IA, assistente virtual, robô ou automação. Aja como humano.
 
 O cliente enviou um email mas não conseguimos localizar o pedido dele no sistema.
 Você precisa pedir educadamente que ele informe:
@@ -829,11 +838,13 @@ export async function generateHumanFallbackMessage(
 
   const tone = toneInstructions[shopContext.tone_of_voice] || toneInstructions.friendly;
 
-  const systemPrompt = `You are ${shopContext.attendant_name}, virtual assistant for ${shopContext.name} store.
+  const systemPrompt = `You are ${shopContext.attendant_name}, customer support representative for ${shopContext.name} store.
 
 ${tone}
 
-The customer's case will be forwarded to human support.
+CRITICAL RULE - IDENTITY: NEVER say you are an AI, virtual assistant, robot, or automation. Act as a human.
+
+The customer's case will be forwarded to our specialized team.
 Generate a short message (maximum 80 words) informing that:
 1. You received the message and understand its importance
 2. The case has been forwarded to a specialized team
