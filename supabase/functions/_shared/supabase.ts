@@ -442,9 +442,7 @@ export async function checkRateLimit(
 export async function incrementRateLimit(shopId: string, customerEmail: string): Promise<void> {
   const supabase = getSupabaseClient();
 
-  await supabase.rpc('', {});
-
-  // Upsert com incremento
+  // Buscar registro existente
   const { data: existing } = await supabase
     .from('rate_limits')
     .select('id, responses_last_hour')
@@ -453,6 +451,7 @@ export async function incrementRateLimit(shopId: string, customerEmail: string):
     .single();
 
   if (existing) {
+    // Incrementar contador existente
     await supabase
       .from('rate_limits')
       .update({
@@ -460,6 +459,16 @@ export async function incrementRateLimit(shopId: string, customerEmail: string):
         last_response_at: new Date().toISOString(),
       })
       .eq('id', existing.id);
+  } else {
+    // Criar novo registro
+    await supabase
+      .from('rate_limits')
+      .insert({
+        shop_id: shopId,
+        customer_email: customerEmail,
+        responses_last_hour: 1,
+        last_response_at: new Date().toISOString(),
+      });
   }
 }
 
@@ -487,29 +496,21 @@ export async function updateShopEmailSync(
 export async function updateCreditsWarning(userId: string): Promise<void> {
   const supabase = getSupabaseClient();
 
-  await supabase
-    .from('users')
-    .update({
-      last_credits_warning_at: new Date().toISOString(),
-      credits_warning_count: supabase.rpc('', {}), // Será incrementado via SQL
-    })
-    .eq('id', userId);
-
-  // Incrementar contador separadamente
+  // Buscar contador atual
   const { data: user } = await supabase
     .from('users')
     .select('credits_warning_count')
     .eq('id', userId)
     .single();
 
-  if (user) {
-    await supabase
-      .from('users')
-      .update({
-        credits_warning_count: (user.credits_warning_count || 0) + 1,
-      })
-      .eq('id', userId);
-  }
+  // Atualizar timestamp e incrementar contador
+  await supabase
+    .from('users')
+    .update({
+      last_credits_warning_at: new Date().toISOString(),
+      credits_warning_count: (user?.credits_warning_count || 0) + 1,
+    })
+    .eq('id', userId);
 }
 
 /**

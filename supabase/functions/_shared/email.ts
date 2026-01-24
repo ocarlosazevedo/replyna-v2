@@ -515,7 +515,7 @@ export async function fetchUnreadEmails(
 
         // Decodificar o corpo (texto e HTML)
         const decodedBody = decodeEmailBodyFull(msg.body);
-        const bodyText = cleanEmailBody(decodedBody.text);
+        const bodyText = cleanEmailBody(decodedBody.text || '', decodedBody.html || '');
 
         emails.push({
           message_id: msg.envelope.messageId,
@@ -1142,9 +1142,52 @@ export function extractNameFromEmail(email: string): string | null {
 }
 
 /**
- * Limpa o corpo do email removendo assinaturas e quotes anteriores
+ * Converte HTML para texto plano
  */
-export function cleanEmailBody(body: string): string {
+function htmlToPlainText(html: string): string {
+  if (!html) return '';
+
+  let text = html
+    // Remover scripts e styles
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    // Converter <br> e <p> para quebras de linha
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    // Remover todas as outras tags
+    .replace(/<[^>]+>/g, '')
+    // Decodificar entidades HTML
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&mdash;/gi, '—')
+    .replace(/&ndash;/gi, '–')
+    // Limpar espaços extras
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return text;
+}
+
+/**
+ * Limpa o corpo do email removendo assinaturas e quotes anteriores
+ * Aceita body_text e body_html - prioriza texto, usa HTML como fallback
+ */
+export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
+  // Priorizar body_text, usar HTML convertido como fallback
+  let body = bodyText || '';
+
+  // Se body_text está vazio ou é muito curto, tentar extrair do HTML
+  if ((!body || body.trim().length < 10) && bodyHtml) {
+    body = htmlToPlainText(bodyHtml);
+  }
+
   if (!body) return '';
 
   // Remover conteúdo após marcadores de quote

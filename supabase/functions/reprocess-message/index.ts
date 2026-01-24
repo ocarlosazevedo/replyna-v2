@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
     await updateMessage(message.id, { status: 'processing' });
 
     // 7. Preparar corpo do email
-    let cleanBody = cleanEmailBody(message.body_text || message.body_html || '');
+    let cleanBody = cleanEmailBody(message.body_text || '', message.body_html || '');
     if ((!cleanBody || cleanBody.trim().length < 3) && message.subject && message.subject.trim().length > 3) {
       cleanBody = message.subject;
     }
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
     const history = await getConversationHistory(conversation.id, 3);
     const conversationHistory = history.map((m) => ({
       role: m.direction === 'inbound' ? ('customer' as const) : ('assistant' as const),
-      content: cleanEmailBody(m.body_text || m.body_html || ''),
+      content: cleanEmailBody(m.body_text || '', m.body_html || ''),
     }));
 
     // 9. Buscar dados do Shopify

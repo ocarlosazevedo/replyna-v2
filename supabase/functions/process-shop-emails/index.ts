@@ -479,7 +479,7 @@ async function processMessage(
   }
 
   // 2. Limpar corpo do email
-  let cleanBody = cleanEmailBody(message.body_text || message.body_html || '');
+  let cleanBody = cleanEmailBody(message.body_text || '', message.body_html || '');
 
   if ((!cleanBody || cleanBody.trim().length < 3) && message.subject && message.subject.trim().length > 3) {
     console.log(`[Worker] Corpo vazio, usando assunto: "${message.subject}"`);
@@ -499,7 +499,7 @@ async function processMessage(
   const history = await getConversationHistory(conversation.id, 3);
   const conversationHistory = history.map((m) => ({
     role: m.direction === 'inbound' ? ('customer' as const) : ('assistant' as const),
-    content: cleanEmailBody(m.body_text || m.body_html || ''),
+    content: cleanEmailBody(m.body_text || '', m.body_html || ''),
   }));
 
   // 4. Classificar email
