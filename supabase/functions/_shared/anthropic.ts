@@ -81,7 +81,7 @@ function stripMarkdown(text: string): string {
 }
 
 /**
- * Remove pensamentos internos e formatação incorreta da resposta
+ * Remove pensamentos internos, formatação incorreta e identificação de IA da resposta
  */
 function cleanAIResponse(text: string): string {
   let cleaned = text;
@@ -107,6 +107,26 @@ function cleanAIResponse(text: string): string {
     cleaned = cleaned.replace(pattern, '');
   }
 
+  // CRÍTICO: Remover qualquer identificação de IA/assistente virtual da assinatura
+  // Patterns que identificam como IA/robô/assistente virtual
+  const aiIdentityPatterns = [
+    /Assistente\s+Virtual/gi,
+    /Virtual\s+Assistant/gi,
+    /AI\s+Assistant/gi,
+    /Assistente\s+de\s+IA/gi,
+    /Atendente\s+Virtual/gi,
+    /Bot\s+de\s+Atendimento/gi,
+    /Chatbot/gi,
+    /Assistente\s+Automatizado/gi,
+    /Automated\s+Assistant/gi,
+    /Suporte\s+Automatizado/gi,
+    /Automated\s+Support/gi,
+  ];
+
+  for (const pattern of aiIdentityPatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+
   // Remover linhas que parecem ser instruções internas
   const lines = cleaned.split('\n');
   const cleanedLines = lines.filter(line => {
@@ -120,6 +140,10 @@ function cleanAIResponse(text: string): string {
   });
 
   cleaned = cleanedLines.join('\n').trim();
+
+  // Limpar espaços duplos que podem ter ficado após remoções
+  cleaned = cleaned.replace(/  +/g, ' ');
+  cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
 
   // Garantir que não começa com aspas
   cleaned = cleaned.replace(/^["']+/, '');
@@ -255,24 +279,48 @@ LANGUAGE DETECTION (CRITICAL):
    These cases need human escalation.
    NOT for: angry customers, complaints, requests to "speak with a human" (respond normally to these).
 
-=== SPAM DETECTION (IMPORTANT) ===
-Classify as "spam" with HIGH confidence (0.9+):
-- Emails offering marketing, SEO, development, consulting services
-- Phrases like "grow your business", "increase revenue", "boost sales", "performance audit"
-- Senders identifying as consultants, developers, specialists, agencies
-- Generic emails with [placeholders] or template text
-- Cold outreach trying to sell services
-- Emails NOT related to a specific purchase from the store
-- BOUNCE/DSN EMAILS (VERY IMPORTANT): Emails with "Delivery Status Notification", "Mail Delivery Subsystem",
-  "mailer-daemon", "Undeliverable", "Delivery Failure", "Mail delivery failed" in subject or body.
-  These are automatic system notifications about failed email delivery - NOT real customer messages.
-  Remetentes como: mailer-daemon@*, postmaster@*, bounce@* são sempre spam.
-- Forwarded bounce notifications: If a customer forwards a bounce email, it's still spam - there's no real question to answer.
+=== SPAM DETECTION (CRITICAL - MUST CLASSIFY CORRECTLY) ===
 
-REAL CUSTOMERS (NOT spam):
-- Asking about THEIR order (mentions order number, tracking, specific purchase)
-- Questions about products they want to BUY
-- Support for a purchase THEY made
+CLASSIFY AS SPAM (confidence 0.95+) - THESE ARE NOT REAL CUSTOMERS:
+
+1. SERVICE OFFERS / CONSULTING / MARKETING:
+   - Anyone offering to improve the store, website, design, speed, conversion
+   - "I noticed opportunities", "I can help improve", "brief consultation"
+   - "grow your business", "increase revenue", "boost sales", "improve experience"
+   - Mentions: SEO, marketing, development, design, consulting, optimization
+   - Phrases: "I work with Shopify businesses", "I can share improvements", "quick list of improvements"
+   - Anyone identifying as: consultant, developer, specialist, agency, expert, freelancer
+
+2. COLD OUTREACH / SALES PITCHES:
+   - Emails that START with compliments about the store then offer services
+   - "I took a look at your store and noticed..."
+   - "Would you be open to a brief call/consultation?"
+   - "I can help you without relying on ads"
+   - Generic emails that could be sent to any store (not specific to a purchase)
+
+3. SYSTEM/AUTOMATED EMAILS:
+   - Delivery Status Notification, Mail Delivery Subsystem, mailer-daemon
+   - Undeliverable, Delivery Failure, Mail delivery failed
+   - Bounce notifications, postmaster messages
+
+4. OTHER SPAM SIGNALS:
+   - No mention of ANY specific order or purchase they made
+   - Email sounds like a template (could be sent to hundreds of stores)
+   - Offering "free audit", "free consultation", "free analysis"
+   - Partnership proposals, collaboration offers
+   - B2B sales pitches
+
+REAL CUSTOMERS (NOT spam) - ONLY these should NOT be spam:
+- Asking about THEIR ORDER (mentions order number, tracking, specific purchase THEY made)
+- Questions about products they want to BUY FROM THIS STORE
+- Complaints about an order THEY placed
+- Returns/refunds for products THEY purchased
+
+IMPORTANT: If the email does NOT mention a specific order or purchase the person made,
+and instead offers services or "help" to improve the store → IT IS SPAM.
+
+When in doubt: if they're offering something TO the store (services, help, consultation)
+rather than asking about something FROM the store (their order, products) → SPAM.
 
 === CLASSIFICATION RULES ===
 - When in doubt between duvidas_gerais and rastreio: if no order number/purchase mentioned → duvidas_gerais
@@ -479,12 +527,15 @@ ${shopifyContext}
 
 CATEGORIA DO EMAIL: ${category}
 
-REGRA CRÍTICA - IDENTIDADE (NUNCA VIOLAR):
+REGRA CRÍTICA - IDENTIDADE (NUNCA VIOLAR - PRIORIDADE MÁXIMA):
 - NUNCA diga que você é uma IA, assistente virtual, robô, automação, bot ou atendimento automatizado
 - NUNCA mencione "inteligência artificial", "sistema automático", "sou um programa" ou termos similares
 - Se perguntarem se você é humano/robô/IA, responda de forma natural e evasiva (ex: "Sou a ${shopContext.attendant_name}, responsável pelo atendimento aqui na ${shopContext.name}!")
 - Aja 100% como um atendente humano real - com personalidade, empatia e naturalidade
 - NUNCA se apresente dizendo "sou a assistente virtual" ou similar
+- NA ASSINATURA: Use APENAS seu nome "${shopContext.attendant_name}" - NUNCA adicione "Assistente Virtual", "Virtual Assistant", "AI", "Bot" ou qualquer identificação de automação
+- ASSINATURA CORRETA: "${shopContext.attendant_name}" ou "${shopContext.attendant_name}\n${shopContext.name}"
+- ASSINATURA ERRADA (NUNCA USE): "${shopContext.attendant_name}\nAssistente Virtual ${shopContext.name}"
 
 REGRAS IMPORTANTES:
 1. Responda de forma clara e objetiva
@@ -771,7 +822,10 @@ export async function generateDataRequestMessage(
 
 ${tone}
 
-REGRA CRÍTICA - IDENTIDADE: NUNCA diga que é IA, assistente virtual, robô ou automação. Aja como humano.
+REGRA CRÍTICA - IDENTIDADE (PRIORIDADE MÁXIMA):
+- NUNCA diga que é IA, assistente virtual, robô ou automação
+- Assine APENAS com seu nome: "${shopContext.attendant_name}"
+- NUNCA adicione "Assistente Virtual" ou similar na assinatura
 
 O cliente enviou um email mas não conseguimos localizar o pedido dele no sistema.
 Você precisa pedir educadamente que ele informe:
@@ -860,7 +914,12 @@ export async function generateHumanFallbackMessage(
 
 ${tone}
 
-CRITICAL RULE - IDENTITY: NEVER say you are an AI, virtual assistant, robot, or automation. Act as a human.
+CRITICAL RULE - IDENTITY (MAXIMUM PRIORITY - NEVER VIOLATE):
+- NEVER say you are an AI, virtual assistant, robot, bot, or automation
+- NEVER sign as "Virtual Assistant", "AI Assistant", "Assistente Virtual", or similar
+- Sign ONLY with your name: "${shopContext.attendant_name}"
+- CORRECT signature: "${shopContext.attendant_name}" or "${shopContext.attendant_name}\n${shopContext.name}"
+- WRONG signature (NEVER USE): "${shopContext.attendant_name}\nVirtual Assistant" or "AI Support"
 
 The customer's case will be forwarded to our specialized team.
 Generate a short message (maximum 80 words) informing that:
