@@ -513,17 +513,19 @@ Regras para COD - DEPENDE DO STATUS DO PEDIDO:
 2. Se o pedido JÁ FOI ENTREGUE (cliente já recebeu e pagou na entrega):
    - O cliente JÁ PAGOU no ato da entrega
    - Se quiser devolver: TEM DIREITO ao reembolso após devolução do produto
-   - SEMPRE encaminhe para suporte humano (adicione [FORWARD_TO_HUMAN])
-   - Peça para O CLIENTE entrar em contato pelo email de suporte
    - NUNCA diga que "não há valor a ser reembolsado" se o cliente já recebeu/pagou
 
-Como identificar se o cliente já recebeu (ENCAMINHAR PARA HUMANO):
-- O cliente diz que está "devolvendo", "enviando de volta", "já recebi"
-- O cliente menciona problemas com o produto recebido (defeito, errado, danificado)
-- O cliente fala sobre reembolso após ter o produto em mãos
-- O cliente já enviou o produto de volta
+   IMPORTANTE - Quando encaminhar para humano vs. tentar reter:
 
-Nesses casos, adicione [FORWARD_TO_HUMAN] e peça para o cliente entrar em contato pelo email: forneça o email de suporte da loja.
+   a) ENCAMINHAR DIRETO PARA HUMANO (sem retenção):
+      - Cliente JÁ ENVIOU o produto de volta
+      - Produto com defeito grave, danificado, ou produto errado
+      - Nesses casos: adicione [FORWARD_TO_HUMAN] e forneça o email de suporte
+
+   b) TENTAR RETER PRIMEIRO (aplicar fluxo de retenção):
+      - Cliente quer devolver mas AINDA TEM o produto
+      - Cliente insatisfeito mas sem defeito grave
+      - Aplique o fluxo de retenção (3 contatos) antes de encaminhar
 
 `;
   }
@@ -622,10 +624,11 @@ Se o cliente menciona QUALQUER uma dessas situações, pule DIRETO para o email 
 - "medidas legais", "processo", "procon", "advogado", "justiça", "tribunal"
 - Cliente muito agressivo/ameaçador
 - Problemas graves (produto causou dano, alergia, etc.)
-- DEVOLUÇÃO DE PRODUTO JÁ RECEBIDO: cliente diz que está devolvendo, enviando de volta, já enviou
-- REEMBOLSO de produto já recebido/pago
-- Produto com defeito, danificado, errado, não funciona
-- Cliente já recebeu o produto e quer devolver por qualquer motivo
+- Cliente JÁ ENVIOU o produto de volta (não tem mais o produto em mãos)
+- Produto com defeito grave, danificado na entrega, ou produto errado enviado
+
+NOTA: Se o cliente QUER devolver mas AINDA NÃO ENVIOU, aplique o fluxo de retenção (PRIORIDADE 3) primeiro.
+Só encaminhe para humano após as 3 tentativas de retenção.
 
 O que fazer:
 - Forneça o email: ${shopContext.support_email}
