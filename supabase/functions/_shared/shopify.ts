@@ -359,17 +359,22 @@ export function extractOrderNumber(text: string): string | null {
   // Padrões comuns de número de pedido (incluindo formatos com letras como #W185ES1320)
   // IMPORTANTE: Patterns mais específicos primeiro, mais genéricos depois
   const patterns = [
-    // Formatos explícitos com palavra-chave
-    /order\s*#?\s*:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i,     // order #2202, order: 2202, order# 2202
-    /pedido\s*#?\s*:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i,   // pedido #2202, pedido: 2202
-    /número\s*(?:do\s*)?(?:pedido\s*)?:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i, // número do pedido: 2202
-    /nº\s*:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i,            // nº 2202, nº: 2202
-    /commande\s*#?\s*:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i, // commande (francês)
-    /bestellung\s*#?\s*:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i, // bestellung (alemão)
-    /ordine\s*#?\s*:?\s*#?([A-Z]*\d+[A-Z]*\d*)/i,   // ordine (italiano)
+    // Formatos explícitos com palavra-chave (suporta "é", ":", "=", espaço como separador)
+    /order\s*(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/i,     // order #2202, order: 2202, order is 2202
+    /pedido\s*(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/i,   // pedido #2202, pedido é 2202
+    /número\s*(?:do\s*)?(?:pedido\s*)?(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/i, // número do pedido é 2202
+    /nº\s*(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/i,       // nº 2202, nº: 2202
+    /commande\s*(?:#|:|\s|est|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/i, // commande (francês)
+    /bestellung\s*(?:#|:|\s|ist|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/i, // bestellung (alemão)
+    /bestelling\s*(?:#|:|\s|is|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/i, // bestelling (holandês)
+    /ordine\s*(?:#|:|\s|è|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/i,   // ordine (italiano)
+    /ordernummer\s*(?:#|:|\s|is|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/i, // ordernummer (holandês/alemão)
 
     // Formato com # (ex: #2202, # 2202)
     /#\s*([A-Z]*\d+[A-Z]*\d*)/i,
+
+    // Número longo isolado (7+ dígitos) - provavelmente número de pedido
+    /\b(\d{7,})\b/,
 
     // Número isolado no início da linha (provavelmente número de pedido)
     /^([A-Z]*\d{4,}[A-Z]*\d*)$/im,
