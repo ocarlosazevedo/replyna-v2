@@ -215,23 +215,44 @@ Your task is to analyze the email and return a JSON with:
 4. order_id_found: order number if mentioned (e.g., #12345, 12345), or null
 5. summary: 1-line summary of what the customer wants
 
-LANGUAGE DETECTION (CRITICAL):
-- Analyze the customer's text carefully and detect the EXACT language used
+LANGUAGE DETECTION (CRITICAL - MUST DETECT ANY LANGUAGE):
+- You MUST detect the EXACT language the customer is writing in
 - IGNORE any quoted/previous messages - only analyze the NEW message from the customer
-- Common languages:
-  - "pt-BR" for Brazilian Portuguese (olá, obrigado, quero, onde, está, cancelamento, pedido, por favor)
-  - "es" for Spanish (hola, pedido, cancelar, gracias, quiero, donde, está, por favor)
-  - "en" for English (hello, order, cancel, thanks, want, where, tracking, please)
-  - "it" for Italian (ciao, ordine, annullare, grazie, voglio, dove, tracciamento, per favore)
-  - "fr" for French (bonjour, commande, annuler, merci, je veux, où, suivi, s'il vous plaît)
-  - "de" for German (hallo, bestellung, stornieren, danke, ich möchte, wo, sendungsverfolgung, bitte, warum, schreiben, nicht, auf deutsch, lieferung, produkt, zurück)
-  - "pl" for Polish (cześć, dzień dobry, zamówienie, anulować, dziękuję, chcę, gdzie, śledzenie)
-  - "nl" for Dutch (hallo, bestelling, annuleren, bedankt, ik wil, waar, tracking, waarom, schrijf)
-  - "ro" for Romanian (bună, comandă, anulare, mulțumesc, vreau, unde, urmărire)
-  - "cs" for Czech (dobrý den, objednávka, zrušit, děkuji, chci, kde, sledování)
-- For ANY other language not listed, use the ISO 639-1 code (e.g., "sv" for Swedish, "da" for Danish, etc.)
-- NEVER assume any language by default - analyze the actual text
-- If the email contains multiple languages, use the PRIMARY language the customer wrote in (not quoted text)
+- Detect ANY language in the world - use ISO 639-1 codes:
+  - "pt-BR" = Brazilian Portuguese, "pt" = Portuguese
+  - "en" = English
+  - "es" = Spanish
+  - "de" = German
+  - "fr" = French
+  - "it" = Italian
+  - "nl" = Dutch
+  - "pl" = Polish
+  - "cs" = Czech
+  - "ro" = Romanian
+  - "sv" = Swedish
+  - "da" = Danish
+  - "no" = Norwegian
+  - "fi" = Finnish
+  - "ru" = Russian
+  - "uk" = Ukrainian
+  - "ja" = Japanese
+  - "zh" = Chinese
+  - "ko" = Korean
+  - "ar" = Arabic
+  - "he" = Hebrew
+  - "tr" = Turkish
+  - "hu" = Hungarian
+  - "el" = Greek
+  - "bg" = Bulgarian
+  - "hr" = Croatian
+  - "sk" = Slovak
+  - "sl" = Slovenian
+  - "et" = Estonian
+  - "lv" = Latvian
+  - "lt" = Lithuanian
+  - Any other ISO 639-1 code for languages not listed
+- NEVER default to English - always detect the actual language
+- The response will be generated in the detected language
 
 === AVAILABLE CATEGORIES (ONLY 6) ===
 
@@ -483,7 +504,7 @@ INFORMAÇÕES DA LOJA:
     storeInfo += `\n- Garantia: ${shopContext.warranty_info}`;
   }
 
-  // Mapear idioma para instruções
+  // Mapear idioma para instruções - suporta qualquer idioma
   const languageInstructions: Record<string, string> = {
     'pt-BR': 'Responda em Português do Brasil.',
     'pt': 'Responda em Português.',
@@ -492,9 +513,27 @@ INFORMAÇÕES DA LOJA:
     'fr': 'Répondez en Français.',
     'de': 'Antworten Sie auf Deutsch.',
     'it': 'Rispondi in Italiano.',
+    'nl': 'Antwoord in het Nederlands.',
+    'pl': 'Odpowiedz po polsku.',
+    'cs': 'Odpovězte v češtině.',
+    'ro': 'Răspundeți în limba română.',
+    'sv': 'Svara på svenska.',
+    'da': 'Svar på dansk.',
+    'no': 'Svar på norsk.',
+    'fi': 'Vastaa suomeksi.',
+    'ru': 'Ответьте на русском языке.',
+    'uk': 'Відповідайте українською мовою.',
+    'hu': 'Válaszoljon magyarul.',
+    'el': 'Απαντήστε στα ελληνικά.',
+    'tr': 'Türkçe yanıt verin.',
+    'ja': '日本語で返信してください。',
+    'zh': '请用中文回复。',
+    'ko': '한국어로 답변해 주세요.',
+    'ar': 'يرجى الرد باللغة العربية.',
+    'he': 'אנא השב בעברית.',
   };
 
-  const languageInstruction = languageInstructions[language] || `Responda no mesmo idioma do cliente (${language}).`;
+  const languageInstruction = languageInstructions[language] || `CRITICAL: You MUST respond in the customer's language (${language}). Write your ENTIRE response in ${language}.`;
 
   // Instruções específicas para Cash on Delivery (COD)
   let codInstructions = '';
@@ -829,7 +868,7 @@ export async function generateDataRequestMessage(
 
   const tone = toneInstructions[shopContext.tone_of_voice] || toneInstructions.friendly;
 
-  // Mapear idioma para instruções
+  // Mapear idioma para instruções - suporta qualquer idioma
   const languageInstructions: Record<string, string> = {
     'pt-BR': 'Responda em Português do Brasil.',
     'pt': 'Responda em Português.',
@@ -838,9 +877,27 @@ export async function generateDataRequestMessage(
     'fr': 'Répondez en Français.',
     'de': 'Antworten Sie auf Deutsch.',
     'it': 'Rispondi in Italiano.',
+    'nl': 'Antwoord in het Nederlands.',
+    'pl': 'Odpowiedz po polsku.',
+    'cs': 'Odpovězte v češtině.',
+    'ro': 'Răspundeți în limba română.',
+    'sv': 'Svara på svenska.',
+    'da': 'Svar på dansk.',
+    'no': 'Svar på norsk.',
+    'fi': 'Vastaa suomeksi.',
+    'ru': 'Ответьте на русском языке.',
+    'uk': 'Відповідайте українською мовою.',
+    'hu': 'Válaszoljon magyarul.',
+    'el': 'Απαντήστε στα ελληνικά.',
+    'tr': 'Türkçe yanıt verin.',
+    'ja': '日本語で返信してください。',
+    'zh': '请用中文回复。',
+    'ko': '한국어로 답변해 주세요.',
+    'ar': 'يرجى الرد باللغة العربية.',
+    'he': 'אנא השב בעברית.',
   };
 
-  const languageInstruction = languageInstructions[language] || `Responda no mesmo idioma do cliente (${language}).`;
+  const languageInstruction = languageInstructions[language] || `CRITICAL: You MUST respond in the customer's language (${language}). Write your ENTIRE response in ${language}.`;
 
   let urgencyNote = '';
   if (attemptNumber === 2) {
@@ -920,7 +977,7 @@ export async function generateHumanFallbackMessage(
     };
   }
 
-  // Mapear idioma para instruções
+  // Mapear idioma para instruções - suporta qualquer idioma
   const languageInstructions: Record<string, string> = {
     'pt-BR': 'Responda em Português do Brasil.',
     'pt': 'Responda em Português.',
@@ -929,9 +986,27 @@ export async function generateHumanFallbackMessage(
     'fr': 'Répondez en Français.',
     'de': 'Antworten Sie auf Deutsch.',
     'it': 'Rispondi in Italiano.',
+    'nl': 'Antwoord in het Nederlands.',
+    'pl': 'Odpowiedz po polsku.',
+    'cs': 'Odpovězte v češtině.',
+    'ro': 'Răspundeți în limba română.',
+    'sv': 'Svara på svenska.',
+    'da': 'Svar på dansk.',
+    'no': 'Svar på norsk.',
+    'fi': 'Vastaa suomeksi.',
+    'ru': 'Ответьте на русском языке.',
+    'uk': 'Відповідайте українською мовою.',
+    'hu': 'Válaszoljon magyarul.',
+    'el': 'Απαντήστε στα ελληνικά.',
+    'tr': 'Türkçe yanıt verin.',
+    'ja': '日本語で返信してください。',
+    'zh': '请用中文回复。',
+    'ko': '한국어로 답변해 주세요.',
+    'ar': 'يرجى الرد باللغة العربية.',
+    'he': 'אנא השב בעברית.',
   };
 
-  const languageInstruction = languageInstructions[language] || `Respond in the same language as the customer (${language}).`;
+  const languageInstruction = languageInstructions[language] || `CRITICAL: You MUST respond in the customer's language (${language}). Write your ENTIRE response in ${language}.`;
 
   // Gerar mensagem padrão
   const toneInstructions: Record<string, string> = {
