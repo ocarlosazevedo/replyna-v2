@@ -513,13 +513,17 @@ Regras para COD - DEPENDE DO STATUS DO PEDIDO:
 2. Se o pedido JÁ FOI ENTREGUE (cliente já recebeu e pagou na entrega):
    - O cliente JÁ PAGOU no ato da entrega
    - Se quiser devolver: TEM DIREITO ao reembolso após devolução do produto
-   - Encaminhe para o email de suporte para processar a devolução e reembolso
+   - SEMPRE encaminhe para suporte humano (adicione [FORWARD_TO_HUMAN])
+   - Peça para O CLIENTE entrar em contato pelo email de suporte
    - NUNCA diga que "não há valor a ser reembolsado" se o cliente já recebeu/pagou
 
-Como identificar se o cliente já recebeu:
+Como identificar se o cliente já recebeu (ENCAMINHAR PARA HUMANO):
 - O cliente diz que está "devolvendo", "enviando de volta", "já recebi"
-- O cliente menciona problemas com o produto recebido
+- O cliente menciona problemas com o produto recebido (defeito, errado, danificado)
 - O cliente fala sobre reembolso após ter o produto em mãos
+- O cliente já enviou o produto de volta
+
+Nesses casos, adicione [FORWARD_TO_HUMAN] e peça para o cliente entrar em contato pelo email: forneça o email de suporte da loja.
 
 `;
   }
@@ -618,6 +622,10 @@ Se o cliente menciona QUALQUER uma dessas situações, pule DIRETO para o email 
 - "medidas legais", "processo", "procon", "advogado", "justiça", "tribunal"
 - Cliente muito agressivo/ameaçador
 - Problemas graves (produto causou dano, alergia, etc.)
+- DEVOLUÇÃO DE PRODUTO JÁ RECEBIDO: cliente diz que está devolvendo, enviando de volta, já enviou
+- REEMBOLSO de produto já recebido/pago
+- Produto com defeito, danificado, errado, não funciona
+- Cliente já recebeu o produto e quer devolver por qualquer motivo
 
 O que fazer:
 - Forneça o email: ${shopContext.support_email}
