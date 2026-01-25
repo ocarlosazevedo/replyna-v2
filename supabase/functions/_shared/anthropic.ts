@@ -217,19 +217,21 @@ Your task is to analyze the email and return a JSON with:
 
 LANGUAGE DETECTION (CRITICAL):
 - Analyze the customer's text carefully and detect the EXACT language used
+- IGNORE any quoted/previous messages - only analyze the NEW message from the customer
 - Common languages:
-  - "pt-BR" for Brazilian Portuguese (olá, obrigado, quero, onde, está, cancelamento, pedido)
-  - "es" for Spanish (hola, pedido, cancelar, gracias, quiero, donde, está)
-  - "en" for English (hello, order, cancel, thanks, want, where, tracking)
-  - "it" for Italian (ciao, ordine, annullare, grazie, voglio, dove, tracciamento)
-  - "fr" for French (bonjour, commande, annuler, merci, je veux, où, suivi)
-  - "de" for German (hallo, bestellung, stornieren, danke, ich möchte, wo, sendungsverfolgung)
+  - "pt-BR" for Brazilian Portuguese (olá, obrigado, quero, onde, está, cancelamento, pedido, por favor)
+  - "es" for Spanish (hola, pedido, cancelar, gracias, quiero, donde, está, por favor)
+  - "en" for English (hello, order, cancel, thanks, want, where, tracking, please)
+  - "it" for Italian (ciao, ordine, annullare, grazie, voglio, dove, tracciamento, per favore)
+  - "fr" for French (bonjour, commande, annuler, merci, je veux, où, suivi, s'il vous plaît)
+  - "de" for German (hallo, bestellung, stornieren, danke, ich möchte, wo, sendungsverfolgung, bitte, warum, schreiben, nicht, auf deutsch, lieferung, produkt, zurück)
   - "pl" for Polish (cześć, dzień dobry, zamówienie, anulować, dziękuję, chcę, gdzie, śledzenie)
-  - "nl" for Dutch (hallo, bestelling, annuleren, bedankt, ik wil, waar, tracking)
+  - "nl" for Dutch (hallo, bestelling, annuleren, bedankt, ik wil, waar, tracking, waarom, schrijf)
   - "ro" for Romanian (bună, comandă, anulare, mulțumesc, vreau, unde, urmărire)
+  - "cs" for Czech (dobrý den, objednávka, zrušit, děkuji, chci, kde, sledování)
 - For ANY other language not listed, use the ISO 639-1 code (e.g., "sv" for Swedish, "da" for Danish, etc.)
 - NEVER assume any language by default - analyze the actual text
-- If the email contains multiple languages, use the PRIMARY language the customer wrote in
+- If the email contains multiple languages, use the PRIMARY language the customer wrote in (not quoted text)
 
 === AVAILABLE CATEGORIES (ONLY 6) ===
 
