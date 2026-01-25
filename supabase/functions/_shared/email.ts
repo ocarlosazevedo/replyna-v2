@@ -1194,9 +1194,19 @@ export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
   const quoteMarkers = [
     /^On .+ wrote:$/m, // "On ... wrote:"
     /^Em .+ escreveu:$/m, // "Em ... escreveu:"
+    /^Em \d{1,2}\/\d{1,2}\/\d{2,4}/m, // "Em DD/MM/YY" ou "Em DD/MM/YYYY" (início de citação)
+    /^Am .+ schrieb/im, // Alemão: "Am ... schrieb"
+    /^Le .+ a écrit/im, // Francês: "Le ... a écrit"
+    /^El .+ escribió/im, // Espanhol: "El ... escribió"
+    /^Il .+ ha scritto/im, // Italiano: "Il ... ha scritto"
+    /^Op .+ schreef/im, // Holandês: "Op ... schreef"
     /^-+\s*Original Message\s*-+/im, // "Original Message"
     /^-+\s*Mensagem Original\s*-+/im, // "Mensagem Original"
+    /^-+\s*Ursprüngliche Nachricht\s*-+/im, // "Ursprüngliche Nachricht" (Alemão)
+    /^-+\s*Message d'origine\s*-+/im, // "Message d'origine" (Francês)
     /^From:\s/m, // Headers de forward
+    /^Von:\s/m, // Headers de forward (Alemão)
+    /^De:\s/m, // Headers de forward (Português/Espanhol/Francês)
     /^>+\s/m, // Quoted text
   ];
 
@@ -1212,8 +1222,17 @@ export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
   const signatureMarkers = [
     /^--\s*$/m, // "--" padrão
     /^Enviado do meu iPhone/im,
+    /^Enviado com o aplicativo/im, // "Enviado com o aplicativo de e-mail GMX", etc.
     /^Sent from my /im,
+    /^Gesendet von /im, // Alemão: "Gesendet von meinem iPhone"
+    /^Envoyé de mon /im, // Francês: "Envoyé de mon iPhone"
+    /^Enviado desde mi /im, // Espanhol: "Enviado desde mi iPhone"
     /^Get Outlook for /im,
+    /^Von meinem .+ gesendet/im, // Alemão: "Von meinem iPhone gesendet"
+    /^Mit freundlichen Grüßen/im, // Alemão: saudação formal
+    /^Atenciosamente,?\s*$/im, // Português: assinatura
+    /^Regards,?\s*$/im, // Inglês: assinatura
+    /^Best regards,?\s*$/im, // Inglês: assinatura
   ];
 
   for (const marker of signatureMarkers) {
