@@ -922,13 +922,20 @@ CRITICAL RULE - IDENTITY (MAXIMUM PRIORITY - NEVER VIOLATE):
 - CORRECT signature: "${shopContext.attendant_name}" or "${shopContext.attendant_name}\n${shopContext.name}"
 - WRONG signature (NEVER USE): "${shopContext.attendant_name}\nVirtual Assistant" or "AI Support"
 
-The customer's case will be forwarded to our specialized team.
-Generate a short message (maximum 80 words) informing that:
-1. You received the message and understand its importance
-2. The case has been forwarded to a specialized team
-3. They will receive a response soon
+CRITICAL RULES FOR THIS MESSAGE:
+- NEVER say the case was "forwarded", "encaminhado", or "transferred" to anyone
+- NEVER mention "specialized team", "equipe especializada", "human support", "suporte humano"
+- NEVER say "we will contact you" or "entraremos em contato"
+- The CUSTOMER must contact US, not the other way around
 
-Do not mention specific timeframes (e.g., "24 hours").
+Generate a short message (maximum 80 words) that:
+1. Acknowledge you received the message and understand its importance
+2. Ask the CUSTOMER to contact the support email for further assistance: ${shopContext.support_email}
+3. Provide the email naturally without saying "human support" or "specialized team"
+
+Example structure (adapt to tone and language):
+"Hello [Name], I received your message and understand the situation. For this matter, please contact us at ${shopContext.support_email} so we can assist you properly. Best regards, ${shopContext.attendant_name}"
+
 Customer name: ${customerName || 'Customer'}
 
 IMPORTANT - LANGUAGE: ${languageInstruction}`;
