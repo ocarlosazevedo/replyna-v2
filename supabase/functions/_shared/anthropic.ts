@@ -500,15 +500,26 @@ INFORMAÇÕES DA LOJA:
     codInstructions = `
 IMPORTANTE - MODELO CASH ON DELIVERY (COD):
 Esta loja opera no modelo de pagamento na entrega (Cash on Delivery / COD).
-O cliente NÃO paga antecipadamente - ele paga apenas quando recebe o produto.
+O cliente paga apenas quando recebe o produto.
 
-Regras especiais para COD:
-- NUNCA mencione estorno, reembolso no cartão ou devolução de valores pagos
-- Para cancelamentos: o pedido simplesmente será cancelado (não há valor a devolver)
-- Para devoluções: explique que o cliente pode recusar na entrega ou devolver o produto
-- Para trocas: o cliente devolve o produto e faz um novo pedido
-- Se o cliente mencionar "reembolso", explique que como o pagamento é feito na entrega, não há valor a ser reembolsado
-- Foque em soluções práticas: cancelar pedido, recusar na entrega, devolver produto
+Regras para COD - DEPENDE DO STATUS DO PEDIDO:
+
+1. Se o pedido AINDA NÃO FOI ENTREGUE (Status: "Aguardando envio" ou "Enviado" mas não entregue):
+   - O cliente AINDA NÃO PAGOU
+   - Para cancelar: o pedido será cancelado sem custo
+   - Para recusar: basta recusar na entrega, não há valor a devolver
+   - NÃO mencione reembolso pois não houve pagamento
+
+2. Se o pedido JÁ FOI ENTREGUE (cliente já recebeu e pagou na entrega):
+   - O cliente JÁ PAGOU no ato da entrega
+   - Se quiser devolver: TEM DIREITO ao reembolso após devolução do produto
+   - Encaminhe para o email de suporte para processar a devolução e reembolso
+   - NUNCA diga que "não há valor a ser reembolsado" se o cliente já recebeu/pagou
+
+Como identificar se o cliente já recebeu:
+- O cliente diz que está "devolvendo", "enviando de volta", "já recebi"
+- O cliente menciona problemas com o produto recebido
+- O cliente fala sobre reembolso após ter o produto em mãos
 
 `;
   }
