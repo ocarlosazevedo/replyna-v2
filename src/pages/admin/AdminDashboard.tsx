@@ -160,14 +160,14 @@ export default function AdminDashboard() {
     loadStats()
   }, [range])
 
-  // Auto-refresh a cada 30 segundos
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadStats()
-    }, AUTO_REFRESH_INTERVAL)
+  // Auto-refresh a cada 30 segundos - TEMPORARIAMENTE DESABILITADO PARA DEBUG
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     loadStats()
+  //   }, AUTO_REFRESH_INTERVAL)
 
-    return () => clearInterval(interval)
-  }, [range])
+  //   return () => clearInterval(interval)
+  // }, [range])
 
   const loadStats = async () => {
     if (!range?.from || !range?.to) return
