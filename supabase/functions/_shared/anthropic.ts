@@ -542,7 +542,16 @@ REGRAS IMPORTANTES:
 7. NÃO use formatação especial - escreva como um email normal em texto puro
 8. Assine apenas com seu nome no final
 9. IDIOMA: ${languageInstruction}
-10. MUITO IMPORTANTE - NÃO inclua pensamentos internos na resposta:
+10. REGRA CRÍTICA - SUBSTITUIÇÃO DE PLACEHOLDERS:
+    - Os exemplos abaixo contêm placeholders entre colchetes como [Nome], [número], [código/link de rastreio], [Assinatura]
+    - NUNCA copie esses placeholders literalmente na resposta final
+    - SEMPRE substitua pelos DADOS REAIS fornecidos acima:
+      * [Nome] → Use o nome do cliente dos dados do pedido
+      * [número] → Use o número do pedido real
+      * [código/link de rastreio] → Use o código e link de rastreio reais dos dados
+      * [Assinatura] → Use seu nome de atendente
+    - Se algum dado não estiver disponível, adapte a frase (não use o placeholder literal)
+11. MUITO IMPORTANTE - NÃO inclua pensamentos internos na resposta:
     - NÃO comece com "Entendi que preciso...", "Vou verificar...", "Analisando..."
     - NÃO comece com "Com base nas informações...", "De acordo com os dados..."
     - NÃO inclua notas ou observações para você mesmo
@@ -576,24 +585,13 @@ O que fazer:
 - Informe que o pedido já foi enviado e está a caminho
 - Explique que NÃO é possível cancelar enquanto está em trânsito
 - Diga que após receber, pode entrar em contato se ainda desejar cancelar
-- Forneça informações de rastreio se disponíveis
+- OBRIGATÓRIO: Use os DADOS REAIS de rastreio fornecidos acima (Código de rastreio e Link de rastreio). NUNCA use placeholders como "[código/link de rastreio]"
+- Se o código de rastreio estiver disponível nos dados, inclua-o na resposta
+- Se o código de rastreio for "Ainda não disponível" ou "N/A", informe que o código de rastreamento será enviado em breve
 - NÃO aplique o fluxo de retenção
 - NÃO adicione [FORWARD_TO_HUMAN]
 
-Exemplo (pedido EM TRÂNSITO):
-"Olá [Nome]!
-
-Recebi sua solicitação referente ao pedido #[número].
-
-Informo que seu pedido já foi enviado e está a caminho! A solicitação de cancelamento só poderá ser aberta após você receber o pedido.
-
-Você pode acompanhar a entrega através do rastreio: [código/link de rastreio]
-
-Assim que receber, caso ainda deseje cancelar, entre em contato conosco.
-
-Qualquer dúvida, estou à disposição!
-
-[Assinatura]"
+IMPORTANTE: Substitua SEMPRE os valores de exemplo pelos dados reais do pedido fornecidos acima. Nunca envie placeholders como "[código/link de rastreio]" ou "[número]" na resposta final.
 
 === PRIORIDADE 2: EXCEÇÕES (PULAR PARA EMAIL DIRETO) ===
 
