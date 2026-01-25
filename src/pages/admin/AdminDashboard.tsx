@@ -137,9 +137,6 @@ const filterCategories = [
   { value: 'acknowledgment', label: 'Confirmacao' },
 ]
 
-// Intervalo de atualização automática (30 segundos)
-const AUTO_REFRESH_INTERVAL = 30000
-
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([])
