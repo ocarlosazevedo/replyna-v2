@@ -248,6 +248,116 @@ function detectCancellationRequest(text: string): boolean {
 }
 
 /**
+ * Detecta se o cliente está irritado/frustrado
+ * Retorna true se detectar sinais de frustração
+ */
+function detectFrustratedCustomer(text: string): boolean {
+  if (!text || text.trim().length < 3) return false;
+
+  const lowerText = text.toLowerCase().trim();
+
+  const frustrationPatterns = [
+    // Português
+    /\b(absurdo|ridículo|vergonha|palhaçada|piada|brincadeira)\b/i,
+    /\b(pior\s+(atendimento|empresa|loja|serviço))\b/i,
+    /\b(nunca\s+mais|jamais|péssimo|horrível|terrível)\b/i,
+    /\b(vou\s+(processar|denunciar|reclamar))\b/i,
+    /\b(reclame\s*aqui|procon|consumidor\.gov)\b/i,
+    /\b(advogado|processo|justiça|tribunal)\b/i,
+    /\b(roub(o|ando|aram|ou)|golpe|fraude|enganad[oa])\b/i,
+    /\b(cansad[oa]\s+de|fart[oa]\s+de|cheio\s+de)\b/i,
+    /\b(isso\s+é\s+(um\s+)?absurdo)\b/i,
+    /\b(vocês\s+são|essa\s+empresa\s+é)\b/i,
+
+    // Inglês
+    /\b(ridiculous|absurd|unacceptable|outrageous|disgrace)\b/i,
+    /\b(worst\s+(service|company|store|experience))\b/i,
+    /\b(never\s+again|terrible|horrible|awful|pathetic)\b/i,
+    /\b(scam|fraud|rip\s*off|steal|stolen|robbed)\b/i,
+    /\b(lawyer|attorney|lawsuit|court|legal\s+action)\b/i,
+    /\b(bbb|better\s+business|consumer\s+protection)\b/i,
+    /\b(sick\s+of|tired\s+of|fed\s+up|enough\s+of)\b/i,
+    /\b(this\s+is\s+(a\s+)?joke|what\s+a\s+joke)\b/i,
+    /\b(you\s+(guys|people)\s+are)\b/i,
+    /\b(i('m|\s+am)\s+(so\s+)?(angry|furious|upset|frustrated|disappointed))\b/i,
+    /\b(unbelievable|incredible|insane)\b/i,
+
+    // Espanhol
+    /\b(ridículo|absurdo|vergüenza|estafa|fraude)\b/i,
+    /\b(peor\s+(servicio|empresa|tienda))\b/i,
+    /\b(abogado|demanda|denuncia)\b/i,
+
+    // Ameaças de disputa/chargeback (indica frustração alta)
+    /\b(chargeback|dispute|paypal\s+(claim|case|dispute))\b/i,
+    /\b(credit\s+card\s+(company|dispute)|bank\s+dispute)\b/i,
+    /\b(report|complaint|file\s+a\s+complaint)\b/i,
+  ];
+
+  for (const pattern of frustrationPatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectFrustration] Frustrated customer detected by pattern: ${pattern}`);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Detecta se há problema com o produto (defeito, danificado, errado)
+ * Retorna true se detectar problema com produto
+ */
+function detectProductProblem(text: string): boolean {
+  if (!text || text.trim().length < 3) return false;
+
+  const lowerText = text.toLowerCase().trim();
+
+  const productProblemPatterns = [
+    // Português
+    /\b(produto|item|pedido|encomenda)\s+(defeituoso|danificado|quebrado|estragado|com\s+defeito)\b/i,
+    /\b(veio|chegou|recebi)\s+(quebrado|danificado|errado|diferente|com\s+defeito)\b/i,
+    /\b(não\s+funciona|não\s+liga|não\s+carrega|parou\s+de\s+funcionar)\b/i,
+    /\b(produto\s+errado|item\s+errado|cor\s+errada|tamanho\s+errado)\b/i,
+    /\b(faltando|falta|incompleto|veio\s+sem)\b/i,
+    /\b(qualidade\s+(péssima|ruim|horrível))\b/i,
+    /\b(não\s+(é|era)\s+o\s+que\s+(pedi|encomendei|comprei))\b/i,
+
+    // Inglês
+    /\b(product|item|order)\s+(defective|damaged|broken|faulty)\b/i,
+    /\b(arrived|came|received)\s+(broken|damaged|wrong|different|defective)\b/i,
+    /\b(does\s*n'?t\s+work|not\s+working|stopped\s+working|won'?t\s+turn\s+on)\b/i,
+    /\b(wrong\s+(product|item|color|size|order))\b/i,
+    /\b(missing|incomplete|came\s+without)\b/i,
+    /\b(poor\s+quality|bad\s+quality|terrible\s+quality)\b/i,
+    /\b(not\s+what\s+i\s+(ordered|expected|bought))\b/i,
+    /\b(doesn'?t\s+match|different\s+from)\b/i,
+
+    // Espanhol
+    /\b(producto|artículo)\s+(defectuoso|dañado|roto)\b/i,
+    /\b(llegó|recibí)\s+(roto|dañado|equivocado)\b/i,
+    /\b(no\s+funciona|no\s+es\s+lo\s+que\s+pedí)\b/i,
+
+    // Alemão
+    /\b(defekt|beschädigt|kaputt|falsch)\b/i,
+
+    // Francês
+    /\b(défectueux|endommagé|cassé|mauvais)\b/i,
+
+    // Italiano
+    /\b(difettoso|danneggiato|rotto|sbagliato)\b/i,
+  ];
+
+  for (const pattern of productProblemPatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectProductProblem] Product problem detected by pattern: ${pattern}`);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Remove formatação markdown do texto
  */
 function stripMarkdown(text: string): string {
@@ -948,10 +1058,25 @@ REGRAS CRÍTICAS:
       }
     }
 
-    // CRÍTICO: Validar categoria de cancelamento/devolução/reembolso usando detecção direta
-    // Isso garante que casos de cancelamento sejam tratados corretamente mesmo se Claude errar
+    // CRÍTICO: Detectar casos que devem ir para suporte humano
     const isCancellationRequest = detectCancellationRequest(textToAnalyze);
-    if (isCancellationRequest && result.category !== 'troca_devolucao_reembolso' && result.category !== 'suporte_humano') {
+    const isFrustratedCustomer = detectFrustratedCustomer(textToAnalyze);
+    const hasProductProblem = detectProductProblem(textToAnalyze);
+
+    // PRIORIDADE 1: Cliente muito irritado/frustrado → suporte humano direto
+    if (isFrustratedCustomer) {
+      console.log(`[classifyEmail] Category override to suporte_humano: frustrated customer detected`);
+      result.category = 'suporte_humano';
+      result.confidence = 0.95;
+    }
+    // PRIORIDADE 2: Problema com produto + quer cancelar/devolver → suporte humano direto
+    else if (hasProductProblem && isCancellationRequest) {
+      console.log(`[classifyEmail] Category override to suporte_humano: product problem + cancellation request`);
+      result.category = 'suporte_humano';
+      result.confidence = 0.95;
+    }
+    // PRIORIDADE 3: Apenas cancelamento/devolução (sem problema de produto) → fluxo de retenção
+    else if (isCancellationRequest && result.category !== 'troca_devolucao_reembolso' && result.category !== 'suporte_humano') {
       console.log(`[classifyEmail] Category override: Claude said "${result.category}", but text contains cancellation/refund keywords`);
       result.category = 'troca_devolucao_reembolso';
       result.confidence = 0.95;
@@ -965,10 +1090,20 @@ REGRAS CRÍTICAS:
     const textToAnalyze = `${emailSubject || ''} ${emailBody || ''}`.trim();
     const detectedLanguage = detectLanguageFromText(textToAnalyze) || 'en';
     const isCancellationRequest = detectCancellationRequest(textToAnalyze);
+    const isFrustratedCustomer = detectFrustratedCustomer(textToAnalyze);
+    const hasProductProblem = detectProductProblem(textToAnalyze);
+
+    // Determinar categoria baseado nas detecções
+    let fallbackCategory: 'suporte_humano' | 'troca_devolucao_reembolso' | 'duvidas_gerais' = 'duvidas_gerais';
+    if (isFrustratedCustomer || (hasProductProblem && isCancellationRequest)) {
+      fallbackCategory = 'suporte_humano';
+    } else if (isCancellationRequest) {
+      fallbackCategory = 'troca_devolucao_reembolso';
+    }
 
     return {
-      category: isCancellationRequest ? 'troca_devolucao_reembolso' : 'duvidas_gerais',
-      confidence: isCancellationRequest ? 0.95 : 0.5,
+      category: fallbackCategory,
+      confidence: fallbackCategory !== 'duvidas_gerais' ? 0.95 : 0.5,
       language: detectedLanguage,
       order_id_found: null,
       summary: 'Could not classify the email',
