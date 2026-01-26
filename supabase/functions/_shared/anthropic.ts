@@ -242,9 +242,14 @@ Your task is to analyze the email and return a JSON with:
 4. order_id_found: order number if mentioned (e.g., #12345, 12345), or null
 5. summary: 1-line summary of what the customer wants
 
-LANGUAGE DETECTION (CRITICAL - MUST DETECT ANY LANGUAGE):
-- You MUST detect the EXACT language the customer is writing in
-- IGNORE any quoted/previous messages - only analyze the NEW message from the customer
+LANGUAGE DETECTION (CRITICAL - HIGHEST PRIORITY):
+- You MUST detect the language of the CURRENT EMAIL BODY ONLY
+- IGNORE the conversation history (HISTÓRICO DA CONVERSA) for language detection
+- IGNORE any quoted messages, signatures, or previous replies
+- IGNORE the language of previous assistant/store responses
+- Only look at the NEW text written by the customer in "CORPO DO EMAIL"
+- The customer may write in a DIFFERENT language than previous messages - that's OK
+- Always respond with the language of the CURRENT message, not the conversation history
 - Detect ANY language in the world - use ISO 639-1 codes:
   - "pt-BR" = Brazilian Portuguese, "pt" = Portuguese
   - "en" = English
@@ -414,11 +419,11 @@ Respond ONLY with the JSON, no additional text.`;
 
   const userMessage = `ASSUNTO: ${emailSubject || '(sem assunto)'}
 
-CORPO DO EMAIL:
+CORPO DO EMAIL (detect language from THIS section ONLY):
 ${emailBody || '(vazio)'}
 ${historyText}
 
-Classifique este email e retorne o JSON.`;
+Classifique este email e retorne o JSON. IMPORTANT: Detect language from "CORPO DO EMAIL" only, NOT from the history.`;
 
   const response = await callClaude(systemPrompt, [{ role: 'user', content: userMessage }], 300);
 
