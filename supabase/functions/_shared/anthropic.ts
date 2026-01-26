@@ -65,17 +65,25 @@ function detectLanguageFromText(text: string): string | null {
   const englishPatterns = [
     // Saudações
     /^hi\b/i, /^hello\b/i, /^hey\b/i, /^dear\b/i, /^good morning/i, /^good afternoon/i, /^good evening/i,
+    /^greetings?\b/i, // "Greeting" ou "Greetings"
     // Pronomes e verbos comuns no início
     /^i\s+(would|want|need|have|am|was|received|ordered|bought|paid|can't|cannot|didn't|don't)/i,
     /^my\s+(order|package|item|product|glasses|purchase)/i,
     /^please\b/i, /^thank you/i, /^thanks\b/i,
-    // Perguntas
+    // Perguntas - no início
     /^where\s+is/i, /^when\s+will/i, /^can\s+(you|i)/i, /^could\s+you/i, /^how\s+(do|can|long)/i,
     /^what\s+(is|are|about)/i, /^why\s+(is|did|has)/i,
+    // Perguntas - em qualquer posição (muito comum)
+    /\bcan\s+i\b/i, /\bcould\s+i\b/i, /\bmay\s+i\b/i,
+    /\bdo\s+you\b/i, /\bare\s+you\b/i, /\bis\s+(it|this|that|there)\b/i,
     // Frases comuns de e-commerce
     /refund/i, /tracking/i, /delivery/i, /shipping/i, /arrived/i, /received/i,
     /order\s*#?\d+/i, /cancel/i, /return/i, /exchange/i,
-    // Palavras-chave em inglês
+    // Perguntas sobre pessoas/contato
+    /\b(owner|manager|supervisor|someone)\b/i,
+    /\b(speak|talk|chat)\s+(with|to)\b/i,
+    // Palavras exclusivamente inglesas (não existem em português/espanhol)
+    /\b(the|with|store|shop)\b/i,
     /\b(just|have|has|had|been|would|could|should|still|waiting|want|need)\b/i,
   ];
 
@@ -459,6 +467,29 @@ function cleanAIResponse(text: string): string {
   // Limpar linhas vazias ou com apenas espaços que ficaram após remoção de "Customer Service"
   cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n');
   cleaned = cleaned.replace(/\n\s+$/gm, '\n');
+
+  // CRÍTICO: Remover palavras/frases órfãs que ficaram truncadas após limpeza
+  // Exemplo: "Infelizmente" sozinho em uma linha (frase incompleta)
+  const orphanPatterns = [
+    /\bInfelizmente\s*\n/gi,
+    /\bUnfortunately\s*\n/gi,
+    /\bLamentablemente\s*\n/gi,
+    /\bLeider\s*\n/gi,
+    /\bMalheureusement\s*\n/gi,
+    /\bSfortunatamente\s*\n/gi,
+    /\bEntretanto,?\s*\n/gi,
+    /\bHowever,?\s*\n/gi,
+    /\bContudo,?\s*\n/gi,
+    /\bPorém,?\s*\n/gi,
+    /\bMas,?\s*\n/gi,
+    /\bBut,?\s*\n/gi,
+    // Linhas que são apenas uma palavra seguida de nada
+    /^\s*(Infelizmente|Unfortunately|However|But|Entretanto|Contudo|Porém|Mas)\s*$/gmi,
+  ];
+
+  for (const pattern of orphanPatterns) {
+    cleaned = cleaned.replace(pattern, '\n');
+  }
 
   // Garantir que não começa com aspas
   cleaned = cleaned.replace(/^["']+/, '');
