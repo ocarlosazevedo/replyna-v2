@@ -193,6 +193,61 @@ function detectLanguageFromText(text: string): string | null {
 }
 
 /**
+ * Detecta se o texto contém palavras-chave de cancelamento/devolução/reembolso
+ * Retorna true se detectar, false caso contrário
+ */
+function detectCancellationRequest(text: string): boolean {
+  if (!text || text.trim().length < 3) return false;
+
+  const lowerText = text.toLowerCase().trim();
+
+  // Padrões de cancelamento/devolução/reembolso em múltiplos idiomas
+  const cancellationPatterns = [
+    // Português
+    /\b(cancelar|cancelamento|cancela|cancele)\b/i,
+    /\b(reembolso|reembolsar|estorno|estornar)\b/i,
+    /\b(devolver|devolução|devolvam)\b/i,
+    /\b(quero\s+meu\s+dinheiro|dinheiro\s+de\s+volta)\b/i,
+    /\b(não\s+quero\s+mais|desistir|desisti|anular)\b/i,
+
+    // Inglês
+    /\b(cancel|cancellation|cancelled|canceled)\b/i,
+    /\b(refund|refunded|money\s+back|get\s+my\s+money)\b/i,
+    /\b(return|returned|send\s+back|send\s+it\s+back)\b/i,
+    /\b(don'?t\s+want|do\s+not\s+want|no\s+longer\s+want)\b/i,
+    /\b(chargeback|dispute|paypal\s+claim)\b/i,
+
+    // Espanhol
+    /\b(cancelar|cancelación|reembolso|devolver|devolución)\b/i,
+    /\b(no\s+quiero|dinero|anular)\b/i,
+
+    // Francês
+    /\b(annuler|annulation|remboursement|rembourser)\b/i,
+    /\b(retourner|je\s+ne\s+veux\s+plus)\b/i,
+
+    // Alemão
+    /\b(stornieren|stornierung|rückerstattung)\b/i,
+    /\b(zurückgeben|geld\s+zurück)\b/i,
+
+    // Italiano
+    /\b(cancellare|annullare|rimborso|restituire)\b/i,
+    /\b(non\s+voglio\s+più|soldi\s+indietro)\b/i,
+
+    // Holandês
+    /\b(annuleren|terugbetaling|retourneren|geld\s+terug)\b/i,
+  ];
+
+  for (const pattern of cancellationPatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectCancellation] Cancellation/refund detected by pattern: ${pattern}`);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Remove formatação markdown do texto
  */
 function stripMarkdown(text: string): string {
@@ -893,17 +948,27 @@ REGRAS CRÍTICAS:
       }
     }
 
+    // CRÍTICO: Validar categoria de cancelamento/devolução/reembolso usando detecção direta
+    // Isso garante que casos de cancelamento sejam tratados corretamente mesmo se Claude errar
+    const isCancellationRequest = detectCancellationRequest(textToAnalyze);
+    if (isCancellationRequest && result.category !== 'troca_devolucao_reembolso' && result.category !== 'suporte_humano') {
+      console.log(`[classifyEmail] Category override: Claude said "${result.category}", but text contains cancellation/refund keywords`);
+      result.category = 'troca_devolucao_reembolso';
+      result.confidence = 0.95;
+    }
+
     console.log(`[classifyEmail] Final language: ${result.language}, category: ${result.category}`);
     return result;
   } catch {
     // Fallback se não conseguir fazer parse
-    // Tentar detectar idioma do texto mesmo no fallback
+    // Tentar detectar idioma e categoria do texto mesmo no fallback
     const textToAnalyze = `${emailSubject || ''} ${emailBody || ''}`.trim();
     const detectedLanguage = detectLanguageFromText(textToAnalyze) || 'en';
+    const isCancellationRequest = detectCancellationRequest(textToAnalyze);
 
     return {
-      category: 'duvidas_gerais',
-      confidence: 0.5,
+      category: isCancellationRequest ? 'troca_devolucao_reembolso' : 'duvidas_gerais',
+      confidence: isCancellationRequest ? 0.95 : 0.5,
       language: detectedLanguage,
       order_id_found: null,
       summary: 'Could not classify the email',
