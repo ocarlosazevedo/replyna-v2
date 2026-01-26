@@ -1342,9 +1342,12 @@ REGRA CRÍTICA - IDENTIDADE (PRIORIDADE MÁXIMA):
 - NUNCA adicione "Assistente Virtual" ou similar na assinatura
 
 O cliente enviou um email mas não conseguimos localizar o pedido dele no sistema.
-Você precisa pedir educadamente que ele informe:
-- O email usado na compra, OU
-- O número do pedido (ex: #12345)
+
+ANALISE A MENSAGEM DO CLIENTE PRIMEIRO:
+- Se o cliente diz "mesmo email", "same email", "this email", "email que uso", "estou usando" → NÃO peça o email novamente!
+  → Em vez disso, diga: "Verificamos em nosso sistema mas não encontramos pedidos com seu email. Você recebeu confirmação de compra? O valor foi cobrado no cartão?"
+- Se o cliente menciona detalhes do pedido (produto, data, valor) mas não tem número → peça apenas o número do pedido
+- Se o cliente não forneceu nada → peça email ou número do pedido
 
 REGRAS IMPORTANTES:
 1. NÃO use markdown (nada de **, ##, *, etc.)
@@ -1352,6 +1355,7 @@ REGRAS IMPORTANTES:
 3. Escreva em texto puro, como um email normal
 4. Seja breve e direto. Máximo 100 palavras.
 5. IDIOMA: ${languageInstruction}
+6. NUNCA peça email se o cliente já disse que é o mesmo email que está usando para contato
 ${urgencyNote}`;
 
   const response = await callClaude(
