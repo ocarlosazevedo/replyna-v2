@@ -243,13 +243,13 @@ Your task is to analyze the email and return a JSON with:
 5. summary: 1-line summary of what the customer wants
 
 LANGUAGE DETECTION (CRITICAL - HIGHEST PRIORITY):
-- You MUST detect the language of the CURRENT EMAIL BODY ONLY
-- IGNORE the conversation history (HISTÓRICO DA CONVERSA) for language detection
-- IGNORE any quoted messages, signatures, or previous replies
-- IGNORE the language of previous assistant/store responses
-- Only look at the NEW text written by the customer in "CORPO DO EMAIL"
-- The customer may write in a DIFFERENT language than previous messages - that's OK
-- Always respond with the language of the CURRENT message, not the conversation history
+- Detect language ONLY from the section marked "MENSAGEM ATUAL DO CLIENTE"
+- The ASSUNTO (subject) and CORPO (body) in that section determine the language
+- COMPLETELY IGNORE the "HISTÓRICO" section for language detection - it may be in a different language!
+- If ASSUNTO contains English words like "refund", "order", "help", "cancel", "where is my" → language is "en"
+- If CORPO contains English text → language is "en"
+- The store may have replied in Portuguese, but if the CUSTOMER writes in English → detect "en"
+- NEVER let the history influence your language detection
 - Detect ANY language in the world - use ISO 639-1 codes:
   - "pt-BR" = Brazilian Portuguese, "pt" = Portuguese
   - "en" = English
@@ -448,19 +448,22 @@ Respond ONLY with the JSON, no additional text.`;
         .join('\n');
   }
 
-  const userMessage = `ASSUNTO DO EMAIL (may contain customer intent - READ THIS):
-${emailSubject || '(sem assunto)'}
+  const userMessage = `=== MENSAGEM ATUAL DO CLIENTE (DETECTAR IDIOMA DAQUI) ===
+ASSUNTO: ${emailSubject || '(sem assunto)'}
+CORPO: ${emailBody || '(vazio)'}
 
-CORPO DO EMAIL:
-${emailBody || '(vazio)'}
-${historyText}
+=== FIM DA MENSAGEM ATUAL ===
+${historyText ? `\n=== HISTÓRICO (apenas para contexto, NÃO usar para detectar idioma) ===${historyText}\n=== FIM DO HISTÓRICO ===` : ''}
 
 Classifique este email e retorne o JSON.
-IMPORTANT:
-1. The SUBJECT often contains the customer's intent (e.g., "Not received my refund" = wants refund info)
-2. Combine SUBJECT + BODY to understand the full request
-3. Detect language from SUBJECT + BODY (not from history)
-4. If SUBJECT has intent + BODY has order number = COMPLETE request (don't ask for clarification)`;
+
+REGRAS CRÍTICAS:
+1. IDIOMA: Detectar APENAS do ASSUNTO e CORPO acima (entre "MENSAGEM ATUAL DO CLIENTE" e "FIM DA MENSAGEM ATUAL")
+2. NUNCA detectar idioma do HISTÓRICO - ele pode estar em idioma diferente
+3. Se ASSUNTO está em inglês (ex: "refund", "order", "help") → idioma é "en"
+4. Se CORPO está em inglês → idioma é "en"
+5. O ASSUNTO frequentemente contém a intenção do cliente
+6. Se ASSUNTO tem intenção + CORPO tem número do pedido = solicitação COMPLETA`;
 
   const response = await callClaude(systemPrompt, [{ role: 'user', content: userMessage }], 300);
 
