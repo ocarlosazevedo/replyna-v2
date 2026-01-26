@@ -70,11 +70,23 @@ const systemEmailPatterns = [
   'alerts@',
   'system@',
   'admin@',
-  'support@shopify',
   'mail-daemon',
   'failure',
   'undeliverable',
   'returned',
+  // Shopify system emails - NUNCA responder
+  '@shopify.com',
+  'mailer@shopify',
+  'support@shopify',
+  'notifications@shopify',
+  'help@shopify',
+  'noreply@shopify',
+  // Outros sistemas de e-commerce
+  '@paypal.com',
+  '@stripe.com',
+  '@mailchimp.com',
+  '@klaviyo.com',
+  '@sendgrid.com',
 ];
 
 /**

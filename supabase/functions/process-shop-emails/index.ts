@@ -436,6 +436,21 @@ async function processMessage(
     'noreply@',
     'no-reply@',
     'donotreply@',
+    'auto-reply',
+    'autoreply',
+    'automated',
+    'notification',
+    'bounce',
+    'failure',
+    'undeliverable',
+    // Shopify system emails - NUNCA responder
+    '@shopify.com',
+    'mailer@shopify',
+    'support@shopify',
+    'notifications@shopify',
+    // Outros sistemas
+    '@paypal.com',
+    '@stripe.com',
   ];
   const fromLower = message.from_email.toLowerCase();
   if (systemEmailPatterns.some(pattern => fromLower.includes(pattern))) {
