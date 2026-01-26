@@ -304,10 +304,12 @@ export default function ShopSetup() {
 
         if (countError) throw countError
 
-        const shopsLimit = userData?.shops_limit ?? 1
+        const shopsLimit = userData?.shops_limit // null = ilimitado
         const shopsCount = currentShops ?? 0
 
-        if (shopsCount >= shopsLimit) {
+        // Se shopsLimit é null, significa ilimitado - pode adicionar
+        // Se shopsLimit tem valor, verificar se atingiu o limite
+        if (shopsLimit !== null && shopsCount >= shopsLimit) {
           setError(`Você atingiu o limite de ${shopsLimit} loja${shopsLimit > 1 ? 's' : ''} do seu plano. Faça upgrade para adicionar mais lojas.`)
           setSaving(false)
           return

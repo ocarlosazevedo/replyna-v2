@@ -32,9 +32,9 @@ interface Client {
   email: string
   name: string | null
   plan: string
-  emails_limit: number
+  emails_limit: number | null  // null = ilimitado
   emails_used: number
-  shops_limit: number
+  shops_limit: number | null   // null = ilimitado
   status: string | null
   created_at: string
   last_login_at: string | null
@@ -45,8 +45,8 @@ interface Client {
 interface Plan {
   id: string
   name: string
-  emails_limit: number
-  shops_limit: number
+  emails_limit: number | null   // null = ilimitado
+  shops_limit: number | null    // null = ilimitado
   is_active: boolean
 }
 
@@ -716,11 +716,11 @@ export default function AdminClients() {
                     <span style={getStatusBadge(getEffectiveStatus(client))}>
                       {getStatusLabel(getEffectiveStatus(client))}
                     </span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Store size={12} /> {client.shops.length}/{client.shops_limit}
+                    <span style={{ fontSize: '11px', color: client.shops_limit === null ? '#22c55e' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Store size={12} /> {client.shops.length}/{client.shops_limit === null ? '∞' : client.shops_limit}
                     </span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                      {client.emails_used}/{client.emails_limit} emails
+                    <span style={{ fontSize: '11px', color: client.emails_limit === null ? '#22c55e' : 'var(--text-secondary)' }}>
+                      {client.emails_used}/{client.emails_limit === null ? '∞' : client.emails_limit} emails
                     </span>
                   </div>
                   {client.subscription?.current_period_end && (
@@ -851,8 +851,8 @@ export default function AdminClients() {
                     <td style={{ padding: '16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Store size={14} style={{ color: 'var(--text-secondary)' }} />
-                        <span style={{ color: 'var(--text-primary)' }}>
-                          {client.shops.length} / {client.shops_limit}
+                        <span style={{ color: client.shops_limit === null ? '#22c55e' : 'var(--text-primary)' }}>
+                          {client.shops.length} / {client.shops_limit === null ? '∞' : client.shops_limit}
                         </span>
                       </div>
                     </td>
