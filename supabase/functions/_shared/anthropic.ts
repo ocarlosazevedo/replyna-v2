@@ -378,10 +378,19 @@ rather than asking about something FROM the store (their order, products) → SP
 - "I want to speak with a human" → classify by the underlying issue, respond normally
 - ONLY use suporte_humano for EXPLICIT legal threats
 
-=== AMBIGUOUS MESSAGES (CRITICAL - MUST ASK FIRST) ===
-- Short messages like "my order", "help", "hello" → classify as "duvidas_gerais" (need to ask what they want)
-- Customer mentions order number but doesn't say what they want → classify as "duvidas_gerais" (ask what they need)
-- Customer just provides order number, email, or personal info without a clear request → classify as "duvidas_gerais"
+=== EMAIL SUBJECT IS PART OF THE MESSAGE (CRITICAL) ===
+- The email SUBJECT (ASSUNTO) often contains the customer's intent/request
+- ALWAYS read and consider the SUBJECT together with the BODY
+- Example: Subject "Not received my refund" + Body "Order #12345" = customer wants refund status for order 12345
+- Example: Subject "Where is my order?" + Body "john@email.com, #5678" = customer wants tracking for order 5678
+- If the SUBJECT contains the intent and BODY contains order info → you have a COMPLETE request
+- DO NOT ask for clarification if the SUBJECT already explains what the customer wants
+
+=== AMBIGUOUS MESSAGES (ONLY when intent is truly unclear) ===
+- ONLY classify as "duvidas_gerais" if BOTH subject AND body are unclear
+- Short messages like "my order", "help", "hello" WITH NO CLEAR SUBJECT → classify as "duvidas_gerais"
+- Customer mentions order number but doesn't say what they want AND subject is also unclear → classify as "duvidas_gerais"
+- Customer just provides order number, email, or personal info AND subject gives no context → classify as "duvidas_gerais"
 - If unsure what the customer wants → classify as "duvidas_gerais" (NEVER assume they want cancellation/refund)
 - The response generator MUST ask clarifying questions when the intent is unclear
 - NEVER classify as "troca_devolucao_reembolso" unless customer EXPLICITLY says: cancel, refund, return, exchange
@@ -391,17 +400,39 @@ rather than asking about something FROM the store (their order, products) → SP
 - This means customer submitted empty contact form - need to ask what they need
 - If body only contains form fields (Name, Email, Phone, Country) without actual message → "duvidas_gerais"
 
-=== CANCELLATION CLASSIFICATION (CRITICAL) ===
+=== CANCELLATION CLASSIFICATION (CRITICAL - HIGH CONFIDENCE) ===
 When customer wants to CANCEL an order:
-ALL cancellation requests MUST be classified as "troca_devolucao_reembolso", regardless of shipping status.
+ALL cancellation requests MUST be classified as "troca_devolucao_reembolso" with confidence 0.95+
+
+CANCELLATION KEYWORDS (if ANY of these appear → troca_devolucao_reembolso with 0.95+ confidence):
+
+Portuguese: cancelar, cancelamento, cancela, reembolso, reembolsar, devolver, devolução, estorno, estornar,
+            quero meu dinheiro, dinheiro de volta, não quero mais, desistir, desisti, anular
+
+English: cancel, cancellation, refund, return, money back, don't want, do not want, give back,
+         chargeback, dispute, get my money, want my money
+
+Spanish: cancelar, cancelación, reembolso, devolver, devolución, no quiero, dinero, anular
+
+French: annuler, annulation, remboursement, rembourser, retourner, je ne veux plus
+
+German: stornieren, stornierung, rückerstattung, zurückgeben, geld zurück, nicht mehr wollen
+
+Italian: cancellare, annullare, rimborso, restituire, non voglio più, soldi indietro
+
+Dutch: annuleren, terugbetaling, retourneren, geld terug, niet meer willen
+
+Polish: anulować, zwrot, zwrócić, nie chcę, pieniądze z powrotem
 
 Examples:
-- "Quero cancelar, foi engano" → troca_devolucao_reembolso
-- "Cancel my order please" → troca_devolucao_reembolso
-- "I received it but want to return" → troca_devolucao_reembolso
-- "Product arrived damaged, refund please" → troca_devolucao_reembolso
-- "Quero cancelar antes de enviar" → troca_devolucao_reembolso
-- "Cancel order not shipped yet" → troca_devolucao_reembolso
+- "Quero cancelar, foi engano" → troca_devolucao_reembolso (0.95)
+- "Cancel my order please" → troca_devolucao_reembolso (0.95)
+- "I received it but want to return" → troca_devolucao_reembolso (0.95)
+- "Product arrived damaged, refund please" → troca_devolucao_reembolso (0.95)
+- "Quero cancelar antes de enviar" → troca_devolucao_reembolso (0.95)
+- "Cancel order not shipped yet" → troca_devolucao_reembolso (0.95)
+- "Geld zurück bitte" → troca_devolucao_reembolso (0.95)
+- "Je veux annuler" → troca_devolucao_reembolso (0.95)
 
 The response generator will handle different scenarios based on fulfillment status.
 
@@ -417,13 +448,19 @@ Respond ONLY with the JSON, no additional text.`;
         .join('\n');
   }
 
-  const userMessage = `ASSUNTO: ${emailSubject || '(sem assunto)'}
+  const userMessage = `ASSUNTO DO EMAIL (may contain customer intent - READ THIS):
+${emailSubject || '(sem assunto)'}
 
-CORPO DO EMAIL (detect language from THIS section ONLY):
+CORPO DO EMAIL:
 ${emailBody || '(vazio)'}
 ${historyText}
 
-Classifique este email e retorne o JSON. IMPORTANT: Detect language from "CORPO DO EMAIL" only, NOT from the history.`;
+Classifique este email e retorne o JSON.
+IMPORTANT:
+1. The SUBJECT often contains the customer's intent (e.g., "Not received my refund" = wants refund info)
+2. Combine SUBJECT + BODY to understand the full request
+3. Detect language from SUBJECT + BODY (not from history)
+4. If SUBJECT has intent + BODY has order number = COMPLETE request (don't ask for clarification)`;
 
   const response = await callClaude(systemPrompt, [{ role: 'user', content: userMessage }], 300);
 
@@ -497,7 +534,18 @@ export async function generateResponse(
     customer_name: string | null;
   } | null,
   language: string = 'en',
-  retentionContactCount: number = 0
+  retentionContactCount: number = 0,
+  additionalOrders: Array<{
+    order_number: string | null;
+    order_date: string | null;
+    order_status: string | null;
+    order_total: string | null;
+    tracking_number: string | null;
+    tracking_url: string | null;
+    fulfillment_status: string | null;
+    items: Array<{ name: string; quantity: number }>;
+    customer_name: string | null;
+  }> = []
 ): Promise<ResponseGenerationResult> {
   // Mapear tom de voz para instruções
   const toneInstructions: Record<string, string> = {
@@ -522,6 +570,25 @@ DADOS DO PEDIDO DO CLIENTE:
 - Link de rastreio: ${shopifyData.tracking_url || 'N/A'}
 - Itens: ${shopifyData.items.map((i) => `${i.name} (x${i.quantity})`).join(', ') || 'N/A'}
 - Nome do cliente: ${shopifyData.customer_name || 'N/A'}`;
+
+    // Se houver pedidos adicionais, incluir no contexto
+    if (additionalOrders.length > 0) {
+      shopifyContext += `\n\nPEDIDOS ADICIONAIS DO CLIENTE (responda sobre TODOS se relevante):`;
+      for (const order of additionalOrders) {
+        if (order.order_number) {
+          shopifyContext += `\n
+--- Pedido #${order.order_number} ---
+- Data: ${order.order_date || 'N/A'}
+- Valor total: ${order.order_total || 'N/A'}
+- Status de envio: ${order.fulfillment_status || 'N/A'}
+- Código de rastreio: ${order.tracking_number || 'Ainda não disponível'}
+- Link de rastreio: ${order.tracking_url || 'N/A'}
+- Itens: ${order.items.map((i) => `${i.name} (x${i.quantity})`).join(', ') || 'N/A'}`;
+        }
+      }
+      shopifyContext += `\n
+IMPORTANTE: O cliente mencionou MÚLTIPLOS pedidos. Forneça informações sobre TODOS os pedidos relevantes na sua resposta.`;
+    }
   }
 
   // Montar informações da loja
@@ -718,11 +785,14 @@ COMPORTAMENTO INTELIGENTE (REGRA CRÍTICA - SEGUIR SEMPRE):
 - NÃO seja "ansioso" em oferecer opções que o cliente não pediu
 
 QUANDO A INTENÇÃO NÃO ESTÁ CLARA (MUITO IMPORTANTE):
-- Se o cliente enviou APENAS número de pedido, email ou dados pessoais sem dizer o que quer → PERGUNTE
-- Se a mensagem for curta/vaga (ex: "meu pedido", "ajuda", "oi") → PERGUNTE como pode ajudar
-- NUNCA ASSUMA que o cliente quer cancelar, devolver ou reembolsar
-- PRIMEIRO entenda o que o cliente quer, DEPOIS responda de forma focada
-- Exemplo de resposta quando intenção não clara: "Olá! Recebi seus dados. Como posso ajudá-lo(a) hoje?"
+- SEMPRE leia o ASSUNTO do email - ele frequentemente contém a intenção do cliente!
+- Exemplo: ASSUNTO "Not received my refund" + CORPO "Order #12345" = cliente quer saber do REEMBOLSO do pedido 12345
+- Exemplo: ASSUNTO "Where is my order?" + CORPO "#5678" = cliente quer RASTREIO do pedido 5678
+- Se o ASSUNTO contém a intenção (refund, tracking, where is my order, etc.) + CORPO tem número do pedido → RESPONDA diretamente
+- SOMENTE pergunte se TANTO o assunto QUANTO o corpo forem vagos/incompletos
+- Se a mensagem E o assunto forem curtos/vagos (ex: assunto "Help" + corpo "oi") → PERGUNTE como pode ajudar
+- NUNCA ASSUMA que o cliente quer cancelar, devolver ou reembolsar SEM isso estar claro no assunto ou corpo
+- PRIMEIRO entenda o que o cliente quer (via ASSUNTO + CORPO), DEPOIS responda de forma focada
 
 FORMULÁRIO DE CONTATO VAZIO OU SEM MENSAGEM:
 - Se o corpo contém "[FORMULÁRIO DE CONTATO SEM MENSAGEM]" ou está vazio/muito curto

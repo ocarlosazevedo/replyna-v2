@@ -351,6 +351,43 @@ export async function getOrderDataForAI(
 }
 
 /**
+ * Busca dados de MÚLTIPLOS pedidos para enriquecer a resposta da IA
+ * Útil quando cliente menciona mais de um pedido no mesmo email
+ */
+export async function getMultipleOrdersDataForAI(
+  credentials: ShopifyCredentials,
+  customerEmail: string,
+  orderNumbers: string[]
+): Promise<OrderSummary[]> {
+  const results: OrderSummary[] = [];
+
+  // Limitar a 5 pedidos para não sobrecarregar
+  const limitedOrderNumbers = orderNumbers.slice(0, 5);
+
+  for (const orderNumber of limitedOrderNumbers) {
+    try {
+      const order = await getOrderByNumber(credentials, orderNumber);
+      if (order) {
+        results.push(orderToSummary(order));
+      }
+    } catch (error) {
+      console.error(`[getMultipleOrdersDataForAI] Error fetching order ${orderNumber}:`, error);
+    }
+  }
+
+  // Se não encontrou nenhum pelos números, tentar pelo email
+  if (results.length === 0) {
+    const orders = await getOrdersByCustomerEmail(credentials, customerEmail, 1);
+    if (orders.length > 0) {
+      results.push(orderToSummary(orders[0]));
+    }
+  }
+
+  console.log(`[getMultipleOrdersDataForAI] Found ${results.length} orders for numbers: ${orderNumbers.join(', ')}`);
+  return results;
+}
+
+/**
  * Extrai número de pedido de um texto (subject ou body do email)
  */
 export function extractOrderNumber(text: string): string | null {
@@ -394,6 +431,58 @@ export function extractOrderNumber(text: string): string | null {
   }
 
   return null;
+}
+
+/**
+ * Extrai TODOS os números de pedido de um texto (para casos com múltiplos pedidos)
+ */
+export function extractAllOrderNumbers(text: string): string[] {
+  if (!text) return [];
+
+  const foundOrders: string[] = [];
+
+  // Padrões comuns de número de pedido
+  const patterns = [
+    // Formatos explícitos com palavra-chave
+    /order\s*(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /pedido\s*(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /número\s*(?:do\s*)?(?:pedido\s*)?(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /nº\s*(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /commande\s*(?:#|:|\s|est|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /bestellung\s*(?:#|:|\s|ist|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /bestelling\s*(?:#|:|\s|is|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /ordine\s*(?:#|:|\s|è|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /ordernummer\s*(?:#|:|\s|is|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    // Formato com #
+    /#\s*([A-Z]*\d+[A-Z]*\d*)/gi,
+  ];
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      const orderNum = match[1].trim();
+      const digitCount = (orderNum.match(/\d/g) || []).length;
+      if (digitCount >= 3 && !foundOrders.includes(orderNum)) {
+        foundOrders.push(orderNum);
+      }
+    }
+  }
+
+  // Também procurar números longos isolados (7+ dígitos)
+  const longNumberPattern = /\b(\d{7,})\b/g;
+  let match;
+  while ((match = longNumberPattern.exec(text)) !== null) {
+    const orderNum = match[1].trim();
+    if (!foundOrders.includes(orderNum)) {
+      foundOrders.push(orderNum);
+    }
+  }
+
+  if (foundOrders.length > 0) {
+    console.log(`[extractAllOrderNumbers] Found ${foundOrders.length} order numbers: ${foundOrders.join(', ')}`);
+  }
+
+  return foundOrders;
 }
 
 // Helpers

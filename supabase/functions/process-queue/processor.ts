@@ -36,7 +36,9 @@ import {
 import {
   decryptShopifyCredentials,
   getOrderDataForAI,
+  getMultipleOrdersDataForAI,
   extractOrderNumber,
+  extractAllOrderNumbers,
   type OrderSummary,
 } from '../_shared/shopify.ts';
 
@@ -355,48 +357,74 @@ async function processMessage(
     'troca_devolucao_reembolso',
   ];
 
+  // Variável para armazenar pedidos adicionais (quando cliente menciona múltiplos)
+  let additionalOrders: OrderSummary[] = [];
+
   if (categoriasQueNeedShopify.includes(classification.category)) {
     needsOrderData = true;
 
-    // Extrair número do pedido de múltiplas fontes (incluindo corpo ORIGINAL, não apenas limpo)
-    const orderNumberFromSubject = extractOrderNumber(message.subject || '');
-    const orderNumberFromCleanBody = extractOrderNumber(cleanBody);
-    // IMPORTANTE: Também buscar no corpo ORIGINAL (antes de limpar) para pegar números em citações
+    // NOVO: Extrair TODOS os números de pedido de todas as fontes
     const originalBody = message.body_text || message.body_html || '';
-    const orderNumberFromOriginalBody = extractOrderNumber(originalBody);
+    const allOrderNumbers = new Set<string>();
+
+    // Extrair de todas as fontes
+    extractAllOrderNumbers(message.subject || '').forEach(n => allOrderNumbers.add(n));
+    extractAllOrderNumbers(cleanBody).forEach(n => allOrderNumbers.add(n));
+    extractAllOrderNumbers(originalBody).forEach(n => allOrderNumbers.add(n));
+
     // Também buscar no histórico de mensagens da conversa
-    let orderNumberFromHistory: string | null = null;
     for (const historyMsg of rawHistory || []) {
-      const fromSubject = extractOrderNumber(historyMsg.subject || '');
-      const fromBody = extractOrderNumber(historyMsg.body_text || '');
-      if (fromSubject || fromBody) {
-        orderNumberFromHistory = fromSubject || fromBody;
-        console.log(`[Processor] Found order number in conversation history: ${orderNumberFromHistory}`);
-        break;
-      }
+      extractAllOrderNumbers(historyMsg.subject || '').forEach(n => allOrderNumbers.add(n));
+      extractAllOrderNumbers(historyMsg.body_text || '').forEach(n => allOrderNumbers.add(n));
     }
 
-    const orderNumber = orderNumberFromSubject || orderNumberFromCleanBody || orderNumberFromOriginalBody || orderNumberFromHistory || conversation.shopify_order_id;
+    // Adicionar o número salvo na conversa, se existir
+    if (conversation.shopify_order_id) {
+      allOrderNumbers.add(conversation.shopify_order_id);
+    }
 
-    console.log(`[Processor] Order number extraction: subject=${orderNumberFromSubject}, cleanBody=${orderNumberFromCleanBody}, originalBody=${orderNumberFromOriginalBody}, history=${orderNumberFromHistory}, conversation=${conversation.shopify_order_id}, final=${orderNumber}`);
+    const orderNumbersArray = Array.from(allOrderNumbers);
+    const orderNumber = orderNumbersArray[0] || null; // Primeiro número para compatibilidade
+
+    console.log(`[Processor] Order numbers found: ${orderNumbersArray.join(', ')} (total: ${orderNumbersArray.length})`);
 
     const shopifyCredentials = await decryptShopifyCredentials(shop);
 
     if (shopifyCredentials) {
       try {
-        // getOrderDataForAI: (credentials, customerEmail, orderNumber?)
-        shopifyData = await getOrderDataForAI(
-          shopifyCredentials,
-          message.from_email,
-          orderNumber
-        );
+        // Se houver múltiplos pedidos, buscar todos
+        if (orderNumbersArray.length > 1) {
+          console.log(`[Processor] Multiple orders detected, fetching all...`);
+          const allOrders = await getMultipleOrdersDataForAI(
+            shopifyCredentials,
+            message.from_email,
+            orderNumbersArray
+          );
+
+          if (allOrders.length > 0) {
+            shopifyData = allOrders[0]; // Primeiro pedido como principal
+            additionalOrders = allOrders.slice(1); // Restante como adicionais
+            console.log(`[Processor] Found ${allOrders.length} orders: primary=${shopifyData?.order_number}, additional=${additionalOrders.map(o => o.order_number).join(', ')}`);
+          }
+        } else {
+          // Comportamento original para único pedido
+          shopifyData = await getOrderDataForAI(
+            shopifyCredentials,
+            message.from_email,
+            orderNumber
+          );
+        }
 
         await logProcessingEvent({
           shop_id: shop.id,
           message_id: message.id,
           conversation_id: conversation.id,
           event_type: 'shopify_lookup',
-          event_data: { order_number: orderNumber, found: !!shopifyData },
+          event_data: {
+            order_numbers: orderNumbersArray,
+            found: !!shopifyData,
+            additional_orders_count: additionalOrders.length
+          },
         });
 
         if (shopifyData) {
@@ -406,7 +434,6 @@ async function processMessage(
           });
         } else if (orderNumber) {
           // IMPORTANTE: Salvar o número do pedido mesmo se Shopify não encontrou
-          // Isso permite tentar novamente em mensagens futuras
           console.log(`[Processor] Saving customer-provided order number to conversation: ${orderNumber}`);
           await updateConversation(conversation.id, {
             shopify_order_id: orderNumber,
@@ -414,7 +441,6 @@ async function processMessage(
         }
       } catch (error: any) {
         console.error(`[Processor] Shopify lookup failed:`, error.message);
-        // Salvar o número do pedido mesmo em caso de erro, para tentar novamente depois
         if (orderNumber && !conversation.shopify_order_id) {
           await updateConversation(conversation.id, {
             shopify_order_id: orderNumber,
@@ -543,7 +569,19 @@ async function processMessage(
       customer_name: shopifyData.customer_name,
     } : null,
     classification.language || 'en',
-    currentRetentionCount
+    currentRetentionCount,
+    // Passar pedidos adicionais se houver
+    additionalOrders.map(order => ({
+      order_number: order.order_number,
+      order_date: order.order_date,
+      order_status: order.order_status,
+      order_total: order.order_total,
+      tracking_number: order.tracking_number,
+      tracking_url: order.tracking_url,
+      fulfillment_status: order.fulfillment_status,
+      items: order.items || [],
+      customer_name: order.customer_name,
+    }))
   );
 
   await logProcessingEvent({
