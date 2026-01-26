@@ -48,7 +48,7 @@ export interface ResponseGenerationResult {
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-3-haiku-20240307'; // Haiku 3.0 (modelo atualizado)
-const MAX_TOKENS = 500;
+const MAX_TOKENS = 800; // Aumentado para evitar truncar links de rastreio
 
 /**
  * Remove formatação markdown do texto
