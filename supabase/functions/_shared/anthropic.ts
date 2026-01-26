@@ -126,8 +126,18 @@ function cleanAIResponse(text: string): string {
   // CRÍTICO: Remover frases que revelam limitações de IA
   const aiLimitationPatterns = [
     /não posso encaminhar[^.]*\./gi,
+    /não posso transferir[^.]*\./gi,
+    /não posso conectar[^.]*\./gi,
+    /embora eu não possa[^.]*\./gi,
+    /ainda que eu não possa[^.]*\./gi,
     /I cannot forward[^.]*\./gi,
+    /I cannot transfer[^.]*\./gi,
+    /I cannot connect[^.]*\./gi,
+    /although I cannot[^.]*\./gi,
     /I can't forward[^.]*\./gi,
+    /I can't transfer[^.]*\./gi,
+    /non posso trasferire[^.]*\./gi,
+    /anche se non posso[^.]*\./gi,
     /isso seria contra (as )?minhas diretrizes[^.]*\./gi,
     /this would be against my guidelines[^.]*\./gi,
     /against my guidelines[^.]*\./gi,
@@ -729,7 +739,26 @@ INFORMAÇÕES DA LOJA:
     'he': 'אנא השב בעברית.',
   };
 
-  const languageInstruction = languageInstructions[language] || `CRITICAL: You MUST respond in the customer's language (${language}). Write your ENTIRE response in ${language}.`;
+  // Mapa de nomes de idiomas
+  const langName: Record<string, string> = {
+    'pt-BR': 'Brazilian Portuguese', 'pt': 'Portuguese', 'en': 'English', 'es': 'Spanish',
+    'fr': 'French', 'de': 'German', 'it': 'Italian', 'nl': 'Dutch', 'pl': 'Polish',
+    'cs': 'Czech', 'ro': 'Romanian', 'sv': 'Swedish', 'da': 'Danish', 'no': 'Norwegian',
+    'fi': 'Finnish', 'ru': 'Russian', 'uk': 'Ukrainian', 'hu': 'Hungarian', 'el': 'Greek',
+    'tr': 'Turkish', 'ja': 'Japanese', 'zh': 'Chinese', 'ko': 'Korean', 'ar': 'Arabic', 'he': 'Hebrew'
+  };
+  const detectedLangName = langName[language] || language;
+
+  const languageInstruction = languageInstructions[language] || `Respond in ${detectedLangName}.`;
+
+  // Instrução de idioma para o INÍCIO do prompt (MUITO explícita)
+  const languageHeaderInstruction = `
+=== MANDATORY RESPONSE LANGUAGE: ${detectedLangName.toUpperCase()} ===
+You MUST write your ENTIRE response in ${detectedLangName} (language code: ${language}).
+The customer's message was detected as ${detectedLangName}.
+DO NOT respond in Portuguese or any other language unless "${language}" matches that language.
+Every word, greeting, and signature must be in ${detectedLangName}.
+===`;
 
   // Instruções específicas para Cash on Delivery (COD)
   let codInstructions = '';
@@ -767,7 +796,9 @@ Regras para COD - DEPENDE DO STATUS DO PEDIDO:
 `;
   }
 
-  const systemPrompt = `Você é ${shopContext.attendant_name}, responsável pelo atendimento da loja ${shopContext.name}.
+  const systemPrompt = `${languageHeaderInstruction}
+
+Você é ${shopContext.attendant_name}, responsável pelo atendimento da loja ${shopContext.name}.
 
 ${tone}
 ${codInstructions}
@@ -789,6 +820,9 @@ REGRA CRÍTICA - IDENTIDADE (NUNCA VIOLAR - PRIORIDADE MÁXIMA):
 
 FRASES PROIBIDAS (NUNCA USE - REVELA QUE É IA):
 - NUNCA diga "não posso encaminhar", "I cannot forward", "Ich kann nicht weiterleiten"
+- NUNCA diga "não posso transferir", "I cannot transfer", "non posso trasferire"
+- NUNCA diga "não posso conectar você com", "I cannot connect you with"
+- NUNCA diga "embora eu não possa", "although I cannot", "anche se non posso"
 - NUNCA diga "contra minhas diretrizes", "against my guidelines", "gegen meine Richtlinien"
 - NUNCA diga "não tenho permissão", "I don't have permission", "Ich habe keine Erlaubnis"
 - NUNCA diga "não estou autorizado", "I am not authorized", "Ich bin nicht autorisiert"
@@ -796,6 +830,7 @@ FRASES PROIBIDAS (NUNCA USE - REVELA QUE É IA):
 - NUNCA diga "minhas limitações", "my limitations", "meine Einschränkungen"
 - Se você NÃO PODE fazer algo, simplesmente NÃO FAÇA - não explique por quê
 - Se precisar direcionar para outro canal, faça naturalmente sem mencionar "limitações" ou "diretrizes"
+- Se o cliente quer falar com gerente/proprietário, diga que VOCÊ pode ajudar - não mencione que não pode transferir
 
 QUANDO O CLIENTE FAZ PERGUNTAS SOBRE O ATENDIMENTO:
 - "Caixa monitorada?", "Alguém está lendo?", "Tem alguém aí?", "É automático?"
