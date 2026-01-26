@@ -477,6 +477,26 @@ export default function Account() {
         throw new Error(result.error || 'Erro ao alterar plano')
       }
 
+      // Se precisa adicionar método de pagamento, redirecionar para checkout
+      if (result.requires_payment_method && result.checkout_url) {
+        setNotice({
+          type: 'info',
+          message: 'Redirecionando para adicionar método de pagamento...',
+        })
+        window.location.href = result.checkout_url
+        return
+      }
+
+      // Se pagamento está pendente, redirecionar para página de pagamento
+      if (result.payment_required && result.payment_url) {
+        setNotice({
+          type: 'info',
+          message: 'Redirecionando para completar o pagamento...',
+        })
+        window.location.href = result.payment_url
+        return
+      }
+
       // Aguardar um pouco para garantir que o banco foi sincronizado
       await new Promise(resolve => setTimeout(resolve, 1000))
 
@@ -495,7 +515,7 @@ export default function Account() {
           extra_email_price: profile?.extra_email_price ?? null,
           extra_email_package_size: profile?.extra_email_package_size ?? null,
         })
-      } else {
+      } else if (result.new_plan) {
         // Fallback: atualizar localmente se não conseguir recarregar
         setProfile((prev) =>
           prev
@@ -530,7 +550,7 @@ export default function Account() {
       }
 
       // Mensagem de sucesso diferenciada para upgrade e downgrade
-      const priceFormatted = result.new_plan.price_monthly
+      const priceFormatted = result.new_plan?.price_monthly
         ? `R$ ${result.new_plan.price_monthly.toFixed(2).replace('.', ',')}/mês`
         : ''
 
@@ -538,7 +558,7 @@ export default function Account() {
 
       if (result.is_upgrade && result.price_difference > 0) {
         // Upgrade: cobrança imediata
-        const diffFormatted = `R$ ${result.price_difference.toFixed(2).replace('.', ',')}`
+        const diffFormatted = `R$ ${(result.price_difference || 0).toFixed(2).replace('.', ',')}`
         successMessage = `Upgrade para ${plan.name} realizado! A diferença de ${diffFormatted} foi cobrada.`
       } else if (result.is_downgrade) {
         // Downgrade: novo valor na próxima fatura
