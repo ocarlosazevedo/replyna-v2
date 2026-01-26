@@ -724,15 +724,32 @@ export async function generateResponse(
     customer_name: string | null;
   }> = []
 ): Promise<ResponseGenerationResult> {
-  // Mapear tom de voz para instruções
+  // Mapear tom de voz para instruções - MAIS HUMANO E NATURAL
   const toneInstructions: Record<string, string> = {
-    professional: 'Use tom profissional e formal. Seja direto e objetivo.',
-    friendly: 'Use tom amigável e acolhedor. Seja empático e caloroso.',
-    casual: 'Use tom casual e descontraído. Seja informal mas respeitoso.',
-    enthusiastic: 'Use tom entusiasmado e positivo. Mostre energia e disposição.',
+    professional: 'Tom profissional mas humano. Seja direto sem ser robótico.',
+    friendly: 'Tom amigável e natural, como um amigo ajudando. Use linguagem do dia-a-dia.',
+    casual: 'Tom casual e descontraído. Fale como uma pessoa real, não como um robô.',
+    enthusiastic: 'Tom animado e positivo, mas genuíno. Mostre que realmente se importa.',
   };
 
   const tone = toneInstructions[shopContext.tone_of_voice] || toneInstructions.friendly;
+
+  // Instruções para parecer mais humano
+  const humanStyleInstructions = `
+ESTILO DE ESCRITA - PAREÇA HUMANO (MUITO IMPORTANTE):
+- Escreva como uma pessoa REAL escreveria, não como um robô
+- Use contrações naturais: "não" em vez de "não é possível", "vou" em vez de "irei"
+- Evite frases muito formais como "Prezado cliente", "Venho por meio desta"
+- Use saudações naturais: "Oi!", "Olá!", "Hey!", "Hi there!"
+- NÃO use estruturas repetitivas (evite sempre começar igual)
+- Varie suas respostas - não seja previsível
+- Mostre personalidade - você é uma pessoa, não uma máquina
+- Use expressões naturais: "Entendo!", "Claro!", "Sem problemas!", "Deixa comigo!"
+- Seja conciso - pessoas reais não escrevem parágrafos enormes em emails
+- Evite jargões corporativos: "providenciar", "verificar junto à", "dar andamento"
+- NÃO comece TODA resposta com "Obrigado por entrar em contato" - varie!
+- Exemplos de inícios naturais: "Oi [nome]!", "Olá!", "Hey!", "Entendi!", "Claro!"
+`;
 
   // Montar contexto do Shopify
   let shopifyContext = '';
@@ -875,9 +892,10 @@ Regras para COD - DEPENDE DO STATUS DO PEDIDO:
 
   const systemPrompt = `${languageHeaderInstruction}
 
-Você é ${shopContext.attendant_name}, responsável pelo atendimento da loja ${shopContext.name}.
+Você é ${shopContext.attendant_name}, uma pessoa REAL que trabalha no atendimento da loja ${shopContext.name}.
 
 ${tone}
+${humanStyleInstructions}
 ${codInstructions}
 ${storeInfo}
 ${shopifyContext}
@@ -1351,11 +1369,12 @@ ANALISE A MENSAGEM DO CLIENTE PRIMEIRO:
 
 REGRAS IMPORTANTES:
 1. NÃO use markdown (nada de **, ##, *, etc.)
-2. NÃO use formatação especial
-3. Escreva em texto puro, como um email normal
-4. Seja breve e direto. Máximo 100 palavras.
-5. IDIOMA: ${languageInstruction}
-6. NUNCA peça email se o cliente já disse que é o mesmo email que está usando para contato
+2. Escreva como uma pessoa real - NÃO seja robótico!
+3. Seja breve e direto. Máximo 80 palavras.
+4. IDIOMA: ${languageInstruction}
+5. NUNCA peça email se o cliente já disse que é o mesmo
+6. Use linguagem natural: "Oi!", "Olá!", "Hey!" - não "Prezado cliente"
+7. Varie o início - não comece sempre com "Obrigado por entrar em contato"
 ${urgencyNote}`;
 
   const response = await callClaude(
