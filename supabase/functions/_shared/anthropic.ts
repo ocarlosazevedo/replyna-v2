@@ -1494,12 +1494,25 @@ ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.s
   // Montar histórico
   const messages: ClaudeMessage[] = [];
 
-  // Adicionar histórico
+  // Detectar se o idioma atual é diferente de português
+  const isNonPortuguese = language !== 'pt' && language !== 'pt-BR';
+  const langNameForHistory = langName[language] || language;
+
+  // Adicionar histórico com nota de idioma quando necessário
   for (const msg of conversationHistory) {
-    messages.push({
-      role: msg.role === 'customer' ? 'user' : 'assistant',
-      content: msg.content,
-    });
+    if (msg.role === 'assistant' && isNonPortuguese) {
+      // Adicionar nota nas respostas anteriores do assistente para manter contexto
+      // mas indicar que o idioma da resposta atual deve ser diferente
+      messages.push({
+        role: 'assistant',
+        content: `[CONTEXT FROM PREVIOUS RESPONSE - Your next response must be in ${langNameForHistory}]\n${msg.content}`,
+      });
+    } else {
+      messages.push({
+        role: msg.role === 'customer' ? 'user' : 'assistant',
+        content: msg.content,
+      });
+    }
   }
 
   // Adicionar email atual com instrução de idioma FINAL (mais peso)
