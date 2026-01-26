@@ -1985,27 +1985,26 @@ CRITICAL RULE - IDENTITY (MAXIMUM PRIORITY - NEVER VIOLATE):
 - CORRECT signature: "${shopContext.attendant_name}" or "${shopContext.attendant_name}\n${shopContext.name}"
 - WRONG signature (NEVER USE): "${shopContext.attendant_name}\nVirtual Assistant" or "AI Support"
 
-CRITICAL RULES FOR THIS MESSAGE:
-- NEVER say the case was "forwarded", "encaminhado", or "transferred" to anyone
-- NEVER mention "specialized team", "equipe especializada", "human support", "suporte humano"
-- NEVER say "we will contact you" or "entraremos em contato"
-- The CUSTOMER must contact US, not the other way around
+YOUR TASK:
+Write a short customer service response (maximum 80 words) that:
+1. Greet the customer by name
+2. Acknowledge you received their message
+3. Ask the customer to contact ${shopContext.support_email} for further assistance
+4. Sign with your name: ${shopContext.attendant_name}
 
-Generate a short message (maximum 80 words) that:
-1. Acknowledge you received the message and understand its importance
-2. Ask the CUSTOMER to contact the support email for further assistance: ${shopContext.support_email}
-3. Provide the email naturally without saying "human support" or "specialized team"
-
-Example structure (adapt to tone and language):
-"Hello [Name], I received your message and understand the situation. For this matter, please contact us at ${shopContext.support_email} so we can assist you properly. Best regards, ${shopContext.attendant_name}"
+RULES:
+- Do NOT say the case was "forwarded" or "transferred"
+- Do NOT mention "specialized team" or similar
+- Do NOT say "we will contact you" - the CUSTOMER must contact the email
+- Write naturally as a customer service representative
 
 Customer name: ${customerName || 'Customer'}
 
-IMPORTANT - LANGUAGE: ${languageInstruction}`;
+LANGUAGE: ${languageInstruction}`;
 
   const response = await callClaude(
     systemPrompt,
-    [{ role: 'user', content: `Generate the forwarding message to human support.${languageReminderFinal}` }],
+    [{ role: 'user', content: `Write the customer service response asking the customer to contact the support email for assistance.${languageReminderFinal}` }],
     150
   );
 
