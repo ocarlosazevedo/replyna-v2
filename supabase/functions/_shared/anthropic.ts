@@ -326,10 +326,17 @@ LANGUAGE DETECTION (CRITICAL - HIGHEST PRIORITY):
 - Detect language ONLY from the section marked "MENSAGEM ATUAL DO CLIENTE"
 - The ASSUNTO (subject) and CORPO (body) in that section determine the language
 - COMPLETELY IGNORE the "HISTÓRICO" section for language detection - it may be in a different language!
-- If ASSUNTO contains English words like "refund", "order", "help", "cancel", "where is my" → language is "en"
-- If CORPO contains English text → language is "en"
+- COMPLETELY IGNORE any quoted messages (text after "On ... wrote:" or similar)
+
+ENGLISH DETECTION (very common - detect correctly):
+- If text contains: "Can you", "I would", "Please", "When will", "Where is", "I need", "update", "receive", "order" → language is "en"
+- If text has English grammar structure → language is "en"
+- Common English phrases: "give me an update", "when will I receive", "where is my order", "I have a question"
+
+IMPORTANT:
 - The store may have replied in Portuguese, but if the CUSTOMER writes in English → detect "en"
 - NEVER let the history influence your language detection
+- Default to the language of the FIRST sentence in CORPO if mixed
 - Detect ANY language in the world - use ISO 639-1 codes:
   - "pt-BR" = Brazilian Portuguese, "pt" = Portuguese
   - "en" = English

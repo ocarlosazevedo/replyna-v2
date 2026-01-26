@@ -1214,8 +1214,10 @@ export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
 
   // Remover conteúdo após marcadores de quote
   const quoteMarkers = [
-    /^On .+ wrote:$/m, // "On ... wrote:"
-    /^Em .+ escreveu:$/m, // "Em ... escreveu:"
+    /^On .+wrote:\s*$/m, // "On ... wrote:" (com ou sem espaço antes de wrote)
+    /^On .+ wrote:/m, // "On ... wrote:" (sem exigir fim de linha)
+    /^Em .+ escreveu:\s*$/m, // "Em ... escreveu:"
+    /^Em .+ escreveu:/m, // "Em ... escreveu:" (sem exigir fim de linha)
     /^Em \d{1,2}\/\d{1,2}\/\d{2,4}/m, // "Em DD/MM/YY" ou "Em DD/MM/YYYY" (início de citação)
     /^Am .+ schrieb/im, // Alemão: "Am ... schrieb"
     /^Le .+ a écrit/im, // Francês: "Le ... a écrit"
