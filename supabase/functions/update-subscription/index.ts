@@ -145,6 +145,37 @@ serve(async (req) => {
       );
     }
 
+    // Verificar se o cliente tem método de pagamento
+    const customer = await stripe.customers.retrieve(subscription.stripe_customer_id) as Stripe.Customer;
+    const hasPaymentMethod = customer.invoice_settings?.default_payment_method || customer.default_source;
+
+    // Se não tem método de pagamento, criar sessão de checkout para adicionar cartão
+    if (!hasPaymentMethod) {
+      console.log('Cliente sem método de pagamento. Criando sessão de checkout...');
+
+      const checkoutSession = await stripe.checkout.sessions.create({
+        customer: subscription.stripe_customer_id,
+        mode: 'setup',
+        payment_method_types: ['card'],
+        success_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/dashboard/settings?upgrade_pending=true&plan_id=${new_plan_id}&billing_cycle=${finalBillingCycle}`,
+        cancel_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/dashboard/settings?upgrade_cancelled=true`,
+        metadata: {
+          user_id: user_id,
+          new_plan_id: new_plan_id,
+          billing_cycle: finalBillingCycle,
+        },
+      });
+
+      return new Response(
+        JSON.stringify({
+          requires_payment_method: true,
+          checkout_url: checkoutSession.url,
+          message: 'Você precisa adicionar um método de pagamento para fazer upgrade.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Verificar se já está no mesmo plano/preço no Stripe
     const currentItem = stripeSubscription.items.data[0];
     const alreadyOnPlanInStripe = currentItem.price.id === newStripePriceId;
@@ -258,6 +289,9 @@ serve(async (req) => {
 
     let updatedSubscription;
 
+    // Verificar se a subscription tem trial ativo
+    const hasActiveTrial = stripeSubscription.trial_end && stripeSubscription.trial_end > Math.floor(Date.now() / 1000);
+
     if (isUpgrade) {
       // Para UPGRADE: reseta o billing cycle e cobra o novo plano imediatamente
       // Isso garante que o cliente pague o valor cheio do novo plano (não proporcional)
@@ -274,6 +308,8 @@ serve(async (req) => {
           proration_behavior: 'none',
           // Reseta o ciclo de cobrança para agora, cobrando o novo valor imediatamente
           billing_cycle_anchor: 'now',
+          // Encerra o trial se houver (necessário para evitar erro quando trial_end > billing_cycle_anchor)
+          trial_end: hasActiveTrial ? 'now' : undefined,
           // Necessário quando billing_cycle_anchor é 'now'
           payment_behavior: 'allow_incomplete',
           metadata: {
@@ -295,12 +331,39 @@ serve(async (req) => {
             },
           ],
           proration_behavior: 'none',
+          // Encerra o trial se houver
+          trial_end: hasActiveTrial ? 'now' : undefined,
           metadata: {
             plan_id: new_plan_id,
             plan_name: newPlan.name,
             user_id: user_id,
           },
         }
+      );
+    }
+
+    // Verificar se o pagamento foi processado com sucesso
+    // Se status for incomplete ou past_due, o pagamento falhou
+    if (updatedSubscription.status === 'incomplete' || updatedSubscription.status === 'past_due') {
+      console.log('Pagamento falhou. Status da subscription:', updatedSubscription.status);
+
+      // Buscar a última invoice para obter a URL de pagamento
+      const invoices = await stripe.invoices.list({
+        subscription: updatedSubscription.id,
+        limit: 1,
+      });
+
+      const latestInvoice = invoices.data[0];
+      const paymentUrl = latestInvoice?.hosted_invoice_url;
+
+      return new Response(
+        JSON.stringify({
+          payment_required: true,
+          payment_url: paymentUrl,
+          message: 'Pagamento pendente. Complete o pagamento para ativar o novo plano.',
+          subscription_status: updatedSubscription.status,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
