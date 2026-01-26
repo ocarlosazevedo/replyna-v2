@@ -146,6 +146,37 @@ function cleanAIResponse(text: string): string {
     /Das würde gegen meine Richtlinien verstoßen[^.]*\./gi,
   ];
 
+  // CRÍTICO: Remover frases que dizem que a IA fez ações que não pode fazer
+  const falseActionPatterns = [
+    /encaminhei[^.]*para[^.]*equipe[^.]*\./gi,
+    /encaminhei[^.]*informa[^.]*\./gi,
+    /encaminhei[^.]*fotos[^.]*\./gi,
+    /enviei[^.]*para[^.]*análise[^.]*\./gi,
+    /enviei[^.]*para[^.]*equipe[^.]*\./gi,
+    /notifiquei[^.]*equipe[^.]*\./gi,
+    /registrei[^.]*solicitação[^.]*\./gi,
+    /registrei[^.]*sistema[^.]*\./gi,
+    /I have forwarded[^.]*\./gi,
+    /I forwarded[^.]*\./gi,
+    /I have sent[^.]*to the team[^.]*\./gi,
+    /I sent[^.]*to the team[^.]*\./gi,
+    /I have notified[^.]*\./gi,
+    /I notified[^.]*\./gi,
+    /ho inoltrato[^.]*\./gi,
+    /ho inviato[^.]*alla squadra[^.]*\./gi,
+    /ho inviato[^.]*al team[^.]*\./gi,
+    /he enviado[^.]*al equipo[^.]*\./gi,
+    /he reenviado[^.]*\./gi,
+    /j'ai transféré[^.]*\./gi,
+    /j'ai envoyé[^.]*à l'équipe[^.]*\./gi,
+    /ich habe weitergeleitet[^.]*\./gi,
+    /ich habe gesendet[^.]*an das Team[^.]*\./gi,
+  ];
+
+  for (const pattern of falseActionPatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+
   for (const pattern of aiLimitationPatterns) {
     cleaned = cleaned.replace(pattern, '');
   }
@@ -774,19 +805,25 @@ QUANDO O CLIENTE PEDE PARA FALAR COM OUTRA PESSOA:
 - NÃO encaminhe para email de suporte - você pode resolver
 - NÃO mencione que existe outro canal ou outra pessoa
 
-AÇÕES QUE VOCÊ NÃO PODE FAZER (NUNCA CONFIRME QUE FEZ):
+AÇÕES QUE VOCÊ NÃO PODE FAZER (NUNCA DIGA QUE FEZ):
 - NUNCA diga "o pedido foi cancelado" - você NÃO pode cancelar pedidos
 - NUNCA diga "o reembolso foi processado" - você NÃO pode fazer reembolsos
 - NUNCA diga "alterei seu pedido" - você NÃO pode alterar pedidos
 - NUNCA diga "enviei o código de rastreio" - você NÃO pode enviar rastreios
+- NUNCA diga "encaminhei para a equipe" ou "encaminhei as informações" - você NÃO pode encaminhar nada
+- NUNCA diga "enviei as fotos para análise" - você NÃO pode enviar fotos
+- NUNCA diga "notifiquei a equipe" - você NÃO pode notificar ninguém
+- NUNCA diga "registrei sua solicitação" como se tivesse feito algo no sistema
 - NUNCA confirme que uma ação foi realizada se você não tem essa capacidade
-- O que você PODE fazer: registrar a solicitação, encaminhar para processamento, informar que será tratado
+- O que você PODE dizer: "sua solicitação será analisada", "a equipe vai verificar", "você receberá retorno"
+- NUNCA use frases que impliquem que você EXECUTOU alguma ação - você apenas RESPONDE
 
 QUANDO O CLIENTE QUER CANCELAR (E ACEITA APÓS RETENÇÃO):
 - NUNCA diga "cancelei seu pedido" ou "pedido foi cancelado"
-- DIGA: "Registrei sua solicitação de cancelamento e ela será processada pela nossa equipe"
-- OU: "Sua solicitação foi encaminhada para processamento"
-- ENCAMINHE para o email ${shopContext.support_email} (adicione [FORWARD_TO_HUMAN])
+- NUNCA diga "encaminhei sua solicitação" ou "registrei no sistema"
+- DIGA: "Para prosseguir com o cancelamento, entre em contato pelo email ${shopContext.support_email}"
+- OU: "Sua solicitação será processada pela equipe"
+- Forneça o email de suporte e adicione [FORWARD_TO_HUMAN]
 
 QUANDO USAR O EMAIL DE SUPORTE (${shopContext.support_email}) - SOMENTE NESSES CASOS:
 1. Cancelamento/reembolso: APÓS as 3 tentativas de retenção (não antes)
