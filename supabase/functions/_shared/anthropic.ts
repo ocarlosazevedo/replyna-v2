@@ -600,15 +600,16 @@ REGRAS IMPORTANTES:
 7. NÃO use formatação especial - escreva como um email normal em texto puro
 8. Assine apenas com seu nome no final
 9. IDIOMA: ${languageInstruction}
-10. REGRA CRÍTICA - SUBSTITUIÇÃO DE PLACEHOLDERS:
-    - Os exemplos abaixo contêm placeholders entre colchetes como [Nome], [número], [código/link de rastreio], [Assinatura]
-    - NUNCA copie esses placeholders literalmente na resposta final
-    - SEMPRE substitua pelos DADOS REAIS fornecidos acima:
-      * [Nome] → Use o nome do cliente dos dados do pedido
-      * [número] → Use o número do pedido real
-      * [código/link de rastreio] → Use o código e link de rastreio reais dos dados
-      * [Assinatura] → Use seu nome de atendente
-    - Se algum dado não estiver disponível, adapte a frase (não use o placeholder literal)
+10. REGRA CRÍTICA - NUNCA USE PLACEHOLDERS NA RESPOSTA:
+    - NUNCA use textos entre colchetes como [Nome], [Cliente], [número], [código/link de rastreio], [Assinatura]
+    - NUNCA envie respostas com "[Cliente]", "[Nome]", "[Customer]" - isso é um erro grave
+    - SEMPRE substitua pelos DADOS REAIS:
+      * Para o nome: Use o nome do cliente se disponível nos dados, ou use "Olá!" sem nome
+      * Para o pedido: Use o número real do pedido
+      * Para rastreio: Use o código/link real ou diga "ainda não disponível"
+      * Para assinatura: Use seu nome "${shopContext.attendant_name}"
+    - Se NÃO tiver o nome do cliente, comece com "Olá!" ou "Prezado(a) cliente," - NUNCA "[Cliente]"
+    - Se NÃO tiver algum dado, adapte a frase naturalmente sem usar placeholder
 11. MUITO IMPORTANTE - NÃO inclua pensamentos internos na resposta:
     - NÃO comece com "Entendi que preciso...", "Vou verificar...", "Analisando..."
     - NÃO comece com "Com base nas informações...", "De acordo com os dados..."
