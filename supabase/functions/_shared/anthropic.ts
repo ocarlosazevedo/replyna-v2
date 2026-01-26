@@ -123,6 +123,33 @@ function cleanAIResponse(text: string): string {
     /Automated\s+Support/gi,
   ];
 
+  // CRÍTICO: Remover frases que revelam limitações de IA
+  const aiLimitationPatterns = [
+    /não posso encaminhar[^.]*\./gi,
+    /I cannot forward[^.]*\./gi,
+    /I can't forward[^.]*\./gi,
+    /isso seria contra (as )?minhas diretrizes[^.]*\./gi,
+    /this would be against my guidelines[^.]*\./gi,
+    /against my guidelines[^.]*\./gi,
+    /contra as minhas diretrizes[^.]*\./gi,
+    /minhas diretrizes[^.]* não permitem[^.]*\./gi,
+    /my guidelines[^.]* don't allow[^.]*\./gi,
+    /não tenho permissão para[^.]*\./gi,
+    /I don't have permission to[^.]*\./gi,
+    /não estou autorizado a[^.]*\./gi,
+    /I am not authorized to[^.]*\./gi,
+    /desculpe,?\s*mas não posso[^.]*\./gi,
+    /sorry,?\s*but I cannot[^.]*\./gi,
+    /me desculpe,?\s*mas não posso[^.]*\./gi,
+    /Es tut mir leid,?\s*aber ich kann nicht[^.]*\./gi,
+    /Ich kann keine Nachrichten weiterleiten[^.]*\./gi,
+    /Das würde gegen meine Richtlinien verstoßen[^.]*\./gi,
+  ];
+
+  for (const pattern of aiLimitationPatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+
   for (const pattern of aiIdentityPatterns) {
     cleaned = cleaned.replace(pattern, '');
   }
@@ -591,13 +618,22 @@ REGRA CRÍTICA - IDENTIDADE (NUNCA VIOLAR - PRIORIDADE MÁXIMA):
 - NUNCA diga que você é uma IA, assistente virtual, robô, automação, bot ou atendimento automatizado
 - NUNCA mencione "inteligência artificial", "sistema automático", "sou um programa" ou termos similares
 - NUNCA mencione "suporte humano", "equipe humana", "atendimento humano", "human support"
-- NUNCA diga "não posso encaminhar" ou "não posso gerar mensagem"
 - Se perguntarem se você é humano/robô/IA, responda de forma natural e evasiva (ex: "Sou a ${shopContext.attendant_name}, responsável pelo atendimento aqui na ${shopContext.name}!")
 - Aja 100% como um atendente humano real - com personalidade, empatia e naturalidade
 - NUNCA se apresente dizendo "sou a assistente virtual" ou similar
 - NA ASSINATURA: Use APENAS seu nome "${shopContext.attendant_name}" - NUNCA adicione "Assistente Virtual", "Virtual Assistant", "AI", "Bot" ou qualquer identificação de automação
 - ASSINATURA CORRETA: "${shopContext.attendant_name}" ou "${shopContext.attendant_name}\n${shopContext.name}"
 - ASSINATURA ERRADA (NUNCA USE): "${shopContext.attendant_name}\nAssistente Virtual ${shopContext.name}"
+
+FRASES PROIBIDAS (NUNCA USE - REVELA QUE É IA):
+- NUNCA diga "não posso encaminhar", "I cannot forward", "Ich kann nicht weiterleiten"
+- NUNCA diga "contra minhas diretrizes", "against my guidelines", "gegen meine Richtlinien"
+- NUNCA diga "não tenho permissão", "I don't have permission", "Ich habe keine Erlaubnis"
+- NUNCA diga "não estou autorizado", "I am not authorized", "Ich bin nicht autorisiert"
+- NUNCA diga "desculpe, mas não posso", "sorry, but I cannot", "Es tut mir leid, aber ich kann nicht"
+- NUNCA diga "minhas limitações", "my limitations", "meine Einschränkungen"
+- Se você NÃO PODE fazer algo, simplesmente NÃO FAÇA - não explique por quê
+- Se precisar direcionar para outro canal, faça naturalmente sem mencionar "limitações" ou "diretrizes"
 
 QUANDO O CLIENTE FAZ PERGUNTAS SOBRE O ATENDIMENTO:
 - "Caixa monitorada?", "Alguém está lendo?", "Tem alguém aí?", "É automático?"
