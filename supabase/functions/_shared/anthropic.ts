@@ -1081,9 +1081,13 @@ INFORMAÇÕES DA LOJA:
   const languageHeaderInstruction = `
 === MANDATORY RESPONSE LANGUAGE: ${detectedLangName.toUpperCase()} ===
 You MUST write your ENTIRE response in ${detectedLangName} (language code: ${language}).
-The customer's message was detected as ${detectedLangName}.
+The customer's CURRENT message was detected as ${detectedLangName}.
 DO NOT respond in Portuguese or any other language unless "${language}" matches that language.
 Every word, greeting, and signature must be in ${detectedLangName}.
+
+CRITICAL: The conversation history below may contain messages in Portuguese (from previous AI responses).
+IGNORE the language of the history - respond ONLY in ${detectedLangName} based on the customer's CURRENT message.
+The instructions below are in Portuguese for internal use, but YOUR RESPONSE must be in ${detectedLangName}.
 ===`;
 
   // Instruções específicas para Cash on Delivery (COD)
@@ -1498,10 +1502,15 @@ ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.s
     });
   }
 
-  // Adicionar email atual
+  // Adicionar email atual com instrução de idioma FINAL (mais peso)
+  // A instrução de idioma no final do prompt tem maior influência na resposta
+  const languageReminderFinal = language !== 'pt' && language !== 'pt-BR'
+    ? `\n\n=== CRITICAL LANGUAGE REMINDER ===\nThe customer wrote in ${langName[language] || language}. You MUST respond ENTIRELY in ${langName[language] || language}. DO NOT respond in Portuguese even if the conversation history is in Portuguese. The conversation history may be in a different language - IGNORE IT for language purposes. Write your ENTIRE response in ${langName[language] || language}.`
+    : '';
+
   messages.push({
     role: 'user',
-    content: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}`,
+    content: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}${languageReminderFinal}`,
   });
 
   const response = await callClaude(systemPrompt, messages, MAX_TOKENS);
@@ -1581,7 +1590,19 @@ export async function generateDataRequestMessage(
     'he': 'אנא השב בעברית.',
   };
 
+  // Mapa de nomes de idiomas
+  const langNames: Record<string, string> = {
+    'pt-BR': 'Brazilian Portuguese', 'pt': 'Portuguese', 'en': 'English', 'es': 'Spanish',
+    'fr': 'French', 'de': 'German', 'it': 'Italian', 'nl': 'Dutch', 'pl': 'Polish',
+  };
+  const detectedLangName = langNames[language] || language;
+
   const languageInstruction = languageInstructions[language] || `CRITICAL: You MUST respond in the customer's language (${language}). Write your ENTIRE response in ${language}.`;
+
+  // Lembrete final de idioma para não-português
+  const languageReminderFinal = language !== 'pt' && language !== 'pt-BR'
+    ? `\n\n=== RESPOND IN ${detectedLangName.toUpperCase()} ONLY ===`
+    : '';
 
   let urgencyNote = '';
   if (attemptNumber === 2) {
@@ -1624,7 +1645,7 @@ ${urgencyNote}`;
     [
       {
         role: 'user',
-        content: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}\n\nGere uma resposta pedindo os dados do pedido.`,
+        content: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}\n\nGere uma resposta pedindo os dados do pedido.${languageReminderFinal}`,
       },
     ],
     200
@@ -1695,7 +1716,19 @@ export async function generateHumanFallbackMessage(
     'he': 'אנא השב בעברית.',
   };
 
+  // Mapa de nomes de idiomas
+  const langNames: Record<string, string> = {
+    'pt-BR': 'Brazilian Portuguese', 'pt': 'Portuguese', 'en': 'English', 'es': 'Spanish',
+    'fr': 'French', 'de': 'German', 'it': 'Italian', 'nl': 'Dutch', 'pl': 'Polish',
+  };
+  const detectedLangName = langNames[language] || language;
+
   const languageInstruction = languageInstructions[language] || `CRITICAL: You MUST respond in the customer's language (${language}). Write your ENTIRE response in ${language}.`;
+
+  // Lembrete final de idioma para não-português
+  const languageReminderFinal = language !== 'pt' && language !== 'pt-BR'
+    ? `\n\n=== RESPOND IN ${detectedLangName.toUpperCase()} ONLY ===`
+    : '';
 
   // Gerar mensagem padrão
   const toneInstructions: Record<string, string> = {
@@ -1738,7 +1771,7 @@ IMPORTANT - LANGUAGE: ${languageInstruction}`;
 
   const response = await callClaude(
     systemPrompt,
-    [{ role: 'user', content: 'Generate the forwarding message to human support.' }],
+    [{ role: 'user', content: `Generate the forwarding message to human support.${languageReminderFinal}` }],
     150
   );
 
