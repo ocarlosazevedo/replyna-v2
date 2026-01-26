@@ -368,8 +368,17 @@ export async function classifyEmail(
 ): Promise<ClassificationResult> {
   const systemPrompt = `You are an email classifier for e-commerce customer support.
 
+=== CRITICAL RULE #1 - READ FIRST ===
+NEVER use category "suporte_humano" unless the email contains LEGAL THREAT WORDS like:
+"lawyer", "lawsuit", "sue", "court", "PROCON", "attorney", "legal action", "advogado", "processo", "tribunal"
+
+If customer says "speak with owner/manager/supervisor" → use "duvidas_gerais" NOT "suporte_humano"
+If customer says "contact the owner" → use "duvidas_gerais" NOT "suporte_humano"
+If customer is angry but no legal threat → use appropriate category, NOT "suporte_humano"
+=== END CRITICAL RULE ===
+
 Your task is to analyze the email and return a JSON with:
-1. category: email category (one of the 5 options below)
+1. category: email category (one of the 6 options below)
 2. confidence: classification confidence (0.0 to 1.0)
 3. language: EXACT language of the customer's email (VERY IMPORTANT - detect correctly!)
 4. order_id_found: order number if mentioned (e.g., #12345, 12345), or null
@@ -476,16 +485,23 @@ IMPORTANT:
    - edicao_pedido is ONLY for modifications (change address, change size, add item, etc.)
 
 6. suporte_humano
-   ONLY for cases with EXPLICIT LEGAL THREATS (lawyer, lawsuit, legal action, consumer protection agency).
-   These cases need human escalation.
-   NOT for: angry customers, complaints, requests to "speak with a human" (respond normally to these).
+   EXTREMELY RESTRICTED - ONLY use when email contains ONE OF THESE EXACT WORDS:
+   - "lawyer", "advogado", "abogado", "avocat", "anwalt"
+   - "lawsuit", "processo", "demanda", "procès"
+   - "sue", "processar", "demandar"
+   - "court", "tribunal", "justiça", "justice"
+   - "legal action", "ação judicial", "acción legal"
+   - "PROCON", "consumer protection", "defesa do consumidor"
+   - "attorney", "attorney general"
 
-   IMPORTANT - DO NOT classify as suporte_humano:
-   - "Can I speak with the owner?" → classify as "duvidas_gerais"
-   - "I want to talk to a manager" → classify as "duvidas_gerais"
-   - "Is there someone else I can talk to?" → classify as "duvidas_gerais"
-   - "Let me speak with a supervisor" → classify as "duvidas_gerais"
-   These are NOT legal threats - they are general questions that the AI can handle.
+   If NONE of these words appear → DO NOT use suporte_humano!
+
+   NEVER classify as suporte_humano (use "duvidas_gerais" instead):
+   - "speak with owner/manager/supervisor" → duvidas_gerais
+   - "talk to someone else" → duvidas_gerais
+   - "get in contact with owner" → duvidas_gerais
+   - "I'm angry/frustrated" → duvidas_gerais
+   - Any complaint without legal threat words → duvidas_gerais
 
 === SPAM DETECTION (CRITICAL - MUST CLASSIFY CORRECTLY) ===
 
