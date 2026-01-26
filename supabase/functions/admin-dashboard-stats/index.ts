@@ -84,11 +84,11 @@ serve(async (req) => {
         .eq('direction', 'outbound')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
-      // E-mails humanos (status pending_human)
+      // Conversas encaminhadas para humano (status pending_human)
+      // Conta CONVERSAS ao invés de mensagens para consistência com a lista
       supabase
-        .from('messages')
+        .from('conversations')
         .select('*', { count: 'exact', head: true })
-        .eq('direction', 'inbound')
         .eq('status', 'pending_human')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),

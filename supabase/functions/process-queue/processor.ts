@@ -617,10 +617,11 @@ async function processMessage(
     finalStatus = 'pending_human';
     await forwardToHuman(shop, message);
     console.log(`[Processor] Forwarding to human - ai_forward: true`);
-  } else if (classification.category === 'troca_devolucao_reembolso') {
-    // Mark as pending_human but don't forward - AI directs customer to contact support email
+  } else if (classification.category === 'troca_devolucao_reembolso' && currentRetentionCount >= 3) {
+    // Só marca como pending_human APÓS 3 contatos de retenção
+    // Nos contatos 1 e 2, a IA tenta reter o cliente
     finalStatus = 'pending_human';
-    console.log(`[Processor] Marked as pending_human - category: troca_devolucao_reembolso (customer directed to support email)`);
+    console.log(`[Processor] Marked as pending_human - category: troca_devolucao_reembolso after ${currentRetentionCount} retention contacts`);
   }
 
   // 14. Enviar resposta por email
