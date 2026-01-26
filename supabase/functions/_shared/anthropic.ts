@@ -394,17 +394,22 @@ ENGLISH DETECTION (very common - detect correctly):
 - If text contains: "Can you", "I would", "Please", "When will", "Where is", "I need", "update", "receive", "order" → language is "en"
 - If text has English grammar structure → language is "en"
 - Common English phrases: "give me an update", "when will I receive", "where is my order", "I have a question"
+- QUESTION PATTERNS IN ENGLISH:
+  * "Is your", "Is the", "Are you", "Do you", "Does your" → language is "en"
+  * "still active", "store active", "accepting orders" → language is "en"
+  * Any sentence starting with "Hi", "Hello", "Hey" → language is "en"
 - SINGLE ENGLISH WORDS (even alone, these indicate English):
   * "Refund", "Refund?" → language is "en"
   * "Cancel", "Cancellation" → language is "en"
   * "Tracking", "Track" → language is "en"
-  * "Help", "Hello", "Hi" → language is "en"
-  * "Order", "Shipping", "Delivery" → language is "en"
+  * "Help", "Hello", "Hi", "Hey" → language is "en"
+  * "Order", "Shipping", "Delivery", "Store", "Active" → language is "en"
   * "Return", "Exchange" → language is "en"
   * "Where", "When", "What", "Why", "How" → language is "en"
   * "Thanks", "Thank you" → language is "en"
   * "Status", "Update" → language is "en"
 - SHORT MESSAGES: Even 1-word messages must be detected correctly by the word itself
+- IGNORE STORE NAME: If store name contains "es", "pt", "br" - ignore this for language detection!
 
 IMPORTANT:
 - The store may have replied in Portuguese, but if the CUSTOMER writes in English → detect "en"
@@ -533,6 +538,13 @@ CLASSIFY AS SPAM (confidence 0.95+) - THESE ARE NOT REAL CUSTOMERS:
    - Offering "free audit", "free consultation", "free analysis"
    - Partnership proposals, collaboration offers
    - B2B sales pitches
+
+5. VERIFICATION/PROBING EMAILS (SPAM):
+   - "Is your store still active?" → SPAM
+   - "Are you still accepting orders?" → SPAM
+   - "Is this store open?" → SPAM
+   - "Do you still sell [products]?" without specific purchase intent → SPAM
+   - Generic questions about the store's status that any spam bot could send → SPAM
 
 REAL CUSTOMERS (NOT spam) - ONLY these should NOT be spam:
 - Asking about THEIR ORDER (mentions order number, tracking, specific purchase THEY made)
