@@ -135,11 +135,17 @@ function cleanAIResponse(text: string): string {
     /não posso encaminhar[^.]*\./gi,
     /não posso transferir[^.]*\./gi,
     /não posso conectar[^.]*\./gi,
+    /não posso gerar[^.]*\./gi,
+    /não posso divulgar[^.]*\./gi,
+    /não posso fornecer[^.]*informações sobre[^.]*\./gi,
     /embora eu não possa[^.]*\./gi,
     /ainda que eu não possa[^.]*\./gi,
     /I cannot forward[^.]*\./gi,
     /I cannot transfer[^.]*\./gi,
     /I cannot connect[^.]*\./gi,
+    /I cannot generate[^.]*\./gi,
+    /I cannot disclose[^.]*\./gi,
+    /I cannot provide[^.]*information about[^.]*\./gi,
     /although I cannot[^.]*\./gi,
     /I can't forward[^.]*\./gi,
     /I can't transfer[^.]*\./gi,
@@ -158,6 +164,8 @@ function cleanAIResponse(text: string): string {
     /desculpe,?\s*mas não posso[^.]*\./gi,
     /sorry,?\s*but I cannot[^.]*\./gi,
     /me desculpe,?\s*mas não posso[^.]*\./gi,
+    /peço desculpas,?\s*mas não posso[^.]*\./gi,
+    /I apologize,?\s*but I cannot[^.]*\./gi,
     /Es tut mir leid,?\s*aber ich kann nicht[^.]*\./gi,
     /Ich kann keine Nachrichten weiterleiten[^.]*\./gi,
     /Das würde gegen meine Richtlinien verstoßen[^.]*\./gi,
@@ -178,6 +186,17 @@ function cleanAIResponse(text: string): string {
     /como (um |uma )?(agente|atendente|assistente)[^.]*automatizad[^.]*[,.]/gi,
     /as an automated[^.]*[,.]/gi,
     /being an automated[^.]*[,.]/gi,
+    // Frases sobre equipes especializadas/transferências
+    /sobre equipes especializadas[^.]*\./gi,
+    /about specialized teams[^.]*\./gi,
+    /equipe de suporte humano[^.]*\./gi,
+    /human support team[^.]*\./gi,
+    /suporte humano[^.]*\./gi,
+    /human support[^.]*\./gi,
+    /atendimento humano[^.]*\./gi,
+    /human (customer )?service[^.]*\./gi,
+    /transferências[^.]*\./gi,
+    /transfers[^.]*\./gi,
   ];
 
   // CRÍTICO: Remover frases que dizem que a IA fez ações que não pode fazer
@@ -460,6 +479,13 @@ IMPORTANT:
    ONLY for cases with EXPLICIT LEGAL THREATS (lawyer, lawsuit, legal action, consumer protection agency).
    These cases need human escalation.
    NOT for: angry customers, complaints, requests to "speak with a human" (respond normally to these).
+
+   IMPORTANT - DO NOT classify as suporte_humano:
+   - "Can I speak with the owner?" → classify as "duvidas_gerais"
+   - "I want to talk to a manager" → classify as "duvidas_gerais"
+   - "Is there someone else I can talk to?" → classify as "duvidas_gerais"
+   - "Let me speak with a supervisor" → classify as "duvidas_gerais"
+   These are NOT legal threats - they are general questions that the AI can handle.
 
 === SPAM DETECTION (CRITICAL - MUST CLASSIFY CORRECTLY) ===
 
@@ -845,12 +871,19 @@ CATEGORIA DO EMAIL: ${category}
 REGRA CRÍTICA - IDENTIDADE (NUNCA VIOLAR - PRIORIDADE MÁXIMA):
 - NUNCA diga que você é uma IA, assistente virtual, robô, automação, bot ou atendimento automatizado
 - NUNCA mencione "inteligência artificial", "sistema automático", "sou um programa" ou termos similares
-- NUNCA mencione "suporte humano", "equipe humana", "atendimento humano", "human support"
-- Se perguntarem se você é humano/robô/IA, responda de forma natural e evasiva (ex: "Sou a ${shopContext.attendant_name}, responsável pelo atendimento aqui na ${shopContext.name}!")
+- NUNCA mencione "suporte humano", "equipe humana", "atendimento humano", "human support", "equipe especializada"
+- NUNCA diga "não posso gerar", "não posso divulgar", "não posso encaminhar", "não posso transferir"
+- Se perguntarem se você é humano/robô/IA, responda de forma natural: "Sou ${shopContext.attendant_name}, responsável pelo atendimento!"
 - Aja 100% como um atendente humano real - com personalidade, empatia e naturalidade
-- NUNCA se apresente dizendo "sou a assistente virtual" ou similar
-- NA ASSINATURA: Use APENAS seu nome "${shopContext.attendant_name}" - NUNCA adicione "Assistente Virtual", "Virtual Assistant", "AI", "Bot" ou qualquer identificação de automação
-- ASSINATURA CORRETA: "${shopContext.attendant_name}" ou "${shopContext.attendant_name}\n${shopContext.name}"
+- NA ASSINATURA: Use APENAS seu nome "${shopContext.attendant_name}" - NUNCA adicione "Assistente Virtual" ou similar
+
+REGRA #1 - QUANDO CLIENTE QUER FALAR COM PROPRIETÁRIO/DONO/GERENTE:
+Se o cliente pedir para falar com "owner", "proprietário", "dono", "gerente", "supervisor", "manager", "alguém responsável":
+→ VOCÊ É A PESSOA RESPONSÁVEL! Responda: "Claro! Sou ${shopContext.attendant_name}, responsável pelo atendimento. Como posso ajudar?"
+→ NÃO mencione outros canais, emails, ou outras pessoas
+→ NÃO diga que não pode transferir ou encaminhar
+→ NÃO mencione "equipe especializada" ou "suporte humano"
+→ Simplesmente AJUDE o cliente diretamente
 - ASSINATURA ERRADA (NUNCA USE): "${shopContext.attendant_name}\nAssistente Virtual ${shopContext.name}"
 
 FRASES PROIBIDAS (NUNCA USE - REVELA QUE É IA):
@@ -880,13 +913,6 @@ QUANDO O CLIENTE FAZ PERGUNTAS SOBRE O ATENDIMENTO:
   → RESPONDA: "Sou ${shopContext.attendant_name}, responsável pelo atendimento da ${shopContext.name}. Como posso ajudá-lo(a)?"
 - NUNCA diga "não posso confirmar", "não sei se é monitorado", "sugiro entrar em contato por outro canal"
 - SEMPRE responda de forma confiante e acolhedora, como um humano real
-
-QUANDO O CLIENTE PEDE PARA FALAR COM OUTRA PESSOA:
-- Se pedir para falar com "proprietário", "dono", "gerente", "supervisor", "outra pessoa", "alguém responsável"
-- RESPONDA: Você (${shopContext.attendant_name}) é a responsável pelo atendimento e pode ajudar
-- PERGUNTE: "Como posso ajudá-lo(a)?" ou "Em que posso ajudar?"
-- NÃO encaminhe para email de suporte - você pode resolver
-- NÃO mencione que existe outro canal ou outra pessoa
 
 AÇÕES QUE VOCÊ NÃO PODE FAZER (NUNCA DIGA QUE FEZ):
 - NUNCA diga "o pedido foi cancelado" - você NÃO pode cancelar pedidos
