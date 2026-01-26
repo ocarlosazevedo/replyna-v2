@@ -121,6 +121,13 @@ function cleanAIResponse(text: string): string {
     /Automated\s+Assistant/gi,
     /Suporte\s+Automatizado/gi,
     /Automated\s+Support/gi,
+    /agente\s+de\s+atendimento[^.]*automatizado/gi,
+    /automated\s+customer\s+(service|support)\s+agent/gi,
+    /customer\s+service\s+automation/gi,
+    /I('m| am)\s+an?\s+(AI|automated|virtual)/gi,
+    /sou\s+um(a)?\s+(IA|robô|bot|assistente\s+virtual)/gi,
+    /as\s+an?\s+(AI|automated|virtual)\s+(assistant|agent|support)/gi,
+    /como\s+um(a)?\s+(IA|agente|assistente)\s+(virtual|automatizado)/gi,
   ];
 
   // CRÍTICO: Remover frases que revelam limitações de IA
@@ -154,6 +161,23 @@ function cleanAIResponse(text: string): string {
     /Es tut mir leid,?\s*aber ich kann nicht[^.]*\./gi,
     /Ich kann keine Nachrichten weiterleiten[^.]*\./gi,
     /Das würde gegen meine Richtlinien verstoßen[^.]*\./gi,
+    // Frases sobre falta de acesso a dados/informações
+    /não tenho (acesso|informações)[^.]*dados[^.]*\./gi,
+    /não tenho (acesso|informações)[^.]*logístic[^.]*\./gi,
+    /não tenho (acesso|informações)[^.]*específic[^.]*\./gi,
+    /não tenho (acesso|informações) detalh[^.]*\./gi,
+    /I (don't|do not) have access to[^.]*data[^.]*\./gi,
+    /I (don't|do not) have access to[^.]*information[^.]*\./gi,
+    /I (don't|do not) have access to (this|that) level[^.]*\./gi,
+    /I (don't|do not) have (detailed|specific) information[^.]*\./gi,
+    /non ho accesso a[^.]*\./gi,
+    /no tengo acceso a[^.]*\./gi,
+    /je n'ai pas accès[^.]*\./gi,
+    /ich habe keinen Zugang[^.]*\./gi,
+    // Frases sobre ser automatizado
+    /como (um |uma )?(agente|atendente|assistente)[^.]*automatizad[^.]*[,.]/gi,
+    /as an automated[^.]*[,.]/gi,
+    /being an automated[^.]*[,.]/gi,
   ];
 
   // CRÍTICO: Remover frases que dizem que a IA fez ações que não pode fazer
@@ -828,6 +852,12 @@ FRASES PROIBIDAS (NUNCA USE - REVELA QUE É IA):
 - NUNCA diga "não estou autorizado", "I am not authorized", "Ich bin nicht autorisiert"
 - NUNCA diga "desculpe, mas não posso", "sorry, but I cannot", "Es tut mir leid, aber ich kann nicht"
 - NUNCA diga "minhas limitações", "my limitations", "meine Einschränkungen"
+- NUNCA diga "não tenho acesso a", "I don't have access to", "non ho accesso a"
+- NUNCA diga "não tenho informações detalhadas", "I don't have detailed information"
+- NUNCA diga "como um agente automatizado", "as an automated agent"
+- NUNCA diga "agente de atendimento automatizado", "automated customer service agent"
+- NUNCA use frases que indicam que você é um sistema/programa/IA com limitações de acesso
+- Se você NÃO SABE algo, diga "vou verificar" ou "deixa eu checar" - NUNCA diga que não tem acesso
 - Se você NÃO PODE fazer algo, simplesmente NÃO FAÇA - não explique por quê
 - Se precisar direcionar para outro canal, faça naturalmente sem mencionar "limitações" ou "diretrizes"
 - Se o cliente quer falar com gerente/proprietário, diga que VOCÊ pode ajudar - não mencione que não pode transferir
@@ -878,9 +908,19 @@ QUANDO USAR O EMAIL DE SUPORTE (${shopContext.support_email}) - SOMENTE NESSES C
 REGRAS IMPORTANTES:
 1. Responda de forma clara e objetiva
 2. Use as informações do pedido quando disponíveis
-3. Se não souber algo específico, diga que vai verificar
+3. Se não souber algo específico, diga que vai verificar - NUNCA diga que "não tem acesso" a dados
 4. Não invente informações - use apenas os dados fornecidos
 5. Máximo 400 palavras
+
+QUANDO PERGUNTAR SOBRE PRAZOS DE ENTREGA/ENVIO:
+- Se a loja tem "Prazo de entrega" configurado nas informações, USE essa informação
+- Se não tem informação específica para o país, responda de forma útil:
+  * "Nosso prazo de entrega internacional é geralmente de X a Y dias úteis"
+  * "Para envios internacionais, o prazo varia de acordo com a região"
+  * "Vou verificar o prazo específico para sua região e te retorno"
+- NUNCA diga "não tenho acesso a dados logísticos" ou similar
+- NUNCA diga "como agente automatizado não tenho essa informação"
+- Aja como um atendente humano que vai verificar a informação
 6. NÃO use markdown (nada de **, ##, *, listas com -, etc.)
 7. NÃO use formatação especial - escreva como um email normal em texto puro
 8. Assine apenas com seu nome no final
