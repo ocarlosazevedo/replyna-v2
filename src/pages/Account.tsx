@@ -107,6 +107,74 @@ export default function Account() {
   const [pendingInvoices, setPendingInvoices] = useState<PendingInvoice[]>([])
   const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null)
 
+  // Detectar retorno do Stripe após adicionar método de pagamento
+  useEffect(() => {
+    if (!user) return
+
+    const urlParams = new URLSearchParams(window.location.search)
+    const upgradePending = urlParams.get('upgrade_pending')
+    const planId = urlParams.get('plan_id')
+    const billingCycle = urlParams.get('billing_cycle')
+    const upgradeCancelled = urlParams.get('upgrade_cancelled')
+
+    // Limpar parâmetros da URL
+    if (upgradePending || upgradeCancelled) {
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+
+    if (upgradeCancelled) {
+      setNotice({ type: 'info', message: 'Upgrade cancelado.' })
+      return
+    }
+
+    if (upgradePending && planId) {
+      // Continuar o upgrade após adicionar método de pagamento
+      const continueUpgrade = async () => {
+        setNotice({ type: 'info', message: 'Continuando o upgrade...' })
+
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subscription`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({
+                user_id: user.id,
+                new_plan_id: planId,
+                billing_cycle: billingCycle || 'monthly',
+              }),
+            }
+          )
+
+          const result = await response.json()
+
+          if (!response.ok) {
+            throw new Error(result.error || 'Erro ao completar upgrade')
+          }
+
+          if (result.payment_required && result.payment_url) {
+            window.location.href = result.payment_url
+            return
+          }
+
+          setNotice({ type: 'success', message: 'Upgrade realizado com sucesso!' })
+
+          // Recarregar a página para atualizar os dados
+          setTimeout(() => window.location.reload(), 1500)
+        } catch (err) {
+          console.error('Erro ao continuar upgrade:', err)
+          const message = err instanceof Error ? err.message : 'Erro ao completar upgrade'
+          setNotice({ type: 'error', message })
+        }
+      }
+
+      continueUpgrade()
+    }
+  }, [user])
+
   useEffect(() => {
     if (!user) return
     const loadProfile = async () => {
