@@ -85,6 +85,22 @@ function detectLanguageFromText(text: string): string | null {
     // Palavras exclusivamente inglesas (não existem em português/espanhol)
     /\b(the|with|store|shop)\b/i,
     /\b(just|have|has|had|been|would|could|should|still|waiting|want|need)\b/i,
+    // Palavras comuns em inglês - ADICIONADO para melhor detecção
+    /\bsorry\b/i, // "Sorry" - muito comum em inglês
+    /\bkeep\s+(it|me|going|coming)/i, // "keep it", "keep me", "keep going", "keep coming"
+    /\b(coming|going|waiting|looking|getting|making|taking)\b/i, // Gerunds comuns
+    /\badvise\b/i, // "please advise" - comum em emails
+    /\bregards\b/i, // "Regards", "Best regards" - assinatura comum
+    /\b(it's|that's|there's|here's|what's|who's|how's)\b/i, // Contrações com 's
+    /\b(don't|doesn't|didn't|won't|wouldn't|can't|couldn't|isn't|aren't|wasn't|weren't|haven't|hasn't|hadn't)\b/i, // Contrações negativas
+    /\b(i'm|you're|we're|they're|he's|she's)\b/i, // Contrações de pronome + verbo
+    /\b(let me|let us|let's)\b/i, // "let me know", "let's"
+    /\bplease\s+(advise|confirm|let|send|check|update)/i, // Frases comuns com "please"
+    /\b(any|some)\s+(news|update|information|help)\b/i, // "any news", "some help"
+    /\bby\s+(the|end|next)\s+(of|week|month|day)/i, // "by the end of", "by next week"
+    /\b(end\s+of\s+(the\s+)?(week|month|day))\b/i, // "end of the week"
+    /\b(as\s+soon\s+as|asap)\b/i, // "as soon as possible", "ASAP"
+    /\bpaypal\b/i, // PayPal - comum em e-commerce
   ];
 
   // Verificar padrões de inglês
