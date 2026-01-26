@@ -168,6 +168,55 @@ function cleanAIResponse(text: string): string {
 
   cleaned = cleanedLines.join('\n').trim();
 
+  // CRÍTICO: Remover placeholders que vazaram na resposta
+  // Padrão 1: [texto] - placeholders em colchetes
+  const placeholderPatterns = [
+    /\[Cliente\]/gi,
+    /\[Customer\]/gi,
+    /\[Name\]/gi,
+    /\[Nome\]/gi,
+    /\[Nombre\]/gi,
+    /\[Kunde\]/gi,
+    /\[Client\]/gi,
+    /\[número\]/gi,
+    /\[number\]/gi,
+    /\[order[_\s]?number\]/gi,
+    /\[pedido\]/gi,
+    /\[código[_\s]?de[_\s]?rastreio\]/gi,
+    /\[tracking[_\s]?code\]/gi,
+    /\[tracking[_\s]?number\]/gi,
+    /\[link[_\s]?de[_\s]?rastreio\]/gi,
+    /\[tracking[_\s]?link\]/gi,
+    /\[Assinatura\]/gi,
+    /\[Signature\]/gi,
+    /\[data\]/gi,
+    /\[date\]/gi,
+    /\[email\]/gi,
+    /\[produto\]/gi,
+    /\[product\]/gi,
+    /\[valor\]/gi,
+    /\[value\]/gi,
+    /\[amount\]/gi,
+  ];
+
+  for (const pattern of placeholderPatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+
+  // Padrão 2: Remover saudações com placeholders vazios resultantes
+  // "Estimado Sr. ," -> "Estimado,"
+  // "Dear Mr. ," -> "Dear,"
+  cleaned = cleaned.replace(/Estimado\s+Sr\.?\s*,/gi, 'Estimado,');
+  cleaned = cleaned.replace(/Estimada\s+Sra\.?\s*,/gi, 'Estimada,');
+  cleaned = cleaned.replace(/Estimado\/a\s*,/gi, 'Estimado/a,');
+  cleaned = cleaned.replace(/Dear\s+Mr\.?\s*,/gi, 'Dear Customer,');
+  cleaned = cleaned.replace(/Dear\s+Mrs\.?\s*,/gi, 'Dear Customer,');
+  cleaned = cleaned.replace(/Dear\s+Ms\.?\s*,/gi, 'Dear Customer,');
+  cleaned = cleaned.replace(/Caro\s+Sr\.?\s*,/gi, 'Caro cliente,');
+  cleaned = cleaned.replace(/Cara\s+Sra\.?\s*,/gi, 'Cara cliente,');
+  cleaned = cleaned.replace(/Sehr geehrter\s+Herr\s*,/gi, 'Sehr geehrte/r Kunde/in,');
+  cleaned = cleaned.replace(/Sehr geehrte\s+Frau\s*,/gi, 'Sehr geehrte/r Kunde/in,');
+
   // Limpar espaços duplos que podem ter ficado após remoções
   cleaned = cleaned.replace(/  +/g, ' ');
   cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
@@ -757,6 +806,18 @@ REGRAS IMPORTANTES:
 7. NÃO use formatação especial - escreva como um email normal em texto puro
 8. Assine apenas com seu nome no final
 9. IDIOMA: ${languageInstruction}
+
+REGRA CRÍTICA - RECONHEÇA PROBLEMAS ESPECÍFICOS DO CLIENTE:
+- Se o cliente menciona um problema ESPECÍFICO, você DEVE reconhecê-lo na resposta
+- Exemplos de problemas específicos que devem ser reconhecidos:
+  * "Paguei 4 e recebi 3" → "Entendo que você pagou por 4 itens mas recebeu apenas 3"
+  * "Produto veio quebrado" → "Lamento que o produto tenha chegado danificado"
+  * "Cor errada" → "Entendo que recebeu uma cor diferente da que pediu"
+  * "Tamanho errado" → "Lamento que o tamanho não seja o que você solicitou"
+  * "Faltou item" → "Entendo que está faltando um item no seu pedido"
+- NUNCA ignore o problema específico e dê resposta genérica
+- Reconheça o problema PRIMEIRO, depois encaminhe ou ofereça solução
+
 10. REGRA CRÍTICA - NUNCA USE PLACEHOLDERS NA RESPOSTA (EM NENHUM IDIOMA):
     - NUNCA use textos entre colchetes [ ] em NENHUM idioma
     - Exemplos de placeholders PROIBIDOS (em qualquer idioma):
@@ -766,7 +827,9 @@ REGRAS IMPORTANTES:
       * [link de rastreio], [tracking link], [linkdo_przesylki], [link do przesyłki]
       * [Assinatura], [Signature], [Podpis]
     - Se você NÃO tem um dado real, NÃO invente um placeholder - adapte a frase:
-      * Sem nome → "Olá!" (sem nome)
+      * Sem nome do cliente → Use saudação genérica: "Olá!", "Hola!", "Hello!", "Guten Tag!"
+      * NUNCA use "Estimado Sr. [Cliente]" ou "Dear Mr. [Customer]"
+      * Se não sabe o nome, use: "Estimado/a,", "Dear Customer,", "Hola,"
       * Sem rastreio → "o código de rastreio ainda não está disponível"
       * Sem link → não mencione o link
     - SEMPRE use os DADOS REAIS fornecidos em "DADOS DO PEDIDO DO CLIENTE"
