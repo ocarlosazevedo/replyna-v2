@@ -110,17 +110,15 @@ serve(async (req) => {
       supabase.from('shops').select('user_id, id, name'),
       supabase.from('users').select('id, name, email, plan'),
       supabase.from('users').select('emails_used, emails_limit'),
-      // Conversas recentes para o Super Inbox (apenas conversas finalizadas)
-      // Filtra por last_message_at para mostrar conversas com atividade no período
+      // Conversas recentes para o Super Inbox
+      // Inclui conversas com atividade no período OU conversas de spam
       supabase
         .from('conversations')
-        .select('id, shop_id, customer_email, customer_name, subject, category, created_at, last_message_at')
-        .not('last_message_at', 'is', null)
-        .gte('last_message_at', dateStart)
-        .lte('last_message_at', dateEnd)
-        .in('status', ['replied', 'pending_human', 'closed'])
+        .select('id, shop_id, customer_email, customer_name, subject, category, status, created_at, last_message_at')
+        .gte('created_at', dateStart)
+        .lte('created_at', dateEnd)
         .order('last_message_at', { ascending: false, nullsFirst: false })
-        .limit(100),
+        .limit(200),
     ]);
 
     // Contar usuários no limite (emails_used >= emails_limit)
@@ -159,6 +157,7 @@ serve(async (req) => {
         customer_name: string | null;
         subject: string | null;
         category: string | null;
+        status: string | null;
         created_at: string;
         last_message_at: string | null;
       }) => ({
