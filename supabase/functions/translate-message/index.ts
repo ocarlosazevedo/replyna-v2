@@ -5,7 +5,7 @@
  */
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL = 'claude-3-haiku-20240307';
+const MODEL = 'claude-3-5-haiku-20241022';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,10 +66,22 @@ Deno.serve(async (req) => {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('Erro na API do Claude:', error);
+      const errorText = await response.text();
+      console.error('Erro na API do Claude:', response.status, errorText);
+
+      // Tentar extrair mensagem de erro específica
+      let errorMessage = 'Erro ao traduzir mensagem';
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error?.message) {
+          errorMessage = errorData.error.message;
+        }
+      } catch {
+        // Usar mensagem genérica
+      }
+
       return new Response(
-        JSON.stringify({ error: 'Erro ao traduzir mensagem' }),
+        JSON.stringify({ error: errorMessage }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
