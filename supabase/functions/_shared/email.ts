@@ -1190,6 +1190,42 @@ export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
 
   if (!body) return '';
 
+  // CRÍTICO: Detectar e extrair texto ORIGINAL de emails traduzidos automaticamente pelo Gmail
+  // Gmail insere "Traduzido para [idioma]" antes da tradução e "Ver original" antes do texto original
+  const gmailTranslationPatterns = [
+    // Português: "Traduzido para Português/Portugues" ... "Ver original" ... [TEXTO ORIGINAL]
+    /Traduzido para\s+(?:Português|Portugues|Portuguese)[\s\S]*?Ver original\s*\n+([\s\S]+)/i,
+    // Inglês: "Translated to English" ... "View original" ... [ORIGINAL TEXT]
+    /Translated to\s+(?:English|Portuguese|Spanish|French|German|Italian)[\s\S]*?View original\s*\n+([\s\S]+)/i,
+    // Espanhol: "Traducido al español" ... "Ver original" ... [TEXTO ORIGINAL]
+    /Traducido al?\s+(?:español|inglés|portugués)[\s\S]*?Ver original\s*\n+([\s\S]+)/i,
+    // Alemão: "Übersetzt nach Deutsch" ... "Original anzeigen" ... [ORIGINALTEXT]
+    /Übersetzt (?:nach|ins)\s+(?:Deutsch|Englisch|Spanisch)[\s\S]*?Original anzeigen\s*\n+([\s\S]+)/i,
+    // Francês: "Traduit en français" ... "Voir l'original" ... [TEXTE ORIGINAL]
+    /Traduit en\s+(?:français|anglais|espagnol)[\s\S]*?Voir l'original\s*\n+([\s\S]+)/i,
+    // Italiano: "Tradotto in italiano" ... "Visualizza originale" ... [TESTO ORIGINALE]
+    /Tradotto in\s+(?:italiano|inglese|spagnolo)[\s\S]*?Visualizza originale\s*\n+([\s\S]+)/i,
+  ];
+
+  for (const pattern of gmailTranslationPatterns) {
+    const match = body.match(pattern);
+    if (match && match[1]) {
+      const originalText = match[1].trim();
+      console.log('[cleanEmailBody] Gmail auto-translation detected! Extracting ORIGINAL text.');
+      console.log('[cleanEmailBody] Original text (first 200 chars):', originalText.substring(0, 200));
+      body = originalText; // Usar o texto ORIGINAL, não o traduzido
+      break;
+    }
+  }
+
+  // Também detectar padrão onde o email começa com a tradução inline
+  // Formato: "[Traduzido para Português]" ou similar no início
+  const inlineTranslationPattern = /^\s*\[?Traduzido para\s+\w+\]?\s*\n/i;
+  if (inlineTranslationPattern.test(body)) {
+    // Remover apenas a linha de aviso, manter o resto
+    body = body.replace(inlineTranslationPattern, '');
+  }
+
   // Detectar e extrair comentário de formulários de contato do Shopify
   // Formato: "Nova mensagem de cliente... Country Code: X, Name: X, Email: X, Phone: X, Comment: X"
   const shopifyFormPattern = /(?:Nova mensagem de cliente|New customer message|New message from customer)/i;
