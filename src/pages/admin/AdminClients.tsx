@@ -830,23 +830,25 @@ export default function AdminClients() {
                       </span>
                     </td>
                     <td style={{ padding: '16px' }}>
-                      <div style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
-                        {client.emails_used} / {client.emails_limit}
+                      <div style={{ fontSize: '14px', color: client.emails_limit === null ? '#22c55e' : 'var(--text-primary)' }}>
+                        {client.emails_used} / {client.emails_limit === null ? '∞' : client.emails_limit}
                       </div>
-                      <div style={{
-                        width: '80px',
-                        height: '4px',
-                        backgroundColor: 'var(--border-color)',
-                        borderRadius: '2px',
-                        marginTop: '4px',
-                      }}>
+                      {client.emails_limit !== null && (
                         <div style={{
-                          width: `${Math.min((client.emails_used / client.emails_limit) * 100, 100)}%`,
-                          height: '100%',
-                          backgroundColor: client.emails_used >= client.emails_limit ? '#ef4444' : '#22c55e',
+                          width: '80px',
+                          height: '4px',
+                          backgroundColor: 'var(--border-color)',
                           borderRadius: '2px',
-                        }} />
-                      </div>
+                          marginTop: '4px',
+                        }}>
+                          <div style={{
+                            width: `${Math.min((client.emails_used / client.emails_limit) * 100, 100)}%`,
+                            height: '100%',
+                            backgroundColor: client.emails_used >= client.emails_limit ? '#ef4444' : '#22c55e',
+                            borderRadius: '2px',
+                          }} />
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
