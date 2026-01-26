@@ -51,6 +51,124 @@ const MODEL = 'claude-3-haiku-20240307'; // Haiku 3.0 (modelo atualizado)
 const MAX_TOKENS = 800; // Aumentado para evitar truncar links de rastreio
 
 /**
+ * Detecta o idioma diretamente do texto usando padrões linguísticos
+ * Retorna o código do idioma ou null se não conseguir detectar com confiança
+ */
+function detectLanguageFromText(text: string): string | null {
+  if (!text || text.trim().length < 3) return null;
+
+  const lowerText = text.toLowerCase().trim();
+  const words = lowerText.split(/\s+/);
+  const firstWords = words.slice(0, 10).join(' '); // Primeiras 10 palavras
+
+  // INGLÊS - Padrões muito claros
+  const englishPatterns = [
+    // Saudações
+    /^hi\b/i, /^hello\b/i, /^hey\b/i, /^dear\b/i, /^good morning/i, /^good afternoon/i, /^good evening/i,
+    // Pronomes e verbos comuns no início
+    /^i\s+(would|want|need|have|am|was|received|ordered|bought|paid|can't|cannot|didn't|don't)/i,
+    /^my\s+(order|package|item|product|glasses|purchase)/i,
+    /^please\b/i, /^thank you/i, /^thanks\b/i,
+    // Perguntas
+    /^where\s+is/i, /^when\s+will/i, /^can\s+(you|i)/i, /^could\s+you/i, /^how\s+(do|can|long)/i,
+    /^what\s+(is|are|about)/i, /^why\s+(is|did|has)/i,
+    // Frases comuns de e-commerce
+    /refund/i, /tracking/i, /delivery/i, /shipping/i, /arrived/i, /received/i,
+    /order\s*#?\d+/i, /cancel/i, /return/i, /exchange/i,
+    // Palavras-chave em inglês
+    /\b(just|have|has|had|been|would|could|should|still|waiting|want|need)\b/i,
+  ];
+
+  // Verificar padrões de inglês
+  for (const pattern of englishPatterns) {
+    if (pattern.test(lowerText) || pattern.test(firstWords)) {
+      console.log(`[detectLanguage] English detected by pattern: ${pattern}`);
+      return 'en';
+    }
+  }
+
+  // PORTUGUÊS - Padrões claros
+  const portuguesePatterns = [
+    /^olá\b/i, /^oi\b/i, /^bom dia/i, /^boa tarde/i, /^boa noite/i,
+    /^prezado/i, /^caro\b/i, /^cara\b/i,
+    /\b(você|voce|vocês|meu|minha|nosso|nossa)\b/i,
+    /\b(gostaria|quero|preciso|recebi|comprei|paguei)\b/i,
+    /\b(pedido|encomenda|entrega|rastreio|rastreamento|reembolso|devolução|troca)\b/i,
+    /\b(obrigado|obrigada|por favor)\b/i,
+    /\b(chegou|chegaram|enviado|enviaram)\b/i,
+  ];
+
+  for (const pattern of portuguesePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Portuguese detected by pattern: ${pattern}`);
+      return 'pt';
+    }
+  }
+
+  // ESPANHOL - Padrões claros
+  const spanishPatterns = [
+    /^hola\b/i, /^buenos días/i, /^buenas tardes/i, /^buenas noches/i,
+    /\b(usted|ustedes|quiero|necesito|recibí|compré|pagué)\b/i,
+    /\b(pedido|envío|reembolso|devolución)\b/i,
+    /\b(gracias|por favor)\b/i,
+  ];
+
+  for (const pattern of spanishPatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Spanish detected by pattern: ${pattern}`);
+      return 'es';
+    }
+  }
+
+  // ALEMÃO - Padrões claros
+  const germanPatterns = [
+    /^hallo\b/i, /^guten tag/i, /^guten morgen/i, /^guten abend/i,
+    /\b(ich|mein|meine|haben|möchte|brauche)\b/i,
+    /\b(bestellung|lieferung|rückerstattung|rücksendung)\b/i,
+    /\b(danke|bitte)\b/i,
+  ];
+
+  for (const pattern of germanPatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] German detected by pattern: ${pattern}`);
+      return 'de';
+    }
+  }
+
+  // FRANCÊS - Padrões claros
+  const frenchPatterns = [
+    /^bonjour\b/i, /^bonsoir\b/i, /^salut\b/i,
+    /\b(je|mon|ma|mes|voudrais|besoin|reçu|acheté)\b/i,
+    /\b(commande|livraison|remboursement|retour)\b/i,
+    /\b(merci|s'il vous plaît)\b/i,
+  ];
+
+  for (const pattern of frenchPatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] French detected by pattern: ${pattern}`);
+      return 'fr';
+    }
+  }
+
+  // ITALIANO - Padrões claros
+  const italianPatterns = [
+    /^ciao\b/i, /^buongiorno\b/i, /^buonasera\b/i,
+    /\b(io|mio|mia|vorrei|ho bisogno|ricevuto|comprato)\b/i,
+    /\b(ordine|consegna|rimborso|reso)\b/i,
+    /\b(grazie|per favore)\b/i,
+  ];
+
+  for (const pattern of italianPatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Italian detected by pattern: ${pattern}`);
+      return 'it';
+    }
+  }
+
+  return null; // Não conseguiu detectar com confiança
+}
+
+/**
  * Remove formatação markdown do texto
  */
 function stripMarkdown(text: string): string {
@@ -715,13 +833,31 @@ REGRAS CRÍTICAS:
     // Validar confidence
     result.confidence = Math.max(0, Math.min(1, result.confidence || 0.5));
 
+    // CRÍTICO: Validar idioma usando detecção direta do texto
+    // Isso corrige casos onde o Claude erra a detecção de idioma
+    const textToAnalyze = `${emailSubject || ''} ${emailBody || ''}`.trim();
+    const detectedLanguage = detectLanguageFromText(textToAnalyze);
+
+    if (detectedLanguage) {
+      // Se detectamos um idioma com confiança, usar ele
+      if (result.language !== detectedLanguage) {
+        console.log(`[classifyEmail] Language override: Claude said "${result.language}", but text analysis detected "${detectedLanguage}"`);
+        result.language = detectedLanguage;
+      }
+    }
+
+    console.log(`[classifyEmail] Final language: ${result.language}, category: ${result.category}`);
     return result;
   } catch {
     // Fallback se não conseguir fazer parse
+    // Tentar detectar idioma do texto mesmo no fallback
+    const textToAnalyze = `${emailSubject || ''} ${emailBody || ''}`.trim();
+    const detectedLanguage = detectLanguageFromText(textToAnalyze) || 'en';
+
     return {
       category: 'duvidas_gerais',
       confidence: 0.5,
-      language: 'en',
+      language: detectedLanguage,
       order_id_found: null,
       summary: 'Could not classify the email',
     };
