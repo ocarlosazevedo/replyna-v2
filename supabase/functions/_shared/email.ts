@@ -1190,6 +1190,28 @@ export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
 
   if (!body) return '';
 
+  // Detectar e extrair comentário de formulários de contato do Shopify
+  // Formato: "Nova mensagem de cliente... Country Code: X, Name: X, Email: X, Phone: X, Comment: X"
+  const shopifyFormPattern = /(?:Nova mensagem de cliente|New customer message|New message from customer)/i;
+  if (shopifyFormPattern.test(body)) {
+    // Tentar extrair o campo Comment/Comentário/Message
+    const commentPatterns = [
+      /(?:Comment|Comentário|Message|Mensagem):\s*\n?\s*(.+?)(?:\n\n|\n(?:Country|Name|Email|Phone|--|$))/is,
+      /(?:Comment|Comentário|Message|Mensagem):\s*\n?\s*(.+)$/is,
+    ];
+
+    for (const pattern of commentPatterns) {
+      const match = body.match(pattern);
+      if (match && match[1] && match[1].trim().length > 2) {
+        // Retornar apenas o comentário do cliente
+        return match[1].trim();
+      }
+    }
+
+    // Se não encontrou comentário, retornar indicação de formulário vazio
+    return '[FORMULÁRIO DE CONTATO SEM MENSAGEM]';
+  }
+
   // Remover conteúdo após marcadores de quote
   const quoteMarkers = [
     /^On .+ wrote:$/m, // "On ... wrote:"

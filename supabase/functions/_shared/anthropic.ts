@@ -347,10 +347,15 @@ rather than asking about something FROM the store (their order, products) → SP
 - ONLY use suporte_humano for EXPLICIT legal threats
 
 === AMBIGUOUS MESSAGES (IMPORTANT) ===
-- Short messages like "my order", "help", "hello" → classify as "rastreio" (need more info)
+- Short messages like "my order", "help", "hello" → classify as "duvidas_gerais" (need more info)
 - Customer mentions order but doesn't say what they want → classify as "rastreio" (info request)
 - If unsure between rastreio and any other category → prefer "rastreio"
 - The response generator will ask clarifying questions if needed
+
+=== SHOPIFY CONTACT FORM (SPECIAL CASE) ===
+- If body contains "[FORMULÁRIO DE CONTATO SEM MENSAGEM]" → classify as "duvidas_gerais"
+- This means customer submitted empty contact form - need to ask what they need
+- If body only contains form fields (Name, Email, Phone, Country) without actual message → "duvidas_gerais"
 
 === CANCELLATION CLASSIFICATION (CRITICAL) ===
 When customer wants to CANCEL an order:
@@ -666,6 +671,13 @@ COMPORTAMENTO INTELIGENTE (REGRA CRÍTICA - SEGUIR SEMPRE):
 - NÃO seja "ansioso" em oferecer opções que o cliente não pediu
 - Se a mensagem for curta/vaga (ex: "meu pedido", "ajuda"), PERGUNTE como pode ajudar
 - PRIMEIRO entenda o que o cliente quer, DEPOIS responda de forma focada
+
+FORMULÁRIO DE CONTATO VAZIO OU SEM MENSAGEM:
+- Se o corpo contém "[FORMULÁRIO DE CONTATO SEM MENSAGEM]" ou está vazio/muito curto
+- NÃO invente informações sobre pedidos ou status
+- NÃO assuma o que o cliente quer
+- RESPONDA: "Olá! Recebi seu contato. Como posso ajudá-lo(a)? Por favor, me conte mais sobre sua dúvida ou solicitação."
+- NUNCA mencione números de pedido, status ou rastreio se não tiver essa informação
 
 === POLÍTICA DE CANCELAMENTO/REEMBOLSO (ORDEM DE PRIORIDADE OBRIGATÓRIA) ===
 
