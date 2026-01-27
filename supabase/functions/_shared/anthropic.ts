@@ -907,12 +907,17 @@ CLASSIFY AS SPAM (confidence 0.95+) - THESE ARE NOT REAL CUSTOMERS:
    - Phrases: "I work with Shopify businesses", "I can share improvements", "quick list of improvements"
    - Anyone identifying as: consultant, developer, specialist, agency, expert, freelancer
 
-2. COLD OUTREACH / SALES PITCHES:
+2. COLD OUTREACH / SALES PITCHES / AFFILIATE OFFERS:
    - Emails that START with compliments about the store then offer services
    - "I took a look at your store and noticed..."
-   - "Would you be open to a brief call/consultation?"
+   - "Would you be open to..." (ANY offer, call, discussion, partnership)
    - "I can help you without relying on ads"
    - Generic emails that could be sent to any store (not specific to a purchase)
+   - Commission-based offers: "X% commission", "commission if I bring you"
+   - Lead generation: "bring you orders", "bring you customers", "bring you sales"
+   - Affiliate marketing: "PCEO", "lead generation", "traffic strategy"
+   - "Tired of running ads?", "Stop wasting money on ads"
+   - Promises: "X orders weekly", "guaranteed results", "increase your sales"
 
 3. SYSTEM/AUTOMATED EMAILS:
    - Delivery Status Notification, Mail Delivery Subsystem, mailer-daemon
