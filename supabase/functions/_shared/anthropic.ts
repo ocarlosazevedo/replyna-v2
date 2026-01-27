@@ -1722,23 +1722,23 @@ Se a categoria for "edicao_pedido", significa que o cliente quer MODIFICAR algo 
 
 NOTA: Cancelamentos NÃO entram em "edicao_pedido" - todos os cancelamentos são "troca_devolucao_reembolso".
 
-COMO RESPONDER PARA EDIÇÃO DE PEDIDO (ENCAMINHAR PARA HUMANO):
+COMO RESPONDER PARA EDIÇÃO DE PEDIDO (PEDIR CONTATO):
 1. Agradeça o contato
 2. Confirme que recebeu a solicitação
 3. VERIFIQUE o status do pedido:
-   - Se "Aguardando envio": informe que vai encaminhar para a equipe processar a alteração
+   - Se "Aguardando envio": peça para o cliente entrar em contato pelo email de suporte para fazer a alteração
    - Se "Enviado": informe que o pedido já foi enviado e não é possível alterar
 4. SEMPRE use [FORWARD_TO_HUMAN] no início para pedidos ainda não enviados
-5. Edições de pedido requerem ação manual no Shopify
+5. Edições de pedido requerem contato direto com a equipe
 
 Exemplo de resposta para EDIÇÃO de pedido (aguardando envio):
 "[FORWARD_TO_HUMAN] Olá!
 
 Recebi sua solicitação para alterar o pedido #[número].
 
-O pedido ainda está sendo preparado! Vou encaminhar sua solicitação para nossa equipe processar a alteração.
+O pedido ainda está sendo preparado, então é possível fazer alterações! Para prosseguir, por favor entre em contato diretamente com nossa equipe através do email: ${shopContext.support_email}
 
-Em breve você receberá um retorno sobre a modificação solicitada.
+Assim conseguiremos processar sua alteração da melhor forma!
 
 [Assinatura]"
 
