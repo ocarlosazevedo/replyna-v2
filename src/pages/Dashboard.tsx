@@ -462,6 +462,7 @@ export default function Dashboard() {
       const query = supabase
         .from('conversations')
         .select('id, shop_id, customer_name, subject, category, status, created_at, shops(name)')
+        .not('category', 'is', null) // Excluir conversas ainda em processamento
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
         .order('created_at', { ascending: false })

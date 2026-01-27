@@ -111,10 +111,11 @@ serve(async (req) => {
       supabase.from('users').select('id, name, email, plan'),
       supabase.from('users').select('emails_used, emails_limit'),
       // Conversas recentes para o Super Inbox
-      // Busca conversas finalizadas OU spam no período
+      // Busca conversas finalizadas OU spam no período (excluindo as ainda em processamento)
       supabase
         .from('conversations')
         .select('id, shop_id, customer_email, customer_name, subject, category, status, created_at, last_message_at')
+        .not('category', 'is', null) // Excluir conversas ainda em processamento
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd)
         .or('status.in.(replied,pending_human,closed),category.eq.spam')
