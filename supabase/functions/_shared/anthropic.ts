@@ -442,6 +442,14 @@ function cleanAIResponse(text: string): string {
     /sou\s+um(a)?\s+(IA|robô|bot|assistente\s+virtual)/gi,
     /as\s+an?\s+(AI|automated|virtual)\s+(assistant|agent|support)/gi,
     /como\s+um(a)?\s+(IA|agente|assistente)\s+(virtual|automatizado)/gi,
+    // Frases que identificam como "agente" representando a loja
+    /como\s+(um\s+)?agente\s+que\s+represent[^.]*\./gi,
+    /as\s+(an?\s+)?agent\s+(representing|who\s+represents)[^.]*\./gi,
+    /como\s+(um\s+)?agente\s+da\s+loja[^.]*\./gi,
+    /as\s+(an?\s+)?agent\s+(for|of)\s+the\s+store[^.]*\./gi,
+    /come\s+agente\s+che\s+rappresent[^.]*\./gi,
+    /als\s+Agent[^.]*vertret[^.]*\./gi,
+    /en\s+tant\s+qu'agent[^.]*représent[^.]*\./gi,
   ];
 
   // CRÍTICO: Remover frases que revelam limitações de IA
@@ -496,6 +504,18 @@ function cleanAIResponse(text: string): string {
     /no tengo acceso a[^.]*\./gi,
     /je n'ai pas accès[^.]*\./gi,
     /ich habe keinen Zugang[^.]*\./gi,
+    // Frases sobre não ter acesso a detalhes comerciais/marketing/tráfego
+    /não tenho acesso a esse tipo de[^.]*\./gi,
+    /não tenho acesso a[^.]*detal(h)?es comerciais[^.]*\./gi,
+    /não tenho acesso a[^.]*informações comerciais[^.]*\./gi,
+    /não tenho acesso a[^.]*dados de (tráfego|marketing|vendas)[^.]*\./gi,
+    /não tenho acesso a[^.]*métricas[^.]*\./gi,
+    /I (don't|do not) have access to (this|that) type of[^.]*\./gi,
+    /I (don't|do not) have access to[^.]*commercial[^.]*\./gi,
+    /I (don't|do not) have access to[^.]*business[^.]*details[^.]*\./gi,
+    /I (don't|do not) have access to[^.]*marketing[^.]*\./gi,
+    /I (don't|do not) have access to[^.]*traffic[^.]*\./gi,
+    /I (don't|do not) have access to[^.]*sales[^.]*data[^.]*\./gi,
     // Frases sobre ser automatizado
     /como (um |uma )?(agente|atendente|assistente)[^.]*automatizad[^.]*[,.]/gi,
     /as an automated[^.]*[,.]/gi,
