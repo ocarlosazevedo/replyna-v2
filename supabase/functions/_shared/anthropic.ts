@@ -1019,11 +1019,15 @@ Respond ONLY with the JSON, no additional text.`;
   // Montar histórico para contexto
   let historyText = '';
   if (conversationHistory.length > 0) {
-    historyText =
-      '\n\nHISTÓRICO DA CONVERSA:\n' +
-      conversationHistory
-        .map((m) => `${m.role === 'customer' ? 'CLIENTE' : 'LOJA'}: ${m.content}`)
-        .join('\n');
+    // Filtrar mensagens vazias
+    const validHistory = conversationHistory.filter((m) => m.content && m.content.trim() !== '');
+    if (validHistory.length > 0) {
+      historyText =
+        '\n\nHISTÓRICO DA CONVERSA:\n' +
+        validHistory
+          .map((m) => `${m.role === 'customer' ? 'CLIENTE' : 'LOJA'}: ${m.content}`)
+          .join('\n');
+    }
   }
 
   const userMessage = `=== MENSAGEM ATUAL DO CLIENTE (DETECTAR IDIOMA DAQUI) ===
@@ -1797,7 +1801,13 @@ ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.s
   const langNameForHistory = langName[language] || language;
 
   // Adicionar histórico com nota de idioma quando necessário
+  // Pular mensagens com conteúdo vazio para evitar erro da API do Claude
   for (const msg of conversationHistory) {
+    // Skip empty messages
+    if (!msg.content || msg.content.trim() === '') {
+      continue;
+    }
+
     if (msg.role === 'assistant' && isNonPortuguese) {
       // Adicionar nota nas respostas anteriores do assistente para manter contexto
       // mas indicar que o idioma da resposta atual deve ser diferente
