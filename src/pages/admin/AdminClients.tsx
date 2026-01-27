@@ -77,6 +77,9 @@ export default function AdminClients() {
   const [newClient, setNewClient] = useState({ email: '', name: '', plan_id: '' })
   const [createError, setCreateError] = useState<string | null>(null)
   const [createSuccess, setCreateSuccess] = useState<string | null>(null)
+
+  // Encontrar o plano Enterprise para pré-selecionar
+  const enterprisePlan = plans.find(p => p.name.toLowerCase() === 'enterprise')
   const isMobile = useIsMobile()
 
   useEffect(() => {
@@ -589,7 +592,7 @@ export default function AdminClients() {
             setShowCreateModal(true)
             setCreateError(null)
             setCreateSuccess(null)
-            setNewClient({ email: '', name: '', plan_id: '' })
+            setNewClient({ email: '', name: '', plan_id: enterprisePlan?.id || '' })
           }}
           style={{
             display: 'flex',
@@ -1314,7 +1317,7 @@ export default function AdminClients() {
                   Criar Cliente VIP
                 </h2>
                 <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>
-                  Cliente sem cobrança (influenciador/parceiro)
+                  Plano Enterprise gratuito (influenciador/parceiro)
                 </p>
               </div>
             </div>
