@@ -983,6 +983,18 @@ rather than asking about something FROM the store (their order, products) → SP
 - The response generator MUST ask clarifying questions when the intent is unclear
 - NEVER classify as "troca_devolucao_reembolso" unless customer EXPLICITLY says: cancel, refund, return, exchange
 
+CRITICAL - DO NOT ASSUME PROBLEMS:
+- Customer just mentioning their purchase does NOT mean they have a problem!
+- "I bought X from you" → duvidas_gerais (ask what they need)
+- "In January I ordered these glasses" → duvidas_gerais (ask what they need)
+- "Here's my order..." → duvidas_gerais (ask what they need)
+- ONLY classify as troca_devolucao_reembolso if customer EXPLICITLY says:
+  * "I want to return/cancel/refund"
+  * "Product is damaged/broken/wrong"
+  * "I want my money back"
+  * "Exchange for different size"
+- If message is INCOMPLETE (customer starts describing order but doesn't say what they want) → duvidas_gerais
+
 === SHOPIFY CONTACT FORM (SPECIAL CASE) ===
 - If body contains "[FORMULÁRIO DE CONTATO SEM MENSAGEM]" → classify as "duvidas_gerais"
 - This means customer submitted empty contact form - need to ask what they need
@@ -1528,6 +1540,15 @@ REGRA CRÍTICA - RECONHEÇA PROBLEMAS ESPECÍFICOS DO CLIENTE:
   * "Faltou item" → "Entendo que está faltando um item no seu pedido"
 - NUNCA ignore o problema específico e dê resposta genérica
 - Reconheça o problema PRIMEIRO, depois encaminhe ou ofereça solução
+
+REGRA CRÍTICA - NÃO ASSUMA PROBLEMAS QUE NÃO EXISTEM:
+- Se o cliente apenas menciona o que comprou SEM dizer que há problema → NÃO assuma problema!
+- NUNCA diga "Lamento ouvir que você encontrou um problema" se o cliente não disse que há problema
+- NUNCA diga "Vou resolver sua situação" se o cliente não disse qual é a situação
+- Se o cliente só descreve a compra sem pedir nada específico → pergunte "Como posso ajudá-lo?"
+- Exemplo ERRADO: Cliente diz "Comprei óculos em janeiro" → Resposta "Lamento pelo problema, qual o número do pedido para resolver?"
+- Exemplo CORRETO: Cliente diz "Comprei óculos em janeiro" → Resposta "Olá! Vi que você mencionou sua compra. Como posso ajudá-lo hoje?"
+- Espere o cliente dizer O QUE ELE QUER antes de assumir que há problema
 
 10. REGRA CRÍTICA - NUNCA USE PLACEHOLDERS NA RESPOSTA (EM NENHUM IDIOMA):
     - NUNCA use textos entre colchetes [ ] em NENHUM idioma
