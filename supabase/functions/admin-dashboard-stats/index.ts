@@ -127,11 +127,11 @@ serve(async (req) => {
       (u: { emails_used: number; emails_limit: number }) => u.emails_used >= u.emails_limit && u.emails_limit > 0
     ).length;
 
-    // Processar categorias
+    // Processar categorias (ignorar conversas sem categoria - ainda estão processando)
     const categories: Record<string, number> = {};
     (categoriesRes.data || []).forEach((conv: { category?: string }) => {
-      const cat = conv.category || 'outros';
-      categories[cat] = (categories[cat] || 0) + 1;
+      if (!conv.category) return; // Ignorar conversas sem categoria
+      categories[conv.category] = (categories[conv.category] || 0) + 1;
     });
 
     // Processar lojas para lookup
