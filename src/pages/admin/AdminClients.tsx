@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Search, Edit2, Mail, Store, Calendar, ChevronDown, ChevronUp, ExternalLink, Trash2, Key, RefreshCw, ArrowUpDown, LogIn } from 'lucide-react'
+import { Search, Edit2, Mail, Store, Calendar, ChevronDown, ChevronUp, ExternalLink, Trash2, Key, RefreshCw, ArrowUpDown, LogIn, UserPlus } from 'lucide-react'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -72,6 +72,11 @@ export default function AdminClients() {
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [originalClient, setOriginalClient] = useState<Client | null>(null)
   const [impersonating, setImpersonating] = useState<string | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [creatingClient, setCreatingClient] = useState(false)
+  const [newClient, setNewClient] = useState({ email: '', name: '', plan_id: '' })
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [createSuccess, setCreateSuccess] = useState<string | null>(null)
   const isMobile = useIsMobile()
 
   useEffect(() => {
@@ -264,6 +269,52 @@ export default function AdminClients() {
       setActionMessage({ type: 'error', text: err instanceof Error ? err.message : 'Erro ao enviar email' })
     } finally {
       setSendingReset(false)
+    }
+  }
+
+  const handleCreateClient = async () => {
+    if (!newClient.email || !newClient.name || !newClient.plan_id) {
+      setCreateError('Preencha todos os campos')
+      return
+    }
+
+    setCreatingClient(true)
+    setCreateError(null)
+    setCreateSuccess(null)
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-client`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newClient),
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao criar cliente')
+      }
+
+      setCreateSuccess(`Cliente ${result.name} criado com sucesso! Email de definição de senha enviado para ${result.email}`)
+      setNewClient({ email: '', name: '', plan_id: '' })
+
+      // Recarregar lista após 2 segundos
+      setTimeout(() => {
+        setShowCreateModal(false)
+        setCreateSuccess(null)
+        loadData()
+      }, 2000)
+    } catch (err) {
+      console.error('Erro ao criar cliente:', err)
+      setCreateError(err instanceof Error ? err.message : 'Erro ao criar cliente')
+    } finally {
+      setCreatingClient(false)
     }
   }
 
@@ -533,6 +584,30 @@ export default function AdminClients() {
             Gerencie todos os usuarios da plataforma ({filteredAndSortedClients.length} de {clients.length})
           </p>
         </div>
+        <button
+          onClick={() => {
+            setShowCreateModal(true)
+            setCreateError(null)
+            setCreateSuccess(null)
+            setNewClient({ email: '', name: '', plan_id: '' })
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 20px',
+            borderRadius: '10px',
+            border: 'none',
+            backgroundColor: 'var(--accent)',
+            color: '#fff',
+            fontWeight: 600,
+            fontSize: '14px',
+            cursor: 'pointer',
+          }}
+        >
+          <UserPlus size={18} />
+          Criar Cliente VIP
+        </button>
       </div>
 
       {/* Filtros */}
@@ -1190,6 +1265,169 @@ export default function AdminClients() {
                 }}
               >
                 {savingClient ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Criar Cliente VIP */}
+      {showCreateModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '500px',
+              border: '1px solid var(--border-color)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(70, 114, 236, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <UserPlus size={24} style={{ color: 'var(--accent)' }} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Criar Cliente VIP
+                </h2>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>
+                  Cliente sem cobrança (influenciador/parceiro)
+                </p>
+              </div>
+            </div>
+
+            {createSuccess && (
+              <div style={{
+                padding: '12px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                color: '#22c55e',
+                fontSize: '14px',
+                marginBottom: '16px',
+              }}>
+                {createSuccess}
+              </div>
+            )}
+
+            {createError && (
+              <div style={{
+                padding: '12px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                color: '#ef4444',
+                fontSize: '14px',
+                marginBottom: '16px',
+              }}>
+                {createError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={labelStyle}>Nome completo</label>
+                <input
+                  type="text"
+                  value={newClient.name}
+                  onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
+                  placeholder="Nome do cliente"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Email</label>
+                <input
+                  type="email"
+                  value={newClient.email}
+                  onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Plano</label>
+                <select
+                  value={newClient.plan_id}
+                  onChange={(e) => setNewClient({ ...newClient, plan_id: e.target.value })}
+                  style={inputStyle}
+                >
+                  <option value="">Selecione um plano</option>
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name} ({plan.emails_limit === null ? 'ilimitado' : `${plan.emails_limit} emails`})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{
+                padding: '12px',
+                backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                borderRadius: '8px',
+                border: '1px solid rgba(245, 158, 11, 0.2)',
+              }}>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+                  O cliente receberá um email para definir sua senha e poderá usar a plataforma imediatamente, sem necessidade de pagamento.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                disabled={creatingClient}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600,
+                  cursor: creatingClient ? 'not-allowed' : 'pointer',
+                  opacity: creatingClient ? 0.6 : 1,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateClient}
+                disabled={creatingClient || !newClient.email || !newClient.name || !newClient.plan_id}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  backgroundColor: 'var(--accent)',
+                  color: '#fff',
+                  fontWeight: 600,
+                  cursor: creatingClient || !newClient.email || !newClient.name || !newClient.plan_id ? 'not-allowed' : 'pointer',
+                  opacity: creatingClient || !newClient.email || !newClient.name || !newClient.plan_id ? 0.6 : 1,
+                }}
+              >
+                {creatingClient ? 'Criando...' : 'Criar Cliente'}
               </button>
             </div>
           </div>
