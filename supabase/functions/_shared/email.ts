@@ -1059,19 +1059,25 @@ export async function sendEmail(
  * Gera os headers de reply para manter a thread
  */
 export function buildReplyHeaders(
-  originalMessageId: string,
-  originalReferences: string | null
+  originalMessageId: string | null | undefined,
+  originalReferences: string | null | undefined
 ): { in_reply_to: string; references: string } {
+  // Garantir que temos valores válidos
+  const messageId = originalMessageId || '';
+  const originalRefs = originalReferences || '';
+
   // References deve conter toda a cadeia + o message id original
-  let references = originalReferences || '';
-  if (references && !references.includes(originalMessageId)) {
-    references = `${references} ${originalMessageId}`;
-  } else if (!references) {
-    references = originalMessageId;
+  let references = originalRefs;
+  if (messageId) {
+    if (references && !references.includes(messageId)) {
+      references = `${references} ${messageId}`;
+    } else if (!references) {
+      references = messageId;
+    }
   }
 
   return {
-    in_reply_to: originalMessageId,
+    in_reply_to: messageId,
     references: references.trim(),
   };
 }

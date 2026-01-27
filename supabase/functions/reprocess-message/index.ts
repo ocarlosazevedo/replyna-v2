@@ -289,7 +289,7 @@ Deno.serve(async (req) => {
     }
 
     // 11. Enviar email
-    const replyHeaders = buildReplyHeaders(message);
+    const replyHeaders = buildReplyHeaders(message.message_id, message.references_header);
     const replySubject = buildReplySubject(message.subject || conversation.subject || '');
 
     // Adicionar assinatura se houver
