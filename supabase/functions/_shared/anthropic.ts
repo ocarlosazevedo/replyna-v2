@@ -855,8 +855,11 @@ IMPORTANT:
 
 3. rastreio
    Questions about an EXISTING order: tracking, status, location, delivery estimate.
-   Examples: "Where is my order?", "Tracking code?", "When will it arrive?", "Order status?", "Why is delivery delayed?"
+   Examples: "Where is my order?", "Tracking code?", "When will it arrive?", "Order status?", "Why is delivery delayed?",
+   "I'm still waiting for my package", "My order hasn't arrived", "You never talk about my package"
    Key: Customer already made a purchase and wants to know about their order.
+   IMPORTANT: Order number is NOT required - if customer mentions waiting for package/order, classify as rastreio!
+   The system will look up their order by their email address automatically.
 
 4. troca_devolucao_reembolso
    Requests for exchange, return, or refund for orders that have ALREADY BEEN SHIPPED OR DELIVERED.
@@ -951,10 +954,17 @@ When in doubt: if they're offering something TO the store (services, help, consu
 rather than asking about something FROM the store (their order, products) → SPAM.
 
 === CLASSIFICATION RULES ===
-- When in doubt between duvidas_gerais and rastreio: if no order number/purchase mentioned → duvidas_gerais
+- RASTREIO (tracking) - Classify as "rastreio" when customer:
+  * Asks about their package/order/delivery (even WITHOUT order number)
+  * Says they're waiting for something: "still waiting", "esperando", "aspettando"
+  * Mentions "my package", "my order", "meu pacote", "meu pedido", "mi paquete", "il mio pacco"
+  * Asks "where is my order?", "when will it arrive?", "did you ship it?"
+  * Complains about delays: "taking too long", "demorando", "delayed"
+  * The system will look up their order by EMAIL - no order number needed!
 - Angry customer → still classify by the actual request (rastreio, troca_devolucao_reembolso, etc.)
 - "I want to speak with a human" → classify by the underlying issue, respond normally
 - ONLY use suporte_humano for EXPLICIT legal threats
+- duvidas_gerais → ONLY for questions BEFORE purchase (product info, policies, etc.)
 
 === EMAIL SUBJECT IS PART OF THE MESSAGE (CRITICAL) ===
 - The email SUBJECT (ASSUNTO) often contains the customer's intent/request
