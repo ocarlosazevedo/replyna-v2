@@ -35,6 +35,7 @@ interface CleanupResult {
   success: boolean;
   orphan_messages_fixed: number;
   stuck_messages_reset: number;
+  stuck_jobs_reset: number;
   transient_jobs_retried: number;
   old_dlq_cleaned: number;
   execution_time_ms: number;
@@ -52,6 +53,7 @@ Deno.serve(async (req: Request) => {
     success: true,
     orphan_messages_fixed: 0,
     stuck_messages_reset: 0,
+    stuck_jobs_reset: 0,
     transient_jobs_retried: 0,
     old_dlq_cleaned: 0,
     execution_time_ms: 0,
@@ -80,7 +82,28 @@ Deno.serve(async (req: Request) => {
     }
 
     // =====================================================
-    // 2. Encontrar mensagens pendentes sem jobs ativos
+    // 2. Resetar JOBS stuck em "processing" há mais de 10 minutos
+    // =====================================================
+    const { data: stuckJobs, error: stuckJobsError } = await supabase
+      .from('job_queue')
+      .update({
+        status: 'pending',
+        started_at: null,
+        attempt_count: 0,
+      })
+      .eq('status', 'processing')
+      .lt('started_at', tenMinutesAgo)
+      .select('id');
+
+    if (!stuckJobsError && stuckJobs) {
+      result.stuck_jobs_reset = stuckJobs.length;
+      if (stuckJobs.length > 0) {
+        console.log(`[Cleanup] Reset ${stuckJobs.length} stuck jobs to pending`);
+      }
+    }
+
+    // =====================================================
+    // 3. Encontrar mensagens pendentes sem jobs ativos
     // =====================================================
     const { data: pendingMessages, error: pendingError } = await supabase
       .from('messages')
@@ -141,7 +164,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // =====================================================
-    // 3. Retry jobs com erros transitórios na dead_letter (últimas 24h)
+    // 4. Retry jobs com erros transitórios na dead_letter (últimas 24h)
     // =====================================================
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
@@ -194,7 +217,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // =====================================================
-    // 4. Limpar jobs muito antigos da dead_letter (mais de 7 dias)
+    // 5. Limpar jobs muito antigos da dead_letter (mais de 7 dias)
     // =====================================================
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
