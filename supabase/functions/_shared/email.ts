@@ -19,6 +19,12 @@ export interface EmailCredentials {
   smtp_password: string;
 }
 
+export interface EmailImage {
+  media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+  data: string; // base64 encoded
+  filename?: string;
+}
+
 export interface IncomingEmail {
   message_id: string;
   from_email: string;
@@ -33,6 +39,7 @@ export interface IncomingEmail {
   received_at: Date;
   has_attachments: boolean;
   attachment_count: number;
+  images: EmailImage[]; // Imagens extraídas do email para análise visual
 }
 
 export interface OutgoingEmail {
@@ -513,9 +520,15 @@ export async function fetchUnreadEmails(
           continue;
         }
 
-        // Decodificar o corpo (texto e HTML)
+        // Decodificar o corpo (texto, HTML e imagens)
         const decodedBody = decodeEmailBodyFull(msg.body);
         const bodyText = cleanEmailBody(decodedBody.text || '', decodedBody.html || '');
+
+        // Limitar a 5 imagens para evitar excesso de tokens
+        const limitedImages = decodedBody.images.slice(0, 5);
+        if (decodedBody.images.length > 5) {
+          console.log(`Limitando imagens de ${decodedBody.images.length} para 5`);
+        }
 
         emails.push({
           message_id: msg.envelope.messageId,
@@ -531,6 +544,7 @@ export async function fetchUnreadEmails(
           received_at: receivedAt,
           has_attachments: decodedBody.hasAttachments,
           attachment_count: decodedBody.attachmentCount,
+          images: limitedImages,
         });
 
         // Marcar como lida
@@ -622,17 +636,28 @@ function extractCharset(contentTypeHeader: string): string {
 }
 
 /**
- * Resultado da extração MIME contendo text e html separados
+ * Resultado da extração MIME contendo text, html e imagens
  */
 interface MimeExtractResult {
   textContent: string;
   htmlContent: string | null;
   hasAttachments: boolean;
   attachmentCount: number;
+  images: EmailImage[];
 }
 
 /**
- * Extrai o conteúdo text/plain e text/html de um email MIME multipart
+ * Tipos de mídia suportados para análise visual com Claude
+ */
+const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+/**
+ * Tamanho máximo de imagem em bytes (5MB)
+ */
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+/**
+ * Extrai o conteúdo text/plain, text/html e imagens de um email MIME multipart
  */
 function extractTextFromMime(body: string): MimeExtractResult {
   const result: MimeExtractResult = {
@@ -640,6 +665,7 @@ function extractTextFromMime(body: string): MimeExtractResult {
     htmlContent: null,
     hasAttachments: false,
     attachmentCount: 0,
+    images: [],
   };
 
   if (!body) return result;
@@ -679,9 +705,49 @@ function extractTextFromMime(body: string): MimeExtractResult {
 
     const contentType = contentTypeMatch[1].toLowerCase().trim();
 
-    // Verificar se é attachment
+    // Verificar se é uma imagem suportada para análise visual
+    const isImage = contentType.includes('image/');
+    if (isImage) {
+      // Extrair tipo de mídia
+      const mediaTypeMatch = contentType.match(/(image\/(?:jpeg|png|gif|webp))/i);
+      if (mediaTypeMatch && SUPPORTED_IMAGE_TYPES.includes(mediaTypeMatch[1].toLowerCase())) {
+        const mediaType = mediaTypeMatch[1].toLowerCase() as EmailImage['media_type'];
+
+        // Extrair nome do arquivo se disponível
+        const filenameMatch = part.match(/(?:filename=["']?([^"';\r\n]+)|name=["']?([^"';\r\n]+))/i);
+        const filename = filenameMatch ? (filenameMatch[1] || filenameMatch[2])?.trim() : undefined;
+
+        // Verificar se está em base64
+        const isBase64Encoded = /Content-Transfer-Encoding:\s*base64/i.test(part);
+
+        // Extrair conteúdo da imagem
+        const imageContentMatch = part.match(/\r?\n\r?\n([\s\S]*)/);
+        if (imageContentMatch && isBase64Encoded) {
+          // Remover espaços e quebras de linha do base64
+          const base64Data = imageContentMatch[1].replace(/[\r\n\s]/g, '').trim();
+
+          // Verificar tamanho aproximado (base64 é ~33% maior que o original)
+          const estimatedSize = (base64Data.length * 3) / 4;
+
+          if (base64Data.length > 0 && estimatedSize <= MAX_IMAGE_SIZE) {
+            result.images.push({
+              media_type: mediaType,
+              data: base64Data,
+              filename,
+            });
+            console.log(`Imagem extraída: ${filename || 'sem nome'} (${mediaType}, ~${Math.round(estimatedSize / 1024)}KB)`);
+          } else if (estimatedSize > MAX_IMAGE_SIZE) {
+            console.log(`Imagem ignorada (muito grande): ${filename || 'sem nome'} (~${Math.round(estimatedSize / 1024 / 1024)}MB)`);
+          }
+        }
+      }
+      result.hasAttachments = true;
+      result.attachmentCount++;
+      continue;
+    }
+
+    // Verificar se é outro tipo de attachment (não imagem)
     const isAttachment = /Content-Disposition:\s*attachment/i.test(part) ||
-      (contentType.includes('image/') && !contentType.includes('text/')) ||
       contentType.includes('application/') ||
       contentType.includes('audio/') ||
       contentType.includes('video/');
@@ -725,6 +791,10 @@ function extractTextFromMime(body: string): MimeExtractResult {
       if (nestedResult.hasAttachments) {
         result.hasAttachments = true;
         result.attachmentCount += nestedResult.attachmentCount;
+      }
+      // Propagar imagens de multipart aninhado
+      if (nestedResult.images.length > 0) {
+        result.images.push(...nestedResult.images);
       }
       continue;
     }
@@ -829,11 +899,12 @@ interface DecodedEmailBody {
   html: string | null;
   hasAttachments: boolean;
   attachmentCount: number;
+  images: EmailImage[];
 }
 
 /**
  * Decodifica o corpo do email (base64, quoted-printable, MIME multipart)
- * Retorna tanto texto quanto HTML quando disponíveis
+ * Retorna tanto texto quanto HTML e imagens quando disponíveis
  */
 function decodeEmailBodyFull(body: string): DecodedEmailBody {
   const result: DecodedEmailBody = {
@@ -841,6 +912,7 @@ function decodeEmailBodyFull(body: string): DecodedEmailBody {
     html: null,
     hasAttachments: false,
     attachmentCount: 0,
+    images: [],
   };
 
   if (!body) return result;
@@ -849,6 +921,7 @@ function decodeEmailBodyFull(body: string): DecodedEmailBody {
   const mimeResult = extractTextFromMime(body);
   result.hasAttachments = mimeResult.hasAttachments;
   result.attachmentCount = mimeResult.attachmentCount;
+  result.images = mimeResult.images;
 
   let textDecoded = mimeResult.textContent;
   let htmlDecoded = mimeResult.htmlContent;

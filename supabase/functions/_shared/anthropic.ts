@@ -3,10 +3,25 @@
  * Usado para classificação e geração de respostas
  */
 
+// Tipos para imagens
+export interface ImageContent {
+  type: 'image';
+  source: {
+    type: 'base64';
+    media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+    data: string;
+  };
+}
+
+export interface TextContent {
+  type: 'text';
+  text: string;
+}
+
 // Tipos
 export interface ClaudeMessage {
   role: 'user' | 'assistant';
-  content: string;
+  content: string | Array<TextContent | ImageContent>;
 }
 
 export interface ClaudeResponse {
@@ -1205,6 +1220,11 @@ export async function generateResponse(
     fulfillment_status: string | null;
     items: Array<{ name: string; quantity: number }>;
     customer_name: string | null;
+  }> = [],
+  emailImages: Array<{
+    media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+    data: string;
+    filename?: string;
   }> = []
 ): Promise<ResponseGenerationResult> {
   // Mapear tom de voz para instruções - MAIS HUMANO E NATURAL
@@ -1906,10 +1926,58 @@ ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.s
     ? `\n\n=== CRITICAL LANGUAGE REMINDER ===\nThe customer wrote in ${langName[language] || language}. You MUST respond ENTIRELY in ${langName[language] || language}. DO NOT respond in Portuguese even if the conversation history is in Portuguese. The conversation history may be in a different language - IGNORE IT for language purposes. Write your ENTIRE response in ${langName[language] || language}.`
     : '';
 
-  messages.push({
-    role: 'user',
-    content: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}${languageReminderFinal}`,
-  });
+  // Instrução sobre imagens se houver
+  let imageContextInstruction = '';
+  if (emailImages.length > 0) {
+    imageContextInstruction = `\n\n=== IMAGENS ANEXADAS AO EMAIL (${emailImages.length}) ===
+O cliente enviou ${emailImages.length} imagem(s) junto com este email.
+ANALISE as imagens com atenção - elas podem mostrar:
+- O produto que o cliente recebeu (para verificar defeitos, cor errada, etc.)
+- Prova de pagamento ou confirmação de compra
+- Código de rastreio ou tela de rastreamento
+- Embalagem danificada
+- Qualquer outro conteúdo relevante para o atendimento
+
+Use as informações visuais para dar uma resposta mais precisa e empática.
+Se a imagem mostrar um problema claro (produto quebrado, cor errada, etc.), reconheça isso na resposta.
+===`;
+  }
+
+  // Se há imagens, criar mensagem multimodal
+  if (emailImages.length > 0) {
+    const contentParts: Array<TextContent | ImageContent> = [];
+
+    // Adicionar texto primeiro
+    contentParts.push({
+      type: 'text',
+      text: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}${imageContextInstruction}${languageReminderFinal}`,
+    });
+
+    // Adicionar imagens
+    for (const img of emailImages) {
+      contentParts.push({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: img.media_type,
+          data: img.data,
+        },
+      });
+    }
+
+    messages.push({
+      role: 'user',
+      content: contentParts,
+    });
+
+    console.log(`[generateResponse] Mensagem multimodal criada com ${emailImages.length} imagem(s)`);
+  } else {
+    // Mensagem apenas com texto
+    messages.push({
+      role: 'user',
+      content: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}${languageReminderFinal}`,
+    });
+  }
 
   const response = await callClaude(systemPrompt, messages, MAX_TOKENS);
 

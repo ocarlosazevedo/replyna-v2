@@ -145,6 +145,14 @@ function isAcknowledgmentMessage(body: string, subject: string): boolean {
 // Set para controlar conversas em processamento (evitar duplicatas)
 const conversationsInProcessing = new Set<string>();
 
+// Map para armazenar imagens de emails por message_id durante o processamento
+// Imagens são grandes demais para salvar no banco, então mantemos em memória
+const emailImagesCache = new Map<string, Array<{
+  media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+  data: string;
+  filename?: string;
+}>>();
+
 // Tipos
 interface ProcessingStats {
   shops_total: number;
@@ -546,6 +554,13 @@ async function saveIncomingEmail(shopId: string, email: IncomingEmail): Promise<
       extracted_from_body: email.from_email !== finalFromEmail,
     },
   });
+
+  // Armazenar imagens em cache para uso durante o processamento
+  // Usamos message_id como chave pois é único
+  if (email.images && email.images.length > 0) {
+    emailImagesCache.set(email.message_id, email.images);
+    console.log(`[saveIncomingEmail] ${email.images.length} imagem(s) armazenada(s) em cache para message_id ${email.message_id}`);
+  }
 }
 
 /**
@@ -821,6 +836,12 @@ async function processMessageInternal(
     finalStatus = 'pending_human';
     await forwardToHuman(shop, message, emailCredentials);
   } else {
+    // Buscar imagens do cache se disponíveis
+    const cachedImages = message.message_id ? emailImagesCache.get(message.message_id) : undefined;
+    if (cachedImages && cachedImages.length > 0) {
+      console.log(`[processMessage] ${cachedImages.length} imagem(s) encontrada(s) no cache para análise visual`);
+    }
+
     responseResult = await generateResponse(
       {
         name: shop.name,
@@ -832,19 +853,28 @@ async function processMessageInternal(
         warranty_info: shop.warranty_info,
         signature_html: shop.signature_html,
         is_cod: shop.is_cod,
+        support_email: shop.support_email,
       },
       message.subject || '',
       cleanBody,
       classification.category,
       conversationHistory,
       shopifyData,
-      classification.language
+      classification.language,
+      0, // retentionContactCount - TODO: implementar lógica de retenção
+      [], // additionalOrders
+      cachedImages || [] // imagens do email para análise visual
     );
 
     // Se a IA detectou que é terceiro contato de cancelamento, encaminhar para humano
     if (responseResult.forward_to_human) {
       finalStatus = 'pending_human';
       await forwardToHuman(shop, message, emailCredentials);
+    }
+
+    // Limpar imagens do cache após processamento
+    if (message.message_id) {
+      emailImagesCache.delete(message.message_id);
     }
   }
 
