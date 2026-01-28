@@ -138,8 +138,9 @@ const buildVolumeSeries = (messages: MessageRow[], granularity: 'day' | 'week' |
   }
 
   messages.forEach((message) => {
-    // Ignorar spam no gráfico de volume (usa categoria da conversa)
-    if (getConvCategory(message) === 'spam') return
+    // Ignorar spam e acknowledgment no gráfico de volume (usa categoria da conversa)
+    const category = getConvCategory(message)
+    if (category === 'spam' || category === 'acknowledgment') return
 
     // Para outbound, só contar se tiver inbound correspondente no período
     if (message.direction === 'outbound' && inboundConversationIds && !inboundConversationIds.has(message.conversation_id)) {
@@ -490,24 +491,30 @@ export default function Dashboard() {
           return conv?.category || message.category
         }
 
-        // Filtrar inbound não-spam
-        const inboundMessages = messageRows.filter((message) => message.direction === 'inbound' && getConversationCategory(message) !== 'spam')
+        // Filtrar inbound não-spam e não-acknowledgment
+        // Acknowledgment são emails que não precisam de resposta (cliente dizendo "ok", "obrigado", etc.)
+        const inboundMessages = messageRows.filter((message) => {
+          const category = getConversationCategory(message)
+          return message.direction === 'inbound' && category !== 'spam' && category !== 'acknowledgment'
+        })
 
-        // Obter IDs das conversas que têm inbound no período (não-spam)
+        // Obter IDs das conversas que têm inbound no período (não-spam, não-acknowledgment)
         const inboundConversationIds = new Set(inboundMessages.map((m) => m.conversation_id))
 
-        // Filtrar outbound: deve ser não-spam E ter inbound correspondente no período
+        // Filtrar outbound: deve ser não-spam/acknowledgment E ter inbound correspondente no período
         // Isso garante que nunca haverá mais respondidos que recebidos
-        const outboundMessages = messageRows.filter((message) =>
-          message.direction === 'outbound' &&
-          getConversationCategory(message) !== 'spam' &&
-          inboundConversationIds.has(message.conversation_id)
-        )
+        const outboundMessages = messageRows.filter((message) => {
+          const category = getConversationCategory(message)
+          return message.direction === 'outbound' &&
+            category !== 'spam' &&
+            category !== 'acknowledgment' &&
+            inboundConversationIds.has(message.conversation_id)
+        })
 
         const emailsReceived = inboundMessages.length
         const emailsReplied = outboundMessages.length
 
-        // Taxa de automação = emails respondidos / emails recebidos (spam já excluído)
+        // Taxa de automação = emails respondidos / emails recebidos (spam e acknowledgment excluídos)
         const automationRate = emailsReceived > 0
           ? (emailsReplied / emailsReceived) * 100
           : 0

@@ -69,12 +69,13 @@ serve(async (req) => {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
-      // E-mails recebidos (inbound, excluindo spam)
+      // E-mails recebidos (inbound, excluindo spam e acknowledgment)
+      // Acknowledgment são emails que não precisam de resposta (cliente dizendo "ok", "obrigado", etc.)
       supabase
         .from('messages')
         .select('*', { count: 'exact', head: true })
         .eq('direction', 'inbound')
-        .neq('category', 'spam')
+        .not('category', 'in', '("spam","acknowledgment")')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
       // E-mails respondidos (outbound)
