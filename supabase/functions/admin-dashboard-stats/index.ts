@@ -87,10 +87,12 @@ serve(async (req) => {
         .lte('created_at', dateEnd),
       // Conversas encaminhadas para humano (status pending_human)
       // Conta CONVERSAS ao invés de mensagens para consistência com a lista
+      // Exclui troca_devolucao_reembolso pois são encaminhados mas não devem penalizar a taxa
       supabase
         .from('conversations')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending_human')
+        .neq('category', 'troca_devolucao_reembolso')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
       supabase
