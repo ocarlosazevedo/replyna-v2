@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import DateRangePicker from '../../components/DateRangePicker'
 import ConversationModal from '../../components/ConversationModal'
+import { CATEGORY_COLORS, CATEGORY_LABELS, getCategoryColor } from '../../constants/categories'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -97,33 +98,7 @@ const categoryIcons: Record<string, typeof Package> = {
   acknowledgment: CheckCircle,
 }
 
-const categoryLabels: Record<string, string> = {
-  spam: 'Spam',
-  duvidas_gerais: 'Duvidas gerais',
-  rastreio: 'Rastreio',
-  troca_devolucao_reembolso: 'Troca/Devolucao/Reembolso',
-  edicao_pedido: 'Edicao de pedido',
-  suporte_humano: 'Suporte Humano',
-  reembolso: 'Reembolso',
-  produto: 'Produto',
-  pagamento: 'Pagamento',
-  entrega: 'Entrega',
-  acknowledgment: 'Confirmacao',
-}
-
-const categoryColors: Record<string, string> = {
-  spam: '#dc2626',
-  duvidas_gerais: '#3b82f6',
-  rastreio: '#22c55e',
-  troca_devolucao_reembolso: '#f59e0b',
-  edicao_pedido: '#8b5cf6',
-  suporte_humano: '#ec4899',
-  reembolso: '#ef4444',
-  produto: '#8b5cf6',
-  pagamento: '#22c55e',
-  entrega: '#f59e0b',
-  acknowledgment: '#10b981',
-}
+// Usando CATEGORY_LABELS e CATEGORY_COLORS de src/constants/categories.ts para consistência
 
 // Categorias disponíveis para filtro no Super Inbox
 const filterCategories = [
@@ -403,7 +378,7 @@ export default function AdminDashboard() {
               .sort(([, a], [, b]) => b - a)
               .map(([category, count]) => {
                 const Icon = categoryIcons[category] || HelpCircle
-                const color = categoryColors[category] || '#6b7280'
+                const color = CATEGORY_COLORS[category] || '#6b7280'
                 const percentage = totalCategorized ? Math.round((count / totalCategorized) * 100) : 0
                 return (
                   <div key={category} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -430,7 +405,7 @@ export default function AdminDashboard() {
                         }}
                       >
                         <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          {categoryLabels[category] || category}
+                          {CATEGORY_LABELS[category] || category}
                         </span>
                         <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                           {count} ({percentage}%)
@@ -614,7 +589,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {filteredConversations.map((conv) => {
-                    const categoryColor = (conv.category && categoryColors[conv.category]) || '#6b7280'
+                    const categoryColor = (conv.category && CATEGORY_COLORS[conv.category]) || '#6b7280'
                     return (
                       <tr
                         key={conv.id}
@@ -676,7 +651,7 @@ export default function AdminDashboard() {
                                 whiteSpace: 'nowrap',
                               }}
                             >
-                              {categoryLabels[conv.category] || conv.category}
+                              {CATEGORY_LABELS[conv.category] || conv.category}
                             </span>
                           ) : (
                             <span

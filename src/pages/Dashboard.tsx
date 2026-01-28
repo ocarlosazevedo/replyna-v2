@@ -7,6 +7,7 @@ import DateRangePicker from '../components/DateRangePicker'
 import CreditsWarningBanner from '../components/CreditsWarningBanner'
 import EmailErrorsBanner from '../components/EmailErrorsBanner'
 import ConversationModal from '../components/ConversationModal'
+import { getCategoryBadgeStyle, getCategoryLabel } from '../constants/categories'
 
 const VolumeChart = lazy(() => import('../components/VolumeChart'))
 
@@ -192,42 +193,7 @@ const buildVolumeSeries = (messages: MessageRow[], granularity: 'day' | 'week' |
     })
 }
 
-const getCategoryBadge = (category: string | null) => {
-  const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
-  switch (category) {
-    case 'spam':
-      return { ...base, backgroundColor: 'rgba(220, 38, 38, 0.20)', color: '#b91c1c' } // Vermelho escuro
-    case 'duvidas_gerais':
-      return { ...base, backgroundColor: 'rgba(96, 165, 250, 0.16)', color: '#60a5fa' } // Azul claro
-    case 'rastreio':
-      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#16a34a' } // Verde
-    case 'troca_devolucao_reembolso':
-      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' } // Laranja
-    case 'edicao_pedido':
-      return { ...base, backgroundColor: 'rgba(168, 85, 247, 0.18)', color: '#9333ea' } // Roxo
-    case 'suporte_humano':
-      return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' } // Vermelho
-    case null:
-    case undefined:
-      return { ...base, backgroundColor: 'rgba(251, 191, 36, 0.18)', color: '#d97706' } // Amarelo - Processando
-    default:
-      return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' } // Cinza claro
-  }
-}
-
-const categoryLabelMap: Record<string, string> = {
-  spam: 'Spam',
-  duvidas_gerais: 'Dúvidas gerais',
-  rastreio: 'Rastreio',
-  troca_devolucao_reembolso: 'Troca/Devolução/Reembolso',
-  edicao_pedido: 'Edição de pedido',
-  suporte_humano: 'Suporte humano',
-}
-
-const formatCategoryLabel = (category: string | null) => {
-  if (!category) return 'Processando...'
-  return categoryLabelMap[category] ?? 'Outros'
-}
+// Usando constantes compartilhadas de src/constants/categories.ts para consistência
 
 const Skeleton = ({ height = 16, width = '100%' }: { height?: number; width?: number | string }) => (
   <div
@@ -1008,7 +974,7 @@ export default function Dashboard() {
                         </span>
                       </td>
                       <td style={{ padding: '12px' }}>
-                        <span style={getCategoryBadge(conversation.category)}>{formatCategoryLabel(conversation.category)}</span>
+                        <span style={getCategoryBadgeStyle(conversation.category)}>{getCategoryLabel(conversation.category)}</span>
                       </td>
                       <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '13px' }}>
                         {formatDateTime(new Date(conversation.created_at))}

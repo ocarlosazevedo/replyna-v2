@@ -1,6 +1,7 @@
 import type React from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { getCategoryBadgeStyle, getCategoryColor, CATEGORY_LABELS } from '../constants/categories'
 
 interface Message {
   id: string
@@ -52,31 +53,7 @@ const availableCategories = [
   { value: 'spam', label: 'Spam' },
 ]
 
-const getCategoryBadge = (category: string | null): React.CSSProperties => {
-  const base: React.CSSProperties = {
-    padding: '4px 10px',
-    borderRadius: '999px',
-    fontSize: '12px',
-    fontWeight: 600,
-    whiteSpace: 'nowrap',
-  }
-  switch (category) {
-    case 'spam':
-      return { ...base, backgroundColor: 'rgba(220, 38, 38, 0.20)', color: '#b91c1c' }
-    case 'duvidas_gerais':
-      return { ...base, backgroundColor: 'rgba(96, 165, 250, 0.16)', color: '#60a5fa' }
-    case 'rastreio':
-      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#16a34a' }
-    case 'troca_devolucao_reembolso':
-      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
-    case 'edicao_pedido':
-      return { ...base, backgroundColor: 'rgba(168, 85, 247, 0.18)', color: '#9333ea' }
-    case 'suporte_humano':
-      return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' }
-    default:
-      return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' }
-  }
-}
+// Usando getCategoryBadgeStyle de src/constants/categories.ts para consistência
 
 /**
  * Decodifica quoted-printable para texto
@@ -730,7 +707,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                   }}
                   disabled={changingCategory}
                   style={{
-                    ...getCategoryBadge(conversation.category),
+                    ...getCategoryBadgeStyle(conversation.category),
                     border: 'none',
                     cursor: 'pointer',
                     display: 'flex',
@@ -791,7 +768,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                               width: '8px',
                               height: '8px',
                               borderRadius: '50%',
-                              backgroundColor: getCategoryBadge(cat.value).color,
+                              backgroundColor: getCategoryColor(cat.value),
                             }}
                           />
                           {cat.label}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { getCategoryBadgeStyle, getCategoryLabel } from '../constants/categories'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -51,34 +52,7 @@ const formatDateTime = (date: Date) =>
     timeZone: 'America/Sao_Paulo',
   }).format(date)
 
-const categoryLabelMap: Record<string, string> = {
-  spam: 'Spam',
-  duvidas_gerais: 'Dúvidas gerais',
-  rastreio: 'Rastreio',
-  troca_devolucao_reembolso: 'Troca/Devolução/Reembolso',
-  edicao_pedido: 'Edição de pedido',
-  suporte_humano: 'Suporte humano',
-}
-
-const getCategoryBadge = (category: string | null) => {
-  const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
-  switch (category) {
-    case 'spam':
-      return { ...base, backgroundColor: 'rgba(220, 38, 38, 0.20)', color: '#b91c1c' }
-    case 'duvidas_gerais':
-      return { ...base, backgroundColor: 'rgba(96, 165, 250, 0.16)', color: '#60a5fa' }
-    case 'rastreio':
-      return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#16a34a' }
-    case 'troca_devolucao_reembolso':
-      return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.18)', color: '#b45309' }
-    case 'edicao_pedido':
-      return { ...base, backgroundColor: 'rgba(168, 85, 247, 0.18)', color: '#9333ea' }
-    case 'suporte_humano':
-      return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#dc2626' }
-    default:
-      return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#64748b' }
-  }
-}
+// Usando constantes compartilhadas de src/constants/categories.ts para consistência
 
 export default function ConversationDetails() {
   const { user } = useAuth()
@@ -262,8 +236,8 @@ export default function ConversationDetails() {
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
-          <span style={getCategoryBadge(conversation.category)}>
-            {conversation.category ? categoryLabelMap[conversation.category] : 'Sem categoria'}
+          <span style={getCategoryBadgeStyle(conversation.category)}>
+            {getCategoryLabel(conversation.category)}
           </span>
         </div>
       </div>
