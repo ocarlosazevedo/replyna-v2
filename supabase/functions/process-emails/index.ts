@@ -522,7 +522,18 @@ async function saveIncomingEmail(shopId: string, email: IncomingEmail): Promise<
   // Usar nome do email se disponível, senão tentar extrair do endereço de email
   const customerName = finalFromName || extractNameFromEmail(finalFromEmail);
   if (customerName) {
-    await updateConversation(conversationId, { customer_name: customerName });
+    // Buscar conversa para verificar se já tem nome
+    const supabase = getSupabaseClient();
+    const { data: existingConv } = await supabase
+      .from('conversations')
+      .select('customer_name')
+      .eq('id', conversationId)
+      .single();
+
+    // Atualizar se não tiver nome ou se o nome atual for vazio
+    if (!existingConv?.customer_name) {
+      await updateConversation(conversationId, { customer_name: customerName });
+    }
   }
 
   await saveMessage({
