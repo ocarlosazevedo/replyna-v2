@@ -427,11 +427,13 @@ export default function Dashboard() {
     }
 
     const loadMessages = async () => {
+      // Limite aumentado para suportar clientes com alto volume de emails
       const query = supabase
         .from('messages')
         .select('created_at, direction, was_auto_replied, category, conversation_id, conversations!inner(shop_id, category)')
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
+        .limit(10000)
 
       const { data, error } =
         selectedShopId === 'all'
@@ -443,6 +445,7 @@ export default function Dashboard() {
     }
 
     const loadConversationsList = async () => {
+      // Lista de conversas para exibição (limite de 200 mais recentes)
       const query = supabase
         .from('conversations')
         .select('id, shop_id, customer_name, subject, category, status, created_at, shops(name)')
@@ -450,6 +453,7 @@ export default function Dashboard() {
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
         .order('created_at', { ascending: false })
+        .limit(200)
 
       const { data, error } =
         selectedShopId === 'all'
