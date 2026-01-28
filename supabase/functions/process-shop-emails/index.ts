@@ -731,10 +731,10 @@ async function processMessage(
   // 10.1 Verificar cobrança de extras
   await checkAndChargeExtraEmails(user.id, shop.id);
 
-  // 11. Atualizar status da conversation se foi para humano
-  if (finalStatus === 'pending_human') {
-    await updateConversation(conversation.id, { status: 'pending_human' });
-  }
+  // 11. Atualizar status da conversation
+  await updateConversation(conversation.id, {
+    status: finalStatus === 'pending_human' ? 'pending_human' : 'replied',
+  });
 
   await logProcessingEvent({
     shop_id: shop.id,
