@@ -95,7 +95,6 @@ const categoryIcons: Record<string, typeof Package> = {
   troca_devolucao_reembolso: RefreshCw,
   edicao_pedido: Package,
   spam: AlertTriangle,
-  acknowledgment: CheckCircle,
 }
 
 // Usando CATEGORY_LABELS e CATEGORY_COLORS de src/constants/categories.ts para consistência
@@ -103,13 +102,12 @@ const categoryIcons: Record<string, typeof Package> = {
 // Categorias disponíveis para filtro no Super Inbox
 const filterCategories = [
   { value: 'all', label: 'Todas categorias' },
-  { value: 'pending', label: '⏳ Pendentes' },
-  { value: 'duvidas_gerais', label: 'Duvidas gerais' },
+  { value: 'duvidas_gerais', label: 'Dúvidas gerais' },
   { value: 'rastreio', label: 'Rastreio' },
-  { value: 'troca_devolucao_reembolso', label: 'Troca/Devolucao/Reembolso' },
-  { value: 'edicao_pedido', label: 'Edicao de pedido' },
+  { value: 'troca_devolucao_reembolso', label: 'Troca/Devolução/Reembolso' },
+  { value: 'edicao_pedido', label: 'Edição de pedido' },
   { value: 'suporte_humano', label: 'Suporte humano' },
-  { value: 'acknowledgment', label: 'Confirmacao' },
+  { value: 'spam', label: 'Spam' },
 ]
 
 export default function AdminDashboard() {
@@ -559,8 +557,7 @@ export default function AdminDashboard() {
             // Filtrar por SPAM
             if (!showSpam && conv.category === 'spam') return false
             // Filtrar por categoria
-            if (categoryFilter === 'pending' && conv.category !== null) return false
-            if (categoryFilter !== 'all' && categoryFilter !== 'pending' && conv.category !== categoryFilter) return false
+            if (categoryFilter !== 'all' && conv.category !== categoryFilter) return false
             return true
           })
 
