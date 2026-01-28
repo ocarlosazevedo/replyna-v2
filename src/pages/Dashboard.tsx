@@ -426,14 +426,60 @@ export default function Dashboard() {
       return pendingHuman ?? 0
     }
 
+    // Usar count queries para métricas (evita limite de 1000 rows do Supabase)
+    const loadEmailCounts = async () => {
+      // Count de emails recebidos (inbound, excluindo spam e acknowledgment)
+      const inboundBaseQuery = () =>
+        supabase
+          .from('messages')
+          .select('id, conversations!inner(shop_id, category)', { count: 'exact', head: true })
+          .eq('direction', 'inbound')
+          .gte('created_at', dateStart.toISOString())
+          .lte('created_at', dateEnd.toISOString())
+          .not('conversations.category', 'in', '("spam","acknowledgment")')
+
+      const inboundQuery =
+        selectedShopId === 'all'
+          ? inboundBaseQuery().in('conversations.shop_id', effectiveShopIds)
+          : inboundBaseQuery().eq('conversations.shop_id', selectedShopId)
+
+      // Count de emails respondidos (outbound, excluindo spam e acknowledgment)
+      const outboundBaseQuery = () =>
+        supabase
+          .from('messages')
+          .select('id, conversations!inner(shop_id, category)', { count: 'exact', head: true })
+          .eq('direction', 'outbound')
+          .gte('created_at', dateStart.toISOString())
+          .lte('created_at', dateEnd.toISOString())
+          .not('conversations.category', 'in', '("spam","acknowledgment")')
+
+      const outboundQuery =
+        selectedShopId === 'all'
+          ? outboundBaseQuery().in('conversations.shop_id', effectiveShopIds)
+          : outboundBaseQuery().eq('conversations.shop_id', selectedShopId)
+
+      const [inboundResult, outboundResult] = await Promise.all([
+        inboundQuery,
+        outboundQuery,
+      ])
+
+      if (inboundResult.error) throw inboundResult.error
+      if (outboundResult.error) throw outboundResult.error
+
+      return {
+        emailsReceived: inboundResult.count ?? 0,
+        emailsReplied: outboundResult.count ?? 0,
+      }
+    }
+
     const loadMessages = async () => {
-      // Limite aumentado para suportar clientes com alto volume de emails
+      // Carregar mensagens para o gráfico de volume (limite de 5000 para performance)
       const query = supabase
         .from('messages')
         .select('created_at, direction, was_auto_replied, category, conversation_id, conversations!inner(shop_id, category)')
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
-        .limit(10000)
+        .limit(5000)
 
       const { data, error } =
         selectedShopId === 'all'
@@ -477,8 +523,13 @@ export default function Dashboard() {
 
     const loadAll = async () => {
       try {
-        const [pendingHuman, messageRows, conversationRows] = await Promise.all([
+        // Usar count queries para métricas precisas (evita limite de 1000 rows)
+        const [pendingHuman, emailCounts, messageRows, conversationRows] = await Promise.all([
           loadPendingHuman(),
+          cacheFetch(
+            `email-counts:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
+            loadEmailCounts
+          ),
           cacheFetch(
             `messages:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
             loadMessages
@@ -491,35 +542,8 @@ export default function Dashboard() {
 
         if (!isActive) return
 
-        // Calcular métricas de emails (excluindo spam)
-        // Usa categoria da conversa para garantir consistência entre inbound e outbound
-        const getConversationCategory = (message: MessageRow) => {
-          const conv = message.conversations?.[0] || (message.conversations as unknown as { category: string | null })
-          return conv?.category || message.category
-        }
-
-        // Filtrar inbound não-spam e não-acknowledgment
-        // Acknowledgment são emails que não precisam de resposta (cliente dizendo "ok", "obrigado", etc.)
-        const inboundMessages = messageRows.filter((message) => {
-          const category = getConversationCategory(message)
-          return message.direction === 'inbound' && category !== 'spam' && category !== 'acknowledgment'
-        })
-
-        // Obter IDs das conversas que têm inbound no período (não-spam, não-acknowledgment)
-        const inboundConversationIds = new Set(inboundMessages.map((m) => m.conversation_id))
-
-        // Filtrar outbound: deve ser não-spam/acknowledgment E ter inbound correspondente no período
-        // Isso garante que nunca haverá mais respondidos que recebidos
-        const outboundMessages = messageRows.filter((message) => {
-          const category = getConversationCategory(message)
-          return message.direction === 'outbound' &&
-            category !== 'spam' &&
-            category !== 'acknowledgment' &&
-            inboundConversationIds.has(message.conversation_id)
-        })
-
-        const emailsReceived = inboundMessages.length
-        const emailsReplied = outboundMessages.length
+        // Métricas usando count queries (valores precisos)
+        const { emailsReceived, emailsReplied } = emailCounts
 
         // Taxa de automação = emails respondidos / emails recebidos (spam e acknowledgment excluídos)
         const automationRate = emailsReceived > 0
@@ -539,6 +563,18 @@ export default function Dashboard() {
           successRate,
           pendingHuman,
         })
+
+        // Para o gráfico de volume, usar os dados carregados (amostra de até 5000)
+        // Filtrar para o gráfico apenas
+        const getConversationCategory = (message: MessageRow) => {
+          const conv = message.conversations?.[0] || (message.conversations as unknown as { category: string | null })
+          return conv?.category || message.category
+        }
+        const inboundMessages = messageRows.filter((message) => {
+          const category = getConversationCategory(message)
+          return message.direction === 'inbound' && category !== 'spam' && category !== 'acknowledgment'
+        })
+        const inboundConversationIds = new Set(inboundMessages.map((m) => m.conversation_id))
 
         setVolumeData(buildVolumeSeries(messageRows, granularity, inboundConversationIds))
         setConversations(conversationRows)
