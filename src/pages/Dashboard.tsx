@@ -1071,7 +1071,7 @@ export default function Dashboard() {
                             fontWeight: 600,
                           }}
                         >
-                          {conversation.customer_name || 'Sem nome'}
+                          {conversation.customer_name || conversation.customer_email}
                         </span>
                       </td>
                       <td style={{ padding: '12px' }}>
