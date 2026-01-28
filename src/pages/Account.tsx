@@ -219,99 +219,100 @@ export default function Account() {
     }
   }, [user])
 
+  const loadProfile = async () => {
+    if (!user) return
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (error) throw error
+
+      // Se não existir registro na tabela users, criar um
+      if (!data) {
+        const newUserData = {
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.name || null,
+          plan: 'Starter',
+          emails_limit: 500,
+          emails_used: 0,
+          shops_limit: 1,
+          extra_emails_purchased: 0,
+          extra_emails_used: 0,
+        }
+
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert(newUserData)
+
+        if (insertError) {
+          console.error('Erro ao criar perfil:', insertError)
+        }
+
+        setProfile({
+          name: newUserData.name,
+          email: newUserData.email || null,
+          plan: newUserData.plan,
+          emails_limit: newUserData.emails_limit,
+          emails_used: newUserData.emails_used,
+          shops_limit: newUserData.shops_limit,
+          created_at: new Date().toISOString(),
+          extra_emails_purchased: newUserData.extra_emails_purchased,
+          extra_emails_used: newUserData.extra_emails_used,
+          extra_email_price: null,
+          extra_email_package_size: null,
+        })
+        setName(newUserData.name || '')
+        setEmail(newUserData.email || '')
+      } else {
+        setProfile({
+          ...data,
+          extra_email_price: null,
+          extra_email_package_size: null,
+        })
+        setName(data.name || user.user_metadata?.name || '')
+        setEmail(data.email || user.email || '')
+      }
+
+      // Buscar quantidade de lojas integradas
+      const { count: shopsIntegrated } = await supabase
+        .from('shops')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+
+      setShopsCount(shopsIntegrated || 0)
+
+      // Buscar preço de email extra do plano atual
+      const planName = data?.plan || 'Starter'
+      const { data: planData, error: planError } = await supabase
+        .from('plans')
+        .select('extra_email_price, extra_email_package_size')
+        .eq('name', planName)
+        .single()
+
+      console.log('Plan lookup:', { planName, planData, planError })
+
+      if (data) {
+        setProfile({
+          ...data,
+          extra_email_price: planData?.extra_email_price ?? 1,
+          extra_email_package_size: planData?.extra_email_package_size ?? 100,
+        })
+      }
+    } catch (err) {
+      console.error('Erro ao carregar perfil:', err)
+      setNotice({ type: 'error', message: 'Não foi possível carregar suas informações.' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!user) return
-    const loadProfile = async () => {
-      setLoading(true)
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
-          .eq('id', user.id)
-          .maybeSingle()
-
-        if (error) throw error
-
-        // Se não existir registro na tabela users, criar um
-        if (!data) {
-          const newUserData = {
-            id: user.id,
-            email: user.email,
-            name: user.user_metadata?.name || null,
-            plan: 'Starter',
-            emails_limit: 500,
-            emails_used: 0,
-            shops_limit: 1,
-            extra_emails_purchased: 0,
-            extra_emails_used: 0,
-          }
-
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert(newUserData)
-
-          if (insertError) {
-            console.error('Erro ao criar perfil:', insertError)
-          }
-
-          setProfile({
-            name: newUserData.name,
-            email: newUserData.email || null,
-            plan: newUserData.plan,
-            emails_limit: newUserData.emails_limit,
-            emails_used: newUserData.emails_used,
-            shops_limit: newUserData.shops_limit,
-            created_at: new Date().toISOString(),
-            extra_emails_purchased: newUserData.extra_emails_purchased,
-            extra_emails_used: newUserData.extra_emails_used,
-            extra_email_price: null,
-            extra_email_package_size: null,
-          })
-          setName(newUserData.name || '')
-          setEmail(newUserData.email || '')
-        } else {
-          setProfile({
-            ...data,
-            extra_email_price: null,
-            extra_email_package_size: null,
-          })
-          setName(data.name || user.user_metadata?.name || '')
-          setEmail(data.email || user.email || '')
-        }
-
-        // Buscar quantidade de lojas integradas
-        const { count: shopsIntegrated } = await supabase
-          .from('shops')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-
-        setShopsCount(shopsIntegrated || 0)
-
-        // Buscar preço de email extra do plano atual
-        const planName = data?.plan || 'Starter'
-        const { data: planData, error: planError } = await supabase
-          .from('plans')
-          .select('extra_email_price, extra_email_package_size')
-          .eq('name', planName)
-          .single()
-
-        console.log('Plan lookup:', { planName, planData, planError })
-
-        if (data) {
-          setProfile({
-            ...data,
-            extra_email_price: planData?.extra_email_price ?? 1,
-            extra_email_package_size: planData?.extra_email_package_size ?? 100,
-          })
-        }
-      } catch (err) {
-        console.error('Erro ao carregar perfil:', err)
-        setNotice({ type: 'error', message: 'Não foi possível carregar suas informações.' })
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadProfile()
   }, [user])
 
