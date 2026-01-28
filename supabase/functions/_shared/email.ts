@@ -7,6 +7,18 @@
 
 import { decrypt, getEncryptionKey } from './encryption.ts';
 
+/**
+ * Mascara um email para log seguro (ex: j***n@gmail.com)
+ */
+export function maskEmail(email: string | null | undefined): string {
+  if (!email) return '[vazio]';
+  const parts = email.split('@');
+  if (parts.length !== 2) return '[email-inválido]';
+  const [local, domain] = parts;
+  if (local.length <= 2) return `${local[0]}***@${domain}`;
+  return `${local[0]}***${local[local.length - 1]}@${domain}`;
+}
+
 // Tipos
 export interface EmailCredentials {
   imap_host: string;

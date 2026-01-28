@@ -7,6 +7,7 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
+import { maskEmail } from '../_shared/email.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,7 +41,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Gerando link de reset para:', email);
+    console.log('Gerando link de reset para:', maskEmail(email));
 
     // Gerar link de recuperação (magic link)
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({

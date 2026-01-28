@@ -7,6 +7,7 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
+import { maskEmail } from '../_shared/email.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,7 +67,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Gerando magic link para:', user.email);
+    console.log('Gerando magic link para:', maskEmail(user.email));
 
     // Gerar magic link usando a API admin do Supabase
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
@@ -115,7 +116,7 @@ serve(async (req) => {
     // O Supabase processa isso automaticamente se configurado corretamente
     const appLink = `${SITE_URL}/auth/confirm?token_hash=${hashedToken || token}&type=${type}`;
 
-    console.log('Magic link gerado com sucesso para:', user.email);
+    console.log('Magic link gerado com sucesso para:', maskEmail(user.email));
     console.log('App link:', appLink);
 
     return new Response(

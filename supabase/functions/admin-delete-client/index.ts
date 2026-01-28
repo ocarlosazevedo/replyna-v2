@@ -10,6 +10,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import Stripe from 'https://esm.sh/stripe@20.2.0?target=deno';
+import { maskEmail } from '../_shared/email.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -72,7 +73,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Usuário encontrado:', user.email);
+    console.log('Usuário encontrado:', maskEmail(user.email));
 
     // 2. Buscar e cancelar assinatura no Stripe
     const { data: subscription } = await supabase

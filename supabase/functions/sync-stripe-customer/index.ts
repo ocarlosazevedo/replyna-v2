@@ -11,6 +11,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { getStripeClient } from '../_shared/stripe.ts';
+import { maskEmail } from '../_shared/email.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -71,7 +72,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Sincronizando customer:', { customer_id, email, name });
+    console.log('Sincronizando customer:', { customer_id, email: maskEmail(email), name });
 
     // Verificar se usuário já existe no Auth
     const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();

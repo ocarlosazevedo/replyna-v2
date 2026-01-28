@@ -8,6 +8,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { getStripeClient } from '../_shared/stripe.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
+import { maskEmail } from '../_shared/email.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -91,7 +92,7 @@ serve(async (req) => {
     const finalPackageSize = package_size || plan.extra_email_package_size;
     const totalAmount = finalPackageSize * plan.extra_email_price;
 
-    console.log(`Cobrando pacote de ${finalPackageSize} emails extras para usuário ${user.email}`);
+    console.log(`Cobrando pacote de ${finalPackageSize} emails extras para usuário ${maskEmail(user.email)}`);
     console.log(`Valor total: R$${totalAmount.toFixed(2)}`);
 
     // Registrar compra pendente no banco

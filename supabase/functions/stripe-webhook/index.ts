@@ -15,6 +15,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { getStripeClient, verifyWebhookSignature, Stripe } from '../_shared/stripe.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
+import { maskEmail } from '../_shared/email.ts';
 
 /**
  * Obtém o cliente Supabase com service role key para operações admin
@@ -194,7 +195,7 @@ async function handleCheckoutCompleted(
   console.log('Session ID:', session.id);
   console.log('Customer ID:', session.customer);
   console.log('Subscription ID:', session.subscription);
-  console.log('Customer Email:', session.customer_email);
+  console.log('Customer Email:', maskEmail(session.customer_email));
   console.log('Customer Details:', JSON.stringify(session.customer_details));
   console.log('Metadata:', JSON.stringify(session.metadata));
 
@@ -257,7 +258,7 @@ async function handleCheckoutCompleted(
     const email = metadata.user_email || session.customer_email;
     const name = metadata.user_name || session.customer_details?.name;
 
-    console.log('Criando novo usuário - Email:', email, 'Nome:', name);
+    console.log('Criando novo usuário - Email:', maskEmail(email), 'Nome:', name);
 
     if (!email) {
       console.error('ERRO: Email do usuário não encontrado');
@@ -282,14 +283,14 @@ async function handleCheckoutCompleted(
       if (metadata.migration_invite_id) {
         const supabaseAdmin = getSupabaseAdminClient();
         try {
-          console.log('Enviando email de reset de senha para usuário existente (migração):', email);
+          console.log('Enviando email de reset de senha para usuário existente (migração):', maskEmail(email));
           const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
             redirectTo: 'https://app.replyna.me/reset-password',
           });
           if (resetError) {
             console.error('Erro ao enviar email de reset:', resetError);
           } else {
-            console.log('Email de definição de senha enviado com sucesso para:', email);
+            console.log('Email de definição de senha enviado com sucesso para:', maskEmail(email));
           }
         } catch (resetErr) {
           console.error('Exceção ao enviar email de reset:', resetErr);
@@ -333,14 +334,14 @@ async function handleCheckoutCompleted(
       // Enviar email de reset de senha para o usuário definir sua senha
       // Envia sempre (seja usuário novo ou existente no Auth)
       try {
-        console.log('Enviando email de reset de senha para:', email);
+        console.log('Enviando email de reset de senha para:', maskEmail(email));
         const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
           redirectTo: 'https://app.replyna.me/reset-password',
         });
         if (resetError) {
           console.error('Erro ao enviar email de reset:', resetError);
         } else {
-          console.log('Email de definição de senha enviado com sucesso para:', email);
+          console.log('Email de definição de senha enviado com sucesso para:', maskEmail(email));
         }
       } catch (resetErr) {
         console.error('Exceção ao enviar email de reset:', resetErr);

@@ -6,6 +6,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
+import { maskEmail } from '../_shared/email.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -158,7 +159,7 @@ Deno.serve(async (req) => {
       // Não retorna erro porque o usuário foi criado com sucesso
     }
 
-    console.log('Cliente VIP criado com sucesso:', userId, email);
+    console.log('Cliente VIP criado com sucesso:', userId, maskEmail(email));
 
     return new Response(
       JSON.stringify({

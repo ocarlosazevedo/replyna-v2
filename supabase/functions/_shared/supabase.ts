@@ -544,7 +544,7 @@ export async function notifyCreditsExhausted(userId: string): Promise<{
   const totalLimit = user.emails_limit + (user.extra_emails_purchased || 0);
   const available = Math.max(0, totalLimit - user.emails_used);
 
-  console.log(`[Credits] User ${user.email}: usado=${user.emails_used}, limite=${totalLimit}, disponível=${available}`);
+  console.log(`[Credits] User ${userId}: usado=${user.emails_used}, limite=${totalLimit}, disponível=${available}`);
 
   // Atualizar timestamp do último aviso (para tracking)
   await supabase
@@ -552,6 +552,6 @@ export async function notifyCreditsExhausted(userId: string): Promise<{
     .update({ last_credits_warning_at: new Date().toISOString() })
     .eq('id', userId);
 
-  console.log(`[Credits] Usuário ${user.email} sem créditos - banner será exibido no dashboard`);
+  console.log(`[Credits] Usuário ${userId} sem créditos - banner será exibido no dashboard`);
   return { notified: true };
 }

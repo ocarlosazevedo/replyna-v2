@@ -147,11 +147,51 @@ const conversationsInProcessing = new Set<string>();
 
 // Map para armazenar imagens de emails por message_id durante o processamento
 // Imagens são grandes demais para salvar no banco, então mantemos em memória
-const emailImagesCache = new Map<string, Array<{
-  media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
-  data: string;
-  filename?: string;
-}>>();
+// IMPORTANTE: Cache é limitado para evitar memory leak em ambiente serverless
+const MAX_CACHE_SIZE = 50; // Máximo de 50 emails com imagens em cache
+const MAX_CACHE_AGE_MS = 5 * 60 * 1000; // 5 minutos de idade máxima
+
+interface CachedImages {
+  images: Array<{
+    media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+    data: string;
+    filename?: string;
+  }>;
+  timestamp: number;
+}
+
+const emailImagesCache = new Map<string, CachedImages>();
+
+/**
+ * Limpa entradas antigas do cache de imagens
+ */
+function cleanupImageCache(): void {
+  const now = Date.now();
+  let cleaned = 0;
+
+  for (const [key, value] of emailImagesCache.entries()) {
+    if (now - value.timestamp > MAX_CACHE_AGE_MS) {
+      emailImagesCache.delete(key);
+      cleaned++;
+    }
+  }
+
+  // Se ainda estiver acima do limite, remover os mais antigos
+  if (emailImagesCache.size > MAX_CACHE_SIZE) {
+    const entries = Array.from(emailImagesCache.entries())
+      .sort((a, b) => a[1].timestamp - b[1].timestamp);
+
+    const toRemove = entries.slice(0, emailImagesCache.size - MAX_CACHE_SIZE);
+    for (const [key] of toRemove) {
+      emailImagesCache.delete(key);
+      cleaned++;
+    }
+  }
+
+  if (cleaned > 0) {
+    console.log(`[ImageCache] Limpeza: ${cleaned} entradas removidas, ${emailImagesCache.size} restantes`);
+  }
+}
 
 // Tipos
 interface ProcessingStats {
@@ -249,6 +289,9 @@ Deno.serve(async (req) => {
   };
 
   try {
+    // Limpar cache de imagens antigas para evitar memory leak
+    cleanupImageCache();
+
     console.log('[Orchestrator] Iniciando processamento de emails em escala...');
 
     // 1. Buscar lojas ativas
@@ -569,7 +612,10 @@ async function saveIncomingEmail(shopId: string, email: IncomingEmail): Promise<
   // Armazenar imagens em cache para uso durante o processamento
   // Usamos message_id como chave pois é único
   if (email.images && email.images.length > 0) {
-    emailImagesCache.set(email.message_id, email.images);
+    emailImagesCache.set(email.message_id, {
+      images: email.images,
+      timestamp: Date.now(),
+    });
     console.log(`[saveIncomingEmail] ${email.images.length} imagem(s) armazenada(s) em cache para message_id ${email.message_id}`);
   }
 }
@@ -848,7 +894,8 @@ async function processMessageInternal(
     await forwardToHuman(shop, message, emailCredentials);
   } else {
     // Buscar imagens do cache se disponíveis
-    const cachedImages = message.message_id ? emailImagesCache.get(message.message_id) : undefined;
+    const cachedEntry = message.message_id ? emailImagesCache.get(message.message_id) : undefined;
+    const cachedImages = cachedEntry?.images;
     if (cachedImages && cachedImages.length > 0) {
       console.log(`[processMessage] ${cachedImages.length} imagem(s) encontrada(s) no cache para análise visual`);
     }

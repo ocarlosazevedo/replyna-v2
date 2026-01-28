@@ -6,6 +6,7 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
+import { maskEmail } from '../_shared/email.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,7 +40,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Verificando usuário:', email);
+    console.log('Verificando usuário:', maskEmail(email));
 
     // Listar todos os usuários do Auth
     const { data: authUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
