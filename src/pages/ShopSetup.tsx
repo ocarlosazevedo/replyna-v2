@@ -907,8 +907,8 @@ export default function ShopSetup() {
         </select>
       </div>
 
-      {/* Aviso específico para Zoho */}
-      {emailProvider.startsWith('zoho') && (
+      {/* Aviso específico para Zoho - apenas ao adicionar nova loja */}
+      {!isEditing && emailProvider.startsWith('zoho') && (
         <div style={{
           backgroundColor: 'rgba(220, 38, 38, 0.1)',
           border: '2px solid rgba(220, 38, 38, 0.4)',
