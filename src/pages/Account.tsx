@@ -106,6 +106,50 @@ export default function Account() {
 
   const [pendingInvoices, setPendingInvoices] = useState<PendingInvoice[]>([])
   const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null)
+  const [buyingExtras, setBuyingExtras] = useState(false)
+
+  // Função para comprar emails extras manualmente
+  const handleBuyExtraEmails = async () => {
+    if (!user || buyingExtras) return
+
+    setBuyingExtras(true)
+    setNotice(null)
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/charge-extra-emails`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+          body: JSON.stringify({ user_id: user.id }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (data.success) {
+        setNotice({ type: 'success', message: `Pacote de emails extras comprado com sucesso!` })
+        // Recarregar perfil para atualizar créditos
+        loadProfile()
+      } else if (data.invoice_url) {
+        // Invoice criada mas precisa de pagamento manual
+        setNotice({ type: 'info', message: 'Fatura criada. Redirecionando para pagamento...' })
+        window.open(data.invoice_url, '_blank')
+        // Recarregar invoices pendentes
+        loadPendingInvoices()
+      } else {
+        throw new Error(data.error || 'Erro ao processar compra')
+      }
+    } catch (err) {
+      console.error('Erro ao comprar emails extras:', err)
+      setNotice({ type: 'error', message: err instanceof Error ? err.message : 'Erro ao comprar emails extras' })
+    } finally {
+      setBuyingExtras(false)
+    }
+  }
 
   // Detectar retorno do Stripe após adicionar método de pagamento
   useEffect(() => {
@@ -949,15 +993,17 @@ export default function Account() {
                     padding: '16px',
                     backgroundColor: 'rgba(245, 158, 11, 0.08)',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="8" x2="12" y2="12"/>
-                        <line x1="12" y1="16" x2="12.01" y2="16"/>
-                      </svg>
-                      <span style={{ fontSize: '14px', fontWeight: 600, color: '#f59e0b' }}>
-                        Emails Extras
-                      </span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"/>
+                          <line x1="12" y1="8" x2="12" y2="12"/>
+                          <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#f59e0b' }}>
+                          Emails Extras
+                        </span>
+                      </div>
                     </div>
                     <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 12px 0', lineHeight: '1.5' }}>
                       Você atingiu o limite do seu plano. Emails adicionais são cobrados em pacotes de {profile?.extra_email_package_size ?? 100} emails por R$ {((profile?.extra_email_price ?? 1) * (profile?.extra_email_package_size ?? 100)).toFixed(2).replace('.', ',')}.
@@ -965,13 +1011,55 @@ export default function Account() {
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                         <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Créditos extras disponíveis</span>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#f59e0b' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: (profile?.extra_emails_purchased ?? 0) - (profile?.extra_emails_used ?? 0) <= 0 ? '#ef4444' : '#f59e0b' }}>
                           {((profile?.extra_emails_purchased ?? 0) - (profile?.extra_emails_used ?? 0))} emails
                         </span>
                       </div>
                       <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '8px 0 0 0' }}>
                         Quando seus créditos extras acabarem, um novo pacote será cobrado automaticamente no cartão da sua assinatura.
                       </p>
+
+                      {/* Botão para comprar emails extras */}
+                      <button
+                        onClick={handleBuyExtraEmails}
+                        disabled={buyingExtras}
+                        style={{
+                          marginTop: '16px',
+                          width: '100%',
+                          padding: '12px 16px',
+                          backgroundColor: '#f59e0b',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          cursor: buyingExtras ? 'not-allowed' : 'pointer',
+                          opacity: buyingExtras ? 0.7 : 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {buyingExtras ? (
+                          <>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
+                              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                            </svg>
+                            Processando...
+                          </>
+                        ) : (
+                          <>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="9" cy="21" r="1"/>
+                              <circle cx="20" cy="21" r="1"/>
+                              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                            </svg>
+                            Comprar +{profile?.extra_email_package_size ?? 100} emails por R$ {((profile?.extra_email_price ?? 1) * (profile?.extra_email_package_size ?? 100)).toFixed(2).replace('.', ',')}
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 )}

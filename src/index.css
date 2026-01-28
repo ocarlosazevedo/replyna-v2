@@ -87,6 +87,15 @@ body {
   }
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .replyna-dashboard-bottom {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 240px;
