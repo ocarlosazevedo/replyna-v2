@@ -113,7 +113,9 @@ export default function ShopSetup() {
     { value: '', label: 'Selecione um provedor...', imap_host: '', imap_port: '', smtp_host: '', smtp_port: '' },
     { value: 'gmail', label: 'Gmail (Google Workspace)', imap_host: 'imap.gmail.com', imap_port: '993', smtp_host: 'smtp.gmail.com', smtp_port: '465' },
     { value: 'outlook', label: 'Outlook (Microsoft 365)', imap_host: 'outlook.office365.com', imap_port: '993', smtp_host: 'smtp.office365.com', smtp_port: '587' },
-    { value: 'zoho', label: 'Zoho Mail', imap_host: 'imap.zoho.com', imap_port: '993', smtp_host: 'smtp.zoho.com', smtp_port: '465' },
+    { value: 'zoho', label: 'Zoho Mail (EUA)', imap_host: 'imap.zoho.com', imap_port: '993', smtp_host: 'smtp.zoho.com', smtp_port: '465' },
+    { value: 'zoho-eu', label: 'Zoho Mail (Europa)', imap_host: 'imap.zoho.eu', imap_port: '993', smtp_host: 'smtp.zoho.eu', smtp_port: '465' },
+    { value: 'zoho-in', label: 'Zoho Mail (Índia)', imap_host: 'imap.zoho.in', imap_port: '993', smtp_host: 'smtp.zoho.in', smtp_port: '465' },
     { value: 'titan', label: 'Titan Mail', imap_host: 'imap.titan.email', imap_port: '993', smtp_host: 'smtp.titan.email', smtp_port: '465' },
     { value: 'locaweb', label: 'Locaweb', imap_host: 'email-ssl.com.br', imap_port: '993', smtp_host: 'email-ssl.com.br', smtp_port: '465' },
     { value: 'hostinger', label: 'Hostinger', imap_host: 'imap.hostinger.com', imap_port: '993', smtp_host: 'smtp.hostinger.com', smtp_port: '465' },
@@ -904,6 +906,59 @@ export default function ShopSetup() {
           ))}
         </select>
       </div>
+
+      {/* Aviso específico para Zoho */}
+      {emailProvider.startsWith('zoho') && (
+        <div style={{
+          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+          border: '1px solid rgba(245, 158, 11, 0.3)',
+          borderRadius: '12px',
+          padding: '16px',
+        }}>
+          <p style={{
+            color: '#d97706',
+            fontWeight: 600,
+            fontSize: '14px',
+            margin: 0,
+            marginBottom: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Atenção: Configuração do Zoho Mail
+          </p>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: '1.6' }}>
+            <p style={{ margin: '0 0 8px 0' }}>
+              <strong>1. IMAP requer plano pago:</strong> Contas gratuitas do Zoho (@zohomail.com) não suportam IMAP.
+              É necessário ter um plano pago do Zoho Mail.
+            </p>
+            <p style={{ margin: '0 0 8px 0' }}>
+              <strong>2. Servidor por região:</strong> Use o servidor correto para sua região:
+            </p>
+            <ul style={{ margin: '0 0 8px 0', paddingLeft: '20px' }}>
+              <li><strong>EUA:</strong> imap.zoho.com / smtp.zoho.com</li>
+              <li><strong>Europa:</strong> imap.zoho.eu / smtp.zoho.eu</li>
+              <li><strong>Índia:</strong> imap.zoho.in / smtp.zoho.in</li>
+            </ul>
+            <p style={{ margin: 0 }}>
+              <strong>3. Verifique sua região:</strong> Acesse{' '}
+              <a href="https://mail.zoho.com" target="_blank" rel="noopener noreferrer" style={{ color: '#f59e0b' }}>
+                mail.zoho.com
+              </a>{' '}
+              ou{' '}
+              <a href="https://mail.zoho.eu" target="_blank" rel="noopener noreferrer" style={{ color: '#f59e0b' }}>
+                mail.zoho.eu
+              </a>{' '}
+              para descobrir em qual datacenter sua conta está.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Show fields only after selecting a provider */}
       {emailProvider && (

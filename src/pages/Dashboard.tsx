@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import DateRangePicker from '../components/DateRangePicker'
 import CreditsWarningBanner from '../components/CreditsWarningBanner'
+import EmailErrorsBanner from '../components/EmailErrorsBanner'
 import ConversationModal from '../components/ConversationModal'
 
 const VolumeChart = lazy(() => import('../components/VolumeChart'))
@@ -670,6 +671,14 @@ export default function Dashboard() {
           emailsUsed={profile.emails_used ?? 0}
           emailsLimit={profile.emails_limit}
           extraEmailsPurchased={profile.extra_emails_purchased ?? 0}
+        />
+      )}
+
+      {/* Banner de erros de email */}
+      {user && shops.length > 0 && (
+        <EmailErrorsBanner
+          userId={user.id}
+          shopIds={shops.map(s => s.id)}
         />
       )}
 
