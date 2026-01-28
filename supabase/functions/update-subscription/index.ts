@@ -157,8 +157,8 @@ serve(async (req) => {
         customer: subscription.stripe_customer_id,
         mode: 'setup',
         payment_method_types: ['card'],
-        success_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/dashboard/settings?upgrade_pending=true&plan_id=${new_plan_id}&billing_cycle=${finalBillingCycle}`,
-        cancel_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/dashboard/settings?upgrade_cancelled=true`,
+        success_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/account?upgrade_pending=true&plan_id=${new_plan_id}&billing_cycle=${finalBillingCycle}`,
+        cancel_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/account?upgrade_cancelled=true`,
         metadata: {
           user_id: user_id,
           new_plan_id: new_plan_id,
