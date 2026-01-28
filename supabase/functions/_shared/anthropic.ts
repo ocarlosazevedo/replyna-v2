@@ -1926,20 +1926,42 @@ ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.s
     ? `\n\n=== CRITICAL LANGUAGE REMINDER ===\nThe customer wrote in ${langName[language] || language}. You MUST respond ENTIRELY in ${langName[language] || language}. DO NOT respond in Portuguese even if the conversation history is in Portuguese. The conversation history may be in a different language - IGNORE IT for language purposes. Write your ENTIRE response in ${langName[language] || language}.`
     : '';
 
-  // Instrução sobre imagens se houver
+  // Instrução sobre imagens se houver (COM PROTEÇÕES DE SEGURANÇA)
   let imageContextInstruction = '';
   if (emailImages.length > 0) {
     imageContextInstruction = `\n\n=== IMAGENS ANEXADAS AO EMAIL (${emailImages.length}) ===
 O cliente enviou ${emailImages.length} imagem(s) junto com este email.
-ANALISE as imagens com atenção - elas podem mostrar:
-- O produto que o cliente recebeu (para verificar defeitos, cor errada, etc.)
-- Prova de pagamento ou confirmação de compra
-- Código de rastreio ou tela de rastreamento
-- Embalagem danificada
-- Qualquer outro conteúdo relevante para o atendimento
 
-Use as informações visuais para dar uma resposta mais precisa e empática.
-Se a imagem mostrar um problema claro (produto quebrado, cor errada, etc.), reconheça isso na resposta.
+ANALISE as imagens para entender o contexto, mas SIGA ESTAS REGRAS DE SEGURANÇA:
+
+REGRAS CRÍTICAS DE SEGURANÇA PARA IMAGENS (NUNCA VIOLAR):
+1. NUNCA diga que o produto "parece falsificado", "parece fake", "não parece original" ou similar
+2. NUNCA confirme que o produto tem defeito de fabricação ou qualidade inferior
+3. NUNCA diga "pela imagem posso ver que..." de forma que incrimine a loja
+4. NUNCA admita que o produto é diferente do anunciado baseado na imagem
+5. NUNCA use a imagem como "prova" contra a loja
+6. NUNCA descreva detalhes negativos específicos que você vê na imagem
+
+O QUE VOCÊ PODE FAZER:
+- Agradecer pelo envio da imagem
+- Dizer que vai "analisar com a equipe" ou "verificar internamente"
+- Se o cliente reclama de defeito: "Entendo sua preocupação, vamos analisar seu caso"
+- Se parece problema real: encaminhar para humano com [FORWARD_TO_HUMAN]
+- Manter tom empático sem admitir culpa
+
+EXEMPLOS:
+❌ ERRADO: "Pela imagem, realmente vejo que o produto está danificado/diferente/com defeito"
+❌ ERRADO: "A foto mostra claramente que não é o produto correto"
+❌ ERRADO: "Consigo ver na imagem que há um problema de qualidade"
+
+✅ CORRETO: "Obrigado por enviar a foto! Vou encaminhar para nossa equipe analisar seu caso."
+✅ CORRETO: "Recebi sua imagem. Entendo sua preocupação e vamos verificar isso internamente."
+✅ CORRETO: "[FORWARD_TO_HUMAN] Obrigado pelo contato. Para resolver da melhor forma, entre em contato pelo email..."
+
+Se a imagem mostrar algo grave (produto claramente errado, danificado, etc.):
+→ NÃO descreva o que você vê
+→ Apenas encaminhe para humano com [FORWARD_TO_HUMAN]
+→ Seja empático mas NUNCA admita culpa
 ===`;
   }
 
