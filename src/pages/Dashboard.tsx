@@ -1093,79 +1093,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Categorias por Conversa */}
-        <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
-            Conversas por Categoria
-          </div>
-          {loadingConversations ? (
-            <div style={{ display: 'grid', gap: '12px' }}>
-              <Skeleton height={36} />
-              <Skeleton height={36} />
-              <Skeleton height={36} />
-            </div>
-          ) : totalCategorized === 0 ? (
-            <div style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '24px' }}>
-              Nenhuma conversa no período selecionado
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {Object.entries(categoryStats)
-                .sort(([, a], [, b]) => b - a)
-                .map(([category, count]) => {
-                  const Icon = categoryIcons[category] || HelpCircle
-                  const color = CATEGORY_COLORS[category] || '#6b7280'
-                  const percentage = totalCategorized ? Math.round((count / totalCategorized) * 100) : 0
-                  return (
-                    <div key={category} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '8px',
-                          backgroundColor: `${color}15`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Icon size={16} style={{ color }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            {CATEGORY_LABELS[category] || category}
-                          </span>
-                          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                            {count} ({percentage}%)
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            height: '6px',
-                            backgroundColor: 'var(--border-color)',
-                            borderRadius: '3px',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: `${percentage}%`,
-                              height: '100%',
-                              backgroundColor: color,
-                              borderRadius: '3px',
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-            </div>
-          )}
-        </div>
-
         <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
           <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
             Consumo do Plano
@@ -1242,6 +1169,79 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Categorias por Conversa */}
+      <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
+          Conversas por Categoria
+        </div>
+        {loadingConversations ? (
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <Skeleton height={36} />
+            <Skeleton height={36} />
+            <Skeleton height={36} />
+          </div>
+        ) : totalCategorized === 0 ? (
+          <div style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '24px' }}>
+            Nenhuma conversa no período selecionado
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {Object.entries(categoryStats)
+              .sort(([, a], [, b]) => b - a)
+              .map(([category, count]) => {
+                const Icon = categoryIcons[category] || HelpCircle
+                const color = CATEGORY_COLORS[category] || '#6b7280'
+                const percentage = totalCategorized ? Math.round((count / totalCategorized) * 100) : 0
+                return (
+                  <div key={category} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: `${color}15`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon size={16} style={{ color }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {CATEGORY_LABELS[category] || category}
+                        </span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                          {count} ({percentage}%)
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          height: '6px',
+                          backgroundColor: 'var(--border-color)',
+                          borderRadius: '3px',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${percentage}%`,
+                            height: '100%',
+                            backgroundColor: color,
+                            borderRadius: '3px',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
+        )}
       </div>
     </div>
   )
