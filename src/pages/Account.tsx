@@ -116,13 +116,21 @@ export default function Account() {
     setNotice(null)
 
     try {
+      // Obter o token de sessão do usuário
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData?.session?.access_token
+
+      if (!accessToken) {
+        throw new Error('Sessão expirada. Faça login novamente.')
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/charge-extra-emails`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+            'Authorization': `Bearer ${accessToken}`,
           },
           body: JSON.stringify({ user_id: user.id }),
         }
