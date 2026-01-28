@@ -16,31 +16,66 @@ interface ErrorSummary {
   shop_id: string
 }
 
-const ERROR_SOLUTIONS: Record<string, { title: string; description: string; link?: string }> = {
+// Erros que indicam problemas de configuração (devem ser mostrados)
+const CONFIG_ERRORS = [
+  'Email do remetente inválido',
+  'Email do remetente inválido ou ausente',
+  'Corpo e assunto do email vazios',
+  'Login failed',
+  'Authentication failed',
+  'Connection refused',
+  'IMAP',
+  'SMTP',
+  'timeout',
+  'Timeout',
+]
+
+// Erros que NÃO devem ser mostrados (são operacionais, não de configuração)
+const IGNORE_ERRORS = [
+  'créditos',
+  'credits',
+  'Usuário não encontrado',
+  'rate limit',
+  'Rate limit',
+]
+
+const ERROR_SOLUTIONS: Record<string, { title: string; description: string }> = {
   'Email do remetente inválido': {
     title: 'Emails chegando sem remetente',
     description: 'Os emails estão chegando sem o endereço do remetente. Isso pode acontecer com contas Zoho gratuitas ou configuração de servidor incorreta.',
-    link: '/shops',
   },
   'Email do remetente inválido ou ausente': {
     title: 'Emails chegando sem remetente',
     description: 'Os emails estão chegando sem o endereço do remetente. Verifique a configuração do seu provedor de email.',
-    link: '/shops',
   },
   'Corpo e assunto do email vazios': {
     title: 'Emails vazios',
     description: 'Os emails estão chegando sem conteúdo. Pode ser um problema de conexão com o servidor de email.',
-    link: '/shops',
   },
   'Login failed': {
     title: 'Falha na autenticação',
     description: 'Não foi possível conectar ao servidor de email. Verifique seu usuário e senha.',
-    link: '/shops',
   },
-  'Usuário não encontrado': {
-    title: 'Erro de configuração',
-    description: 'Houve um problema com a configuração da sua conta. Entre em contato com o suporte.',
+  'Authentication failed': {
+    title: 'Falha na autenticação',
+    description: 'Credenciais de email inválidas. Verifique usuário e senha.',
   },
+}
+
+function isConfigError(errorMessage: string): boolean {
+  // Ignorar erros operacionais
+  for (const ignore of IGNORE_ERRORS) {
+    if (errorMessage.toLowerCase().includes(ignore.toLowerCase())) {
+      return false
+    }
+  }
+  // Verificar se é um erro de configuração
+  for (const configError of CONFIG_ERRORS) {
+    if (errorMessage.toLowerCase().includes(configError.toLowerCase())) {
+      return true
+    }
+  }
+  return false
 }
 
 export default function EmailErrorsBanner({ userId, shopIds }: EmailErrorsBannerProps) {
@@ -80,7 +115,7 @@ export default function EmailErrorsBanner({ userId, shopIds }: EmailErrorsBanner
         shopIdByConversation[c.id] = c.shop_id
       })
 
-      // Buscar mensagens com falha
+      // Buscar mensagens com falha (status = 'failed' apenas, não 'pending_credits')
       const { data: failedMessages, error: msgError } = await supabase
         .from('messages')
         .select('id, status, error_message, conversation_id')
@@ -88,7 +123,7 @@ export default function EmailErrorsBanner({ userId, shopIds }: EmailErrorsBanner
         .eq('status', 'failed')
         .gte('created_at', twentyFourHoursAgo.toISOString())
         .not('error_message', 'is', null)
-        .limit(100)
+        .limit(200)
 
       if (msgError) {
         console.error('Erro ao buscar erros de email:', msgError)
@@ -112,11 +147,19 @@ export default function EmailErrorsBanner({ userId, shopIds }: EmailErrorsBanner
         shopNames[s.id] = s.name
       })
 
-      // Agrupar por erro e encontrar o mais comum
+      // Agrupar por erro e encontrar o mais comum (apenas erros de configuração)
       const errorCounts: Record<string, { count: number; shop_name: string; shop_id: string }> = {}
+      let totalConfigErrors = 0
 
       for (const msg of failedMessages) {
         const errorMsg = msg.error_message || 'Erro desconhecido'
+
+        // Só contar se for erro de configuração
+        if (!isConfigError(errorMsg)) {
+          continue
+        }
+
+        totalConfigErrors++
         const shopId = shopIdByConversation[msg.conversation_id] || ''
         const shopName = shopNames[shopId] || 'Loja'
 
@@ -128,6 +171,12 @@ export default function EmailErrorsBanner({ userId, shopIds }: EmailErrorsBanner
           }
         }
         errorCounts[errorMsg].count++
+      }
+
+      // Se não há erros de configuração, não mostrar banner
+      if (totalConfigErrors === 0) {
+        setLoading(false)
+        return
       }
 
       // Encontrar o erro mais comum
@@ -146,7 +195,7 @@ export default function EmailErrorsBanner({ userId, shopIds }: EmailErrorsBanner
       }
 
       setErrorSummary({
-        total_failed: failedMessages.length,
+        total_failed: totalConfigErrors,
         main_error: mainError,
         main_error_count: mainErrorCount,
         shop_name: shopName,
@@ -166,13 +215,15 @@ export default function EmailErrorsBanner({ userId, shopIds }: EmailErrorsBanner
   const solution = ERROR_SOLUTIONS[errorSummary.main_error] || {
     title: 'Erros no processamento de emails',
     description: errorSummary.main_error,
-    link: '/shops',
   }
 
   const backgroundColor = 'rgba(245, 158, 11, 0.1)' // Amarelo/laranja
   const borderColor = 'rgba(245, 158, 11, 0.3)'
   const iconColor = '#f59e0b'
   const textColor = '#d97706'
+
+  // Construir o link corretamente
+  const editLink = errorSummary.shop_id ? `/shops/${errorSummary.shop_id}/edit?step=3` : '/shops'
 
   return (
     <div
@@ -226,9 +277,9 @@ export default function EmailErrorsBanner({ userId, shopIds }: EmailErrorsBanner
         </p>
       </div>
 
-      {solution.link && errorSummary.shop_id && (
+      {errorSummary.shop_id && (
         <Link
-          to={`/shops/${errorSummary.shop_id}/edit?step=3`}
+          to={editLink}
           style={{
             backgroundColor: '#f59e0b',
             color: 'white',
