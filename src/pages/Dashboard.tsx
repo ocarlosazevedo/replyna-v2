@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { DateRange } from 'react-day-picker'
+import { Mail, CheckCircle, TrendingUp, Headphones } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import DateRangePicker from '../components/DateRangePicker'
@@ -194,6 +195,18 @@ const buildVolumeSeries = (messages: MessageRow[], granularity: 'day' | 'week' |
 }
 
 // Usando constantes compartilhadas de src/constants/categories.ts para consistência
+
+// Estilo do box do ícone nas métricas
+const iconBoxStyle = (color: string) => ({
+  width: '48px',
+  height: '48px',
+  borderRadius: '12px',
+  backgroundColor: `${color}15`,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+})
 
 const Skeleton = ({ height = 16, width = '100%' }: { height?: number; width?: number | string }) => (
   <div
@@ -728,49 +741,73 @@ export default function Dashboard() {
           </>
         ) : (
           <>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>E-mails Recebidos</div>
-              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {renderValue(metrics.emailsReceived)}
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={iconBoxStyle('#06b6d4')}>
+                <Mail size={24} style={{ color: '#06b6d4' }} />
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>excluindo spam</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>E-mails Recebidos</div>
+                <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {renderValue(metrics.emailsReceived)}
+                </div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>excluindo spam</div>
+              </div>
             </div>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>E-mails Respondidos</div>
-              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {renderValue(metrics.emailsReplied)}
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={iconBoxStyle('#10b981')}>
+                <CheckCircle size={24} style={{ color: '#10b981' }} />
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>respostas enviadas</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>E-mails Respondidos</div>
+                <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {renderValue(metrics.emailsReplied)}
+                </div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>respostas enviadas</div>
+              </div>
             </div>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Taxa de Automação</div>
-              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {renderValue(metrics.automationRate, 'percent')}
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={iconBoxStyle('#8b5cf6')}>
+                <TrendingUp size={24} style={{ color: '#8b5cf6' }} />
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>respondidos / recebidos</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>Taxa de Automação</div>
+                <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {renderValue(metrics.automationRate, 'percent')}
+                </div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>respondidos / recebidos</div>
+              </div>
             </div>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Taxa de Sucesso</div>
-              <div style={{
-                marginTop: '12px',
-                fontSize: '28px',
-                fontWeight: 700,
-                color: metrics.successRate >= 90
-                  ? '#16a34a'
-                  : metrics.successRate >= 70
-                    ? '#d97706'
-                    : '#dc2626'
-              }}>
-                {renderValue(metrics.successRate, 'percent')}
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={iconBoxStyle('#22c55e')}>
+                <CheckCircle size={24} style={{ color: '#22c55e' }} />
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>resolvidos sem humano</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>Taxa de Sucesso</div>
+                <div style={{
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: metrics.successRate >= 90
+                    ? '#16a34a'
+                    : metrics.successRate >= 70
+                      ? '#d97706'
+                      : '#dc2626'
+                }}>
+                  {renderValue(metrics.successRate, 'percent')}
+                </div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>resolvidos sem humano</div>
+              </div>
             </div>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Atendimento Humano</div>
-              <div style={{ marginTop: '12px', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {renderValue(metrics.pendingHuman)}
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={iconBoxStyle('#f59e0b')}>
+                <Headphones size={24} style={{ color: '#f59e0b' }} />
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '6px' }}>aguardando atendimento</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>Atendimento Humano</div>
+                <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {renderValue(metrics.pendingHuman)}
+                </div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>aguardando atendimento</div>
+              </div>
             </div>
           </>
         )}
