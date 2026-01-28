@@ -140,12 +140,31 @@ export default function Account() {
         window.open(data.invoice_url, '_blank')
         // Recarregar invoices pendentes
         loadPendingInvoices()
+      } else if (data.error) {
+        // Traduzir erros comuns para mensagens amigáveis
+        const errorMessages: Record<string, string> = {
+          'Usuário não encontrado': 'Não foi possível encontrar sua conta. Faça login novamente.',
+          'Usuário não possui customer_id no Stripe': 'Você precisa ter uma assinatura ativa para comprar emails extras. Entre em contato com o suporte.',
+          'Assinatura ativa não encontrada': 'Você precisa ter uma assinatura ativa para comprar emails extras.',
+          'stripe_extra_email_price_id': 'O preço de emails extras não está configurado para seu plano. Entre em contato com o suporte.',
+        }
+
+        // Verificar se o erro corresponde a alguma mensagem conhecida
+        let friendlyMessage = data.error
+        for (const [key, message] of Object.entries(errorMessages)) {
+          if (data.error.includes(key)) {
+            friendlyMessage = message
+            break
+          }
+        }
+
+        throw new Error(friendlyMessage)
       } else {
-        throw new Error(data.error || 'Erro ao processar compra')
+        throw new Error('Erro ao processar compra. Tente novamente.')
       }
     } catch (err) {
       console.error('Erro ao comprar emails extras:', err)
-      setNotice({ type: 'error', message: err instanceof Error ? err.message : 'Erro ao comprar emails extras' })
+      setNotice({ type: 'error', message: err instanceof Error ? err.message : 'Erro ao comprar emails extras. Tente novamente.' })
     } finally {
       setBuyingExtras(false)
     }
