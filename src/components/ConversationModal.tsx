@@ -1,7 +1,6 @@
-import type React from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { getCategoryBadgeStyle, getCategoryColor, CATEGORY_LABELS } from '../constants/categories'
+import { getCategoryBadgeStyle, getCategoryColor } from '../constants/categories'
 
 interface Message {
   id: string

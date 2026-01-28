@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 import DateRangePicker from '../../components/DateRangePicker'
 import ConversationModal from '../../components/ConversationModal'
-import { CATEGORY_COLORS, CATEGORY_LABELS, getCategoryColor } from '../../constants/categories'
+import { CATEGORY_COLORS, CATEGORY_LABELS } from '../../constants/categories'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
