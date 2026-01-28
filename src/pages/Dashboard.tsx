@@ -403,12 +403,12 @@ export default function Dashboard() {
     let isActive = true
     setError(null)
     setLoadingMetrics(true)
-    setLoadingChart(true)
     setLoadingConversations(true)
+    // Gráfico carrega separadamente para não bloquear métricas
+    setLoadingChart(true)
 
     const loadPendingHuman = async () => {
       // Excluir troca_devolucao_reembolso da contagem de atendimento humano
-      // Esses emails são encaminhados para suporte, mas não devem penalizar a taxa de sucesso
       const baseQuery = () =>
         supabase
           .from('conversations')
@@ -482,13 +482,13 @@ export default function Dashboard() {
     }
 
     const loadMessages = async () => {
-      // Carregar mensagens para o gráfico de volume (limite de 5000 para performance)
+      // Carregar mensagens para o gráfico de volume (limite reduzido para performance)
       const query = supabase
         .from('messages')
         .select('created_at, direction, was_auto_replied, category, conversation_id, conversations!inner(shop_id, category)')
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
-        .limit(5000)
+        .limit(2000)
 
       const { data, error } =
         selectedShopId === 'all'
@@ -516,7 +516,6 @@ export default function Dashboard() {
           : await query.eq('shop_id', selectedShopId)
 
       if (error) throw error
-      // Mapear para incluir shop_name e status
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (data || []).map((row: any) => ({
         id: row.id,
@@ -530,18 +529,16 @@ export default function Dashboard() {
       })) as ConversationRow[]
     }
 
-    const loadAll = async () => {
+    // OTIMIZAÇÃO: Carregar em 2 etapas para mostrar dados mais rápido
+    // Etapa 1: Métricas e Inbox (rápido)
+    // Etapa 2: Gráfico (mais lento, carrega depois)
+    const loadFastData = async () => {
       try {
-        // Usar count queries para métricas precisas (evita limite de 1000 rows)
-        const [pendingHuman, emailCounts, messageRows, conversationRows] = await Promise.all([
+        const [pendingHuman, emailCounts, conversationRows] = await Promise.all([
           loadPendingHuman(),
           cacheFetch(
             `email-counts:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
             loadEmailCounts
-          ),
-          cacheFetch(
-            `messages:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
-            loadMessages
           ),
           cacheFetch(
             `conversations:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
@@ -554,13 +551,10 @@ export default function Dashboard() {
         // Métricas usando count queries (valores precisos)
         const { emailsReceived, emailsReplied } = emailCounts
 
-        // Taxa de automação = emails respondidos / emails recebidos (spam e acknowledgment excluídos)
         const automationRate = emailsReceived > 0
           ? (emailsReplied / emailsReceived) * 100
           : 0
 
-        // Taxa de sucesso = (emails respondidos - atendimento humano) / emails respondidos * 100
-        // Quanto mais próximo de 100%, melhor (significa que a IA está resolvendo sem precisar de humano)
         const successRate = emailsReplied > 0
           ? ((emailsReplied - pendingHuman) / emailsReplied) * 100
           : 0
@@ -572,9 +566,26 @@ export default function Dashboard() {
           successRate,
           pendingHuman,
         })
+        setConversations(conversationRows)
+        setLoadingMetrics(false)
+        setLoadingConversations(false)
+      } catch (err) {
+        console.error('Erro ao carregar métricas:', err)
+        setError('Não foi possível carregar os dados do dashboard.')
+        setLoadingMetrics(false)
+        setLoadingConversations(false)
+      }
+    }
 
-        // Para o gráfico de volume, usar os dados carregados (amostra de até 5000)
-        // Filtrar para o gráfico apenas
+    const loadChartData = async () => {
+      try {
+        const messageRows = await cacheFetch(
+          `messages:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
+          loadMessages
+        )
+
+        if (!isActive) return
+
         const getConversationCategory = (message: MessageRow) => {
           const conv = message.conversations?.[0] || (message.conversations as unknown as { category: string | null })
           return conv?.category || message.category
@@ -586,19 +597,17 @@ export default function Dashboard() {
         const inboundConversationIds = new Set(inboundMessages.map((m) => m.conversation_id))
 
         setVolumeData(buildVolumeSeries(messageRows, granularity, inboundConversationIds))
-        setConversations(conversationRows)
       } catch (err) {
-        console.error('Erro ao carregar dados do dashboard:', err)
-        setError('Não foi possível carregar os dados do dashboard.')
+        console.error('Erro ao carregar gráfico:', err)
       } finally {
-        if (!isActive) return
-        setLoadingMetrics(false)
-        setLoadingChart(false)
-        setLoadingConversations(false)
+        if (isActive) setLoadingChart(false)
       }
     }
 
-    loadAll()
+    // Executar carregamentos: métricas primeiro, gráfico depois
+    loadFastData().then(() => {
+      if (isActive) loadChartData()
+    })
 
     // Real-time subscription para novas conversas
     const channel = supabase
