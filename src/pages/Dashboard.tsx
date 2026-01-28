@@ -32,6 +32,7 @@ interface UserProfile {
 interface ConversationRow {
   id: string
   shop_id: string
+  customer_email: string
   customer_name: string | null
   subject: string | null
   category: string | null
@@ -503,7 +504,7 @@ export default function Dashboard() {
       // Lista de conversas para exibição (limite de 200 mais recentes)
       const query = supabase
         .from('conversations')
-        .select('id, shop_id, customer_name, subject, category, status, created_at, shops(name)')
+        .select('id, shop_id, customer_email, customer_name, subject, category, status, created_at, shops(name)')
         .not('category', 'is', null) // Excluir conversas ainda em processamento
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
@@ -520,6 +521,7 @@ export default function Dashboard() {
       return (data || []).map((row: any) => ({
         id: row.id,
         shop_id: row.shop_id,
+        customer_email: row.customer_email,
         customer_name: row.customer_name,
         subject: row.subject,
         category: row.category,
