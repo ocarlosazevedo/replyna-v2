@@ -231,36 +231,62 @@ export default function EmailErrorsBanner({ userId, shopIds }: EmailErrorsBanner
         backgroundColor,
         border: `1px solid ${borderColor}`,
         borderRadius: '12px',
-        padding: '16px 20px',
+        padding: '16px',
+        marginBottom: '24px',
         display: 'flex',
-        alignItems: 'flex-start',
-        gap: '16px',
+        flexDirection: 'column',
+        gap: '12px',
       }}
     >
-      <AlertTriangle size={24} color={iconColor} style={{ flexShrink: 0, marginTop: '2px' }} />
+      {/* Header row with icon, title and dismiss button */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <AlertTriangle size={20} color={iconColor} style={{ flexShrink: 0, marginTop: '2px' }} />
 
-      <div style={{ flex: 1 }}>
-        <p
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p
+            style={{
+              color: textColor,
+              fontWeight: 600,
+              fontSize: '14px',
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Mail size={14} />
+            {errorSummary.total_failed} email{errorSummary.total_failed > 1 ? 's' : ''} com falha
+          </p>
+        </div>
+
+        <button
+          onClick={() => setDismissed(true)}
           style={{
-            color: textColor,
-            fontWeight: 600,
-            fontSize: '15px',
-            margin: 0,
-            marginBottom: '4px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px',
+            color: 'var(--text-secondary)',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            justifyContent: 'center',
+            flexShrink: 0,
           }}
+          title="Dispensar"
         >
-          <Mail size={16} />
-          {errorSummary.total_failed} email{errorSummary.total_failed > 1 ? 's' : ''} com falha nas últimas 24h
-        </p>
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div style={{ paddingLeft: '32px' }}>
         <p
           style={{
             color: 'var(--text-secondary)',
-            fontSize: '14px',
+            fontSize: '13px',
             margin: 0,
-            marginBottom: '8px',
+            marginBottom: '4px',
+            lineHeight: '1.4',
           }}
         >
           <strong>{solution.title}</strong> na loja <strong>{errorSummary.shop_name}</strong>
@@ -268,53 +294,38 @@ export default function EmailErrorsBanner({ userId, shopIds }: EmailErrorsBanner
         <p
           style={{
             color: 'var(--text-secondary)',
-            fontSize: '13px',
+            fontSize: '12px',
             margin: 0,
-            lineHeight: '1.5',
+            lineHeight: '1.4',
           }}
         >
           {solution.description}
         </p>
       </div>
 
+      {/* Action button */}
       {errorSummary.shop_id && (
-        <Link
-          to={editLink}
-          style={{
-            backgroundColor: '#f59e0b',
-            color: 'white',
-            padding: '10px 16px',
-            borderRadius: '8px',
-            fontWeight: 600,
-            fontSize: '13px',
-            textDecoration: 'none',
-            whiteSpace: 'nowrap',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-          }}
-        >
-          Verificar config
-          <ExternalLink size={14} />
-        </Link>
+        <div style={{ paddingLeft: '32px' }}>
+          <Link
+            to={editLink}
+            style={{
+              backgroundColor: '#f59e0b',
+              color: 'white',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '13px',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            Verificar config
+            <ExternalLink size={14} />
+          </Link>
+        </div>
       )}
-
-      <button
-        onClick={() => setDismissed(true)}
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: '4px',
-          color: 'var(--text-secondary)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-        title="Dispensar"
-      >
-        <X size={20} />
-      </button>
     </div>
   )
 }

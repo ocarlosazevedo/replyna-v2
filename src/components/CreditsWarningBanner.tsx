@@ -40,71 +40,82 @@ export default function CreditsWarningBanner({
         backgroundColor,
         border: `1px solid ${borderColor}`,
         borderRadius: '12px',
-        padding: '16px 20px',
+        padding: '16px',
         marginBottom: '24px',
         display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
+        flexDirection: 'column',
+        gap: '12px',
       }}
     >
-      <AlertTriangle size={24} color={iconColor} style={{ flexShrink: 0 }} />
+      {/* Header row with icon, title and dismiss button */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <AlertTriangle size={20} color={iconColor} style={{ flexShrink: 0, marginTop: '2px' }} />
 
-      <div style={{ flex: 1 }}>
-        <p
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p
+            style={{
+              color: textColor,
+              fontWeight: 600,
+              fontSize: '14px',
+              margin: 0,
+            }}
+          >
+            Seus créditos acabaram!
+          </p>
+        </div>
+
+        <button
+          onClick={() => setDismissed(true)}
           style={{
-            color: textColor,
-            fontWeight: 600,
-            fontSize: '15px',
-            margin: 0,
-            marginBottom: '4px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px',
+            color: 'var(--text-secondary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
           }}
+          title="Dispensar"
         >
-          Seus créditos acabaram!
-        </p>
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div style={{ paddingLeft: '32px' }}>
         <p
           style={{
             color: 'var(--text-secondary)',
-            fontSize: '14px',
+            fontSize: '13px',
             margin: 0,
+            lineHeight: '1.4',
           }}
         >
-          Você usou todos os seus créditos. Novos emails não estão sendo respondidos
-          automaticamente.
+          Você usou todos os seus créditos. Novos emails não estão sendo respondidos automaticamente.
         </p>
       </div>
 
-      <Link
-        to="/account"
-        style={{
-          backgroundColor: '#ef4444',
-          color: 'white',
-          padding: '10px 20px',
-          borderRadius: '8px',
-          fontWeight: 600,
-          fontSize: '14px',
-          textDecoration: 'none',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        Fazer upgrade
-      </Link>
-
-      <button
-        onClick={() => setDismissed(true)}
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: '4px',
-          color: 'var(--text-secondary)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-        title="Dispensar"
-      >
-        <X size={20} />
-      </button>
+      {/* Action button */}
+      <div style={{ paddingLeft: '32px' }}>
+        <Link
+          to="/account"
+          style={{
+            backgroundColor: '#ef4444',
+            color: 'white',
+            padding: '8px 14px',
+            borderRadius: '8px',
+            fontWeight: 600,
+            fontSize: '13px',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+          }}
+        >
+          Fazer upgrade
+        </Link>
+      </div>
     </div>
   )
 }
