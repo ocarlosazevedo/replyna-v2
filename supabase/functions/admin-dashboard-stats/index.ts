@@ -69,20 +69,20 @@ serve(async (req) => {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
-      // E-mails recebidos (inbound, excluindo spam e acknowledgment)
-      // Acknowledgment são emails que não precisam de resposta (cliente dizendo "ok", "obrigado", etc.)
+      // Conversas recebidas (excluindo spam e acknowledgment)
+      // Conta conversas únicas para métricas mais precisas (um cliente = uma conversa)
       supabase
-        .from('messages')
+        .from('conversations')
         .select('*', { count: 'exact', head: true })
-        .eq('direction', 'inbound')
         .not('category', 'in', '("spam","acknowledgment")')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
-      // E-mails respondidos (outbound)
+      // Conversas atendidas (que têm pelo menos uma resposta outbound)
       supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('direction', 'outbound')
+        .from('conversations')
+        .select('*, messages!inner(direction)', { count: 'exact', head: true })
+        .not('category', 'in', '("spam","acknowledgment")')
+        .eq('messages.direction', 'outbound')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
       // Conversas encaminhadas para humano (status pending_human)
@@ -201,20 +201,20 @@ serve(async (req) => {
       return nameA.localeCompare(nameB);
     });
 
-    // Métricas de email
-    const emailsReceived = inboundEmailsRes.count || 0;
-    const emailsReplied = outboundEmailsRes.count || 0;
+    // Métricas de conversas (não mensagens individuais)
+    const conversationsReceived = inboundEmailsRes.count || 0;
+    const conversationsReplied = outboundEmailsRes.count || 0;
     const humanEmails = humanEmailsRes.count || 0;
 
-    // Taxa de automação = emails respondidos / emails recebidos
-    const automationRate = emailsReceived > 0
-      ? Math.round((emailsReplied / emailsReceived) * 100)
+    // Taxa de automação = conversas atendidas / conversas recebidas
+    const automationRate = conversationsReceived > 0
+      ? Math.round((conversationsReplied / conversationsReceived) * 100)
       : 0;
 
-    // Taxa de sucesso = (emails respondidos - emails humanos) / emails respondidos
-    // Representa % de emails resolvidos automaticamente sem intervenção humana
-    const successRate = emailsReplied > 0
-      ? Math.round(((emailsReplied - humanEmails) / emailsReplied) * 100)
+    // Taxa de sucesso = (conversas atendidas - conversas humanas) / conversas atendidas
+    // Representa % de conversas resolvidas automaticamente sem intervenção humana
+    const successRate = conversationsReplied > 0
+      ? Math.round(((conversationsReplied - humanEmails) / conversationsReplied) * 100)
       : 0;
 
     const stats = {
@@ -224,9 +224,9 @@ serve(async (req) => {
       activeShops: activeShopsRes.count || 0,
       totalConversations: conversationsRes.count || 0,
       totalMessages: totalMessagesRes.count || 0,
-      // Novas métricas de email
-      emailsReceived,
-      emailsReplied,
+      // Métricas de conversas (clientes atendidos)
+      conversationsReceived,
+      conversationsReplied,
       humanEmails,
       automationRate,
       successRate,

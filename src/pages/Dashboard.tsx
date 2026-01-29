@@ -42,8 +42,8 @@ interface ConversationRow {
 }
 
 interface MetricSummary {
-  emailsReceived: number
-  emailsReplied: number
+  conversationsReceived: number
+  conversationsReplied: number
   automationRate: number
   successRate: number
   pendingHuman: number
@@ -242,8 +242,8 @@ export default function Dashboard() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [metrics, setMetrics] = useState<MetricSummary>({
-    emailsReceived: 0,
-    emailsReplied: 0,
+    conversationsReceived: 0,
+    conversationsReplied: 0,
     automationRate: 0,
     successRate: 0,
     pendingHuman: 0,
@@ -436,49 +436,49 @@ export default function Dashboard() {
       return pendingHuman ?? 0
     }
 
-    // Usar count queries para métricas (evita limite de 1000 rows do Supabase)
-    const loadEmailCounts = async () => {
-      // Count de emails recebidos (inbound, excluindo spam e acknowledgment)
-      const inboundBaseQuery = () =>
+    // Usar count queries para métricas baseadas em CONVERSAS (não mensagens)
+    const loadConversationCounts = async () => {
+      // Count de conversas recebidas (excluindo spam e acknowledgment)
+      const receivedBaseQuery = () =>
         supabase
-          .from('messages')
-          .select('id, conversations!inner(shop_id, category)', { count: 'exact', head: true })
-          .eq('direction', 'inbound')
+          .from('conversations')
+          .select('id', { count: 'exact', head: true })
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
-          .not('conversations.category', 'in', '("spam","acknowledgment")')
+          .not('category', 'in', '("spam","acknowledgment")')
 
-      const inboundQuery =
+      const receivedQuery =
         selectedShopId === 'all'
-          ? inboundBaseQuery().in('conversations.shop_id', effectiveShopIds)
-          : inboundBaseQuery().eq('conversations.shop_id', selectedShopId)
+          ? receivedBaseQuery().in('shop_id', effectiveShopIds)
+          : receivedBaseQuery().eq('shop_id', selectedShopId)
 
-      // Count de emails respondidos (outbound, excluindo spam e acknowledgment)
-      const outboundBaseQuery = () =>
+      // Count de conversas atendidas (que têm pelo menos 1 mensagem outbound)
+      // Usamos uma subquery para verificar se existe resposta na conversa
+      const repliedBaseQuery = () =>
         supabase
-          .from('messages')
-          .select('id, conversations!inner(shop_id, category)', { count: 'exact', head: true })
-          .eq('direction', 'outbound')
+          .from('conversations')
+          .select('id, messages!inner(direction)', { count: 'exact', head: true })
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
-          .not('conversations.category', 'in', '("spam","acknowledgment")')
+          .not('category', 'in', '("spam","acknowledgment")')
+          .eq('messages.direction', 'outbound')
 
-      const outboundQuery =
+      const repliedQuery =
         selectedShopId === 'all'
-          ? outboundBaseQuery().in('conversations.shop_id', effectiveShopIds)
-          : outboundBaseQuery().eq('conversations.shop_id', selectedShopId)
+          ? repliedBaseQuery().in('shop_id', effectiveShopIds)
+          : repliedBaseQuery().eq('shop_id', selectedShopId)
 
-      const [inboundResult, outboundResult] = await Promise.all([
-        inboundQuery,
-        outboundQuery,
+      const [receivedResult, repliedResult] = await Promise.all([
+        receivedQuery,
+        repliedQuery,
       ])
 
-      if (inboundResult.error) throw inboundResult.error
-      if (outboundResult.error) throw outboundResult.error
+      if (receivedResult.error) throw receivedResult.error
+      if (repliedResult.error) throw repliedResult.error
 
       return {
-        emailsReceived: inboundResult.count ?? 0,
-        emailsReplied: outboundResult.count ?? 0,
+        conversationsReceived: receivedResult.count ?? 0,
+        conversationsReplied: repliedResult.count ?? 0,
       }
     }
 
@@ -536,11 +536,11 @@ export default function Dashboard() {
     // Etapa 2: Gráfico (mais lento, carrega depois)
     const loadFastData = async () => {
       try {
-        const [pendingHuman, emailCounts, conversationRows] = await Promise.all([
+        const [pendingHuman, conversationCounts, conversationRows] = await Promise.all([
           loadPendingHuman(),
           cacheFetch(
-            `email-counts:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
-            loadEmailCounts
+            `conversation-counts:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
+            loadConversationCounts
           ),
           cacheFetch(
             `conversations:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
@@ -550,20 +550,20 @@ export default function Dashboard() {
 
         if (!isActive) return
 
-        // Métricas usando count queries (valores precisos)
-        const { emailsReceived, emailsReplied } = emailCounts
+        // Métricas usando count de CONVERSAS (não mensagens individuais)
+        const { conversationsReceived, conversationsReplied } = conversationCounts
 
-        const automationRate = emailsReceived > 0
-          ? (emailsReplied / emailsReceived) * 100
+        const automationRate = conversationsReceived > 0
+          ? (conversationsReplied / conversationsReceived) * 100
           : 0
 
-        const successRate = emailsReplied > 0
-          ? ((emailsReplied - pendingHuman) / emailsReplied) * 100
+        const successRate = conversationsReplied > 0
+          ? ((conversationsReplied - pendingHuman) / conversationsReplied) * 100
           : 0
 
         setMetrics({
-          emailsReceived,
-          emailsReplied,
+          conversationsReceived,
+          conversationsReplied,
           automationRate,
           successRate,
           pendingHuman,
@@ -630,6 +630,9 @@ export default function Dashboard() {
               `conversations:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`
             )
             cacheRef.current.delete(
+              `conversation-counts:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`
+            )
+            cacheRef.current.delete(
               `messages:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`
             )
             // Adicionar nova conversa no topo da lista
@@ -637,10 +640,10 @@ export default function Dashboard() {
               const updated = [newConversation, ...prev.filter((c) => c.id !== newConversation.id)]
               return updated
             })
-            // Incrementar emails recebidos (nova conversa = novo email inbound)
+            // Incrementar conversas recebidas (nova conversa = novo cliente)
             setMetrics((prev) => ({
               ...prev,
-              emailsReceived: prev.emailsReceived + 1,
+              conversationsReceived: prev.conversationsReceived + 1,
             }))
           }
         }
@@ -826,11 +829,11 @@ export default function Dashboard() {
                 <Mail size={24} style={{ color: '#06b6d4' }} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>E-mails Recebidos</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>Conversas Recebidas</div>
                 <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {renderValue(metrics.emailsReceived)}
+                  {renderValue(metrics.conversationsReceived)}
                 </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>excluindo spam</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>clientes que entraram em contato</div>
               </div>
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
@@ -838,11 +841,11 @@ export default function Dashboard() {
                 <CheckCircle size={24} style={{ color: '#10b981' }} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>E-mails Respondidos</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>Conversas Atendidas</div>
                 <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {renderValue(metrics.emailsReplied)}
+                  {renderValue(metrics.conversationsReplied)}
                 </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>respostas enviadas</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>clientes que receberam resposta</div>
               </div>
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
@@ -854,7 +857,7 @@ export default function Dashboard() {
                 <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {renderValue(metrics.automationRate, 'percent')}
                 </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>respondidos / recebidos</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>atendidas / recebidas</div>
               </div>
             </div>
             <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>

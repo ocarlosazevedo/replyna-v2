@@ -36,13 +36,13 @@ function useIsMobile() {
 }
 
 interface DashboardStats {
-  // Métricas de email
-  emailsReceived: number
-  emailsReplied: number
+  // Métricas de conversas
+  conversationsReceived: number
+  conversationsReplied: number
   humanEmails: number
   automationRate: number
   successRate: number
-  // Métricas de conversas
+  // Métricas de usuários
   usersAtLimit: number
   categories: Record<string, number>
 }
@@ -277,7 +277,7 @@ export default function AdminDashboard() {
         <DateRangePicker value={range} onChange={setRange} />
       </div>
 
-      {/* Metricas de Email */}
+      {/* Metricas de Conversas */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? '12px' : '24px', marginBottom: isMobile ? '12px' : '24px' }}>
         <div style={statCardStyle}>
           <div style={iconBoxStyle('#06b6d4')}>
@@ -285,12 +285,12 @@ export default function AdminDashboard() {
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              E-mails Recebidos
+              Conversas Recebidas
             </div>
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {stats?.emailsReceived || 0}
+              {stats?.conversationsReceived || 0}
             </div>
-            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>no periodo</div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>clientes no periodo</div>
           </div>
         </div>
 
@@ -300,12 +300,12 @@ export default function AdminDashboard() {
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              E-mails Respondidos
+              Conversas Atendidas
             </div>
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {stats?.emailsReplied || 0}
+              {stats?.conversationsReplied || 0}
             </div>
-            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>no periodo</div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>com resposta</div>
           </div>
         </div>
 
@@ -321,7 +321,7 @@ export default function AdminDashboard() {
               {stats?.automationRate || 0}%
             </div>
             <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              respondidos/recebidos
+              atendidas/recebidas
             </div>
           </div>
         </div>
