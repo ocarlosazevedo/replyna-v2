@@ -2,19 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { ChevronLeft, Eye, EyeOff, Save, Store, ShoppingBag, Mail, Settings, Check, X, Edit3 } from 'lucide-react'
-
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  return isMobile
-}
 
 interface ShopData {
   id: string

@@ -2,19 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User, Store, Plus, ChevronDown, Snowflake } from 'lucide-react'
-
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  return isMobile
-}
 
 interface Shop {
   id: string
@@ -327,20 +316,21 @@ export default function Shops() {
       {hasFrozenShops && (
         <div style={{
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'flex-start' : 'center',
           gap: '12px',
-          padding: '16px',
+          padding: isMobile ? '14px' : '16px',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
           border: '1px solid rgba(59, 130, 246, 0.3)',
           borderRadius: '12px',
           marginBottom: '20px',
         }}>
-          <Snowflake size={24} style={{ color: '#3b82f6', flexShrink: 0 }} />
+          <Snowflake size={isMobile ? 20 : 24} style={{ color: '#3b82f6', flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#3b82f6', marginBottom: '4px' }}>
+            <div style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 600, color: '#3b82f6', marginBottom: '4px' }}>
               {frozenShopIds.size} loja{frozenShopIds.size > 1 ? 's' : ''} congelada{frozenShopIds.size > 1 ? 's' : ''}
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
               Seu plano permite {shopsLimit} loja{shopsLimit && shopsLimit > 1 ? 's' : ''} ativa{shopsLimit && shopsLimit > 1 ? 's' : ''}.
               As lojas excedentes estão congeladas e não processam emails.
               <button
@@ -354,6 +344,7 @@ export default function Shops() {
                   padding: 0,
                   marginLeft: '4px',
                   textDecoration: 'underline',
+                  fontSize: 'inherit',
                 }}
               >
                 Fazer upgrade
@@ -380,15 +371,16 @@ export default function Shops() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '10px 16px',
+                padding: isMobile ? '10px 12px' : '10px 16px',
                 borderRadius: '10px',
                 border: '1px solid var(--border-color)',
                 backgroundColor: 'var(--bg-card)',
                 color: 'var(--text-primary)',
-                fontSize: '14px',
+                fontSize: isMobile ? '13px' : '14px',
                 fontWeight: 500,
                 cursor: 'pointer',
-                minWidth: '180px',
+                minWidth: isMobile ? 'auto' : '180px',
+                flex: isMobile ? 1 : 'none',
                 justifyContent: 'space-between',
               }}
             >
@@ -476,15 +468,16 @@ export default function Shops() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '10px 16px',
+                padding: isMobile ? '10px 12px' : '10px 16px',
                 borderRadius: '10px',
                 border: '1px solid var(--border-color)',
                 backgroundColor: 'var(--bg-card)',
                 color: 'var(--text-primary)',
-                fontSize: '14px',
+                fontSize: isMobile ? '13px' : '14px',
                 fontWeight: 500,
                 cursor: 'pointer',
-                minWidth: '160px',
+                minWidth: isMobile ? 'auto' : '160px',
+                flex: isMobile ? 1 : 'none',
                 justifyContent: 'space-between',
               }}
             >
