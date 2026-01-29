@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Lightbulb, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
-const STORAGE_KEY_PREFIX = 'replyna_seen_retention_coupon_tip_'
+const STORAGE_KEY_PREFIX = 'replyna_seen_retention_coupon_tip_v2_'
 
 interface FeatureTipBannerProps {
   shopId?: string | null
