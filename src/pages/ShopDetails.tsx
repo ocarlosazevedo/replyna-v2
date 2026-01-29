@@ -791,7 +791,9 @@ export default function ShopDetails() {
                 placeholder="Ex: FICA10, DESC20"
               />
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                A IA oferecerá este cupom para clientes que desejam cancelar ou devolver
+                A IA oferecerá este cupom para clientes que desejam cancelar ou devolver.
+                <br />
+                <strong style={{ color: 'var(--warning, #d97706)' }}>Importante:</strong> Crie este cupom na sua loja (Shopify, etc.) antes de cadastrar aqui.
               </div>
             </div>
           </div>
