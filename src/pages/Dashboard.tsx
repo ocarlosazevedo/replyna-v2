@@ -754,7 +754,7 @@ export default function Dashboard() {
       )}
 
       {/* Banner de dica: cupom de retenção */}
-      <FeatureTipBanner shopId={shops.length > 0 ? shops[0].id : null} />
+      <FeatureTipBanner shopId={shops.length > 0 ? shops[0].id : null} userId={user?.id} />
 
       {/* Header */}
       <div

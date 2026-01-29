@@ -41,7 +41,7 @@ const toneOptions = [
 ]
 
 export default function ShopDetails() {
-  useAuth() // Ensures user is authenticated
+  const { user } = useAuth()
   const navigate = useNavigate()
   const { shopId } = useParams()
   const isMobile = useIsMobile()
@@ -64,8 +64,10 @@ export default function ShopDetails() {
       loadShop()
     }
     // Marcar dica de cupom de retenção como vista
-    markRetentionCouponTipAsSeen()
-  }, [shopId])
+    if (user?.id) {
+      markRetentionCouponTipAsSeen(user.id)
+    }
+  }, [shopId, user?.id])
 
   const loadShop = async () => {
     if (!shopId) return

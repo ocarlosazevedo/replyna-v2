@@ -2,22 +2,24 @@ import { Link } from 'react-router-dom'
 import { Lightbulb, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
-const STORAGE_KEY = 'replyna_seen_retention_coupon_tip'
+const STORAGE_KEY_PREFIX = 'replyna_seen_retention_coupon_tip_'
 
 interface FeatureTipBannerProps {
   shopId?: string | null
+  userId?: string | null
 }
 
-export default function FeatureTipBanner({ shopId }: FeatureTipBannerProps) {
+export default function FeatureTipBanner({ shopId, userId }: FeatureTipBannerProps) {
   const [dismissed, setDismissed] = useState(false)
   const [hasSeen, setHasSeen] = useState(true) // Start as true to avoid flash
 
   useEffect(() => {
-    const seen = localStorage.getItem(STORAGE_KEY)
+    if (!userId) return
+    const seen = localStorage.getItem(STORAGE_KEY_PREFIX + userId)
     setHasSeen(seen === 'true')
-  }, [])
+  }, [userId])
 
-  if (dismissed || hasSeen) return null
+  if (dismissed || hasSeen || !userId) return null
 
   const handleDismiss = () => {
     setDismissed(true)
@@ -108,6 +110,8 @@ export default function FeatureTipBanner({ shopId }: FeatureTipBannerProps) {
   )
 }
 
-export function markRetentionCouponTipAsSeen() {
-  localStorage.setItem(STORAGE_KEY, 'true')
+export function markRetentionCouponTipAsSeen(userId: string) {
+  if (userId) {
+    localStorage.setItem(STORAGE_KEY_PREFIX + userId, 'true')
+  }
 }
