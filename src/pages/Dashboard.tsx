@@ -4,6 +4,7 @@ import type { DateRange } from 'react-day-picker'
 import { Mail, CheckCircle, TrendingUp, Headphones, Package, RefreshCw, Truck, HelpCircle } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useUserProfile, useUserShops } from '../hooks/useDashboardData'
 import { supabase } from '../lib/supabase'
 import DateRangePicker from '../components/DateRangePicker'
 import CreditsWarningBanner from '../components/CreditsWarningBanner'
@@ -15,22 +16,6 @@ import { getCategoryBadgeStyle, getCategoryLabel, CATEGORY_COLORS, CATEGORY_LABE
 const VolumeChart = lazy(() => import('../components/VolumeChart'))
 
 const CACHE_TTL = 5 * 60 * 1000
-
-interface ShopOption {
-  id: string
-  name: string
-}
-
-interface UserProfile {
-  name: string | null
-  plan: string | null
-  emails_limit: number | null
-  emails_used: number | null
-  shops_limit: number | null
-  created_at: string | null
-  extra_emails_purchased: number | null
-  extra_emails_used: number | null
-}
 
 interface ConversationRow {
   id: string
@@ -240,11 +225,13 @@ export default function Dashboard() {
   const isMobile = useIsMobile()
   const cacheRef = useRef(new Map<string, { timestamp: number; data: unknown }>())
 
-  const [shops, setShops] = useState<ShopOption[]>([])
+  // SWR hooks para dados com cache automático
+  const { data: profile, isLoading: loadingProfile } = useUserProfile(user?.id)
+  const { data: shops = [], isLoading: loadingShops } = useUserShops(user?.id)
+
   const [selectedShopId, setSelectedShopId] = useState('all')
   const [range, setRange] = useState<DateRange>(getDefaultRange())
 
-  const [profile, setProfile] = useState<UserProfile | null>(null)
   const [metrics, setMetrics] = useState<MetricSummary>({
     conversationsReceived: 0,
     conversationsReplied: 0,
@@ -255,8 +242,6 @@ export default function Dashboard() {
   const [volumeData, setVolumeData] = useState<Array<{ label: string; received: number; replied: number }>>([])
   const [conversations, setConversations] = useState<ConversationRow[]>([])
 
-  const [loadingProfile, setLoadingProfile] = useState(true)
-  const [loadingShops, setLoadingShops] = useState(true)
   const [loadingMetrics, setLoadingMetrics] = useState(true)
   const [loadingChart, setLoadingChart] = useState(true)
   const [loadingConversations, setLoadingConversations] = useState(true)
@@ -340,53 +325,6 @@ export default function Dashboard() {
     if (!user) return
     localStorage.setItem(`${storagePrefix}.shop`, selectedShopId)
   }, [selectedShopId, storagePrefix, user])
-
-  useEffect(() => {
-    if (!user) return
-    const loadProfile = async () => {
-      setLoadingProfile(true)
-      try {
-        const data = await cacheFetch(`profile:${user.id}`, async () => {
-          const { data, error } = await supabase
-            .from('users')
-            .select('name, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
-            .eq('id', user.id)
-            .maybeSingle()
-          if (error) throw error
-          return data as UserProfile | null
-        })
-        setProfile(data)
-      } catch (err) {
-        console.error('Erro ao carregar perfil:', err)
-      } finally {
-        setLoadingProfile(false)
-      }
-    }
-
-    const loadShops = async () => {
-      setLoadingShops(true)
-      try {
-        const data = await cacheFetch(`shops:${user.id}`, async () => {
-          const { data, error } = await supabase
-            .from('shops')
-            .select('id, name')
-            .eq('user_id', user.id)
-            .eq('is_active', true)
-            .order('name', { ascending: true })
-          if (error) throw error
-          return (data || []) as ShopOption[]
-        })
-        setShops(data)
-      } catch (err) {
-        console.error('Erro ao carregar lojas:', err)
-      } finally {
-        setLoadingShops(false)
-      }
-    }
-
-    loadProfile()
-    loadShops()
-  }, [cacheFetch, user])
 
   useEffect(() => {
     if (!user || loadingShops) return
