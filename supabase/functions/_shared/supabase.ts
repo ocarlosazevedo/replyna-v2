@@ -43,6 +43,7 @@ export interface Shop {
   tone_of_voice: string;
   fallback_message_template: string | null;
   signature_html: string | null;
+  retention_coupon_code: string | null;
 
   // Email processing options
   email_start_mode: 'all_unread' | 'from_integration_date';

@@ -28,6 +28,7 @@ interface ShopData {
   warranty_info: string
   store_description: string
   tone_of_voice: string
+  retention_coupon_code: string
   is_active: boolean
 }
 
@@ -780,6 +781,19 @@ export default function ShopDetails() {
                 ))}
               </select>
             </div>
+            <div>
+              <label style={labelStyle}>Cupom de retenção (cancelamento/devolução)</label>
+              <input
+                type="text"
+                value={editData.retention_coupon_code || ''}
+                onChange={(e) => updateEditField('retention_coupon_code', e.target.value.toUpperCase())}
+                style={inputStyle}
+                placeholder="Ex: FICA10, DESC20"
+              />
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                A IA oferecerá este cupom para clientes que desejam cancelar ou devolver
+              </div>
+            </div>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
@@ -804,6 +818,25 @@ export default function ShopDetails() {
             <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
               <label style={labelStyle}>Descrição da loja</label>
               <div style={valueStyle}>{shop.store_description || '-'}</div>
+            </div>
+            <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+              <label style={labelStyle}>Cupom de retenção</label>
+              <div style={valueStyle}>
+                {shop.retention_coupon_code ? (
+                  <span style={{
+                    backgroundColor: 'var(--accent)',
+                    color: '#fff',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontFamily: 'monospace',
+                    fontWeight: 600
+                  }}>
+                    {shop.retention_coupon_code}
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--text-secondary)' }}>Não configurado</span>
+                )}
+              </div>
             </div>
           </div>
         )}

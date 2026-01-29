@@ -900,6 +900,16 @@ async function processMessageInternal(
       console.log(`[processMessage] ${cachedImages.length} imagem(s) encontrada(s) no cache para análise visual`);
     }
 
+    // Lógica de retenção: incrementar contador se for cancelamento/devolução
+    let retentionContactCount = conversation.retention_contact_count || 0;
+    if (classification.category === 'troca_devolucao_reembolso') {
+      retentionContactCount += 1;
+      await updateConversation(conversation.id, {
+        retention_contact_count: retentionContactCount,
+      });
+      console.log(`[processMessage] Retenção: contato #${retentionContactCount} para conversa ${conversation.id}`);
+    }
+
     responseResult = await generateResponse(
       {
         name: shop.name,
@@ -912,6 +922,7 @@ async function processMessageInternal(
         signature_html: shop.signature_html,
         is_cod: shop.is_cod,
         support_email: shop.support_email,
+        retention_coupon_code: shop.retention_coupon_code,
       },
       message.subject || '',
       cleanBody,
@@ -919,7 +930,7 @@ async function processMessageInternal(
       conversationHistory,
       shopifyData,
       classification.language,
-      0, // retentionContactCount - TODO: implementar lógica de retenção
+      retentionContactCount,
       [], // additionalOrders
       cachedImages || [] // imagens do email para análise visual
     );
