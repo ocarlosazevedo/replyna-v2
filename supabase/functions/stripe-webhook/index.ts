@@ -527,24 +527,66 @@ async function handleSubscriptionUpdate(
     console.error('Erro ao atualizar assinatura:', error);
   }
 
-  // Se cancelado ou unpaid, atualizar status do usuário
+  // Buscar subscription e usuário associado
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('user_id, plan_id')
+    .eq('stripe_subscription_id', subscription.id)
+    .single();
+
+  if (!sub?.user_id) {
+    console.log('Subscription não encontrada no banco:', subscription.id);
+    return;
+  }
+
+  // Se cancelado ou unpaid, atualizar status do usuário para free
   if (status === 'canceled' || status === 'unpaid') {
-    const { data: sub } = await supabase
-      .from('subscriptions')
-      .select('user_id')
-      .eq('stripe_subscription_id', subscription.id)
+    await supabase
+      .from('users')
+      .update({
+        status: status === 'canceled' ? 'inactive' : 'suspended',
+        plan: 'free',
+        emails_limit: 0,
+        shops_limit: 0,
+      })
+      .eq('id', sub.user_id);
+    console.log('Usuário atualizado para free devido a status:', status);
+    return;
+  }
+
+  // Para outros status (active, trialing, etc), sincronizar plano baseado no price_id
+  if (priceId) {
+    // Buscar plano pelo stripe_price_id (mensal ou anual)
+    const { data: plan } = await supabase
+      .from('plans')
+      .select('id, name, emails_limit, shops_limit')
+      .or(`stripe_price_monthly_id.eq.${priceId},stripe_price_yearly_id.eq.${priceId}`)
       .single();
 
-    if (sub?.user_id) {
+    if (plan) {
+      // Atualizar subscription com o plan_id correto
       await supabase
+        .from('subscriptions')
+        .update({ plan_id: plan.id })
+        .eq('stripe_subscription_id', subscription.id);
+
+      // Atualizar usuário com os dados do novo plano
+      const { error: userError } = await supabase
         .from('users')
         .update({
-          status: status === 'canceled' ? 'inactive' : 'suspended',
-          plan: 'free',
-          emails_limit: 0,
-          shops_limit: 0,
+          plan: plan.name,
+          emails_limit: plan.emails_limit,
+          shops_limit: plan.shops_limit,
         })
         .eq('id', sub.user_id);
+
+      if (userError) {
+        console.error('Erro ao atualizar usuário com novo plano:', userError);
+      } else {
+        console.log(`Usuário ${sub.user_id} atualizado para plano: ${plan.name}`);
+      }
+    } else {
+      console.log('Plano não encontrado para price_id:', priceId);
     }
   }
 }
