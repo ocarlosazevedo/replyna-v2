@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase'
 import DateRangePicker from '../components/DateRangePicker'
 import CreditsWarningBanner from '../components/CreditsWarningBanner'
 import ShopifyErrorBanner from '../components/ShopifyErrorBanner'
+import FeatureTipBanner from '../components/FeatureTipBanner'
 import ConversationModal from '../components/ConversationModal'
 import { getCategoryBadgeStyle, getCategoryLabel, CATEGORY_COLORS, CATEGORY_LABELS } from '../constants/categories'
 
@@ -751,6 +752,9 @@ export default function Dashboard() {
           extraEmailsPurchased={profile.extra_emails_purchased ?? 0}
         />
       )}
+
+      {/* Banner de dica: cupom de retenção */}
+      <FeatureTipBanner shopId={shops.length > 0 ? shops[0].id : null} />
 
       {/* Header */}
       <div

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { ChevronLeft, Eye, EyeOff, Save, Store, ShoppingBag, Mail, Settings, Check, X, Edit3 } from 'lucide-react'
+import { markRetentionCouponTipAsSeen } from '../components/FeatureTipBanner'
 
 interface ShopData {
   id: string
@@ -62,6 +63,8 @@ export default function ShopDetails() {
     if (shopId) {
       loadShop()
     }
+    // Marcar dica de cupom de retenção como vista
+    markRetentionCouponTipAsSeen()
   }, [shopId])
 
   const loadShop = async () => {
