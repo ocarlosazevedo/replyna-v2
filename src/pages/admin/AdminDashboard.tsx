@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 import { subDays } from 'date-fns'
 import {
@@ -22,49 +22,9 @@ import {
 import DateRangePicker from '../../components/DateRangePicker'
 import ConversationModal from '../../components/ConversationModal'
 import { CATEGORY_COLORS, CATEGORY_LABELS } from '../../constants/categories'
+import { useAdminDashboardStats } from '../../hooks/useAdminDashboardData'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  return isMobile
-}
-
-interface DashboardStats {
-  // Métricas de conversas
-  conversationsReceived: number
-  conversationsReplied: number
-  humanEmails: number
-  automationRate: number
-  successRate: number
-  // Métricas de usuários
-  usersAtLimit: number
-  categories: Record<string, number>
-}
-
-interface RecentConversation {
-  id: string
-  shop_id: string
-  shop_name: string
-  customer_email: string
-  customer_name: string | null
-  subject: string | null
-  category: string | null
-  created_at: string
-  last_message_at: string | null
-}
-
-interface Client {
-  id: string
-  name: string | null
-  email: string
-  shops: string[]
-}
 
 const getDefaultRange = (): DateRange => {
   const today = new Date()
@@ -111,69 +71,67 @@ const filterCategories = [
 ]
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([])
-  const [loading, setLoading] = useState(true)
   const [range, setRange] = useState<DateRange>(getDefaultRange())
   const isMobile = useIsMobile()
+
+  // Calcular datas para o SWR
+  const dateStart = useMemo(() => range?.from ? startOfDay(range.from) : null, [range?.from])
+  const dateEnd = useMemo(() => range?.to ? endOfDay(range.to) : null, [range?.to])
+
+  // SWR hook para dados do dashboard com cache automático
+  const { data, isLoading: loading, mutate } = useAdminDashboardStats(dateStart, dateEnd)
+
+  // Extrair dados do SWR
+  const stats = data?.stats || null
+  const recentConversations = data?.recentConversations || []
+  const clients = data?.clients || []
 
   // Super Inbox states
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [showSpam, setShowSpam] = useState(false)
-  const [clients, setClients] = useState<Client[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('all')
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
-  // Carregar dados inicialmente e quando o range mudar
-  useEffect(() => {
-    loadStats()
-  }, [range])
+  // Função para recarregar dados manualmente
+  const loadStats = useCallback(() => {
+    mutate()
+    setLastUpdate(new Date())
+  }, [mutate])
 
-  // Auto-refresh a cada 30 segundos - TEMPORARIAMENTE DESABILITADO PARA DEBUG
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     loadStats()
-  //   }, AUTO_REFRESH_INTERVAL)
-
-  //   return () => clearInterval(interval)
-  // }, [range])
-
-  const loadStats = async () => {
-    if (!range?.from || !range?.to) return
-
-    setLoading(true)
-    try {
-      const dateStart = startOfDay(range.from)
-      const dateEnd = endOfDay(range.to)
-
-      // Usar Edge Function que bypassa RLS
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-dashboard-stats?dateStart=${dateStart.toISOString()}&dateEnd=${dateEnd.toISOString()}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-        }
-      )
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Erro ao carregar estatísticas')
-      }
-
-      const data = await response.json()
-
-      setStats(data.stats)
-      setRecentConversations(data.recentConversations || [])
-      setClients(data.clients || [])
-      setLastUpdate(new Date())
-    } catch (err) {
-      console.error('Erro ao carregar estatisticas:', err)
-    } finally {
-      setLoading(false)
+  // Função para atualizar categoria localmente (otimistic update)
+  const handleCategoryChange = useCallback((convId: string, newCategory: string) => {
+    if (data) {
+      mutate({
+        ...data,
+        recentConversations: data.recentConversations.map(conv =>
+          conv.id === convId ? { ...conv, category: newCategory } : conv
+        )
+      }, false)
     }
-  }
+  }, [data, mutate])
+
+  // Memoizar cliente selecionado e suas lojas
+  const selectedClientShops = useMemo(() => {
+    const selectedClient = clients.find(c => c.id === selectedClientId)
+    return selectedClient?.shops || []
+  }, [clients, selectedClientId])
+
+  // Memoizar conversas filtradas
+  const filteredConversations = useMemo(() => {
+    return recentConversations.filter((conv) => {
+      if (selectedClientId !== 'all' && !selectedClientShops.includes(conv.shop_id)) return false
+      if (!showSpam && conv.category === 'spam') return false
+      if (categoryFilter !== 'all' && conv.category !== categoryFilter) return false
+      return true
+    })
+  }, [recentConversations, selectedClientId, selectedClientShops, showSpam, categoryFilter])
+
+  // Memoizar total categorizado
+  const totalCategorized = useMemo(() =>
+    Object.values(stats?.categories || {}).reduce((a, b) => a + b, 0),
+    [stats?.categories]
+  )
 
   const cardStyle = {
     backgroundColor: 'var(--bg-card)',
@@ -253,7 +211,6 @@ export default function AdminDashboard() {
     )
   }
 
-  const totalCategorized = Object.values(stats?.categories || {}).reduce((a, b) => a + b, 0)
 
   return (
     <div>
@@ -547,45 +504,26 @@ export default function AdminDashboard() {
         </div>
 
         {/* Lista de conversas */}
-        {(() => {
-          // Obter shops do cliente selecionado
-          const selectedClient = clients.find(c => c.id === selectedClientId)
-          const clientShops = selectedClient?.shops || []
-
-          const filteredConversations = recentConversations.filter((conv) => {
-            // Filtrar por cliente (verificar se a loja pertence ao cliente)
-            if (selectedClientId !== 'all' && !clientShops.includes(conv.shop_id)) return false
-            // Filtrar por SPAM
-            if (!showSpam && conv.category === 'spam') return false
-            // Filtrar por categoria
-            if (categoryFilter !== 'all' && conv.category !== categoryFilter) return false
-            return true
-          })
-
-          if (filteredConversations.length === 0) {
-            return (
-              <div style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '40px' }}>
-                {recentConversations.length === 0
-                  ? 'Nenhuma conversa no periodo selecionado'
-                  : 'Nenhuma conversa encontrada com os filtros aplicados'
-                }
-              </div>
-            )
-          }
-
-          return (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Loja</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Cliente</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Assunto</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Categoria</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'right', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Data</th>
-                  </tr>
-                </thead>
-                <tbody>
+        {filteredConversations.length === 0 ? (
+          <div style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '40px' }}>
+            {recentConversations.length === 0
+              ? 'Nenhuma conversa no periodo selecionado'
+              : 'Nenhuma conversa encontrada com os filtros aplicados'
+            }
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                  <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Loja</th>
+                  <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Cliente</th>
+                  <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Assunto</th>
+                  <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Categoria</th>
+                  <th style={{ padding: '12px 8px', textAlign: 'right', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Data</th>
+                </tr>
+              </thead>
+              <tbody>
                   {filteredConversations.map((conv) => {
                     const categoryColor = (conv.category && CATEGORY_COLORS[conv.category]) || '#6b7280'
                     return (
@@ -681,23 +619,15 @@ export default function AdminDashboard() {
                   })}
                 </tbody>
               </table>
-            </div>
-          )
-        })()}
+          </div>
+        )}
       </div>
 
       {/* Modal de conversa */}
       <ConversationModal
         conversationId={selectedConversationId}
         onClose={() => setSelectedConversationId(null)}
-        onCategoryChange={(convId, newCategory) => {
-          // Atualizar a categoria na lista local
-          setRecentConversations(prev =>
-            prev.map(conv =>
-              conv.id === convId ? { ...conv, category: newCategory } : conv
-            )
-          )
-        }}
+        onCategoryChange={handleCategoryChange}
         isAdmin={true}
       />
     </div>
