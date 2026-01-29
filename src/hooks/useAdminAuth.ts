@@ -17,17 +17,7 @@ interface AdminSession {
   expires_at: string
 }
 
-interface LoginResponse {
-  success: boolean
-  error?: string
-  blocked?: boolean
-  blocked_until?: string
-  admin?: Admin
-  expires_at?: string
-}
-
 const ADMIN_SESSION_KEY = 'replyna_admin_session'
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 // Hash simples para o token (apenas para identificação, não segurança)
 function simpleHash(str: string): string {
@@ -89,29 +79,23 @@ export function useAdminAuth() {
 
     console.log('Tentando login com:', { email: email.toLowerCase(), tokenHash })
 
-    // Chamar edge function com rate limiting integrado
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: email.toLowerCase(),
-        password: password,
-        token_hash: tokenHash,
-        user_agent: navigator.userAgent,
-      }),
+    // Chamar função RPC diretamente
+    const { data, error } = await supabase.rpc('admin_login_with_session', {
+      p_email: email.toLowerCase(),
+      p_password: password,
+      p_token_hash: tokenHash,
+      p_user_agent: navigator.userAgent
     })
 
-    const data: LoginResponse = await response.json()
-    console.log('Resposta do login:', data)
+    console.log('Resposta do login:', { data, error })
 
-    if (!response.ok || !data.success) {
-      // Mensagem especial para rate limiting
-      if (data.blocked) {
-        throw new Error(data.error || 'Muitas tentativas. Aguarde alguns minutos.')
-      }
-      throw new Error(data.error || 'Email ou senha inválidos')
+    if (error) {
+      console.error('Erro RPC:', error)
+      throw new Error(error.message || 'Erro ao conectar com o servidor')
+    }
+
+    if (!data || !data.success) {
+      throw new Error(data?.error || 'Email ou senha inválidos')
     }
 
     const adminData = data.admin as Admin
