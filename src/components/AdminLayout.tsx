@@ -276,6 +276,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           marginLeft: isMobile ? 0 : '264px',
           width: isMobile ? '100%' : 'calc(100% - 264px)',
           minHeight: '100vh',
+          overflowX: 'hidden',
+          maxWidth: isMobile ? '100vw' : undefined,
         }}
       >
         {children}

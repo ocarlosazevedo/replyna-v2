@@ -170,6 +170,7 @@ export default function AdminFinancial() {
     borderRadius: '16px',
     padding: isMobile ? '16px' : '24px',
     border: '1px solid var(--border-color)',
+    overflow: 'hidden' as const,
   }
 
   const statCardStyle = {
