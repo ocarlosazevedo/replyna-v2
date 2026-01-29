@@ -880,9 +880,9 @@ export default function Dashboard() {
                 <div style={{
                   fontSize: isMobile ? '20px' : '28px',
                   fontWeight: 700,
-                  color: metrics.successRate >= 90
+                  color: metrics.successRate >= 80
                     ? '#16a34a'
-                    : metrics.successRate >= 70
+                    : metrics.successRate >= 50
                       ? '#d97706'
                       : '#dc2626'
                 }}>
