@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import type { DateRange } from 'react-day-picker'
 import { Mail, CheckCircle, TrendingUp, Headphones, Package, RefreshCw, Truck, HelpCircle } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { supabase } from '../lib/supabase'
 import DateRangePicker from '../components/DateRangePicker'
 import CreditsWarningBanner from '../components/CreditsWarningBanner'
@@ -235,6 +236,7 @@ const Skeleton = ({ height = 16, width = '100%' }: { height?: number; width?: nu
 export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const cacheRef = useRef(new Map<string, { timestamp: number; data: unknown }>())
 
   const [shops, setShops] = useState<ShopOption[]>([])
@@ -717,7 +719,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px' }}>
       {/* Modal de conversa */}
       <ConversationModal
         conversationId={selectedConversationId}
@@ -754,22 +756,24 @@ export default function Dashboard() {
       <div
         style={{
           display: 'flex',
-          flexWrap: 'wrap',
-          gap: '16px',
-          alignItems: 'center',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '12px' : '16px',
+          alignItems: isMobile ? 'stretch' : 'center',
           justifyContent: 'space-between',
         }}
       >
         <div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
             {loadingProfile ? <Skeleton width={180} height={24} /> : `Olá, ${shopName}`}
           </div>
-          <div style={{ color: 'var(--text-secondary)', marginTop: '6px', fontSize: '14px' }}>
-            Acompanhe o desempenho do seu atendimento automatizado
-          </div>
+          {!isMobile && (
+            <div style={{ color: 'var(--text-secondary)', marginTop: '6px', fontSize: '14px' }}>
+              Acompanhe o desempenho do seu atendimento automatizado
+            </div>
+          )}
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           <select
             value={selectedShopId}
             onChange={handleShopChange}
@@ -777,11 +781,12 @@ export default function Dashboard() {
               backgroundColor: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
               borderRadius: '10px',
-              padding: '10px 24px 10px 14px',
-              fontSize: '14px',
+              padding: isMobile ? '8px 24px 8px 12px' : '10px 24px 10px 14px',
+              fontSize: isMobile ? '13px' : '14px',
               fontWeight: 600,
               color: 'var(--text-primary)',
-              minWidth: '180px',
+              minWidth: isMobile ? '120px' : '180px',
+              flex: isMobile ? 1 : 'none',
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
               backgroundRepeat: 'no-repeat',
               backgroundPosition: 'right 8px center',
@@ -819,61 +824,61 @@ export default function Dashboard() {
       )}
 
       {/* Métricas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: isMobile ? '10px' : '16px' }}>
         {loadingMetrics ? (
           <>
-            <Skeleton height={110} />
-            <Skeleton height={110} />
-            <Skeleton height={110} />
-            <Skeleton height={110} />
-            <Skeleton height={110} />
+            <Skeleton height={isMobile ? 80 : 110} />
+            <Skeleton height={isMobile ? 80 : 110} />
+            <Skeleton height={isMobile ? 80 : 110} />
+            <Skeleton height={isMobile ? 80 : 110} />
+            <Skeleton height={isMobile ? 80 : 110} />
           </>
         ) : (
           <>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <div style={iconBoxStyle('#06b6d4')}>
-                <Mail size={24} style={{ color: '#06b6d4' }} />
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '12px' : '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: isMobile ? '8px' : '12px' }}>
+              <div style={{ ...iconBoxStyle('#06b6d4'), width: isMobile ? '36px' : '48px', height: isMobile ? '36px' : '48px', borderRadius: isMobile ? '10px' : '12px' }}>
+                <Mail size={isMobile ? 18 : 24} style={{ color: '#06b6d4' }} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>Conversas Recebidas</div>
-                <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '2px' }}>Recebidas</div>
+                <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {renderValue(metrics.conversationsReceived)}
                 </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>clientes que entraram em contato</div>
+                {!isMobile && <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>clientes que entraram em contato</div>}
               </div>
             </div>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <div style={iconBoxStyle('#10b981')}>
-                <CheckCircle size={24} style={{ color: '#10b981' }} />
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '12px' : '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: isMobile ? '8px' : '12px' }}>
+              <div style={{ ...iconBoxStyle('#10b981'), width: isMobile ? '36px' : '48px', height: isMobile ? '36px' : '48px', borderRadius: isMobile ? '10px' : '12px' }}>
+                <CheckCircle size={isMobile ? 18 : 24} style={{ color: '#10b981' }} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>Conversas Atendidas</div>
-                <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '2px' }}>Atendidas</div>
+                <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {renderValue(metrics.conversationsReplied)}
                 </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>clientes que receberam resposta</div>
+                {!isMobile && <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>clientes que receberam resposta</div>}
               </div>
             </div>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <div style={iconBoxStyle('#8b5cf6')}>
-                <TrendingUp size={24} style={{ color: '#8b5cf6' }} />
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '12px' : '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: isMobile ? '8px' : '12px' }}>
+              <div style={{ ...iconBoxStyle('#8b5cf6'), width: isMobile ? '36px' : '48px', height: isMobile ? '36px' : '48px', borderRadius: isMobile ? '10px' : '12px' }}>
+                <TrendingUp size={isMobile ? 18 : 24} style={{ color: '#8b5cf6' }} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>Taxa de Automação</div>
-                <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '2px' }}>Automação</div>
+                <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {renderValue(metrics.automationRate, 'percent')}
                 </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>atendidas / recebidas</div>
+                {!isMobile && <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>atendidas / recebidas</div>}
               </div>
             </div>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <div style={iconBoxStyle('#22c55e')}>
-                <CheckCircle size={24} style={{ color: '#22c55e' }} />
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '12px' : '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: isMobile ? '8px' : '12px' }}>
+              <div style={{ ...iconBoxStyle('#22c55e'), width: isMobile ? '36px' : '48px', height: isMobile ? '36px' : '48px', borderRadius: isMobile ? '10px' : '12px' }}>
+                <CheckCircle size={isMobile ? 18 : 24} style={{ color: '#22c55e' }} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>Taxa de Sucesso</div>
+                <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '2px' }}>Sucesso</div>
                 <div style={{
-                  fontSize: '28px',
+                  fontSize: isMobile ? '20px' : '28px',
                   fontWeight: 700,
                   color: metrics.successRate >= 90
                     ? '#16a34a'
@@ -883,19 +888,19 @@ export default function Dashboard() {
                 }}>
                   {renderValue(metrics.successRate, 'percent')}
                 </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>resolvidos sem humano</div>
+                {!isMobile && <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>resolvidos sem humano</div>}
               </div>
             </div>
-            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <div style={iconBoxStyle('#f59e0b')}>
-                <Headphones size={24} style={{ color: '#f59e0b' }} />
+            <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '12px' : '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: isMobile ? '8px' : '12px' }}>
+              <div style={{ ...iconBoxStyle('#f59e0b'), width: isMobile ? '36px' : '48px', height: isMobile ? '36px' : '48px', borderRadius: isMobile ? '10px' : '12px' }}>
+                <Headphones size={isMobile ? 18 : 24} style={{ color: '#f59e0b' }} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>Atendimento Humano</div>
-                <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '2px' }}>Humano</div>
+                <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {renderValue(metrics.pendingHuman)}
                 </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>aguardando atendimento</div>
+                {!isMobile && <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>aguardando atendimento</div>}
               </div>
             </div>
           </>
@@ -903,21 +908,21 @@ export default function Dashboard() {
       </div>
 
       {/* Gráfico */}
-      <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+      <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '16px' : '20px', border: '1px solid var(--border-color)' }}>
         <div>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Volume de Emails</div>
-          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>Recebidos x Respondidos</div>
+          <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Volume de Emails</div>
+          <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>Recebidos x Respondidos</div>
         </div>
-        <div style={{ marginTop: '20px', minHeight: '320px' }}>
+        <div style={{ marginTop: isMobile ? '12px' : '20px', minHeight: isMobile ? '200px' : '320px' }}>
           {loadingChart ? (
-            <Skeleton height={320} />
+            <Skeleton height={isMobile ? 200 : 320} />
           ) : volumeData.length === 0 ? (
-            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600 }}>
+            <div style={{ padding: isMobile ? '20px' : '32px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600, fontSize: isMobile ? '13px' : '14px' }}>
               Nenhum dado encontrado para o período selecionado
             </div>
           ) : (
-            <Suspense fallback={<Skeleton height={320} />}>
-              <div style={{ height: '320px' }}>
+            <Suspense fallback={<Skeleton height={isMobile ? 200 : 320} />}>
+              <div style={{ height: isMobile ? '200px' : '320px' }}>
                 <VolumeChart data={volumeData} />
               </div>
             </Suspense>
@@ -927,10 +932,10 @@ export default function Dashboard() {
 
       {/* Bottom */}
       <div className="replyna-dashboard-bottom">
-        <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+        <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '14px' : '20px', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: isMobile ? '12px' : '16px', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 Inbox
               </div>
               {/* Toggle Spam / Conversas */}
@@ -939,8 +944,8 @@ export default function Dashboard() {
                   type="button"
                   onClick={() => setCategoryFilter(categoryFilter === 'spam' ? 'all' : categoryFilter)}
                   style={{
-                    padding: '6px 12px',
-                    fontSize: '13px',
+                    padding: isMobile ? '5px 10px' : '6px 12px',
+                    fontSize: isMobile ? '12px' : '13px',
                     fontWeight: 600,
                     border: 'none',
                     cursor: 'pointer',
@@ -955,8 +960,8 @@ export default function Dashboard() {
                   type="button"
                   onClick={() => setCategoryFilter('spam')}
                   style={{
-                    padding: '6px 12px',
-                    fontSize: '13px',
+                    padding: isMobile ? '5px 10px' : '6px 12px',
+                    fontSize: isMobile ? '12px' : '13px',
                     fontWeight: 600,
                     border: 'none',
                     borderLeft: '1px solid var(--border-color)',
@@ -970,7 +975,7 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
               {/* Filtro por categoria (só aparece quando não está em Spam) */}
               {categoryFilter !== 'spam' && (
                 <select
@@ -980,10 +985,12 @@ export default function Dashboard() {
                     backgroundColor: 'var(--bg-card)',
                     border: '1px solid var(--border-color)',
                     borderRadius: '10px',
-                    padding: '10px 28px 10px 14px',
-                    fontSize: '14px',
+                    padding: isMobile ? '8px 24px 8px 10px' : '10px 28px 10px 14px',
+                    fontSize: isMobile ? '12px' : '14px',
                     fontWeight: 600,
                     color: 'var(--text-primary)',
+                    flex: isMobile ? 1 : 'none',
+                    minWidth: isMobile ? '0' : 'auto',
                     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
                     backgroundRepeat: 'no-repeat',
                     backgroundPosition: 'right 10px center',
@@ -995,12 +1002,12 @@ export default function Dashboard() {
                   <option value="all">Todas categorias</option>
                   <option value="duvidas_gerais">Dúvidas gerais</option>
                   <option value="rastreio">Rastreio</option>
-                  <option value="troca_devolucao_reembolso">Troca/Devolução/Reembolso</option>
+                  <option value="troca_devolucao_reembolso">Troca/Devolução</option>
                   <option value="edicao_pedido">Edição de pedido</option>
                   <option value="suporte_humano">Suporte humano</option>
                 </select>
               )}
-              {!loadingConversations && conversations.length > 0 && (
+              {!loadingConversations && conversations.length > 0 && !isMobile && (
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
                   {categoryFilter === 'spam'
                     ? `${conversations.filter(c => c.category === 'spam').length} spam`
@@ -1022,15 +1029,15 @@ export default function Dashboard() {
               Nenhum dado encontrado para o período selecionado
             </div>
           ) : (
-            <div className="replyna-scrollbar" style={{ maxHeight: '400px', overflowY: 'auto', overflowX: 'auto', scrollBehavior: 'smooth' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
+            <div className="replyna-scrollbar" style={{ maxHeight: isMobile ? '300px' : '400px', overflowY: 'auto', overflowX: 'auto', scrollBehavior: 'smooth' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? '280px' : '520px' }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-                  <tr style={{ textAlign: 'left', backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', fontSize: '12px' }}>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Loja</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Cliente</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Assunto</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Categoria</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Data</th>
+                  <tr style={{ textAlign: 'left', backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', fontSize: isMobile ? '11px' : '12px' }}>
+                    {!isMobile && <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Loja</th>}
+                    <th style={{ padding: isMobile ? '8px 10px' : '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Cliente</th>
+                    {!isMobile && <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Assunto</th>}
+                    <th style={{ padding: isMobile ? '8px 10px' : '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Categoria</th>
+                    <th style={{ padding: isMobile ? '8px 10px' : '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Data</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1055,54 +1062,59 @@ export default function Dashboard() {
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-primary)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
-                      <td style={{ padding: '12px' }}>
+                      {!isMobile && (
+                        <td style={{ padding: '12px' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              maxWidth: '120px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              color: 'var(--text-secondary)',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {conversation.shop_name || 'Loja'}
+                          </span>
+                        </td>
+                      )}
+                      <td style={{ padding: isMobile ? '10px' : '12px' }}>
                         <span
                           style={{
                             display: 'inline-block',
-                            maxWidth: '120px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            color: 'var(--text-secondary)',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {conversation.shop_name || 'Loja'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            maxWidth: '140px',
+                            maxWidth: isMobile ? '100px' : '140px',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                             color: 'var(--text-primary)',
                             fontWeight: 600,
+                            fontSize: isMobile ? '12px' : '14px',
                           }}
                         >
                           {conversation.customer_name || conversation.customer_email}
                         </span>
                       </td>
-                      <td style={{ padding: '12px' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            maxWidth: '200px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
-                          {conversation.subject || 'Sem assunto'}
-                        </span>
+                      {!isMobile && (
+                        <td style={{ padding: '12px' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              maxWidth: '200px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            {conversation.subject || 'Sem assunto'}
+                          </span>
+                        </td>
+                      )}
+                      <td style={{ padding: isMobile ? '10px' : '12px' }}>
+                        <span style={{ ...getCategoryBadgeStyle(conversation.category), fontSize: isMobile ? '10px' : '12px', padding: isMobile ? '3px 6px' : '4px 8px' }}>{getCategoryLabel(conversation.category)}</span>
                       </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={getCategoryBadgeStyle(conversation.category)}>{getCategoryLabel(conversation.category)}</span>
-                      </td>
-                      <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                      <td style={{ padding: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', fontSize: isMobile ? '11px' : '13px', whiteSpace: 'nowrap' }}>
                         {formatDateTime(new Date(conversation.created_at))}
                       </td>
                     </tr>
@@ -1113,8 +1125,8 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
+        <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '14px' : '20px', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: isMobile ? '12px' : '16px' }}>
             Consumo do Plano
           </div>
 
@@ -1125,16 +1137,16 @@ export default function Dashboard() {
               <Skeleton height={48} />
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: '16px' }}>
+            <div style={{ display: 'grid', gap: isMobile ? '12px' : '16px' }}>
               <div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Plano atual</div>
-                <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
+                <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Plano atual</div>
+                <div style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
                   {profile?.plan || 'Starter'}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Emails respondidos</div>
-                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
+                <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Emails respondidos</div>
+                <div style={{ fontSize: isMobile ? '14px' : '18px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
                   {isUnlimited ? (
                     <>
                       {formatNumber(emailsUsed)} de <span style={{ color: '#22c55e' }}>Ilimitado</span>
@@ -1142,7 +1154,7 @@ export default function Dashboard() {
                   ) : (
                     <>
                       {formatNumber(emailsUsed)} de {formatNumber(totalCreditsAvailable)}
-                      {extraEmailsPurchased > 0 && (
+                      {extraEmailsPurchased > 0 && !isMobile && (
                         <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, marginLeft: '6px' }}>
                           ({formatNumber(emailsLimit ?? 0)} + {formatNumber(extraEmailsPurchased)} extras)
                         </span>
@@ -1169,14 +1181,14 @@ export default function Dashboard() {
                 )}
               </div>
               <div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Renovação do plano</div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
+                <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Renovação do plano</div>
+                <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
                   {renewalDate ? formatDate(renewalDate) : 'Sem data'}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Lojas ativas</div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px' }}>
+                <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Lojas ativas</div>
+                <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
                   {isShopsUnlimited ? (
                     <>
                       {formatNumber(shops.length)} de <span style={{ color: '#22c55e' }}>Ilimitado</span>
@@ -1192,8 +1204,8 @@ export default function Dashboard() {
       </div>
 
       {/* Categorias por Conversa */}
-      <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
-        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
+      <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '14px' : '20px', border: '1px solid var(--border-color)' }}>
+        <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: isMobile ? '12px' : '16px' }}>
           Conversas por Categoria
         </div>
         {loadingConversations ? (
@@ -1203,11 +1215,11 @@ export default function Dashboard() {
             <Skeleton height={36} />
           </div>
         ) : totalCategorized === 0 ? (
-          <div style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '24px' }}>
+          <div style={{ color: 'var(--text-secondary)', fontSize: isMobile ? '13px' : '14px', textAlign: 'center', padding: isMobile ? '16px' : '24px' }}>
             Nenhuma conversa no período selecionado
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '12px' }}>
             {Object.entries(categoryStats)
               .sort(([, a], [, b]) => b - a)
               .map(([category, count]) => {
@@ -1215,11 +1227,11 @@ export default function Dashboard() {
                 const color = CATEGORY_COLORS[category] || '#6b7280'
                 const percentage = totalCategorized ? Math.round((count / totalCategorized) * 100) : 0
                 return (
-                  <div key={category} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div key={category} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '12px' }}>
                     <div
                       style={{
-                        width: '32px',
-                        height: '32px',
+                        width: isMobile ? '28px' : '32px',
+                        height: isMobile ? '28px' : '32px',
                         borderRadius: '8px',
                         backgroundColor: `${color}15`,
                         display: 'flex',
@@ -1228,20 +1240,20 @@ export default function Dashboard() {
                         flexShrink: 0,
                       }}
                     >
-                      <Icon size={16} style={{ color }} />
+                      <Icon size={isMobile ? 14 : 16} style={{ color }} />
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', gap: '8px' }}>
+                        <span style={{ fontSize: isMobile ? '12px' : '13px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {CATEGORY_LABELS[category] || category}
                         </span>
-                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        <span style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', flexShrink: 0 }}>
                           {count} ({percentage}%)
                         </span>
                       </div>
                       <div
                         style={{
-                          height: '6px',
+                          height: isMobile ? '5px' : '6px',
                           backgroundColor: 'var(--border-color)',
                           borderRadius: '3px',
                           overflow: 'hidden',

@@ -4,6 +4,7 @@ import { DayPicker } from 'react-day-picker'
 import { ptBR } from 'date-fns/locale'
 import { endOfMonth, startOfMonth, subDays, subMonths } from 'date-fns'
 import { ChevronDown } from 'lucide-react'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const formatDate = (date?: Date) => {
   if (!date) return '--/--/----'
@@ -18,6 +19,7 @@ interface DateRangePickerProps {
 export default function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   const [open, setOpen] = useState(false)
   const [tempRange, setTempRange] = useState<DateRange>(value)
+  const isMobile = useIsMobile()
   const today = useMemo(() => {
     const now = new Date()
     return new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -123,7 +125,7 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
                     }
                     setTempRange(range)
                   }}
-                  numberOfMonths={2}
+                  numberOfMonths={isMobile ? 1 : 2}
                   locale={ptBR}
                   weekStartsOn={1}
                   showOutsideDays

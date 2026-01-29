@@ -142,6 +142,61 @@ body {
   }
 }
 
+@media (max-width: 768px) {
+  .replyna-dashboard-bottom {
+    gap: 16px;
+  }
+
+  .replyna-metrics-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+
+  .replyna-metric-card {
+    padding: 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .replyna-metric-card .metric-icon {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+  }
+
+  .replyna-metric-card .metric-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .replyna-metric-card .metric-value {
+    font-size: 20px !important;
+  }
+
+  .replyna-metric-card .metric-label {
+    font-size: 11px !important;
+  }
+
+  .replyna-metric-card .metric-desc {
+    display: none !important;
+  }
+
+  .replyna-inbox-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .replyna-inbox-filters {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .replyna-inbox-filters select {
+    flex: 1;
+    min-width: 140px !important;
+  }
+}
+
 /* Date Range Picker - Dropdown Style */
 .replyna-date-trigger {
   display: flex;
