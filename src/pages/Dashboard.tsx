@@ -631,26 +631,71 @@ export default function Dashboard() {
     [categoryStats]
   )
 
-  const renewalDate = useMemo(() => calculateRenewalDate(profile?.created_at ?? null), [profile?.created_at])
-  const emailsLimit = profile?.emails_limit  // null = ilimitado
-  const emailsUsed = profile?.emails_used ?? 0
-  const extraEmailsPurchased = profile?.extra_emails_purchased ?? 0
-  // Total = limite do plano + extras comprados
-  const totalCreditsAvailable = (emailsLimit ?? 0) + extraEmailsPurchased
-  const isUnlimited = emailsLimit === null
-  const usagePercent = totalCreditsAvailable > 0 ? Math.min((emailsUsed / totalCreditsAvailable) * 100, 100) : 0
-  const shopsLimit = profile?.shops_limit  // null = ilimitado
-  const isShopsUnlimited = shopsLimit === null
+  // Memoizar conversas filtradas para evitar recálculo a cada render
+  const filteredConversations = useMemo(() => {
+    return conversations.filter((c) => {
+      if (categoryFilter === 'spam') return c.category === 'spam'
+      if (categoryFilter === 'all') return c.category !== 'spam'
+      return c.category === categoryFilter
+    })
+  }, [conversations, categoryFilter])
 
-  const shopName = profile?.name || user?.user_metadata?.name || 'Cliente'
+  // Memoizar contadores para o header do Inbox
+  const conversationCounts = useMemo(() => {
+    const spamCount = conversations.filter(c => c.category === 'spam').length
+    const nonSpamCount = conversations.filter(c => c.category !== 'spam').length
+    const filteredCount = filteredConversations.length
+    return { spamCount, nonSpamCount, filteredCount }
+  }, [conversations, filteredConversations])
 
-  const handleShopChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  // Memoizar valores derivados do perfil
+  const profileData = useMemo(() => {
+    const emailsLimit = profile?.emails_limit
+    const emailsUsed = profile?.emails_used ?? 0
+    const extraEmailsPurchased = profile?.extra_emails_purchased ?? 0
+    const totalCreditsAvailable = (emailsLimit ?? 0) + extraEmailsPurchased
+    const isUnlimited = emailsLimit === null
+    const usagePercent = totalCreditsAvailable > 0 ? Math.min((emailsUsed / totalCreditsAvailable) * 100, 100) : 0
+    const shopsLimit = profile?.shops_limit
+    const isShopsUnlimited = shopsLimit === null
+    const renewalDate = calculateRenewalDate(profile?.created_at ?? null)
+    const shopName = profile?.name || user?.user_metadata?.name || 'Cliente'
+
+    return {
+      emailsLimit,
+      emailsUsed,
+      extraEmailsPurchased,
+      totalCreditsAvailable,
+      isUnlimited,
+      usagePercent,
+      shopsLimit,
+      isShopsUnlimited,
+      renewalDate,
+      shopName,
+    }
+  }, [profile, user?.user_metadata?.name])
+
+  // Destructure para manter compatibilidade
+  const {
+    emailsLimit,
+    emailsUsed,
+    extraEmailsPurchased,
+    totalCreditsAvailable,
+    isUnlimited,
+    usagePercent,
+    shopsLimit,
+    isShopsUnlimited,
+    renewalDate,
+    shopName,
+  } = profileData
+
+  const handleShopChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedShopId(event.target.value)
-  }
+  }, [])
 
-  const handleConversationClick = (id: string) => {
+  const handleConversationClick = useCallback((id: string) => {
     setSelectedConversationId(id)
-  }
+  }, [])
 
   const renderValue = (value: number, suffix?: string) => {
     if (suffix === 'percent') return formatPercent(value)
@@ -952,10 +997,10 @@ export default function Dashboard() {
               {!loadingConversations && conversations.length > 0 && !isMobile && (
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
                   {categoryFilter === 'spam'
-                    ? `${conversations.filter(c => c.category === 'spam').length} spam`
+                    ? `${conversationCounts.spamCount} spam`
                     : categoryFilter === 'all'
-                      ? `${conversations.filter(c => c.category !== 'spam').length} emails`
-                      : `${conversations.filter(c => c.category === categoryFilter).length} de ${conversations.filter(c => c.category !== 'spam').length}`}
+                      ? `${conversationCounts.nonSpamCount} emails`
+                      : `${conversationCounts.filteredCount} de ${conversationCounts.nonSpamCount}`}
                 </div>
               )}
             </div>
@@ -983,16 +1028,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {conversations
-                    .filter((c) => {
-                      // Filtrar por spam
-                      if (categoryFilter === 'spam') return c.category === 'spam'
-                      // Mostrar todos exceto spam (incluindo sem categoria = processando)
-                      if (categoryFilter === 'all') return c.category !== 'spam'
-                      // Filtro específico de categoria
-                      return c.category === categoryFilter
-                    })
-                    .map((conversation) => (
+                  {filteredConversations.map((conversation) => (
                     <tr
                       key={conversation.id}
                       onClick={() => handleConversationClick(conversation.id)}
