@@ -16,6 +16,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { getStripeClient, verifyWebhookSignature, Stripe } from '../_shared/stripe.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { maskEmail } from '../_shared/email.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
  * Obtém o cliente Supabase com service role key para operações admin
@@ -32,13 +33,10 @@ function getSupabaseAdminClient() {
   });
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
 Deno.serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   console.log('=== WEBHOOK STRIPE CHAMADO ===');
   console.log('Method:', req.method);
   console.log('URL:', req.url);

@@ -9,12 +9,8 @@
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { isValidEmail } from '../_shared/validation.ts';
 
 // Gera código único de 8 caracteres
 function generateInviteCode(): string {
@@ -27,6 +23,9 @@ function generateInviteCode(): string {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -84,6 +83,14 @@ serve(async (req) => {
       if (!customer_email || !plan_id || !billing_start_date) {
         return new Response(
           JSON.stringify({ error: 'Campos obrigatórios: customer_email, plan_id, billing_start_date' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Validar formato do email
+      if (!isValidEmail(customer_email)) {
+        return new Response(
+          JSON.stringify({ error: 'Formato de email inválido' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

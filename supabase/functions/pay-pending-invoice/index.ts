@@ -8,12 +8,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { getStripeClient } from '../_shared/stripe.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 interface PayInvoiceRequest {
   purchase_id: string;
@@ -21,6 +16,9 @@ interface PayInvoiceRequest {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

@@ -10,14 +10,13 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import Stripe from 'https://esm.sh/stripe@20.2.0?target=deno';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { isValidEmail } from '../_shared/validation.ts';
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -132,6 +131,14 @@ Deno.serve(async (req) => {
       if (!code || !user_email || !success_url || !cancel_url) {
         return new Response(
           JSON.stringify({ error: 'Campos obrigatórios: code, user_email, success_url, cancel_url' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Validar formato do email
+      if (!isValidEmail(user_email)) {
+        return new Response(
+          JSON.stringify({ error: 'Email inválido' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

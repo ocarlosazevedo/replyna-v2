@@ -7,12 +7,8 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { maskEmail } from '../_shared/email.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { isValidEmail } from '../_shared/validation.ts';
 
 interface CreateClientRequest {
   email: string;
@@ -22,6 +18,9 @@ interface CreateClientRequest {
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -40,7 +39,7 @@ Deno.serve(async (req) => {
     const { email, name, plan_id, notes } = await req.json() as CreateClientRequest;
 
     // Validações
-    if (!email || !email.includes('@')) {
+    if (!email || !isValidEmail(email)) {
       return new Response(
         JSON.stringify({ error: 'Email inválido' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
