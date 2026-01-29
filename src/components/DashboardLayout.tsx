@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { LayoutGrid, Store, User, LogOut, Menu, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import WhatsAppButton from './WhatsAppButton'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { signOut } = useAuth()
+  const { user, signOut } = useAuth()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -244,6 +245,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         {children}
       </main>
+
+      {/* Botão flutuante de WhatsApp */}
+      {user?.email && <WhatsAppButton userEmail={user.email} />}
     </div>
   )
 }
