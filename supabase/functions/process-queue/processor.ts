@@ -39,6 +39,9 @@ import {
   getMultipleOrdersDataForAI,
   extractOrderNumber,
   extractAllOrderNumbers,
+  isShopifyCircuitOpen,
+  recordShopifyFailure,
+  recordShopifySuccess,
   type OrderSummary,
 } from '../_shared/shopify.ts';
 
@@ -375,6 +378,33 @@ async function processMessage(
   if (categoriasQueNeedShopify.includes(classification.category)) {
     needsOrderData = true;
 
+    // CHECK CIRCUIT BREAKER BEFORE SHOPIFY CALLS
+    const shopifyCircuitOpen = await isShopifyCircuitOpen(shop.id);
+    if (shopifyCircuitOpen) {
+      console.log(`[Processor] Shopify circuit breaker is OPEN for shop ${shop.id}, marking message as pending_shopify`);
+
+      await updateMessage(message.id, {
+        status: 'pending_shopify',
+        category: classification.category,
+        category_confidence: classification.confidence,
+        error_message: 'Shopify integration offline - awaiting recovery',
+      });
+
+      await logProcessingEvent({
+        shop_id: shop.id,
+        message_id: message.id,
+        conversation_id: conversation.id,
+        event_type: 'shopify_circuit_open',
+        event_data: {
+          category: classification.category,
+          action: 'marked_pending_shopify',
+        },
+      });
+
+      // Don't throw - this is expected behavior, return successfully
+      return;
+    }
+
     // NOVO: Extrair TODOS os números de pedido de todas as fontes
     const originalBody = message.body_text || message.body_html || '';
     const allOrderNumbers = new Set<string>();
@@ -427,6 +457,9 @@ async function processMessage(
           );
         }
 
+        // RECORD SHOPIFY SUCCESS - circuit breaker will close if in half_open
+        await recordShopifySuccess(shop.id);
+
         await logProcessingEvent({
           shop_id: shop.id,
           message_id: message.id,
@@ -453,6 +486,38 @@ async function processMessage(
         }
       } catch (error: any) {
         console.error(`[Processor] Shopify lookup failed:`, error.message);
+
+        // RECORD SHOPIFY FAILURE - may open circuit breaker after 3 failures
+        const circuitState = await recordShopifyFailure(shop.id, error.message);
+        console.log(`[Processor] Shopify circuit state after failure: ${circuitState}`);
+
+        // If circuit just opened, mark message as pending_shopify
+        if (circuitState === 'open') {
+          console.log(`[Processor] Shopify circuit just opened, marking message as pending_shopify`);
+
+          await updateMessage(message.id, {
+            status: 'pending_shopify',
+            category: classification.category,
+            category_confidence: classification.confidence,
+            error_message: `Shopify offline: ${error.message}`,
+          });
+
+          await logProcessingEvent({
+            shop_id: shop.id,
+            message_id: message.id,
+            conversation_id: conversation.id,
+            event_type: 'shopify_circuit_opened',
+            event_data: {
+              error: error.message,
+              category: classification.category,
+            },
+          });
+
+          // Return without throwing - message will be reprocessed when circuit closes
+          return;
+        }
+
+        // Circuit not open yet - save order number and continue without Shopify data
         if (orderNumber && !conversation.shopify_order_id) {
           await updateConversation(conversation.id, {
             shopify_order_id: orderNumber,

@@ -1,9 +1,136 @@
 /**
  * Módulo de Integração Shopify
  * Busca dados de pedidos e clientes
+ * Inclui circuit breaker para detecção de Shopify offline
  */
 
 import { decrypt, getEncryptionKey } from './encryption.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+
+// Supabase client for circuit breaker operations
+function getSupabaseClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  return createClient(supabaseUrl, supabaseKey);
+}
+
+// =====================================================================
+// Circuit Breaker Functions
+// =====================================================================
+
+export interface CircuitBreakerState {
+  isOpen: boolean;
+  state: 'closed' | 'open' | 'half_open';
+  failureCount: number;
+  lastFailureAt: string | null;
+  nextAttemptAt: string | null;
+}
+
+/**
+ * Check if the Shopify circuit breaker is open for a shop
+ * Returns true if circuit is OPEN (should skip processing)
+ * Returns false if circuit is CLOSED or HALF_OPEN (should try processing)
+ */
+export async function isShopifyCircuitOpen(shopId: string): Promise<boolean> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.rpc('is_shopify_circuit_open', {
+      p_shop_id: shopId,
+    });
+
+    if (error) {
+      console.error('[Shopify Circuit] Error checking circuit state:', error);
+      return false; // On error, allow processing (fail open)
+    }
+
+    return data === true;
+  } catch (error) {
+    console.error('[Shopify Circuit] Exception checking circuit state:', error);
+    return false;
+  }
+}
+
+/**
+ * Get detailed circuit breaker state for a shop
+ */
+export async function getShopifyCircuitState(shopId: string): Promise<CircuitBreakerState | null> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('circuit_breakers')
+      .select('state, failure_count, last_failure_at, next_attempt_at')
+      .eq('shop_id', shopId)
+      .eq('service', 'shopify')
+      .single();
+
+    if (error || !data) {
+      return null; // No circuit breaker = closed (working)
+    }
+
+    return {
+      isOpen: data.state === 'open',
+      state: data.state as 'closed' | 'open' | 'half_open',
+      failureCount: data.failure_count,
+      lastFailureAt: data.last_failure_at,
+      nextAttemptAt: data.next_attempt_at,
+    };
+  } catch (error) {
+    console.error('[Shopify Circuit] Exception getting circuit state:', error);
+    return null;
+  }
+}
+
+/**
+ * Record a Shopify failure and potentially open the circuit breaker
+ * Returns the new circuit state: 'closed', 'open', or 'half_open'
+ */
+export async function recordShopifyFailure(shopId: string, errorMessage?: string): Promise<string> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.rpc('record_shopify_failure', {
+      p_shop_id: shopId,
+      p_error_message: errorMessage || null,
+    });
+
+    if (error) {
+      console.error('[Shopify Circuit] Error recording failure:', error);
+      return 'closed';
+    }
+
+    const newState = data as string;
+    console.log(`[Shopify Circuit] Recorded failure for shop ${shopId}, new state: ${newState}`);
+    return newState;
+  } catch (error) {
+    console.error('[Shopify Circuit] Exception recording failure:', error);
+    return 'closed';
+  }
+}
+
+/**
+ * Record a Shopify success and close the circuit if in half_open state
+ * Also triggers reprocessing of pending_shopify emails
+ * Returns the new circuit state: 'closed'
+ */
+export async function recordShopifySuccess(shopId: string): Promise<string> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.rpc('record_shopify_success', {
+      p_shop_id: shopId,
+    });
+
+    if (error) {
+      console.error('[Shopify Circuit] Error recording success:', error);
+      return 'closed';
+    }
+
+    const newState = data as string;
+    console.log(`[Shopify Circuit] Recorded success for shop ${shopId}, new state: ${newState}`);
+    return newState;
+  } catch (error) {
+    console.error('[Shopify Circuit] Exception recording success:', error);
+    return 'closed';
+  }
+}
 
 // Tipos
 export interface ShopifyCredentials {
