@@ -106,7 +106,8 @@ serve(async (req) => {
         .not('category', 'is', null) // Excluir conversas ainda em processamento
         .not('category', 'in', '("spam","acknowledgment")') // Mesmo filtro das métricas
         .gte('created_at', dateStart)
-        .lte('created_at', dateEnd),
+        .lte('created_at', dateEnd)
+        .limit(50000), // Limite alto para garantir todas as categorias
       supabase
         .from('users')
         .select('id, name, email, plan, created_at')
