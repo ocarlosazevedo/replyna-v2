@@ -100,14 +100,14 @@ serve(async (req) => {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
-      supabase
-        .from('conversations')
-        .select('category')
-        .not('category', 'is', null) // Excluir conversas ainda em processamento
-        .not('category', 'in', '("spam","acknowledgment")') // Mesmo filtro das métricas
-        .gte('created_at', dateStart)
-        .lte('created_at', dateEnd)
-        .limit(50000), // Limite alto para garantir todas as categorias
+      // Contagem por categoria usando queries individuais (evita limite de 1000 linhas)
+      Promise.all([
+        supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('category', 'duvidas_gerais').gte('created_at', dateStart).lte('created_at', dateEnd),
+        supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('category', 'rastreio').gte('created_at', dateStart).lte('created_at', dateEnd),
+        supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('category', 'troca_devolucao_reembolso').gte('created_at', dateStart).lte('created_at', dateEnd),
+        supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('category', 'edicao_pedido').gte('created_at', dateStart).lte('created_at', dateEnd),
+        supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('category', 'suporte_humano').gte('created_at', dateStart).lte('created_at', dateEnd),
+      ]),
       supabase
         .from('users')
         .select('id, name, email, plan, created_at')
@@ -134,11 +134,14 @@ serve(async (req) => {
       (u: { emails_used: number; emails_limit: number }) => u.emails_used >= u.emails_limit && u.emails_limit > 0
     ).length;
 
-    // Processar categorias (excluindo spam/acknowledgment para coerência com métricas)
+    // Processar categorias (já contadas individualmente para evitar limite de 1000 linhas)
+    const categoryNames = ['duvidas_gerais', 'rastreio', 'troca_devolucao_reembolso', 'edicao_pedido', 'suporte_humano'];
     const categories: Record<string, number> = {};
-    (categoriesRes.data || []).forEach((conv: { category?: string }) => {
-      if (!conv.category || conv.category === 'spam' || conv.category === 'acknowledgment') return;
-      categories[conv.category] = (categories[conv.category] || 0) + 1;
+    (categoriesRes as Array<{ count: number | null }>).forEach((res, index) => {
+      const count = res.count || 0;
+      if (count > 0) {
+        categories[categoryNames[index]] = count;
+      }
     });
 
     // Processar lojas para lookup
