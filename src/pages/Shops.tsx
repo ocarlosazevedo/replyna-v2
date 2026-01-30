@@ -552,31 +552,76 @@ export default function Shops() {
       ) : filteredShops.length === 0 && shops.length === 0 ? (
         <div style={{
           ...cardStyle,
-          padding: isMobile ? '24px 16px' : '32px',
+          padding: isMobile ? '32px 20px' : '48px',
           textAlign: 'center',
         }}>
-          {/* Video Tutorial - Em cima */}
+          {/* Texto e CTA - Em cima */}
+          <div style={{
+            width: '72px',
+            height: '72px',
+            borderRadius: '18px',
+            backgroundColor: 'rgba(70, 114, 236, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 20px',
+          }}>
+            <Store size={36} style={{ color: 'var(--accent)' }} />
+          </div>
+          <h2 style={{
+            fontSize: isMobile ? '22px' : '28px',
+            fontWeight: '700',
+            color: 'var(--text-primary)',
+            marginBottom: '12px',
+          }}>
+            Integre sua primeira loja
+          </h2>
+          <p style={{
+            color: 'var(--text-secondary)',
+            maxWidth: '480px',
+            margin: '0 auto 28px',
+            lineHeight: '1.6',
+            fontSize: isMobile ? '14px' : '16px',
+          }}>
+            Configure sua loja para ativar o atendimento automatizado. A Replyna vai responder seus clientes com inteligência artificial.
+          </p>
+          <button
+            onClick={() => navigate('/shops/setup')}
+            style={{
+              ...buttonPrimary,
+              padding: '14px 32px',
+              fontSize: '15px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '40px',
+            }}
+          >
+            <Plus size={18} />
+            Integrar minha loja
+          </button>
+
+          {/* Video Tutorial - Embaixo, largura total */}
           <a
             href="https://youtu.be/PpoJjvGz0AY"
             target="_blank"
             rel="noopener noreferrer"
             style={{
               display: 'block',
-              maxWidth: '640px',
-              margin: '0 auto 32px',
+              width: '100%',
               borderRadius: '12px',
               overflow: 'hidden',
               position: 'relative',
-              boxShadow: '0 2px 16px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
               transition: 'transform 0.2s ease, box-shadow 0.2s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.01)'
-              e.currentTarget.style.boxShadow = '0 4px 24px rgba(0, 0, 0, 0.15)'
+              e.currentTarget.style.transform = 'scale(1.005)'
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.12)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'scale(1)'
-              e.currentTarget.style.boxShadow = '0 2px 16px rgba(0, 0, 0, 0.1)'
+              e.currentTarget.style.boxShadow = '0 2px 12px rgba(0, 0, 0, 0.08)'
             }}
           >
             <img
@@ -600,24 +645,24 @@ export default function Shops() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'rgba(0, 0, 0, 0.3)',
+              background: 'rgba(0, 0, 0, 0.25)',
             }}>
               <div style={{
-                width: isMobile ? '56px' : '72px',
-                height: isMobile ? '56px' : '72px',
+                width: isMobile ? '60px' : '80px',
+                height: isMobile ? '60px' : '80px',
                 borderRadius: '50%',
                 backgroundColor: 'rgba(255, 255, 255, 0.95)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+                boxShadow: '0 4px 24px rgba(0, 0, 0, 0.25)',
               }}>
                 <div style={{
                   width: 0,
                   height: 0,
-                  borderTop: isMobile ? '10px solid transparent' : '14px solid transparent',
-                  borderBottom: isMobile ? '10px solid transparent' : '14px solid transparent',
-                  borderLeft: isMobile ? '16px solid var(--accent)' : '22px solid var(--accent)',
+                  borderTop: isMobile ? '12px solid transparent' : '16px solid transparent',
+                  borderBottom: isMobile ? '12px solid transparent' : '16px solid transparent',
+                  borderLeft: isMobile ? '20px solid var(--accent)' : '26px solid var(--accent)',
                   marginLeft: '4px',
                 }} />
               </div>
@@ -628,65 +673,19 @@ export default function Shops() {
               bottom: 0,
               left: 0,
               right: 0,
-              padding: isMobile ? '12px 16px' : '16px 20px',
+              padding: isMobile ? '14px 16px' : '20px 24px',
               background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
               color: '#fff',
               textAlign: 'left',
             }}>
-              <div style={{ fontSize: isMobile ? '13px' : '15px', fontWeight: 600 }}>
+              <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 600 }}>
                 Tutorial: Como integrar sua loja
               </div>
-              <div style={{ fontSize: isMobile ? '11px' : '13px', opacity: 0.8, marginTop: '2px' }}>
+              <div style={{ fontSize: isMobile ? '12px' : '14px', opacity: 0.8, marginTop: '4px' }}>
                 Assista o passo a passo no YouTube
               </div>
             </div>
           </a>
-
-          {/* Texto e CTA - Embaixo */}
-          <div style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '16px',
-            backgroundColor: 'rgba(70, 114, 236, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 16px',
-          }}>
-            <Store size={28} style={{ color: 'var(--accent)' }} />
-          </div>
-          <h2 style={{
-            fontSize: isMobile ? '20px' : '24px',
-            fontWeight: '700',
-            color: 'var(--text-primary)',
-            marginBottom: '8px',
-          }}>
-            Integre sua primeira loja
-          </h2>
-          <p style={{
-            color: 'var(--text-secondary)',
-            marginBottom: '24px',
-            maxWidth: '420px',
-            margin: '0 auto 24px',
-            lineHeight: '1.6',
-            fontSize: isMobile ? '14px' : '15px',
-          }}>
-            Configure sua loja para ativar o atendimento automatizado. A Replyna vai responder seus clientes com inteligência artificial.
-          </p>
-          <button
-            onClick={() => navigate('/shops/setup')}
-            style={{
-              ...buttonPrimary,
-              padding: '14px 28px',
-              fontSize: '15px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <Plus size={18} />
-            Integrar minha loja
-          </button>
         </div>
       ) : filteredShops.length === 0 ? (
         <div style={{ ...cardStyle, textAlign: 'center', padding: '48px' }}>
