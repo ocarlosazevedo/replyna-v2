@@ -46,6 +46,7 @@ interface ShopData {
   warranty_info: string
   store_description: string
   tone_of_voice: string
+  retention_coupon_code: string
 }
 
 const initialShopData: ShopData = {
@@ -71,6 +72,7 @@ const initialShopData: ShopData = {
   warranty_info: '',
   store_description: '',
   tone_of_voice: 'professional',
+  retention_coupon_code: '',
 }
 
 const steps = [
@@ -189,6 +191,7 @@ export default function ShopSetup() {
           warranty_info: shop.warranty_info || '',
           store_description: shop.store_description || '',
           tone_of_voice: shop.tone_of_voice || 'professional',
+          retention_coupon_code: shop.retention_coupon_code || '',
         })
       }
     } catch (err) {
@@ -367,6 +370,7 @@ export default function ShopSetup() {
         warranty_info: shopData.warranty_info || null,
         store_description: shopData.store_description || null,
         tone_of_voice: shopData.tone_of_voice,
+        retention_coupon_code: shopData.retention_coupon_code || null,
         is_active: activate,
       }
 
@@ -1308,6 +1312,39 @@ export default function ShopSetup() {
           ))}
         </div>
       </div>
+
+      {/* Cupom de Retenção */}
+      <div style={{
+        backgroundColor: 'var(--bg-primary)',
+        padding: '20px',
+        borderRadius: '12px',
+        border: '1px solid var(--border-color)'
+      }}>
+        <label style={labelStyle}>Cupom de retenção (cancelamento/devolução)</label>
+        <input
+          type="text"
+          value={shopData.retention_coupon_code}
+          onChange={(e) => updateField('retention_coupon_code', e.target.value.toUpperCase())}
+          style={inputStyle}
+          placeholder="Ex: FICA10, DESC20"
+        />
+        <div style={{
+          backgroundColor: 'rgba(70, 114, 236, 0.08)',
+          padding: '12px 16px',
+          borderRadius: '10px',
+          marginTop: '12px',
+          border: '1px solid rgba(70, 114, 236, 0.15)'
+        }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: 0, lineHeight: '1.5' }}>
+            <strong>Como funciona:</strong> Quando um cliente solicitar cancelamento ou devolução,
+            a IA oferecerá este cupom como incentivo para manter a compra.
+          </p>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '8px 0 0 0', lineHeight: '1.5' }}>
+            <strong style={{ color: '#d97706' }}>Importante:</strong> Crie este cupom na sua loja (Shopify, etc.) antes de cadastrar aqui.
+            Se não configurar, a IA não oferecerá cupom de retenção.
+          </p>
+        </div>
+      </div>
     </div>
   )
 
@@ -1448,6 +1485,24 @@ export default function ShopSetup() {
             <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>
               {toneOptions.find(t => t.value === shopData.tone_of_voice)?.label || '—'}
             </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Cupom de retenção</span>
+            {shopData.retention_coupon_code ? (
+              <span style={{
+                backgroundColor: 'var(--accent)',
+                color: '#fff',
+                padding: '2px 10px',
+                borderRadius: '6px',
+                fontFamily: 'monospace',
+                fontWeight: '600',
+                fontSize: '14px'
+              }}>
+                {shopData.retention_coupon_code}
+              </span>
+            ) : (
+              <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>Não configurado</span>
+            )}
           </div>
         </div>
       </div>
