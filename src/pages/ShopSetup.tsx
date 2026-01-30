@@ -574,6 +574,30 @@ export default function ShopSetup() {
     </div>
   )
 
+  const TutorialLink = () => (
+    <a
+      href="https://youtu.be/PpoJjvGz0AY"
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        color: 'var(--accent)',
+        fontSize: '14px',
+        fontWeight: '500',
+        textDecoration: 'none',
+        marginTop: '8px',
+      }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none" />
+      </svg>
+      Assistir tutorial de integração
+    </a>
+  )
+
   const renderStep1 = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div>
@@ -583,6 +607,7 @@ export default function ShopSetup() {
         <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
           Configure as informações principais da sua loja
         </p>
+        <TutorialLink />
       </div>
 
       <div>
@@ -695,6 +720,7 @@ export default function ShopSetup() {
         <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
           Conecte sua loja Shopify via Custom App (Dev Dashboard)
         </p>
+        <TutorialLink />
       </div>
 
       {/* How to get credentials - estilo do print */}
@@ -885,6 +911,7 @@ export default function ShopSetup() {
         <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
           Configure suas integrações com seu provedor de e-mail
         </p>
+        <TutorialLink />
       </div>
 
       {/* Provider Select */}
@@ -1237,6 +1264,7 @@ export default function ShopSetup() {
         <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
           Personalize as informações que a IA usará nas respostas
         </p>
+        <TutorialLink />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>

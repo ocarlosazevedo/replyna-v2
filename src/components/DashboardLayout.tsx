@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Store, User, LogOut, Menu, X, PlayCircle } from 'lucide-react'
+import { LayoutGrid, Store, User, LogOut, Menu, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import WhatsAppButton from './WhatsAppButton'
 
@@ -110,27 +110,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </li>
           ))}
         </ul>
-
-        {/* Tutorial Link */}
-        <a
-          href="https://youtu.be/PpoJjvGz0AY"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="replyna-sidebar-integrate"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            fontWeight: 500,
-            marginTop: '8px',
-          }}
-        >
-          <PlayCircle size={18} />
-          <span style={{ flex: 1 }}>Tutorial de integração</span>
-        </a>
       </nav>
 
       {/* User & Logout */}
