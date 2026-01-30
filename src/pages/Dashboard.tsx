@@ -314,8 +314,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user || loadingShops) return
+
+    // Não redirecionar se não tem lojas - mostrar estado vazio no dashboard
     if (shops.length === 0) {
-      navigate('/shops')
+      setSelectedShopId('all')
+      // Parar loading states quando não há lojas
+      setLoadingMetrics(false)
+      setLoadingChart(false)
+      setLoadingConversations(false)
       return
     }
 
@@ -328,7 +334,25 @@ export default function Dashboard() {
   }, [loadingShops, navigate, shops, storagePrefix, user])
 
   useEffect(() => {
-    if (!user || !dateStart || !dateEnd || effectiveShopIds.length === 0) return
+    if (!user || !dateStart || !dateEnd) return
+
+    // Se não há lojas ativas, não carregar dados - já tratado pelo estado vazio
+    if (effectiveShopIds.length === 0) {
+      setMetrics({
+        conversationsReceived: 0,
+        conversationsReplied: 0,
+        automationRate: 0,
+        successRate: 0,
+        pendingHuman: 0,
+      })
+      setVolumeData([])
+      setConversations([])
+      setLoadingMetrics(false)
+      setLoadingChart(false)
+      setLoadingConversations(false)
+      return
+    }
+
     let isActive = true
     setError(null)
     setLoadingMetrics(true)
@@ -726,6 +750,55 @@ export default function Dashboard() {
 
       {/* Banner de dica: cupom de retenção */}
       <FeatureTipBanner shopId={shops.length > 0 ? shops[0].id : null} userId={user?.id} />
+
+      {/* Banner quando não há lojas ativas */}
+      {!loadingShops && shops.length === 0 && (
+        <div
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            border: '2px dashed var(--border-color)',
+            borderRadius: '16px',
+            padding: isMobile ? '24px 16px' : '32px',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(70, 114, 236, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}
+          >
+            <Mail size={28} style={{ color: 'var(--accent)' }} />
+          </div>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+            Nenhuma loja ativa
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px', maxWidth: '400px', margin: '0 auto 20px' }}>
+            Adicione e ative uma loja para começar a ver suas métricas de atendimento automatizado.
+          </p>
+          <button
+            onClick={() => navigate('/shops')}
+            style={{
+              backgroundColor: 'var(--accent)',
+              color: '#ffffff',
+              padding: '12px 24px',
+              borderRadius: '10px',
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '15px',
+            }}
+          >
+            Gerenciar Lojas
+          </button>
+        </div>
+      )}
 
       {/* Header */}
       <div
