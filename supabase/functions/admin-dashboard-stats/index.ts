@@ -67,11 +67,12 @@ serve(async (req) => {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
-      // Conversas recebidas (excluindo spam e acknowledgment)
+      // Conversas recebidas (excluindo spam, acknowledgment e nulls)
       // Conta conversas únicas para métricas mais precisas (um cliente = uma conversa)
       supabase
         .from('conversations')
         .select('*', { count: 'exact', head: true })
+        .not('category', 'is', null) // Excluir conversas ainda em processamento
         .not('category', 'in', '("spam","acknowledgment")')
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
@@ -79,6 +80,7 @@ serve(async (req) => {
       supabase
         .from('conversations')
         .select('*, messages!inner(direction)', { count: 'exact', head: true })
+        .not('category', 'is', null) // Excluir conversas ainda em processamento
         .not('category', 'in', '("spam","acknowledgment")')
         .eq('messages.direction', 'outbound')
         .gte('created_at', dateStart)

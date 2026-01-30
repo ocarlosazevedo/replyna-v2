@@ -366,13 +366,14 @@ export default function Dashboard() {
 
     // Usar count queries para métricas baseadas em CONVERSAS (não mensagens)
     const loadConversationCounts = async () => {
-      // Count de conversas recebidas (excluindo spam e acknowledgment)
+      // Count de conversas recebidas (excluindo spam, acknowledgment e nulls)
       const receivedBaseQuery = () =>
         supabase
           .from('conversations')
           .select('id', { count: 'exact', head: true })
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
+          .not('category', 'is', null) // Excluir conversas ainda em processamento
           .not('category', 'in', '("spam","acknowledgment")')
 
       const receivedQuery =
@@ -388,6 +389,7 @@ export default function Dashboard() {
           .select('id, messages!inner(direction)', { count: 'exact', head: true })
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
+          .not('category', 'is', null) // Excluir conversas ainda em processamento
           .not('category', 'in', '("spam","acknowledgment")')
           .eq('messages.direction', 'outbound')
 
