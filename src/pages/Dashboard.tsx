@@ -37,14 +37,6 @@ interface MetricSummary {
   pendingHuman: number
 }
 
-interface MessageRow {
-  created_at: string
-  direction: string
-  was_auto_replied: boolean | null
-  category: string | null
-  conversation_id: string
-  conversations: { shop_id: string; category: string | null }[]
-}
 
 const formatNumber = (value: number) =>
   new Intl.NumberFormat('pt-BR').format(value)
@@ -116,26 +108,18 @@ const getWeekStart = (date: Date) => {
   return start
 }
 
-const buildVolumeSeries = (messages: MessageRow[], granularity: 'day' | 'week' | 'month', inboundConversationIds?: Set<string>) => {
+// Constrói série de volume baseada em CONVERSAS (não mensagens) para coerência com métricas
+const buildVolumeSeriesFromConversations = (
+  conversations: Array<{ created_at: string; category: string | null; status: string | null }>,
+  granularity: 'day' | 'week' | 'month'
+) => {
   const buckets = new Map<string, { date: Date; received: number; replied: number }>()
 
-  // Helper para obter categoria da conversa
-  const getConvCategory = (message: MessageRow) => {
-    const conv = message.conversations?.[0] || (message.conversations as unknown as { category: string | null })
-    return conv?.category || message.category
-  }
+  conversations.forEach((conv) => {
+    // Ignorar spam e acknowledgment (coerente com métricas)
+    if (conv.category === 'spam' || conv.category === 'acknowledgment') return
 
-  messages.forEach((message) => {
-    // Ignorar spam e acknowledgment no gráfico de volume (usa categoria da conversa)
-    const category = getConvCategory(message)
-    if (category === 'spam' || category === 'acknowledgment') return
-
-    // Para outbound, só contar se tiver inbound correspondente no período
-    if (message.direction === 'outbound' && inboundConversationIds && !inboundConversationIds.has(message.conversation_id)) {
-      return
-    }
-
-    const date = new Date(message.created_at)
+    const date = new Date(conv.created_at)
     let key = ''
     let labelDate = date
 
@@ -156,10 +140,11 @@ const buildVolumeSeries = (messages: MessageRow[], granularity: 'day' | 'week' |
     const bucket = buckets.get(key)
     if (!bucket) return
 
-    if (message.direction === 'inbound') {
-      bucket.received += 1
-    }
-    if (message.direction === 'outbound' && message.was_auto_replied) {
+    // Cada conversa = 1 cliente recebido
+    bucket.received += 1
+
+    // Conversa respondida = status replied, pending_human ou closed
+    if (conv.status === 'replied' || conv.status === 'pending_human' || conv.status === 'closed') {
       bucket.replied += 1
     }
   })
@@ -424,22 +409,22 @@ export default function Dashboard() {
       }
     }
 
-    const loadMessages = async () => {
-      // Carregar mensagens para o gráfico de volume (limite reduzido para performance)
+    const loadConversationsForChart = async () => {
+      // Carregar conversas para o gráfico de volume (coerente com métricas)
       const query = supabase
-        .from('messages')
-        .select('created_at, direction, was_auto_replied, category, conversation_id, conversations!inner(shop_id, category)')
+        .from('conversations')
+        .select('created_at, category, status')
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
-        .limit(2000)
+        .limit(5000) // Limite maior para o gráfico
 
       const { data, error } =
         selectedShopId === 'all'
-          ? await query.in('conversations.shop_id', effectiveShopIds)
-          : await query.eq('conversations.shop_id', selectedShopId)
+          ? await query.in('shop_id', effectiveShopIds)
+          : await query.eq('shop_id', selectedShopId)
 
       if (error) throw error
-      return (data || []) as MessageRow[]
+      return (data || []) as Array<{ created_at: string; category: string | null; status: string | null }>
     }
 
     const loadConversationsList = async () => {
@@ -523,24 +508,15 @@ export default function Dashboard() {
 
     const loadChartData = async () => {
       try {
-        const messageRows = await cacheFetch(
-          `messages:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
-          loadMessages
+        const conversationsForChart = await cacheFetch(
+          `conversations-chart:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
+          loadConversationsForChart
         )
 
         if (!isActive) return
 
-        const getConversationCategory = (message: MessageRow) => {
-          const conv = message.conversations?.[0] || (message.conversations as unknown as { category: string | null })
-          return conv?.category || message.category
-        }
-        const inboundMessages = messageRows.filter((message) => {
-          const category = getConversationCategory(message)
-          return message.direction === 'inbound' && category !== 'spam' && category !== 'acknowledgment'
-        })
-        const inboundConversationIds = new Set(inboundMessages.map((m) => m.conversation_id))
-
-        setVolumeData(buildVolumeSeries(messageRows, granularity, inboundConversationIds))
+        // Usar buildVolumeSeriesFromConversations para coerência com métricas
+        setVolumeData(buildVolumeSeriesFromConversations(conversationsForChart, granularity))
       } catch (err) {
         console.error('Erro ao carregar gráfico:', err)
       } finally {
@@ -575,7 +551,7 @@ export default function Dashboard() {
               `conversation-counts:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`
             )
             cacheRef.current.delete(
-              `messages:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`
+              `conversations-chart:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`
             )
             // Adicionar nova conversa no topo da lista
             setConversations((prev) => {
@@ -897,8 +873,8 @@ export default function Dashboard() {
       {/* Gráfico */}
       <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '16px' : '20px', border: '1px solid var(--border-color)' }}>
         <div>
-          <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Volume de Emails</div>
-          <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>Recebidos x Respondidos</div>
+          <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Volume de Clientes</div>
+          <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>Clientes que entraram em contato x Clientes atendidos</div>
         </div>
         <div style={{ marginTop: isMobile ? '12px' : '20px', minHeight: isMobile ? '200px' : '320px' }}>
           {loadingChart ? (
