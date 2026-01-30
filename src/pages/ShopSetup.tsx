@@ -600,18 +600,10 @@ export default function ShopSetup() {
         e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)'
       }}
     >
-      <div style={{
-        width: '36px',
-        height: '36px',
-        borderRadius: '8px',
-        backgroundColor: '#ef4444',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-          <polygon points="9.5 7 9.5 17 17 12 9.5 7" />
+      <div style={{ flexShrink: 0 }}>
+        <svg width="40" height="28" viewBox="0 0 28 20">
+          <rect width="28" height="20" rx="5" fill="#FF0000"/>
+          <polygon points="11,5 11,15 20,10" fill="white"/>
         </svg>
       </div>
       <div>
