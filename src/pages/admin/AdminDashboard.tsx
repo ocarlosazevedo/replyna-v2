@@ -10,7 +10,6 @@ import {
   TrendingUp,
   Package,
   RefreshCw,
-  CreditCard,
   HelpCircle,
   Truck,
   Headphones,
@@ -44,17 +43,15 @@ const endOfDay = (date: Date) => {
   return next
 }
 
+// Ícones para categorias (mesmas de categories.ts)
 const categoryIcons: Record<string, typeof Package> = {
   rastreio: Truck,
-  reembolso: RefreshCw,
-  produto: Package,
-  pagamento: CreditCard,
-  entrega: Truck,
-  suporte_humano: Headphones,
-  duvidas_gerais: HelpCircle,
   troca_devolucao_reembolso: RefreshCw,
   edicao_pedido: Package,
+  suporte_humano: Headphones,
+  duvidas_gerais: HelpCircle,
   spam: AlertTriangle,
+  acknowledgment: Mail,
 }
 
 // Usando CATEGORY_LABELS e CATEGORY_COLORS de src/constants/categories.ts para consistência

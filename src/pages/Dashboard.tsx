@@ -108,9 +108,10 @@ const getWeekStart = (date: Date) => {
   return start
 }
 
-// Constrói série de volume baseada em CONVERSAS (não mensagens) para coerência com métricas
+// Constrói série de volume baseada em CONVERSAS para coerência com métricas
+// hasOutbound indica se a conversa tem pelo menos uma mensagem de resposta (outbound)
 const buildVolumeSeriesFromConversations = (
-  conversations: Array<{ created_at: string; category: string | null; status: string | null }>,
+  conversations: Array<{ created_at: string; category: string | null; hasOutbound: boolean }>,
   granularity: 'day' | 'week' | 'month'
 ) => {
   const buckets = new Map<string, { date: Date; received: number; replied: number }>()
@@ -143,8 +144,8 @@ const buildVolumeSeriesFromConversations = (
     // Cada conversa = 1 cliente recebido
     bucket.received += 1
 
-    // Conversa respondida = status replied, pending_human ou closed
-    if (conv.status === 'replied' || conv.status === 'pending_human' || conv.status === 'closed') {
+    // Conversa respondida = tem pelo menos uma mensagem outbound (igual à métrica)
+    if (conv.hasOutbound) {
       bucket.replied += 1
     }
   })
@@ -411,9 +412,10 @@ export default function Dashboard() {
 
     const loadConversationsForChart = async () => {
       // Carregar conversas para o gráfico de volume (mesmos filtros das métricas)
+      // Inclui mensagens para verificar se há resposta outbound (igual à métrica)
       const query = supabase
         .from('conversations')
-        .select('created_at, category, status')
+        .select('created_at, category, messages(direction)')
         .not('category', 'is', null) // Excluir conversas ainda em processamento
         .not('category', 'in', '("spam","acknowledgment")') // Mesmo filtro das métricas
         .gte('created_at', dateStart.toISOString())
@@ -426,7 +428,13 @@ export default function Dashboard() {
           : await query.eq('shop_id', selectedShopId)
 
       if (error) throw error
-      return (data || []) as Array<{ created_at: string; category: string | null; status: string | null }>
+
+      // Transformar para incluir flag hasOutbound (igual à definição da métrica)
+      return (data || []).map((conv: { created_at: string; category: string | null; messages: Array<{ direction: string }> | null }) => ({
+        created_at: conv.created_at,
+        category: conv.category,
+        hasOutbound: (conv.messages || []).some(m => m.direction === 'outbound')
+      }))
     }
 
     const loadConversationsList = async () => {

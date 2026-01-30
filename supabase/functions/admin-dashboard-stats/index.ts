@@ -101,6 +101,8 @@ serve(async (req) => {
       supabase
         .from('conversations')
         .select('category')
+        .not('category', 'is', null) // Excluir conversas ainda em processamento
+        .not('category', 'in', '("spam","acknowledgment")') // Mesmo filtro das métricas
         .gte('created_at', dateStart)
         .lte('created_at', dateEnd),
       supabase
@@ -129,10 +131,10 @@ serve(async (req) => {
       (u: { emails_used: number; emails_limit: number }) => u.emails_used >= u.emails_limit && u.emails_limit > 0
     ).length;
 
-    // Processar categorias (ignorar conversas sem categoria - ainda estão processando)
+    // Processar categorias (excluindo spam/acknowledgment para coerência com métricas)
     const categories: Record<string, number> = {};
     (categoriesRes.data || []).forEach((conv: { category?: string }) => {
-      if (!conv.category) return; // Ignorar conversas sem categoria
+      if (!conv.category || conv.category === 'spam' || conv.category === 'acknowledgment') return;
       categories[conv.category] = (categories[conv.category] || 0) + 1;
     });
 
