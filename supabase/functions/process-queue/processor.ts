@@ -94,6 +94,9 @@ const systemEmailPatterns = [
 
 /**
  * Processa um job de email da fila
+ *
+ * IMPORTANTE: Se ocorrer erro APÓS marcar mensagem como 'processing',
+ * a mensagem é resetada para 'pending' para evitar ficar presa.
  */
 export async function processMessageFromQueue(job: any, supabase: any): Promise<void> {
   const { message_id, shop_id } = job;
@@ -141,26 +144,48 @@ export async function processMessageFromQueue(job: any, supabase: any): Promise<
     throw new Error('Conversation locked'); // Will retry later
   }
 
-  // Process the message
-  await processMessage(message, conversation, shop, supabase);
+  // Track if we set status to 'processing' so we can reset on error
+  let markedAsProcessing = false;
+
+  try {
+    // Process the message
+    markedAsProcessing = await processMessage(message, conversation, shop, supabase);
+  } catch (error: any) {
+    // Se a mensagem foi marcada como 'processing' e ocorreu erro,
+    // resetar para 'pending' para que o cleanup não precise intervir
+    if (markedAsProcessing) {
+      console.log(`[Processor] Error after marking as processing, resetting message ${message_id} to pending`);
+      try {
+        await updateMessage(message_id, { status: 'pending' });
+      } catch (resetError: any) {
+        console.error(`[Processor] Failed to reset message status:`, resetError.message);
+      }
+    }
+    // Re-throw para o process-queue tratar (retry ou DLQ)
+    throw error;
+  }
 }
 
 /**
  * Lógica principal de processamento de email
  * Adaptado de process-emails/index.ts
+ *
+ * @returns boolean - true se a mensagem foi marcada como 'processing', false caso contrário
  */
 async function processMessage(
   message: Message,
   conversation: Conversation,
   shop: Shop,
   _supabase: any
-): Promise<void> {
+): Promise<boolean> {
   console.log(`[Processor] Processing message ${message.id} from ${message.from_email}`);
 
-  // Check if message was already processed (prevent duplicate processing)
-  if (message.status === 'replied' || message.status === 'processing') {
-    console.log(`[Processor] Message ${message.id} already processed (status: ${message.status}), skipping`);
-    return;
+  // Check if message was already successfully processed (prevent duplicate processing)
+  // NOTA: Não verificamos 'processing' aqui porque mensagens em 'processing' podem ter sido
+  // resetadas pelo cleanup e precisam ser reprocessadas
+  if (message.status === 'replied') {
+    console.log(`[Processor] Message ${message.id} already replied, skipping`);
+    return false;
   }
 
   // Check if there's a recent reply to this conversation (prevent duplicate responses)
@@ -178,7 +203,7 @@ async function processMessage(
       error_message: 'Skipped - recent auto-reply exists',
       processed_at: new Date().toISOString(),
     });
-    return;
+    return false;
   }
 
   // Mark as processing
@@ -225,7 +250,7 @@ async function processMessage(
       error_message: 'Mensagem de agradecimento - não requer resposta',
       processed_at: new Date().toISOString(),
     });
-    return; // Success without replying
+    return true; // Success without replying - marked as processing before
   }
 
   // 5. Buscar usuário (dono da loja)
@@ -333,7 +358,7 @@ async function processMessage(
     });
 
     console.log(`[Processor] Message ${message.id} classified as SPAM, ignoring`);
-    return; // Success without replying
+    return true; // Success without replying - marked as processing before
   }
 
   // 10. Salvar categoria apenas para emails NÃO-spam
@@ -539,7 +564,7 @@ async function processMessage(
       event_data: { request_count: (conversation.data_request_count || 0) + 1 },
     });
 
-    return; // Success
+    return true; // Success - marked as processing before
   }
 
   // 12. Escalate para humano se MAX_DATA_REQUESTS excedido ou categoria suporte_humano
@@ -586,7 +611,7 @@ async function processMessage(
       },
     });
 
-    return; // Success
+    return true; // Success - marked as processing before
   }
 
   // 12.5 Incrementar contador de retenção se for cancelamento/reembolso
@@ -708,6 +733,7 @@ async function processMessage(
   await incrementEmailsUsed(user.id);
 
   console.log(`[Processor] Message ${message.id} processed successfully`);
+  return true; // Marked as processing at the beginning
 }
 
 /**

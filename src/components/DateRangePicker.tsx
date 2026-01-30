@@ -3,12 +3,17 @@ import type { DateRange } from 'react-day-picker'
 import { DayPicker } from 'react-day-picker'
 import { ptBR } from 'date-fns/locale'
 import { endOfMonth, startOfMonth, subDays, subMonths } from 'date-fns'
-import { ChevronDown } from 'lucide-react'
+import { Calendar, ChevronDown } from 'lucide-react'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const formatDate = (date?: Date) => {
   if (!date) return '--/--/----'
   return new Intl.DateTimeFormat('pt-BR').format(date)
+}
+
+const formatShortDate = (date?: Date) => {
+  if (!date) return '--/--'
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(date)
 }
 
 interface DateRangePickerProps {
@@ -49,10 +54,22 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
     ]
   }, [today])
 
+  // Encontra o preset ativo baseado no valor atual
+  const activePreset = useMemo(() => {
+    if (!value?.from || !value?.to) return null
+    return shortcuts.find(
+      (shortcut) =>
+        shortcut.range.from?.toDateString() === value.from?.toDateString() &&
+        shortcut.range.to?.toDateString() === value.to?.toDateString()
+    )
+  }, [value, shortcuts])
+
+  // Label amigável: mostra nome do preset ou "Personalizado" com datas curtas
   const rangeLabel = useMemo(() => {
     if (!value?.from || !value?.to) return 'Selecionar período'
-    return `${formatDate(value.from)} → ${formatDate(value.to)}`
-  }, [value])
+    if (activePreset) return activePreset.label
+    return `${formatShortDate(value.from)} → ${formatShortDate(value.to)}`
+  }, [value, activePreset])
 
   const handleApply = () => {
     if (!tempRange?.from || !tempRange?.to) return
@@ -73,15 +90,19 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
     )
   }
 
+  // Verifica se é um período personalizado (não é preset)
+  const isCustomRange = value?.from && value?.to && !activePreset
+
   return (
     <div style={{ position: 'relative' }}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="replyna-date-trigger"
+        className={`replyna-date-trigger ${isCustomRange ? 'custom' : ''}`}
       >
+        <Calendar size={16} style={{ opacity: 0.7 }} />
         <span>{rangeLabel}</span>
-        <ChevronDown size={16} style={{ opacity: 0.6 }} />
+        <ChevronDown size={16} style={{ opacity: 0.6, marginLeft: 'auto' }} />
       </button>
 
       {open && (
