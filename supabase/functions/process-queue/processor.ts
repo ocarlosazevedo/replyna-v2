@@ -378,17 +378,10 @@ async function processMessage(
   if (categoriasQueNeedShopify.includes(classification.category)) {
     needsOrderData = true;
 
-    // CHECK CIRCUIT BREAKER BEFORE SHOPIFY CALLS
+    // CHECK CIRCUIT BREAKER - but continue processing even if open
     const shopifyCircuitOpen = await isShopifyCircuitOpen(shop.id);
     if (shopifyCircuitOpen) {
-      console.log(`[Processor] Shopify circuit breaker is OPEN for shop ${shop.id}, marking message as pending_shopify`);
-
-      await updateMessage(message.id, {
-        status: 'pending_shopify',
-        category: classification.category,
-        category_confidence: classification.confidence,
-        error_message: 'Shopify integration offline - awaiting recovery',
-      });
+      console.log(`[Processor] Shopify circuit breaker is OPEN for shop ${shop.id}, continuing without Shopify data`);
 
       await logProcessingEvent({
         shop_id: shop.id,
@@ -397,14 +390,15 @@ async function processMessage(
         event_type: 'shopify_circuit_open',
         event_data: {
           category: classification.category,
-          action: 'marked_pending_shopify',
+          action: 'continuing_without_shopify',
         },
       });
 
-      // Don't throw - this is expected behavior, return successfully
-      return;
+      // Continue processing - AI will respond without Shopify data
     }
 
+    // Only try Shopify lookup if circuit is not open
+    if (!shopifyCircuitOpen) {
     // NOVO: Extrair TODOS os números de pedido de todas as fontes
     const originalBody = message.body_text || message.body_html || '';
     const allOrderNumbers = new Set<string>();
@@ -491,40 +485,29 @@ async function processMessage(
         const circuitState = await recordShopifyFailure(shop.id, error.message);
         console.log(`[Processor] Shopify circuit state after failure: ${circuitState}`);
 
-        // If circuit just opened, mark message as pending_shopify
-        if (circuitState === 'open') {
-          console.log(`[Processor] Shopify circuit just opened, marking message as pending_shopify`);
-
-          await updateMessage(message.id, {
-            status: 'pending_shopify',
+        await logProcessingEvent({
+          shop_id: shop.id,
+          message_id: message.id,
+          conversation_id: conversation.id,
+          event_type: 'shopify_lookup_failed',
+          event_data: {
+            error: error.message,
+            circuit_state: circuitState,
             category: classification.category,
-            category_confidence: classification.confidence,
-            error_message: `Shopify offline: ${error.message}`,
-          });
+          },
+        });
 
-          await logProcessingEvent({
-            shop_id: shop.id,
-            message_id: message.id,
-            conversation_id: conversation.id,
-            event_type: 'shopify_circuit_opened',
-            event_data: {
-              error: error.message,
-              category: classification.category,
-            },
-          });
-
-          // Return without throwing - message will be reprocessed when circuit closes
-          return;
-        }
-
-        // Circuit not open yet - save order number and continue without Shopify data
+        // Save order number and continue without Shopify data - AI will respond with available info
         if (orderNumber && !conversation.shopify_order_id) {
           await updateConversation(conversation.id, {
             shopify_order_id: orderNumber,
           });
         }
+
+        console.log(`[Processor] Continuing without Shopify data, AI will respond with available info`);
       }
     }
+    } // end if (!shopifyCircuitOpen)
   }
 
   // 11. Fluxo de solicitação de dados (se não tiver número do pedido)
