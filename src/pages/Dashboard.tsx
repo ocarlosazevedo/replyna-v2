@@ -410,13 +410,15 @@ export default function Dashboard() {
     }
 
     const loadConversationsForChart = async () => {
-      // Carregar conversas para o gráfico de volume (coerente com métricas)
+      // Carregar conversas para o gráfico de volume (mesmos filtros das métricas)
       const query = supabase
         .from('conversations')
         .select('created_at, category, status')
+        .not('category', 'is', null) // Excluir conversas ainda em processamento
+        .not('category', 'in', '("spam","acknowledgment")') // Mesmo filtro das métricas
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
-        .limit(5000) // Limite maior para o gráfico
+        .limit(10000) // Limite maior para o gráfico
 
       const { data, error } =
         selectedShopId === 'all'
