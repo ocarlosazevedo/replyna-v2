@@ -550,142 +550,62 @@ export default function Shops() {
           <div style={{ color: 'var(--text-secondary)' }}>Carregando...</div>
         </div>
       ) : filteredShops.length === 0 && shops.length === 0 ? (
-        <div style={{
-          ...cardStyle,
-          padding: isMobile ? '32px 20px' : '48px',
-          textAlign: 'center',
-        }}>
-          {/* Texto e CTA - Em cima */}
+        <div style={{ ...cardStyle, textAlign: 'center', padding: isMobile ? '48px 24px' : '64px 48px' }}>
           <div style={{
-            width: '72px',
-            height: '72px',
-            borderRadius: '18px',
+            width: '80px',
+            height: '80px',
+            borderRadius: '20px',
             backgroundColor: 'rgba(70, 114, 236, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 20px',
+            margin: '0 auto 24px',
           }}>
-            <Store size={36} style={{ color: 'var(--accent)' }} />
+            <Store size={40} style={{ color: 'var(--accent)' }} />
           </div>
-          <h2 style={{
-            fontSize: isMobile ? '22px' : '28px',
-            fontWeight: '700',
-            color: 'var(--text-primary)',
-            marginBottom: '12px',
-          }}>
+          <h2 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '12px' }}>
             Integre sua primeira loja
           </h2>
-          <p style={{
-            color: 'var(--text-secondary)',
-            maxWidth: '480px',
-            margin: '0 auto 28px',
-            lineHeight: '1.6',
-            fontSize: isMobile ? '14px' : '16px',
-          }}>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', maxWidth: '440px', margin: '0 auto 24px', lineHeight: '1.6', fontSize: '15px' }}>
             Configure sua loja para ativar o atendimento automatizado. A Replyna vai responder seus clientes com inteligência artificial.
           </p>
-          <button
-            onClick={() => navigate('/shops/setup')}
-            style={{
-              ...buttonPrimary,
-              padding: '14px 32px',
-              fontSize: '15px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '40px',
-            }}
-          >
-            <Plus size={18} />
-            Integrar minha loja
-          </button>
-
-          {/* Video Tutorial - Embaixo, largura total */}
-          <a
-            href="https://youtu.be/PpoJjvGz0AY"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'block',
-              width: '100%',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              position: 'relative',
-              boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.005)'
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.12)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)'
-              e.currentTarget.style.boxShadow = '0 2px 12px rgba(0, 0, 0, 0.08)'
-            }}
-          >
-            <img
-              src="https://img.youtube.com/vi/PpoJjvGz0AY/maxresdefault.jpg"
-              alt="Tutorial: Como integrar sua loja"
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+            <button
+              onClick={() => navigate('/shops/setup')}
               style={{
-                width: '100%',
-                height: 'auto',
-                display: 'block',
-                aspectRatio: '16/9',
-                objectFit: 'cover',
-              }}
-            />
-            {/* Play Button Overlay */}
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(0, 0, 0, 0.25)',
-            }}>
-              <div style={{
-                width: isMobile ? '60px' : '80px',
-                height: isMobile ? '60px' : '80px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                display: 'flex',
+                ...buttonPrimary,
+                padding: '14px 28px',
+                fontSize: '15px',
+                display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 24px rgba(0, 0, 0, 0.25)',
-              }}>
-                <div style={{
-                  width: 0,
-                  height: 0,
-                  borderTop: isMobile ? '12px solid transparent' : '16px solid transparent',
-                  borderBottom: isMobile ? '12px solid transparent' : '16px solid transparent',
-                  borderLeft: isMobile ? '20px solid var(--accent)' : '26px solid var(--accent)',
-                  marginLeft: '4px',
-                }} />
-              </div>
-            </div>
-            {/* Video Label */}
-            <div style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              padding: isMobile ? '14px 16px' : '20px 24px',
-              background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-              color: '#fff',
-              textAlign: 'left',
-            }}>
-              <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 600 }}>
-                Tutorial: Como integrar sua loja
-              </div>
-              <div style={{ fontSize: isMobile ? '12px' : '14px', opacity: 0.8, marginTop: '4px' }}>
-                Assista o passo a passo no YouTube
-              </div>
-            </div>
-          </a>
+                gap: '8px',
+              }}
+            >
+              <Plus size={18} />
+              Integrar minha loja
+            </button>
+            <a
+              href="https://youtu.be/PpoJjvGz0AY"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: 'var(--accent)',
+                fontSize: '14px',
+                fontWeight: '500',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              Assistir tutorial de integração
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </a>
+          </div>
         </div>
       ) : filteredShops.length === 0 ? (
         <div style={{ ...cardStyle, textAlign: 'center', padding: '48px' }}>
