@@ -367,6 +367,36 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 1.5 Ordenar lojas por quantidade de mensagens pendentes (menos primeiro)
+    // Isso garante que lojas menores sejam processadas rapidamente
+    const supabase = getSupabaseClient();
+    const { data: pendingCounts } = await supabase
+      .from('messages')
+      .select('conversation:conversations!inner(shop_id)')
+      .eq('status', 'pending')
+      .eq('direction', 'inbound');
+
+    // Contar mensagens pendentes por loja
+    const countByShop: Record<string, number> = {};
+    for (const msg of pendingCounts || []) {
+      const shopId = (msg.conversation as { shop_id: string })?.shop_id;
+      if (shopId) {
+        countByShop[shopId] = (countByShop[shopId] || 0) + 1;
+      }
+    }
+
+    // Ordenar lojas: menos pendentes primeiro
+    shops.sort((a, b) => {
+      const countA = countByShop[a.id] || 0;
+      const countB = countByShop[b.id] || 0;
+      return countA - countB;
+    });
+
+    console.log('[Orchestrator] Lojas ordenadas por mensagens pendentes (menos primeiro):');
+    shops.slice(0, 5).forEach(s => {
+      console.log(`  - ${s.name}: ${countByShop[s.id] || 0} pendentes`);
+    });
+
     // 2. Processar lojas em paralelo
     console.log(`[Orchestrator] Processando até ${MAX_CONCURRENT_SHOPS} lojas em paralelo`);
 
