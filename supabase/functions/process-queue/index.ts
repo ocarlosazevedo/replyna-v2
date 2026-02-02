@@ -5,7 +5,7 @@
  * Chamado via pg_cron a cada 1 minuto.
  *
  * Fluxo:
- * 1. Dequeue batch de jobs (50 por vez)
+ * 1. Dequeue batch de jobs (15 por vez, with 2s delay to avoid rate limits)
  * 2. Para cada job:
  *    - Processar email (classificar + responder)
  *    - Se success: complete_job()
@@ -22,8 +22,9 @@ import { getSupabaseClient } from '../_shared/supabase.ts';
 // NOTA: Este arquivo vai usar funções de _shared/ que já existem
 import { processMessageFromQueue } from './processor.ts';
 
-const BATCH_SIZE = 50; // Process 50 jobs per execution
+const BATCH_SIZE = 15; // Reduced from 50 to avoid Claude API rate limit (100k tokens/min)
 const MAX_EXECUTION_TIME_MS = 110000; // 110 seconds
+const DELAY_BETWEEN_JOBS_MS = 2000; // 2 second delay between jobs to spread API calls
 
 interface Job {
   id: string;
@@ -86,7 +87,9 @@ Deno.serve(async (req: Request) => {
     let jobsFailed = 0;
     let jobsToDLQ = 0;
 
-    for (const job of jobs as Job[]) {
+    for (let i = 0; i < (jobs as Job[]).length; i++) {
+      const job = (jobs as Job[])[i];
+
       // Check timeout
       if (Date.now() - startTime > MAX_EXECUTION_TIME_MS) {
         console.log('[Queue] Approaching timeout, stopping processing');
@@ -115,8 +118,17 @@ Deno.serve(async (req: Request) => {
 
         jobsCompleted++;
         console.log(`[Queue] Job ${job.id} completed in ${processingTime}ms`);
+
+        // Add delay between jobs to avoid rate limiting (except for last job)
+        if (i < (jobs as Job[]).length - 1) {
+          await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_JOBS_MS));
+        }
       } catch (error: any) {
         console.error(`[Queue] Job ${job.id} failed:`, error.message);
+
+        // Check if it's a rate limit error - stop processing immediately to avoid more 429s
+        const isRateLimit = error.message?.toLowerCase().includes('rate_limit') ||
+                           error.message?.includes('429');
 
         // Determine if error is retryable
         const isRetryable = isRetryableError(error);
@@ -143,6 +155,12 @@ Deno.serve(async (req: Request) => {
           } else {
             jobsFailed++;
           }
+        }
+
+        // If rate limited, stop processing this batch and wait for next cycle
+        if (isRateLimit) {
+          console.log('[Queue] Rate limit hit, stopping batch to avoid more 429 errors');
+          break;
         }
       }
     }

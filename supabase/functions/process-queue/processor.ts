@@ -92,6 +92,96 @@ const systemEmailPatterns = [
   '@sendgrid.com',
 ];
 
+// Padrões específicos de email do Shopify que podem conter email do cliente no corpo
+const shopifyContactFormPatterns = [
+  'mailer@shopify',
+  '@shopify.com',
+];
+
+/**
+ * Extrai email do cliente do corpo de um formulário de contato do Shopify
+ * Lida com diferentes formatos: texto puro e HTML com tags entre "Email:" e o endereço
+ */
+function extractEmailFromShopifyContactForm(bodyText: string, bodyHtml?: string): { email: string; name: string | null } | null {
+  if (!bodyText && !bodyHtml) return null;
+
+  // Padrões para extrair email - do mais específico ao mais genérico
+  const emailPatterns = [
+    // Padrão 1: "Email:" seguido diretamente pelo email (texto puro)
+    /(?:E-?mail|email):\s*\n?\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
+    // Padrão 2: "Email:" com tags HTML no meio (ex: <b>Email:</b><pre>email@test.com</pre>)
+    /(?:E-?mail|email):<\/b>\s*(?:<[^>]*>)*\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
+    // Padrão 3: Qualquer formato com "Email:" e email na mesma região
+    /(?:E-?mail|email):[^@]*?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
+  ];
+
+  // Padrões para extrair nome
+  const namePatterns = [
+    /(?:Name|Nome):\s*\n?\s*([^\n<]+)/i,
+    /(?:Name|Nome):<\/b>\s*(?:<[^>]*>)*\s*([^<\n]+)/i,
+  ];
+
+  let email: string | null = null;
+  let name: string | null = null;
+
+  // Tentar extrair do texto primeiro
+  if (bodyText) {
+    for (const pattern of emailPatterns) {
+      const match = bodyText.match(pattern);
+      if (match && match[1]) {
+        email = match[1].toLowerCase().trim();
+        break;
+      }
+    }
+
+    for (const pattern of namePatterns) {
+      const match = bodyText.match(pattern);
+      if (match && match[1] && match[1].trim()) {
+        name = match[1].trim();
+        break;
+      }
+    }
+  }
+
+  // Se não encontrou no texto, tentar no HTML
+  if (!email && bodyHtml) {
+    for (const pattern of emailPatterns) {
+      const match = bodyHtml.match(pattern);
+      if (match && match[1]) {
+        email = match[1].toLowerCase().trim();
+        break;
+      }
+    }
+
+    if (!name) {
+      for (const pattern of namePatterns) {
+        const match = bodyHtml.match(pattern);
+        if (match && match[1] && match[1].trim()) {
+          name = match[1].trim();
+          break;
+        }
+      }
+    }
+  }
+
+  if (!email) return null;
+
+  // Limpar nome de possíveis tags HTML residuais
+  if (name) {
+    name = name.replace(/<[^>]*>/g, '').trim();
+  }
+
+  return { email, name };
+}
+
+/**
+ * Verifica se o email é de um formulário de contato do Shopify
+ */
+function isShopifyContactFormEmail(fromEmail: string): boolean {
+  const fromLower = (fromEmail || '').toLowerCase();
+  return shopifyContactFormPatterns.some(pattern => fromLower.includes(pattern));
+}
+
 /**
  * Processa um job de email da fila
  *
@@ -209,23 +299,63 @@ async function processMessage(
   // Mark as processing
   await updateMessage(message.id, { status: 'processing' });
 
-  // 1. Validar email
-  if (!message.from_email || !message.from_email.includes('@')) {
-    await updateMessage(message.id, {
-      status: 'failed',
-      error_message: 'Email do remetente inválido',
-      // NÃO salva categoria para emails inválidos
-    });
-    throw new Error('Email do remetente inválido');
+  // 1. Tentar extrair email de formulários Shopify ANTES de validar
+  const isEmptyOrInvalid = !message.from_email || !message.from_email.includes('@');
+  const isShopifySystem = isShopifyContactFormEmail(message.from_email || '');
+
+  if (isEmptyOrInvalid || isShopifySystem) {
+    // Tentar extrair email do cliente do corpo da mensagem (formulários Shopify)
+    const extracted = extractEmailFromShopifyContactForm(message.body_text || '', message.body_html || '');
+
+    if (extracted && extracted.email) {
+      console.log(`[Processor] Email extraído do formulário Shopify: ${extracted.email}, Nome: ${extracted.name}`);
+      message.from_email = extracted.email;
+      if (extracted.name && !message.from_name) {
+        message.from_name = extracted.name;
+      }
+
+      // Atualizar no banco
+      await updateMessage(message.id, {
+        from_email: extracted.email,
+        from_name: extracted.name || message.from_name,
+      });
+
+      // Atualizar email do cliente na conversa se necessário
+      if (!conversation.customer_email ||
+          conversation.customer_email === 'unknown@invalid.local' ||
+          isShopifyContactFormEmail(conversation.customer_email)) {
+        await updateConversation(conversation.id, {
+          customer_email: extracted.email,
+          customer_name: extracted.name || conversation.customer_name,
+        });
+      }
+    } else if (isEmptyOrInvalid) {
+      // Email inválido e não conseguiu extrair de formulário
+      await updateMessage(message.id, {
+        status: 'failed',
+        error_message: 'Email do remetente inválido',
+      });
+      throw new Error('Email do remetente inválido');
+    } else {
+      // É email Shopify mas não conseguiu extrair - marcar como falha
+      await updateMessage(message.id, {
+        status: 'failed',
+        error_message: 'Formulário Shopify: não foi possível extrair email do cliente',
+      });
+      console.log(`[Processor] Shopify contact form but could not extract customer email from body`);
+      throw new Error('Formulário Shopify: não foi possível extrair email do cliente');
+    }
   }
 
-  // 2. Ignorar emails de sistema
+  // 2. Ignorar outros emails de sistema (não Shopify, já tratado acima)
   const fromLower = message.from_email.toLowerCase();
-  if (systemEmailPatterns.some((pattern) => fromLower.includes(pattern))) {
+  const nonShopifySystemPatterns = systemEmailPatterns.filter(
+    pattern => !shopifyContactFormPatterns.some(sp => pattern.includes(sp.replace('@', '')))
+  );
+  if (nonShopifySystemPatterns.some((pattern) => fromLower.includes(pattern))) {
     await updateMessage(message.id, {
       status: 'failed',
       error_message: 'Email de sistema ignorado',
-      // NÃO salva categoria para emails de sistema
     });
     console.log(`[Processor] System email ignored: ${message.from_email}`);
     throw new Error('Email de sistema ignorado');
