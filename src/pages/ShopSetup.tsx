@@ -602,7 +602,7 @@ export default function ShopSetup() {
     >
       <div style={{ flexShrink: 0 }}>
         <svg width="40" height="28" viewBox="0 0 28 20">
-          <rect width="28" height="20" rx="5" fill="#3b82f6"/>
+          <rect width="28" height="20" rx="5" fill="#FF0000"/>
           <polygon points="11,5 11,15 20,10" fill="white"/>
         </svg>
       </div>
