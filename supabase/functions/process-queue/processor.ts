@@ -278,6 +278,25 @@ async function processMessage(
     return false;
   }
 
+  // Skip Replyna forwarding notifications (emails that were forwarded to human support)
+  const messageBody = message.body_text || '';
+  const messageSubject = message.subject || '';
+  const isForwardingNotification =
+    messageBody.includes('Este email foi encaminhado automaticamente pelo Replyna') ||
+    messageBody.includes('This email was automatically forwarded by Replyna') ||
+    messageSubject.startsWith('[ENCAMINHADO]') ||
+    messageSubject.startsWith('[FORWARDED]');
+
+  if (isForwardingNotification) {
+    console.log(`[Processor] Message ${message.id} is a Replyna forwarding notification, skipping`);
+    await updateMessage(message.id, {
+      status: 'replied',
+      error_message: 'Skipped - Replyna forwarding notification',
+      processed_at: new Date().toISOString(),
+    });
+    return false;
+  }
+
   // Check if there's a recent reply to this conversation (prevent duplicate responses)
   // Reduced from 30 min to 3 min - 30 min was too aggressive and caused legitimate follow-up messages to be skipped
   const recentReplyCheck = await getConversationHistory(conversation.id, 5);

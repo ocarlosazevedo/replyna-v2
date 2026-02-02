@@ -473,6 +473,25 @@ async function processMessage(
     return 'skipped';
   }
 
+  // Skip Replyna forwarding notifications (emails that were forwarded to human support)
+  const messageBody = message.body_text || '';
+  const messageSubject = message.subject || '';
+  const isForwardingNotification =
+    messageBody.includes('Este email foi encaminhado automaticamente pelo Replyna') ||
+    messageBody.includes('This email was automatically forwarded by Replyna') ||
+    messageSubject.startsWith('[ENCAMINHADO]') ||
+    messageSubject.startsWith('[FORWARDED]');
+
+  if (isForwardingNotification) {
+    console.log(`[Worker] Message ${message.id} is a Replyna forwarding notification, skipping`);
+    await updateMessage(message.id, {
+      status: 'replied',
+      error_message: 'Skipped - Replyna forwarding notification',
+      processed_at: new Date().toISOString(),
+    });
+    return 'skipped';
+  }
+
   await updateMessage(message.id, { status: 'processing' });
 
   const startTime = Date.now();
