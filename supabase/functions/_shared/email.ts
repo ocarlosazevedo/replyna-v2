@@ -1319,7 +1319,8 @@ export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
 
   // Detectar e extrair comentário de formulários de contato do Shopify
   // Formato: "Nova mensagem de cliente... Country Code: X, Name: X, Email: X, Phone: X, Comment: X"
-  const shopifyFormPattern = /(?:Nova mensagem de cliente|New customer message|New message from customer)/i;
+  // Também: "You received a new message from your online store's contact form."
+  const shopifyFormPattern = /(?:Nova mensagem de cliente|New customer message|New message from customer|received a new message from.*(?:contact form|online store)|new message from your online store)/i;
   if (shopifyFormPattern.test(body)) {
     // Tentar extrair o campo Comment/Comentário/Message
     const commentPatterns = [

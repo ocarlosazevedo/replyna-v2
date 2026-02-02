@@ -76,20 +76,76 @@ const MAX_EXECUTION_TIME_MS = 110000; // 110 segundos (limite real é 120s)
 
 /**
  * Extrai email do cliente do corpo de um formulário de contato do Shopify
+ * Lida com diferentes formatos: texto puro e HTML com tags entre "Email:" e o endereço
  */
-function extractEmailFromShopifyContactForm(bodyText: string): { email: string; name: string | null } | null {
-  if (!bodyText) return null;
+function extractEmailFromShopifyContactForm(bodyText: string, bodyHtml?: string): { email: string; name: string | null } | null {
+  if (!bodyText && !bodyHtml) return null;
 
-  const emailLinePattern = /(?:E-?mail|email):\s*\n?\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i;
-  const emailMatch = bodyText.match(emailLinePattern);
+  // Padrões para extrair email - do mais específico ao mais genérico
+  const emailPatterns = [
+    // Padrão 1: "Email:" seguido diretamente pelo email (texto puro)
+    /(?:E-?mail|email):\s*\n?\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
+    // Padrão 2: "Email:" com tags HTML no meio (ex: <b>Email:</b><pre>email@test.com</pre>)
+    /(?:E-?mail|email):<\/b>\s*(?:<[^>]*>)*\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
+    // Padrão 3: Qualquer formato com "Email:" e email na mesma região
+    /(?:E-?mail|email):[^@]*?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
+  ];
 
-  if (!emailMatch) return null;
+  // Padrões para extrair nome
+  const namePatterns = [
+    /(?:Name|Nome):\s*\n?\s*([^\n<]+)/i,
+    /(?:Name|Nome):<\/b>\s*(?:<[^>]*>)*\s*([^<\n]+)/i,
+  ];
 
-  const email = emailMatch[1].toLowerCase();
+  let email: string | null = null;
+  let name: string | null = null;
 
-  const namePattern = /(?:Name|Nome):\s*\n?\s*([^\n]+)/i;
-  const nameMatch = bodyText.match(namePattern);
-  const name = nameMatch ? nameMatch[1].trim() : null;
+  // Tentar extrair do texto primeiro
+  if (bodyText) {
+    for (const pattern of emailPatterns) {
+      const match = bodyText.match(pattern);
+      if (match && match[1]) {
+        email = match[1].toLowerCase().trim();
+        break;
+      }
+    }
+
+    for (const pattern of namePatterns) {
+      const match = bodyText.match(pattern);
+      if (match && match[1] && match[1].trim()) {
+        name = match[1].trim();
+        break;
+      }
+    }
+  }
+
+  // Se não encontrou no texto, tentar no HTML
+  if (!email && bodyHtml) {
+    for (const pattern of emailPatterns) {
+      const match = bodyHtml.match(pattern);
+      if (match && match[1]) {
+        email = match[1].toLowerCase().trim();
+        break;
+      }
+    }
+
+    if (!name) {
+      for (const pattern of namePatterns) {
+        const match = bodyHtml.match(pattern);
+        if (match && match[1] && match[1].trim()) {
+          name = match[1].trim();
+          break;
+        }
+      }
+    }
+  }
+
+  if (!email) return null;
+
+  // Limpar nome de possíveis tags HTML residuais
+  if (name) {
+    name = name.replace(/<[^>]*>/g, '').trim();
+  }
 
   return { email, name };
 }
@@ -507,19 +563,29 @@ async function saveIncomingEmail(shopId: string, email: IncomingEmail): Promise<
   let finalFromEmail = email.from_email;
   let finalFromName = email.from_name;
 
-  if (!finalFromEmail || !finalFromEmail.includes('@')) {
+  // Verificar se é email de sistema Shopify (formulário de contato)
+  const isShopifySystemEmail = finalFromEmail &&
+    (finalFromEmail.toLowerCase().includes('mailer@shopify') ||
+     finalFromEmail.toLowerCase().includes('@shopify.com'));
+
+  // Se email é inválido OU é do sistema Shopify, tentar extrair email real do cliente
+  if (!finalFromEmail || !finalFromEmail.includes('@') || isShopifySystemEmail) {
     // Tentar usar Reply-To como fallback
-    if (email.reply_to && email.reply_to.includes('@')) {
+    if (email.reply_to && email.reply_to.includes('@') && !email.reply_to.toLowerCase().includes('@shopify')) {
       console.log(`[saveIncomingEmail] Usando Reply-To (${email.reply_to}) como fallback para from_email`);
       finalFromEmail = email.reply_to;
     } else {
       // Tentar extrair do corpo do email (formulários Shopify)
-      const bodyContent = email.body_text || email.body_html || '';
-      const extracted = extractEmailFromShopifyContactForm(bodyContent);
+      // Passar tanto body_text quanto body_html para melhor extração
+      const extracted = extractEmailFromShopifyContactForm(email.body_text || '', email.body_html || '');
 
       if (extracted) {
+        console.log(`[saveIncomingEmail] Email extraído do formulário Shopify: ${extracted.email}, Nome: ${extracted.name}`);
         finalFromEmail = extracted.email;
         finalFromName = extracted.name || finalFromName;
+      } else if (isShopifySystemEmail) {
+        // Se é email do Shopify mas não conseguiu extrair, logar para debug
+        console.log(`[saveIncomingEmail] AVISO: Email do Shopify (${email.from_email}) mas não conseguiu extrair email do cliente do corpo`);
       }
     }
   }
@@ -668,6 +734,13 @@ async function processMessageInternal(
     return 'skipped';
   }
 
+  // Padrões de emails de sistema Shopify (formulários de contato)
+  const shopifyContactFormPatterns = [
+    'mailer@shopify',
+    '@shopify.com',
+  ];
+
+  // Outros padrões de emails de sistema que devem ser ignorados
   const systemEmailPatterns = [
     'mailer-daemon@',
     'postmaster@',
@@ -682,20 +755,58 @@ async function processMessageInternal(
     'bounce',
     'failure',
     'undeliverable',
-    // Shopify system emails - NUNCA responder
-    '@shopify.com',
-    'mailer@shopify',
     'support@shopify',
     'notifications@shopify',
     // Outros sistemas
     '@paypal.com',
     '@stripe.com',
   ];
+
   const fromLower = message.from_email.toLowerCase();
-  if (systemEmailPatterns.some(pattern => fromLower.includes(pattern))) {
+
+  // Verificar se é email de formulário de contato Shopify
+  const isShopifyContactForm = shopifyContactFormPatterns.some(pattern => fromLower.includes(pattern));
+
+  if (isShopifyContactForm) {
+    // Tentar extrair email do cliente do corpo da mensagem
+    const extracted = extractEmailFromShopifyContactForm(message.body_text || '', message.body_html || '');
+
+    if (extracted && extracted.email) {
+      console.log(`[processMessage] Formulário Shopify detectado. Email do cliente extraído: ${extracted.email}`);
+      // Atualizar o from_email da mensagem para o email real do cliente
+      message.from_email = extracted.email;
+      if (extracted.name && !message.from_name) {
+        message.from_name = extracted.name;
+      }
+
+      // Atualizar no banco também
+      await updateMessage(message.id, {
+        from_email: extracted.email,
+        from_name: extracted.name || message.from_name,
+      });
+
+      // Atualizar email do cliente na conversa se necessário
+      if (conversation.customer_email === 'mailer@shopify.com' || conversation.customer_email?.includes('@shopify.com')) {
+        await updateConversation(conversation.id, {
+          customer_email: extracted.email,
+          customer_name: extracted.name || conversation.customer_name,
+        });
+      }
+    } else {
+      // Não conseguiu extrair email do cliente - marcar como falha
+      console.log(`[processMessage] Formulário Shopify detectado mas não foi possível extrair email do cliente`);
+      await updateMessage(message.id, {
+        status: 'failed',
+        category: 'spam',
+        error_message: 'Formulário Shopify: não foi possível extrair email do cliente',
+      });
+      return 'skipped';
+    }
+  } else if (systemEmailPatterns.some(pattern => fromLower.includes(pattern))) {
+    // Outros emails de sistema - ignorar
     await updateMessage(message.id, {
       status: 'failed',
-      category: 'spam', // Emails de sistema são tratados como spam
+      category: 'spam',
       error_message: 'Email de sistema ignorado',
     });
     return 'skipped';
