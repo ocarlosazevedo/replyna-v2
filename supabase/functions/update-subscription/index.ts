@@ -144,10 +144,48 @@ serve(async (req) => {
     }
 
     // Verificar se o cliente tem método de pagamento
-    const customer = await stripe.customers.retrieve(subscription.stripe_customer_id) as Stripe.Customer;
-    const hasPaymentMethod = customer.invoice_settings?.default_payment_method || customer.default_source;
+    let customer = await stripe.customers.retrieve(subscription.stripe_customer_id) as Stripe.Customer;
+    let hasPaymentMethod = customer.invoice_settings?.default_payment_method || customer.default_source;
 
-    // Se não tem método de pagamento, criar sessão de checkout para adicionar cartão
+    // Se não tem método de pagamento padrão, verificar se tem algum método de pagamento anexado
+    // Isso pode acontecer após o setup session - o cartão é adicionado mas não definido como padrão
+    if (!hasPaymentMethod) {
+      console.log('Cliente sem método de pagamento padrão. Verificando métodos anexados...');
+
+      // Buscar métodos de pagamento do cliente
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: subscription.stripe_customer_id,
+        type: 'card',
+      });
+
+      console.log(`Encontrados ${paymentMethods.data.length} métodos de pagamento`);
+
+      if (paymentMethods.data.length > 0) {
+        // Usar o método mais recente
+        const latestPaymentMethod = paymentMethods.data[0];
+        console.log(`Definindo método ${latestPaymentMethod.id} como padrão...`);
+
+        // Definir como método de pagamento padrão para invoices
+        await stripe.customers.update(subscription.stripe_customer_id, {
+          invoice_settings: {
+            default_payment_method: latestPaymentMethod.id,
+          },
+        });
+
+        // Também atualizar o método de pagamento padrão na subscription
+        await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+          default_payment_method: latestPaymentMethod.id,
+        });
+
+        console.log('Método de pagamento padrão definido com sucesso');
+        hasPaymentMethod = latestPaymentMethod.id;
+
+        // Atualizar referência do customer
+        customer = await stripe.customers.retrieve(subscription.stripe_customer_id) as Stripe.Customer;
+      }
+    }
+
+    // Se ainda não tem método de pagamento, criar sessão de checkout para adicionar cartão
     if (!hasPaymentMethod) {
       console.log('Cliente sem método de pagamento. Criando sessão de checkout...');
 
@@ -290,53 +328,111 @@ serve(async (req) => {
     // Verificar se a subscription tem trial ativo
     const hasActiveTrial = stripeSubscription.trial_end && stripeSubscription.trial_end > Math.floor(Date.now() / 1000);
 
+    console.log('Atualizando subscription no Stripe...', {
+      subscription_id: subscription.stripe_subscription_id,
+      new_price_id: newStripePriceId,
+      hasActiveTrial,
+    });
+
     if (isUpgrade) {
       // Para UPGRADE: reseta o billing cycle e cobra o novo plano imediatamente
       // Isso garante que o cliente pague o valor cheio do novo plano (não proporcional)
-      updatedSubscription = await stripe.subscriptions.update(
-        subscription.stripe_subscription_id,
-        {
-          items: [
-            {
-              id: currentItem.id,
-              price: newStripePriceId,
-            },
-          ],
-          // 'none' não gera créditos/débitos proporcionais
-          proration_behavior: 'none',
-          // Reseta o ciclo de cobrança para agora, cobrando o novo valor imediatamente
-          billing_cycle_anchor: 'now',
-          // Encerra o trial se houver (necessário para evitar erro quando trial_end > billing_cycle_anchor)
-          trial_end: hasActiveTrial ? 'now' : undefined,
-          // Necessário quando billing_cycle_anchor é 'now'
-          payment_behavior: 'allow_incomplete',
-          metadata: {
-            plan_id: new_plan_id,
-            plan_name: newPlan.name,
-            user_id: user_id,
+      const updateParams: any = {
+        items: [
+          {
+            id: currentItem.id,
+            price: newStripePriceId,
           },
+        ],
+        // 'none' não gera créditos/débitos proporcionais
+        proration_behavior: 'none',
+        // Reseta o ciclo de cobrança para agora, cobrando o novo valor imediatamente
+        billing_cycle_anchor: 'now',
+        // Necessário quando billing_cycle_anchor é 'now'
+        payment_behavior: 'error_if_incomplete',
+        metadata: {
+          plan_id: new_plan_id,
+          plan_name: newPlan.name,
+          user_id: user_id,
+        },
+      };
+
+      // Só incluir trial_end se houver trial ativo
+      if (hasActiveTrial) {
+        updateParams.trial_end = 'now';
+      }
+
+      try {
+        updatedSubscription = await stripe.subscriptions.update(
+          subscription.stripe_subscription_id,
+          updateParams
+        );
+        console.log('Subscription atualizada com sucesso:', updatedSubscription.status);
+      } catch (stripeError: any) {
+        console.error('Erro ao atualizar subscription no Stripe:', stripeError.message);
+
+        // Se o erro for de pagamento, criar uma sessão de checkout para o usuário pagar
+        if (stripeError.code === 'card_declined' || stripeError.type === 'StripeCardError' || stripeError.message?.includes('payment')) {
+          console.log('Pagamento falhou. Criando sessão de checkout para pagamento...');
+
+          const checkoutSession = await stripe.checkout.sessions.create({
+            customer: subscription.stripe_customer_id,
+            mode: 'subscription',
+            line_items: [
+              {
+                price: newStripePriceId,
+                quantity: 1,
+              },
+            ],
+            success_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/account?upgrade_success=true`,
+            cancel_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/account?upgrade_cancelled=true`,
+            subscription_data: {
+              metadata: {
+                plan_id: new_plan_id,
+                plan_name: newPlan.name,
+                user_id: user_id,
+                replaces_subscription: subscription.stripe_subscription_id,
+              },
+            },
+          });
+
+          return new Response(
+            JSON.stringify({
+              payment_required: true,
+              payment_url: checkoutSession.url,
+              message: 'Pagamento necessário. Complete o pagamento para ativar o novo plano.',
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
-      );
+
+        throw stripeError;
+      }
     } else {
       // Para DOWNGRADE ou mesmo preço: mantém o ciclo atual
+      const updateParams: any = {
+        items: [
+          {
+            id: currentItem.id,
+            price: newStripePriceId,
+          },
+        ],
+        proration_behavior: 'none',
+        metadata: {
+          plan_id: new_plan_id,
+          plan_name: newPlan.name,
+          user_id: user_id,
+        },
+      };
+
+      // Só incluir trial_end se houver trial ativo
+      if (hasActiveTrial) {
+        updateParams.trial_end = 'now';
+      }
+
       updatedSubscription = await stripe.subscriptions.update(
         subscription.stripe_subscription_id,
-        {
-          items: [
-            {
-              id: currentItem.id,
-              price: newStripePriceId,
-            },
-          ],
-          proration_behavior: 'none',
-          // Encerra o trial se houver
-          trial_end: hasActiveTrial ? 'now' : undefined,
-          metadata: {
-            plan_id: new_plan_id,
-            plan_name: newPlan.name,
-            user_id: user_id,
-          },
-        }
+        updateParams
       );
     }
 
@@ -352,7 +448,41 @@ serve(async (req) => {
       });
 
       const latestInvoice = invoices.data[0];
-      const paymentUrl = latestInvoice?.hosted_invoice_url;
+      let paymentUrl = latestInvoice?.hosted_invoice_url;
+
+      console.log('Invoice encontrada:', {
+        invoice_id: latestInvoice?.id,
+        status: latestInvoice?.status,
+        hosted_invoice_url: paymentUrl,
+      });
+
+      // Se não tiver URL de pagamento da invoice, criar uma sessão de checkout
+      if (!paymentUrl) {
+        console.log('Sem URL de invoice. Criando sessão de checkout...');
+
+        const checkoutSession = await stripe.checkout.sessions.create({
+          customer: subscription.stripe_customer_id,
+          mode: 'subscription',
+          line_items: [
+            {
+              price: newStripePriceId,
+              quantity: 1,
+            },
+          ],
+          success_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/account?upgrade_success=true`,
+          cancel_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/account?upgrade_cancelled=true`,
+          subscription_data: {
+            metadata: {
+              plan_id: new_plan_id,
+              plan_name: newPlan.name,
+              user_id: user_id,
+              replaces_subscription: subscription.stripe_subscription_id,
+            },
+          },
+        });
+
+        paymentUrl = checkoutSession.url;
+      }
 
       return new Response(
         JSON.stringify({
