@@ -67,9 +67,9 @@ import {
 } from '../_shared/anthropic.ts';
 
 // Constantes - ESCALA AUMENTADA
-const MAX_CONCURRENT_SHOPS = 10; // Processar 10 lojas em paralelo
+const MAX_CONCURRENT_SHOPS = 5; // Reduzido de 10 para 5 para evitar WORKER_LIMIT
 const MAX_EMAILS_PER_SHOP = 10; // Emails IMAP por loja
-const MAX_MESSAGES_PER_SHOP = 15; // Mensagens por loja
+const MAX_MESSAGES_PER_SHOP = 10; // Reduzido de 15 para 10
 const MAX_CONCURRENT_MESSAGES = 3; // Mensagens em paralelo por loja
 const MAX_DATA_REQUESTS = 3;
 const MAX_EXECUTION_TIME_MS = 110000; // 110 segundos (limite real é 120s)
@@ -369,33 +369,34 @@ Deno.serve(async (req) => {
 
     // 1.5 Ordenar lojas por quantidade de mensagens pendentes (menos primeiro)
     // Isso garante que lojas menores sejam processadas rapidamente
-    const supabase = getSupabaseClient();
-    const { data: pendingCounts } = await supabase
-      .from('messages')
-      .select('conversation:conversations!inner(shop_id)')
-      .eq('status', 'pending')
-      .eq('direction', 'inbound');
+    try {
+      const supabase = getSupabaseClient();
+      const { data: pendingCounts, error: rpcError } = await supabase.rpc('get_pending_message_counts_by_shop');
 
-    // Contar mensagens pendentes por loja
-    const countByShop: Record<string, number> = {};
-    for (const msg of pendingCounts || []) {
-      const shopId = (msg.conversation as { shop_id: string })?.shop_id;
-      if (shopId) {
-        countByShop[shopId] = (countByShop[shopId] || 0) + 1;
+      if (!rpcError && pendingCounts) {
+        // Criar mapa de contagem por loja
+        const countByShop: Record<string, number> = {};
+        for (const row of pendingCounts as Array<{ shop_id: string; count: number }>) {
+          countByShop[row.shop_id] = row.count;
+        }
+
+        // Ordenar lojas: menos pendentes primeiro
+        shops.sort((a, b) => {
+          const countA = countByShop[a.id] || 0;
+          const countB = countByShop[b.id] || 0;
+          return countA - countB;
+        });
+
+        console.log('[Orchestrator] Lojas ordenadas por mensagens pendentes (menos primeiro):');
+        shops.slice(0, 5).forEach(s => {
+          console.log(`  - ${s.name}: ${countByShop[s.id] || 0} pendentes`);
+        });
+      } else {
+        console.log('[Orchestrator] Não foi possível ordenar lojas por pendentes, usando ordem padrão');
       }
+    } catch (sortError) {
+      console.log('[Orchestrator] Erro ao ordenar lojas:', sortError);
     }
-
-    // Ordenar lojas: menos pendentes primeiro
-    shops.sort((a, b) => {
-      const countA = countByShop[a.id] || 0;
-      const countB = countByShop[b.id] || 0;
-      return countA - countB;
-    });
-
-    console.log('[Orchestrator] Lojas ordenadas por mensagens pendentes (menos primeiro):');
-    shops.slice(0, 5).forEach(s => {
-      console.log(`  - ${s.name}: ${countByShop[s.id] || 0} pendentes`);
-    });
 
     // 2. Processar lojas em paralelo
     console.log(`[Orchestrator] Processando até ${MAX_CONCURRENT_SHOPS} lojas em paralelo`);
