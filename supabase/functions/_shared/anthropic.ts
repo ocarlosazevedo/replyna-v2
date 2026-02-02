@@ -1746,13 +1746,26 @@ Aguardamos seu contato para ajudá-lo!
 
 === PRIORIDADE 3: FLUXO DE RETENÇÃO - 3 CONTATOS (OBRIGATÓRIO) ===
 
-REGRA CRÍTICA: Se CONTADOR >= 1, você DEVE seguir o fluxo de retenção abaixo.
-NUNCA pule direto para o email de suporte antes do terceiro contato!
-
 CONTADOR ATUAL DE RETENÇÃO: ${retentionContactCount}
 
-=== LEIA COM ATENÇÃO ===
-- Se contador = 0 → NÃO é cancelamento/reembolso, responda normalmente
+QUANDO APLICAR O FLUXO DE RETENÇÃO (CONTADOR >= 1):
+✅ APLICAR retenção quando cliente quer:
+- CANCELAR o pedido (não quer mais receber)
+- DEVOLVER o produto e receber DINHEIRO de volta
+- REEMBOLSO (quer o dinheiro, não quer outro produto)
+
+❌ NÃO APLICAR retenção quando cliente quer:
+- TROCAR por outro produto (tamanho, cor, modelo diferente)
+- Troca mantém a venda, então encaminhe para suporte diretamente
+
+REGRA CRÍTICA: Se CONTADOR >= 1 E o cliente quer CANCELAR/DEVOLVER/REEMBOLSAR:
+→ Você DEVE seguir o fluxo de retenção abaixo
+→ NUNCA ofereça processar reembolso diretamente
+→ NUNCA pule direto para o email de suporte antes do terceiro contato
+→ NUNCA diga "I would be happy to process a refund" ou similar
+
+=== AÇÕES BASEADAS NO CONTADOR ===
+- Se contador = 0 → Responda normalmente (não é cancelamento/reembolso)
 - Se contador = 1 → PRIMEIRO CONTATO: Faça o cliente se sentir especial (NÃO mencione email!)
 - Se contador = 2 → SEGUNDO CONTATO: Ofereça benefício/desconto (NÃO mencione email!)
 - Se contador >= 3 → TERCEIRO CONTATO: Agora sim, forneça o email de suporte
