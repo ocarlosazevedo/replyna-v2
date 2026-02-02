@@ -335,52 +335,103 @@ serve(async (req) => {
     });
 
     if (isUpgrade) {
-      // Para UPGRADE: criar sessão de checkout para cobrar o novo valor
-      // Isso garante que o cliente pague ANTES de ativar o novo plano
-      console.log('UPGRADE detectado. Criando sessão de checkout para pagamento...');
+      // Para UPGRADE: atualizar subscription e cobrar imediatamente
+      console.log('UPGRADE detectado. Atualizando subscription com cobrança imediata...');
 
-      // Criar sessão de checkout para cobrar o upgrade
-      const checkoutSession = await stripe.checkout.sessions.create({
-        customer: subscription.stripe_customer_id,
-        mode: 'payment',
-        line_items: [
+      const updateParams: any = {
+        items: [
           {
-            price_data: {
-              currency: 'brl',
-              product_data: {
-                name: `Upgrade para ${newPlan.name}`,
-                description: `Upgrade do plano ${currentPlan?.name || 'atual'} para ${newPlan.name}`,
-              },
-              unit_amount: Math.round(newPlanPrice * 100), // Stripe usa centavos
-            },
-            quantity: 1,
+            id: currentItem.id,
+            price: newStripePriceId,
           },
         ],
-        success_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/account?upgrade_success=true&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/account?upgrade_cancelled=true`,
+        proration_behavior: 'none',
+        billing_cycle_anchor: 'now',
+        payment_behavior: 'error_if_incomplete',
         metadata: {
-          type: 'plan_upgrade',
+          plan_id: new_plan_id,
+          plan_name: newPlan.name,
           user_id: user_id,
-          new_plan_id: new_plan_id,
-          old_plan_id: subscription.plan_id,
-          subscription_id: subscription.id,
-          stripe_subscription_id: subscription.stripe_subscription_id,
-          new_stripe_price_id: newStripePriceId,
-          billing_cycle: finalBillingCycle,
         },
-      });
+      };
 
-      console.log('Sessão de checkout criada:', checkoutSession.id);
+      if (hasActiveTrial) {
+        updateParams.trial_end = 'now';
+      }
 
-      return new Response(
-        JSON.stringify({
-          payment_required: true,
-          payment_url: checkoutSession.url,
-          message: `Para fazer upgrade para o plano ${newPlan.name}, complete o pagamento de R$ ${newPlanPrice.toFixed(2).replace('.', ',')}.`,
-          is_upgrade: true,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      try {
+        updatedSubscription = await stripe.subscriptions.update(
+          subscription.stripe_subscription_id,
+          updateParams
+        );
+        console.log('Subscription atualizada com sucesso. Status:', updatedSubscription.status);
+      } catch (stripeError: any) {
+        console.error('Erro ao atualizar subscription:', stripeError.message);
+
+        // Se falhou por problema de pagamento, buscar a invoice pendente
+        if (stripeError.code === 'subscription_payment_intent_requires_action' ||
+            stripeError.code === 'card_declined' ||
+            stripeError.type === 'StripeCardError') {
+
+          // Buscar a invoice pendente
+          const invoices = await stripe.invoices.list({
+            subscription: subscription.stripe_subscription_id,
+            status: 'open',
+            limit: 1,
+          });
+
+          if (invoices.data.length > 0) {
+            const pendingInvoice = invoices.data[0];
+            const paymentUrl = pendingInvoice.hosted_invoice_url;
+
+            if (paymentUrl) {
+              return new Response(
+                JSON.stringify({
+                  payment_required: true,
+                  payment_url: paymentUrl,
+                  message: 'Pagamento necessário para completar o upgrade.',
+                  is_upgrade: true,
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+          }
+
+          // Se não encontrou invoice, criar checkout session
+          console.log('Criando checkout session para upgrade...');
+          const checkoutSession = await stripe.checkout.sessions.create({
+            customer: subscription.stripe_customer_id,
+            mode: 'subscription',
+            line_items: [
+              {
+                price: newStripePriceId,
+                quantity: 1,
+              },
+            ],
+            success_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/account?upgrade_success=true`,
+            cancel_url: `${req.headers.get('origin') || 'https://app.replyna.com.br'}/account?upgrade_cancelled=true`,
+            subscription_data: {
+              metadata: {
+                plan_id: new_plan_id,
+                plan_name: newPlan.name,
+                user_id: user_id,
+              },
+            },
+          });
+
+          return new Response(
+            JSON.stringify({
+              payment_required: true,
+              payment_url: checkoutSession.url,
+              message: `Complete o pagamento para ativar o plano ${newPlan.name}.`,
+              is_upgrade: true,
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        throw stripeError;
+      }
     } else {
       // Para DOWNGRADE ou mesmo preço: mantém o ciclo atual
       const updateParams: any = {
