@@ -279,15 +279,16 @@ async function processMessage(
   }
 
   // Check if there's a recent reply to this conversation (prevent duplicate responses)
+  // Reduced from 30 min to 3 min - 30 min was too aggressive and caused legitimate follow-up messages to be skipped
   const recentReplyCheck = await getConversationHistory(conversation.id, 5);
   const recentOutbound = (recentReplyCheck || []).filter((msg: Message) =>
     msg.direction === 'outbound' &&
     msg.was_auto_replied === true &&
-    msg.created_at > new Date(Date.now() - 30 * 60 * 1000).toISOString() // Last 30 minutes
+    msg.created_at > new Date(Date.now() - 3 * 60 * 1000).toISOString() // Last 3 minutes
   );
 
   if (recentOutbound.length > 0) {
-    console.log(`[Processor] Conversation ${conversation.id} already has recent auto-reply (${recentOutbound.length} in last 30min), skipping to avoid duplicate`);
+    console.log(`[Processor] Conversation ${conversation.id} already has recent auto-reply (${recentOutbound.length} in last 3min), skipping to avoid duplicate`);
     await updateMessage(message.id, {
       status: 'replied',
       error_message: 'Skipped - recent auto-reply exists',
@@ -515,6 +516,16 @@ async function processMessage(
       category: classification.category,
       language: classification.language,
     });
+  } else if (
+    classification.category === 'troca_devolucao_reembolso' &&
+    conversation.category !== 'troca_devolucao_reembolso'
+  ) {
+    // Atualizar categoria se escalou para cancelamento/reembolso
+    // Isso garante que a categoria da conversa fique consistente com o retention_contact_count
+    await updateConversation(conversation.id, {
+      category: classification.category,
+    });
+    console.log(`[Processor] Conversation ${conversation.id} category updated: ${conversation.category} -> troca_devolucao_reembolso`);
   }
 
   // 10. Buscar dados do Shopify se necessário
