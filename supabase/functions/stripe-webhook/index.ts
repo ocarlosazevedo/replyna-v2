@@ -236,6 +236,101 @@ async function handleCheckoutCompleted(
     return;
   }
 
+  // Verificar se é upgrade de plano
+  if (metadata.type === 'plan_upgrade') {
+    console.log('=== Processando upgrade de plano ===');
+    const userId = metadata.user_id;
+    const newPlanId = metadata.new_plan_id;
+    const stripeSubscriptionId = metadata.stripe_subscription_id;
+    const newStripePriceId = metadata.new_stripe_price_id;
+    const billingCycle = metadata.billing_cycle || 'monthly';
+    const subscriptionDbId = metadata.subscription_id;
+
+    console.log('Dados do upgrade:', {
+      userId,
+      newPlanId,
+      stripeSubscriptionId,
+      newStripePriceId,
+      billingCycle,
+    });
+
+    if (!userId || !newPlanId || !stripeSubscriptionId || !newStripePriceId) {
+      console.error('ERRO: Metadados incompletos para upgrade de plano');
+      throw new Error('Metadados incompletos para upgrade de plano');
+    }
+
+    // Buscar o novo plano para obter os limites
+    const { data: newPlan, error: planError } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('id', newPlanId)
+      .single();
+
+    if (planError || !newPlan) {
+      console.error('Erro ao buscar plano:', planError);
+      throw new Error('Plano não encontrado');
+    }
+
+    console.log('Novo plano:', newPlan.name);
+
+    // Buscar a subscription atual no Stripe
+    const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+    const currentItem = stripeSubscription.items.data[0];
+
+    // Atualizar a subscription no Stripe com o novo preço e reset do billing cycle
+    console.log('Atualizando subscription no Stripe...');
+    const updatedStripeSubscription = await stripe.subscriptions.update(stripeSubscriptionId, {
+      items: [
+        {
+          id: currentItem.id,
+          price: newStripePriceId,
+        },
+      ],
+      proration_behavior: 'none',
+      billing_cycle_anchor: 'now',
+      metadata: {
+        plan_id: newPlanId,
+        plan_name: newPlan.name,
+        user_id: userId,
+      },
+    });
+
+    console.log('Subscription atualizada no Stripe:', updatedStripeSubscription.status);
+
+    // Atualizar subscription no banco de dados
+    const { error: subUpdateError } = await supabase
+      .from('subscriptions')
+      .update({
+        plan_id: newPlanId,
+        stripe_price_id: newStripePriceId,
+        billing_cycle: billingCycle,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', subscriptionDbId);
+
+    if (subUpdateError) {
+      console.error('Erro ao atualizar subscription no banco:', subUpdateError);
+    }
+
+    // Atualizar usuário com os novos limites
+    const { error: userUpdateError } = await supabase
+      .from('users')
+      .update({
+        plan: newPlan.name,
+        emails_limit: newPlan.emails_limit,
+        shops_limit: newPlan.shops_limit,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (userUpdateError) {
+      console.error('Erro ao atualizar usuário:', userUpdateError);
+    }
+
+    console.log('Upgrade de plano concluído com sucesso!');
+    return;
+  }
+
   if (!subscriptionId) {
     console.error('ERRO: subscriptionId não encontrado na sessão');
     throw new Error('Subscription ID não encontrado');
