@@ -725,20 +725,54 @@ async function processMessageInternal(
   conversation: Conversation,
   emailCredentials: NonNullable<Awaited<ReturnType<typeof decryptEmailCredentials>>>
 ): Promise<'replied' | 'pending_credits' | 'forwarded_human' | 'spam' | 'skipped' | 'acknowledgment'> {
-  if (!message.from_email || !message.from_email.includes('@')) {
-    await updateMessage(message.id, {
-      status: 'failed',
-      category: 'spam', // Emails inválidos são tratados como spam
-      error_message: 'Email do remetente inválido',
-    });
-    return 'skipped';
-  }
+  // PRIMEIRO: Tentar extrair email de formulários Shopify se from_email está vazio ou é do sistema Shopify
+  const fromLower = (message.from_email || '').toLowerCase();
+  const isEmptyOrInvalid = !message.from_email || !message.from_email.includes('@');
+  const isShopifySystem = fromLower.includes('mailer@shopify') || fromLower.includes('@shopify.com');
 
-  // Padrões de emails de sistema Shopify (formulários de contato)
-  const shopifyContactFormPatterns = [
-    'mailer@shopify',
-    '@shopify.com',
-  ];
+  if (isEmptyOrInvalid || isShopifySystem) {
+    // Tentar extrair email do cliente do corpo da mensagem (formulários Shopify)
+    const extracted = extractEmailFromShopifyContactForm(message.body_text || '', message.body_html || '');
+
+    if (extracted && extracted.email) {
+      console.log(`[processMessage] Email extraído do formulário: ${extracted.email}, Nome: ${extracted.name}`);
+      message.from_email = extracted.email;
+      if (extracted.name && !message.from_name) {
+        message.from_name = extracted.name;
+      }
+
+      // Atualizar no banco
+      await updateMessage(message.id, {
+        from_email: extracted.email,
+        from_name: extracted.name || message.from_name,
+      });
+
+      // Atualizar email do cliente na conversa
+      if (!conversation.customer_email || conversation.customer_email === 'mailer@shopify.com' ||
+          conversation.customer_email.includes('@shopify.com') || conversation.customer_email === 'unknown@invalid.local') {
+        await updateConversation(conversation.id, {
+          customer_email: extracted.email,
+          customer_name: extracted.name || conversation.customer_name,
+        });
+      }
+    } else if (isEmptyOrInvalid) {
+      // Email inválido e não conseguiu extrair de formulário
+      await updateMessage(message.id, {
+        status: 'failed',
+        category: 'spam',
+        error_message: 'Email do remetente inválido',
+      });
+      return 'skipped';
+    } else {
+      // É email Shopify mas não conseguiu extrair - marcar como falha
+      await updateMessage(message.id, {
+        status: 'failed',
+        category: 'spam',
+        error_message: 'Formulário Shopify: não foi possível extrair email do cliente',
+      });
+      return 'skipped';
+    }
+  }
 
   // Outros padrões de emails de sistema que devem ser ignorados
   const systemEmailPatterns = [
@@ -762,47 +796,9 @@ async function processMessageInternal(
     '@stripe.com',
   ];
 
-  const fromLower = message.from_email.toLowerCase();
-
-  // Verificar se é email de formulário de contato Shopify
-  const isShopifyContactForm = shopifyContactFormPatterns.some(pattern => fromLower.includes(pattern));
-
-  if (isShopifyContactForm) {
-    // Tentar extrair email do cliente do corpo da mensagem
-    const extracted = extractEmailFromShopifyContactForm(message.body_text || '', message.body_html || '');
-
-    if (extracted && extracted.email) {
-      console.log(`[processMessage] Formulário Shopify detectado. Email do cliente extraído: ${extracted.email}`);
-      // Atualizar o from_email da mensagem para o email real do cliente
-      message.from_email = extracted.email;
-      if (extracted.name && !message.from_name) {
-        message.from_name = extracted.name;
-      }
-
-      // Atualizar no banco também
-      await updateMessage(message.id, {
-        from_email: extracted.email,
-        from_name: extracted.name || message.from_name,
-      });
-
-      // Atualizar email do cliente na conversa se necessário
-      if (conversation.customer_email === 'mailer@shopify.com' || conversation.customer_email?.includes('@shopify.com')) {
-        await updateConversation(conversation.id, {
-          customer_email: extracted.email,
-          customer_name: extracted.name || conversation.customer_name,
-        });
-      }
-    } else {
-      // Não conseguiu extrair email do cliente - marcar como falha
-      console.log(`[processMessage] Formulário Shopify detectado mas não foi possível extrair email do cliente`);
-      await updateMessage(message.id, {
-        status: 'failed',
-        category: 'spam',
-        error_message: 'Formulário Shopify: não foi possível extrair email do cliente',
-      });
-      return 'skipped';
-    }
-  } else if (systemEmailPatterns.some(pattern => fromLower.includes(pattern))) {
+  // Verificar se é outro tipo de email de sistema (não Shopify, já tratado acima)
+  const updatedFromLower = message.from_email.toLowerCase();
+  if (systemEmailPatterns.some(pattern => updatedFromLower.includes(pattern))) {
     // Outros emails de sistema - ignorar
     await updateMessage(message.id, {
       status: 'failed',
