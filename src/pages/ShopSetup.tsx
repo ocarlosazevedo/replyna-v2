@@ -583,8 +583,8 @@ export default function ShopSetup() {
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        backgroundColor: 'rgba(239, 68, 68, 0.08)',
-        border: '1px solid rgba(239, 68, 68, 0.2)',
+        backgroundColor: 'rgba(59, 130, 246, 0.08)',
+        border: '1px solid rgba(59, 130, 246, 0.2)',
         borderRadius: '10px',
         padding: '12px 16px',
         marginTop: '16px',
@@ -592,17 +592,17 @@ export default function ShopSetup() {
         transition: 'all 0.2s ease',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.12)'
-        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)'
+        e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.12)'
+        e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)'
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.08)'
-        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)'
+        e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.08)'
+        e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.2)'
       }}
     >
       <div style={{ flexShrink: 0 }}>
         <svg width="40" height="28" viewBox="0 0 28 20">
-          <rect width="28" height="20" rx="5" fill="#FF0000"/>
+          <rect width="28" height="20" rx="5" fill="#3b82f6"/>
           <polygon points="11,5 11,15 20,10" fill="white"/>
         </svg>
       </div>
