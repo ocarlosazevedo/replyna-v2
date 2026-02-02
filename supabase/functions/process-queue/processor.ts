@@ -778,6 +778,7 @@ async function processMessage(
       signature_html: shop.signature_html,
       is_cod: shop.is_cod,
       support_email: shop.support_email,
+      retention_coupon_code: shop.retention_coupon_code,
     },
     message.subject || '',
     cleanBody,
