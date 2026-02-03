@@ -133,13 +133,13 @@ serve(async (req) => {
     const periodStartTimestamp = Math.floor(periodStart.getTime() / 1000);
     const periodEndTimestamp = Math.floor(periodEnd.getTime() / 1000);
 
-    // Buscar dados em paralelo para performance
+    // Buscar dados em paralelo para performance (limites otimizados)
     const chargesFilter: { limit: number; created: { gte: number; lte?: number } } = {
-      limit: 100,
+      limit: 50, // Reduzido para carregar mais rápido
       created: { gte: periodStartTimestamp },
     };
     const invoicesFilter: { limit: number; created: { gte: number; lte?: number } } = {
-      limit: 50,
+      limit: 20, // Reduzido para carregar mais rápido
       created: { gte: periodStartTimestamp },
     };
 
@@ -149,20 +149,17 @@ serve(async (req) => {
       invoicesFilter.created.lte = periodEndTimestamp;
     }
 
-    // Buscar dados em paralelo para performance
-    // Usar expand para trazer dados do cliente junto com charges (evita chamadas extras)
+    // Buscar todos os dados em paralelo (sem expand para ser mais rápido)
     const [
       balance,
       subscriptions,
       charges,
       invoices,
-      customersData,
     ] = await Promise.all([
       stripe.balance.retrieve(),
-      stripe.subscriptions.list({ limit: 100, status: 'all' }),
-      stripe.charges.list({ ...chargesFilter, expand: ['data.customer'] }),
+      stripe.subscriptions.list({ limit: 50, status: 'all' }), // Reduzido
+      stripe.charges.list(chargesFilter), // Sem expand - usa billing_details
       stripe.invoices.list(invoicesFilter),
-      stripe.customers.list({ limit: 1 }), // Só para pegar o total
     ]);
 
     // Calcular datas para comparação
@@ -283,24 +280,17 @@ serve(async (req) => {
       return chargeDate >= periodStart && chargeDate <= periodEnd;
     }).length;
 
-    // Pagamentos recentes com detalhes do cliente (já expandido na query)
-    const recentPayments = charges.data.slice(0, 10).map((charge) => {
-      // Customer já vem expandido na resposta
-      const customer = charge.customer && typeof charge.customer === 'object' && !('deleted' in charge.customer)
-        ? charge.customer
-        : null;
-
-      return {
-        id: charge.id,
-        amount: charge.amount / 100,
-        currency: charge.currency,
-        status: charge.status,
-        customer_email: customer?.email || charge.billing_details?.email || null,
-        customer_name: customer?.name || charge.billing_details?.name || null,
-        description: charge.description,
-        created: charge.created,
-      };
-    });
+    // Pagamentos recentes (usa billing_details que já vem na resposta)
+    const recentPayments = charges.data.slice(0, 10).map((charge) => ({
+      id: charge.id,
+      amount: charge.amount / 100,
+      currency: charge.currency,
+      status: charge.status,
+      customer_email: charge.billing_details?.email || charge.receipt_email || null,
+      customer_name: charge.billing_details?.name || null,
+      description: charge.description,
+      created: charge.created,
+    }));
 
     // Invoices recentes
     const recentInvoices = invoices.data.slice(0, 10).map((invoice) => ({
@@ -450,9 +440,8 @@ serve(async (req) => {
     const availableBalance = balance.available.find(b => b.currency === 'brl')?.amount || 0;
     const pendingBalance = balance.pending.find(b => b.currency === 'brl')?.amount || 0;
 
-    // Total de clientes (já buscado em paralelo acima)
-    // Usamos o has_more para estimar se há mais de 1 cliente
-    const totalCustomers = customersData.data.length > 0 ? activeCount + canceledCount : 0;
+    // Total de clientes baseado nas assinaturas (ativo + cancelado)
+    const totalCustomers = activeCount + canceledCount;
 
     const stats: FinancialStats = {
       balance: {
