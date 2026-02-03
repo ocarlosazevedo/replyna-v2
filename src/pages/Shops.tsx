@@ -303,7 +303,9 @@ export default function Shops() {
             Gerencie suas lojas e integrações ({shops.length} de {!limitsLoaded ? '...' : isUnlimited ? <span style={{ color: '#22c55e' }}>Ilimitado</span> : shopsLimit})
           </p>
         </div>
-        {canAddMoreShops ? (
+        {!limitsLoaded ? (
+          <Skeleton height={42} width={isMobile ? '100%' : 180} />
+        ) : canAddMoreShops ? (
           <button onClick={() => navigate('/shops/setup')} style={{ ...buttonPrimary, whiteSpace: 'nowrap', width: isMobile ? '100%' : 'auto' }}>
             + Integrar nova loja
           </button>
@@ -556,7 +558,7 @@ export default function Shops() {
         </div>
       )}
 
-      {loading ? (
+      {loading || !limitsLoaded ? (
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px' }}>
           {[1, 2, 3].map((i) => (
             <div key={i} style={{ ...cardStyle }}>
