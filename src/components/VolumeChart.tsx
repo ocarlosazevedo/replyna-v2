@@ -28,8 +28,8 @@ interface VolumeChartProps {
 export default function VolumeChart({ data }: VolumeChartProps) {
   const { theme } = useTheme()
 
-  // Usar gráfico de barras quando há poucos pontos (1-3 dias)
-  const useBarChart = data.length <= 3
+  // Sempre usar gráfico de barras
+  const useBarChart = true
 
   const chartColors = useMemo(() => {
     if (typeof document === 'undefined') {
