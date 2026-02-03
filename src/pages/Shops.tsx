@@ -371,7 +371,7 @@ export default function Shops() {
       {shops.length > 0 && (
         <div style={{ marginBottom: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           {/* Filtro de Status */}
-          <div style={{ position: 'relative', display: 'inline-block' }}>
+          <div className="status-filter-dropdown" style={{ position: 'relative', display: 'inline-block' }}>
             <button
               onClick={() => {
                 setShowStatusDropdown(!showStatusDropdown)
@@ -421,7 +421,7 @@ export default function Shops() {
           </div>
 
           {/* Filtro de Modelo de Negócio */}
-          <div style={{ position: 'relative', display: 'inline-block' }}>
+          <div className="business-filter-dropdown" style={{ position: 'relative', display: 'inline-block' }}>
             <button
               onClick={() => {
                 setShowBusinessDropdown(!showBusinessDropdown)
