@@ -657,11 +657,11 @@ body {
 }
 
 /* Custom scrollbar styles */
-/* ===== Scrollbar Global - Todas as telas ===== */
+/* ===== Scrollbar Global - Todas as telas (Light Mode) ===== */
 html,
 body {
   scrollbar-width: thin;
-  scrollbar-color: #94a3b8 var(--bg-primary);
+  scrollbar-color: #c4c9d4 #f4f7ff;
 }
 
 html::-webkit-scrollbar,
@@ -672,29 +672,29 @@ body::-webkit-scrollbar {
 
 html::-webkit-scrollbar-track,
 body::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: #f4f7ff;
 }
 
 html::-webkit-scrollbar-thumb,
 body::-webkit-scrollbar-thumb {
-  background: #94a3b8;
+  background: #c4c9d4;
   border-radius: 4px;
 }
 
 html::-webkit-scrollbar-thumb:hover,
 body::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #9ca3af;
 }
 
 html::-webkit-scrollbar-corner,
 body::-webkit-scrollbar-corner {
-  background: var(--bg-primary);
+  background: #f4f7ff;
 }
 
-/* ===== Replyna Scrollbar - Containers internos ===== */
+/* ===== Replyna Scrollbar - Containers internos (Light Mode) ===== */
 .replyna-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #94a3b8 var(--bg-card);
+  scrollbar-color: #c4c9d4 #ffffff;
 }
 
 .replyna-scrollbar::-webkit-scrollbar {
@@ -703,19 +703,70 @@ body::-webkit-scrollbar-corner {
 }
 
 .replyna-scrollbar::-webkit-scrollbar-track {
-  background: var(--bg-card);
-  border-radius: 3px;
+  background: #ffffff;
 }
 
 .replyna-scrollbar::-webkit-scrollbar-thumb {
-  background: #94a3b8;
+  background: #c4c9d4;
   border-radius: 3px;
 }
 
 .replyna-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #9ca3af;
 }
 
 .replyna-scrollbar::-webkit-scrollbar-corner {
-  background: var(--bg-card);
+  background: #ffffff;
+}
+
+/* ===== Dark Mode Scrollbars ===== */
+[data-theme="dark"] html,
+[data-theme="dark"] body,
+html[data-theme="dark"],
+body[data-theme="dark"] {
+  scrollbar-color: #4b5563 #0f172a;
+}
+
+[data-theme="dark"] html::-webkit-scrollbar-track,
+[data-theme="dark"] body::-webkit-scrollbar-track,
+html[data-theme="dark"]::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+[data-theme="dark"] html::-webkit-scrollbar-thumb,
+[data-theme="dark"] body::-webkit-scrollbar-thumb,
+html[data-theme="dark"]::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+[data-theme="dark"] html::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] body::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"]::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+[data-theme="dark"] html::-webkit-scrollbar-corner,
+[data-theme="dark"] body::-webkit-scrollbar-corner,
+html[data-theme="dark"]::-webkit-scrollbar-corner {
+  background: #0f172a;
+}
+
+[data-theme="dark"] .replyna-scrollbar {
+  scrollbar-color: #4b5563 #1e293b;
+}
+
+[data-theme="dark"] .replyna-scrollbar::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .replyna-scrollbar::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+[data-theme="dark"] .replyna-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+[data-theme="dark"] .replyna-scrollbar::-webkit-scrollbar-corner {
+  background: #1e293b;
 }
