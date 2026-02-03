@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User, Store, Plus, ChevronDown, Snowflake } from 'lucide-react'
+import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User, Store, Plus, Snowflake } from 'lucide-react'
 
 // Componente Skeleton para loading animado
 const Skeleton = ({ height = 16, width = '100%' }: { height?: number | string; width?: number | string }) => (
@@ -54,8 +54,6 @@ export default function Shops() {
   const [limitsLoaded, setLimitsLoaded] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [businessFilter, setBusinessFilter] = useState<BusinessFilter>('all')
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
-  const [showBusinessDropdown, setShowBusinessDropdown] = useState(false)
   const isMobile = useIsMobile()
 
   // Verificar se é ilimitado (só após carregar os limites)
@@ -275,9 +273,6 @@ export default function Shops() {
   // Verificar se pode adicionar mais lojas (ilimitado ou abaixo do limite)
   const canAddMoreShops = isUnlimited || shops.length < (shopsLimit ?? 0)
 
-  const selectedStatusLabel = statusFilterOptions.find(f => f.value === statusFilter)?.label || 'Todos os status'
-  const selectedBusinessLabel = businessFilterOptions.find(f => f.value === businessFilter)?.label || 'Todos os modelos'
-
   return (
     <div>
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: '24px', gap: '16px' }}>
@@ -353,118 +348,40 @@ export default function Shops() {
         </div>
       )}
 
-      {/* Filtros em Dropdown */}
+      {/* Filtros */}
       {shops.length > 0 && (
         <div style={{ marginBottom: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           {/* Filtro de Status */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => {
-                setShowStatusDropdown(!showStatusDropdown)
-                setShowBusinessDropdown(false)
-              }}
-              className={`replyna-dropdown-trigger ${showStatusDropdown ? 'open' : ''}`}
-              style={{ minWidth: isMobile ? 'auto' : '180px', flex: isMobile ? 1 : 'none' }}
-            >
-              <span>{selectedStatusLabel} ({statusCounts[statusFilter]})</span>
-              <ChevronDown
-                size={18}
-                style={{
-                  transform: showStatusDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease',
-                  color: 'var(--text-secondary)',
-                }}
-              />
-            </button>
-
-            {showStatusDropdown && (
-              <>
-                <div
-                  className="replyna-dropdown-menu replyna-scrollbar"
-                  style={{ minWidth: '200px', maxHeight: '250px', overflowY: 'auto' }}
-                >
-                  {statusFilterOptions.map((option) => {
-                    // Esconder opção "Congeladas" se não houver lojas congeladas
-                    if (option.value === 'frozen' && statusCounts.frozen === 0) return null
-
-                    return (
-                      <button
-                        key={option.value}
-                        onClick={() => {
-                          setStatusFilter(option.value)
-                          setShowStatusDropdown(false)
-                        }}
-                        className={`replyna-dropdown-item ${statusFilter === option.value ? 'active' : ''}`}
-                      >
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {option.value === 'frozen' && <Snowflake size={14} style={{ color: '#3b82f6' }} />}
-                          {option.label}
-                        </span>
-                        <span className="replyna-dropdown-badge">
-                          {statusCounts[option.value]}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-                <div
-                  style={{ position: 'fixed', inset: 0, zIndex: 50 }}
-                  onClick={() => setShowStatusDropdown(false)}
-                />
-              </>
-            )}
-          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            className="replyna-select"
+            style={{ minWidth: isMobile ? '120px' : '180px', flex: isMobile ? 1 : 'none' }}
+          >
+            {statusFilterOptions.map((option) => {
+              // Esconder opção "Congeladas" se não houver lojas congeladas
+              if (option.value === 'frozen' && statusCounts.frozen === 0) return null
+              return (
+                <option key={option.value} value={option.value}>
+                  {option.label} ({statusCounts[option.value]})
+                </option>
+              )
+            })}
+          </select>
 
           {/* Filtro de Modelo de Negócio */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => {
-                setShowBusinessDropdown(!showBusinessDropdown)
-                setShowStatusDropdown(false)
-              }}
-              className={`replyna-dropdown-trigger ${showBusinessDropdown ? 'open' : ''}`}
-              style={{ minWidth: isMobile ? 'auto' : '160px', flex: isMobile ? 1 : 'none' }}
-            >
-              <span>{selectedBusinessLabel} ({businessCounts[businessFilter]})</span>
-              <ChevronDown
-                size={18}
-                style={{
-                  transform: showBusinessDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease',
-                  color: 'var(--text-secondary)',
-                }}
-              />
-            </button>
-
-            {showBusinessDropdown && (
-              <>
-                <div
-                  className="replyna-dropdown-menu replyna-scrollbar"
-                  style={{ minWidth: '180px', maxHeight: '250px', overflowY: 'auto' }}
-                >
-                  {businessFilterOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setBusinessFilter(option.value)
-                        setShowBusinessDropdown(false)
-                      }}
-                      className={`replyna-dropdown-item ${businessFilter === option.value ? 'active' : ''}`}
-                    >
-                      <span>{option.label}</span>
-                      <span className="replyna-dropdown-badge">
-                        {businessCounts[option.value]}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <div
-                  style={{ position: 'fixed', inset: 0, zIndex: 50 }}
-                  onClick={() => setShowBusinessDropdown(false)}
-                />
-              </>
-            )}
-          </div>
+          <select
+            value={businessFilter}
+            onChange={(e) => setBusinessFilter(e.target.value as BusinessFilter)}
+            className="replyna-select"
+            style={{ minWidth: isMobile ? '120px' : '160px', flex: isMobile ? 1 : 'none' }}
+          >
+            {businessFilterOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} ({businessCounts[option.value]})
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
