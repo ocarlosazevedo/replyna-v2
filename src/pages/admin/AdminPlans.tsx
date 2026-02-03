@@ -236,7 +236,7 @@ export default function AdminPlans() {
     borderRadius: '16px',
     padding: isMobile ? '16px' : '24px',
     border: '1px solid var(--border-color)',
-    overflow: 'hidden' as const,
+    overflow: 'visible' as const,
   }
 
   const inputStyle = {
@@ -306,7 +306,7 @@ export default function AdminPlans() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: isMobile ? '16px' : '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: isMobile ? '16px' : '24px', paddingTop: '16px' }}>
         {plans.map((plan) => (
           <div key={plan.id} style={{ ...cardStyle, position: 'relative' }}>
             {plan.is_popular && (
