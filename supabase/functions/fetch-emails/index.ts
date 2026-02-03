@@ -191,9 +191,18 @@ async function processShop(shop: Shop, supabase: any): Promise<ShopResult> {
       return shopResult;
     }
 
-    // Calculate IMAP start date (fetch emails from last 7 days)
-    const emailStartDate = new Date();
-    emailStartDate.setDate(emailStartDate.getDate() - 7);
+    // Calculate IMAP start date based on shop's email_start_mode
+    let emailStartDate: Date;
+    if (shop.email_start_mode === 'from_integration_date' && shop.email_start_date) {
+      // Use shop's integration date - only fetch emails after this date
+      emailStartDate = new Date(shop.email_start_date);
+      console.log(`[Shop:${shop.name}] Using integration date filter: ${emailStartDate.toISOString()}`);
+    } else {
+      // Default: fetch emails from last 7 days
+      emailStartDate = new Date();
+      emailStartDate.setDate(emailStartDate.getDate() - 7);
+      console.log(`[Shop:${shop.name}] Using default 7-day filter: ${emailStartDate.toISOString()}`);
+    }
 
     // Fetch unread emails via IMAP
     let incomingEmails: IncomingEmail[] = [];
