@@ -45,7 +45,7 @@ function useIsMobile() {
 const getDefaultRange = (): DateRange => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  return { from: subDays(today, 179), to: today }
+  return { from: subDays(today, 29), to: today } // 30 dias para carregar mais rápido
 }
 
 interface SubscriptionByPlan {

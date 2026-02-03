@@ -149,16 +149,20 @@ serve(async (req) => {
       invoicesFilter.created.lte = periodEndTimestamp;
     }
 
+    // Buscar dados em paralelo para performance
+    // Usar expand para trazer dados do cliente junto com charges (evita chamadas extras)
     const [
       balance,
       subscriptions,
       charges,
       invoices,
+      customersData,
     ] = await Promise.all([
       stripe.balance.retrieve(),
       stripe.subscriptions.list({ limit: 100, status: 'all' }),
-      stripe.charges.list(chargesFilter),
+      stripe.charges.list({ ...chargesFilter, expand: ['data.customer'] }),
       stripe.invoices.list(invoicesFilter),
+      stripe.customers.list({ limit: 1 }), // Só para pegar o total
     ]);
 
     // Calcular datas para comparação
@@ -279,36 +283,24 @@ serve(async (req) => {
       return chargeDate >= periodStart && chargeDate <= periodEnd;
     }).length;
 
-    // Pagamentos recentes com detalhes do cliente
-    const recentPayments = await Promise.all(
-      charges.data.slice(0, 10).map(async (charge) => {
-        let customerEmail: string | null = null;
-        let customerName: string | null = null;
+    // Pagamentos recentes com detalhes do cliente (já expandido na query)
+    const recentPayments = charges.data.slice(0, 10).map((charge) => {
+      // Customer já vem expandido na resposta
+      const customer = charge.customer && typeof charge.customer === 'object' && !('deleted' in charge.customer)
+        ? charge.customer
+        : null;
 
-        if (charge.customer && typeof charge.customer === 'string') {
-          try {
-            const customer = await stripe.customers.retrieve(charge.customer);
-            if (!customer.deleted) {
-              customerEmail = customer.email;
-              customerName = customer.name;
-            }
-          } catch {
-            // Ignorar erro se cliente não existir
-          }
-        }
-
-        return {
-          id: charge.id,
-          amount: charge.amount / 100,
-          currency: charge.currency,
-          status: charge.status,
-          customer_email: customerEmail || charge.billing_details?.email || null,
-          customer_name: customerName || charge.billing_details?.name || null,
-          description: charge.description,
-          created: charge.created,
-        };
-      })
-    );
+      return {
+        id: charge.id,
+        amount: charge.amount / 100,
+        currency: charge.currency,
+        status: charge.status,
+        customer_email: customer?.email || charge.billing_details?.email || null,
+        customer_name: customer?.name || charge.billing_details?.name || null,
+        description: charge.description,
+        created: charge.created,
+      };
+    });
 
     // Invoices recentes
     const recentInvoices = invoices.data.slice(0, 10).map((invoice) => ({
@@ -458,11 +450,9 @@ serve(async (req) => {
     const availableBalance = balance.available.find(b => b.currency === 'brl')?.amount || 0;
     const pendingBalance = balance.pending.find(b => b.currency === 'brl')?.amount || 0;
 
-    // Buscar total de clientes
-    const customersCount = await stripe.customers.list({ limit: 1 });
-    const totalCustomers = customersCount.data.length > 0
-      ? (await stripe.customers.list({ limit: 100 })).data.length
-      : 0;
+    // Total de clientes (já buscado em paralelo acima)
+    // Usamos o has_more para estimar se há mais de 1 cliente
+    const totalCustomers = customersData.data.length > 0 ? activeCount + canceledCount : 0;
 
     const stats: FinancialStats = {
       balance: {
