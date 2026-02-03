@@ -23,6 +23,9 @@ export default function FeatureTipBanner({ shopId, userId }: FeatureTipBannerPro
 
   const handleDismiss = () => {
     setDismissed(true)
+    if (userId) {
+      localStorage.setItem(STORAGE_KEY_PREFIX + userId, 'true')
+    }
   }
 
   return (
