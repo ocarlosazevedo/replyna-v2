@@ -66,7 +66,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Logo */}
       <div style={{
         padding: isMobile ? '16px 20px' : '24px',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        borderBottom: '1px solid var(--sidebar-border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -75,7 +75,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <img
             src="/replyna-logo.webp"
             alt="Replyna"
-            style={{ width: isMobile ? '100px' : '140px', height: 'auto' }}
+            style={{ width: isMobile ? '140px' : '180px', height: 'auto' }}
           />
           <span style={{
             backgroundColor: 'var(--accent)',
@@ -95,7 +95,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             style={{
               background: 'none',
               border: 'none',
-              color: '#fff',
+              color: 'var(--text-on-dark)',
               cursor: 'pointer',
               padding: '8px',
               display: 'flex',
@@ -115,6 +115,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <li key={item.path}>
               <Link
                 to={item.path}
+                className={`replyna-sidebar-link${isActive(item.path) ? ' active' : ''}`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -123,9 +124,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   borderRadius: '8px',
                   textDecoration: 'none',
                   fontWeight: 500,
-                  color: isActive(item.path) ? '#fff' : 'rgba(255,255,255,0.7)',
-                  backgroundColor: isActive(item.path) ? 'var(--accent)' : 'transparent',
-                  transition: 'all 0.2s ease',
                 }}
               >
                 <item.icon size={18} />
@@ -137,14 +135,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </nav>
 
       {/* Admin Info & Logout */}
-      <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+      <div style={{ padding: '16px', borderTop: '1px solid var(--sidebar-border)' }}>
         <div style={{
           padding: '12px 16px',
           marginBottom: '8px',
           backgroundColor: 'rgba(255,255,255,0.05)',
           borderRadius: '8px',
         }}>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-on-dark)' }}>
             {admin?.name}
           </div>
           <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
@@ -153,6 +151,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
         <button
           onClick={handleLogout}
+          className="replyna-sidebar-link replyna-sidebar-logout"
           style={{
             width: '100%',
             display: 'flex',
@@ -162,11 +161,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             borderRadius: '8px',
             border: 'none',
             cursor: 'pointer',
-            fontSize: '14px',
+            fontSize: '15px',
             fontWeight: 500,
-            backgroundColor: 'transparent',
-            color: 'rgba(255,255,255,0.7)',
-            transition: 'all 0.2s ease',
           }}
         >
           <LogOut size={18} />
@@ -187,13 +183,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             left: 0,
             right: 0,
             height: '60px',
-            backgroundColor: '#1a1a2e',
+            backgroundColor: 'var(--bg-sidebar)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '0 16px',
             zIndex: 1000,
-            borderBottom: '1px solid rgba(255,255,255,0.1)',
+            borderBottom: '1px solid var(--sidebar-border)',
           }}
         >
           <button
@@ -201,7 +197,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             style={{
               background: 'none',
               border: 'none',
-              color: '#fff',
+              color: 'var(--text-on-dark)',
               cursor: 'pointer',
               padding: '8px',
               display: 'flex',
@@ -215,7 +211,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <img
               src="/replyna-logo.webp"
               alt="Replyna"
-              style={{ height: '28px', width: 'auto' }}
+              style={{ height: '32px', width: 'auto' }}
             />
             <span style={{
               backgroundColor: 'var(--accent)',
@@ -250,7 +246,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <aside
         style={{
           width: '264px',
-          backgroundColor: '#1a1a2e',
+          backgroundColor: 'var(--bg-sidebar)',
           color: 'var(--text-on-dark)',
           display: 'flex',
           flexDirection: 'column',

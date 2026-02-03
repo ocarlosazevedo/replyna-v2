@@ -218,21 +218,25 @@ export default function AdminDashboard() {
         style={{
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '12px' : '16px',
+          alignItems: isMobile ? 'stretch' : 'center',
           justifyContent: 'space-between',
-          alignItems: isMobile ? 'stretch' : 'flex-start',
           marginBottom: isMobile ? '20px' : '32px',
-          gap: '16px',
         }}
       >
         <div>
-          <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
             Painel de Controle
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-            Visao geral de todas as metricas da Replyna
-          </p>
+          {!isMobile && (
+            <p style={{ color: 'var(--text-secondary)', marginTop: '6px', fontSize: '14px' }}>
+              Visão geral de todas as métricas da Replyna
+            </p>
+          )}
         </div>
-        <DateRangePicker value={range} onChange={setRange} />
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <DateRangePicker value={range} onChange={setRange} />
+        </div>
       </div>
 
       {/* Metricas de Conversas */}
