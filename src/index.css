@@ -657,61 +657,30 @@ body {
 }
 
 /* Custom scrollbar styles */
-/* ===== Replyna Scrollbar - Estilo Padronizado ===== */
+/* ===== Replyna Scrollbar - Estilo Sutil ===== */
 .replyna-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(100, 116, 139, 0.3) transparent;
+  scrollbar-color: var(--border-color) transparent;
 }
 
 .replyna-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 .replyna-scrollbar::-webkit-scrollbar-track {
-  background: rgba(100, 116, 139, 0.08);
-  border-radius: 4px;
-  margin: 4px;
+  background: transparent;
 }
 
 .replyna-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.25);
-  border-radius: 4px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
+  background: var(--border-color);
+  border-radius: 3px;
 }
 
 .replyna-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.4);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-.replyna-scrollbar::-webkit-scrollbar-thumb:active {
-  background: rgba(100, 116, 139, 0.5);
+  background: var(--text-secondary);
 }
 
 .replyna-scrollbar::-webkit-scrollbar-corner {
   background: transparent;
-}
-
-/* Dark mode adjustments for scrollbar */
-[data-theme="dark"] .replyna-scrollbar {
-  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
-}
-
-[data-theme="dark"] .replyna-scrollbar::-webkit-scrollbar-track {
-  background: rgba(148, 163, 184, 0.08);
-}
-
-[data-theme="dark"] .replyna-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
-}
-
-[data-theme="dark"] .replyna-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.4);
-}
-
-[data-theme="dark"] .replyna-scrollbar::-webkit-scrollbar-thumb:active {
-  background: rgba(148, 163, 184, 0.5);
 }
