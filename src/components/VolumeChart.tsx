@@ -58,7 +58,7 @@ export default function VolumeChart({ data }: VolumeChartProps) {
         labels: data.map((point) => point.label),
         datasets: [
           {
-            label: 'Emails recebidos',
+            label: '  Clientes recebidos',
             data: data.map((point) => point.received),
             backgroundColor: 'rgba(154, 168, 199, 0.7)',
             borderColor: '#9aa8c7',
@@ -66,7 +66,7 @@ export default function VolumeChart({ data }: VolumeChartProps) {
             borderRadius: 6,
           },
           {
-            label: 'Emails respondidos',
+            label: '  Clientes respondidos',
             data: data.map((point) => point.replied),
             backgroundColor: 'rgba(70, 114, 236, 0.7)',
             borderColor: '#4672ec',
@@ -107,7 +107,13 @@ export default function VolumeChart({ data }: VolumeChartProps) {
           color: chartColors.text,
           usePointStyle: true,
           boxWidth: 8,
+          boxHeight: 8,
           padding: 24,
+          useBorderRadius: true,
+          borderRadius: 4,
+          font: {
+            size: 13,
+          },
         },
       },
       tooltip: {
