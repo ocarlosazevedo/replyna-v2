@@ -524,17 +524,6 @@ export default function AdminClients() {
     outline: 'none',
   }
 
-  const selectStyle = {
-    padding: '10px 14px',
-    borderRadius: '10px',
-    border: '1px solid var(--border-color)',
-    backgroundColor: 'var(--input-bg)',
-    color: 'var(--text-primary)',
-    fontSize: '13px',
-    outline: 'none',
-    cursor: 'pointer',
-  }
-
   const labelStyle = {
     display: 'block',
     marginBottom: '8px',
@@ -648,7 +637,7 @@ export default function AdminClients() {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          style={selectStyle}
+          className="replyna-select"
         >
           <option value="all">Todos os status</option>
           <option value="active">Ativos</option>
@@ -661,7 +650,7 @@ export default function AdminClients() {
         <select
           value={filterPlan}
           onChange={(e) => setFilterPlan(e.target.value)}
-          style={selectStyle}
+          className="replyna-select"
         >
           <option value="all">Todos os planos</option>
           <option value="free">Free</option>
@@ -681,7 +670,7 @@ export default function AdminClients() {
               setSortField(field)
               setSortDirection(dir)
             }}
-            style={selectStyle}
+            className="replyna-select"
           >
             <option value="created_at-desc">Mais recentes</option>
             <option value="created_at-asc">Mais antigos</option>
@@ -1170,7 +1159,7 @@ export default function AdminClients() {
                 <select
                   value={editingClient.plan}
                   onChange={(e) => setEditingClient({ ...editingClient, plan: e.target.value })}
-                  style={inputStyle}
+                  className="replyna-select form-input"
                 >
                   <option value="free">Free</option>
                   {plans.map((plan) => (
@@ -1186,7 +1175,7 @@ export default function AdminClients() {
                 <select
                   value={editingClient.status || 'active'}
                   onChange={(e) => setEditingClient({ ...editingClient, status: e.target.value })}
-                  style={inputStyle}
+                  className="replyna-select form-input"
                 >
                   <option value="active">Ativo</option>
                   <option value="inactive">Inativo</option>
@@ -1377,7 +1366,7 @@ export default function AdminClients() {
                 <select
                   value={newClient.plan_id}
                   onChange={(e) => setNewClient({ ...newClient, plan_id: e.target.value })}
-                  style={inputStyle}
+                  className="replyna-select form-input"
                 >
                   <option value="">Selecione um plano</option>
                   {plans.map((plan) => (

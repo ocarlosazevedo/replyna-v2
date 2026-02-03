@@ -825,23 +825,8 @@ export default function Dashboard() {
           <select
             value={selectedShopId}
             onChange={handleShopChange}
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '10px',
-              padding: isMobile ? '8px 24px 8px 12px' : '10px 24px 10px 14px',
-              fontSize: isMobile ? '13px' : '14px',
-              fontWeight: 600,
-              color: 'var(--text-primary)',
-              minWidth: isMobile ? '120px' : '180px',
-              flex: isMobile ? 1 : 'none',
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 8px center',
-              appearance: 'none',
-              WebkitAppearance: 'none',
-              cursor: 'pointer',
-            }}
+            className="replyna-select"
+            style={{ minWidth: isMobile ? '120px' : '180px', flex: isMobile ? 1 : 'none' }}
             disabled={loadingShops}
           >
             <option value="all">Todas as lojas</option>
@@ -1029,23 +1014,8 @@ export default function Dashboard() {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  style={{
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '10px',
-                    padding: isMobile ? '8px 24px 8px 10px' : '10px 28px 10px 14px',
-                    fontSize: isMobile ? '12px' : '14px',
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    flex: isMobile ? 1 : 'none',
-                    minWidth: isMobile ? '0' : 'auto',
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 10px center',
-                    appearance: 'none',
-                    WebkitAppearance: 'none',
-                    cursor: 'pointer',
-                  }}
+                  className="replyna-select"
+                  style={{ flex: isMobile ? 1 : 'none', minWidth: isMobile ? '0' : 'auto' }}
                 >
                   <option value="all">Todas categorias</option>
                   <option value="duvidas_gerais">Dúvidas gerais</option>

@@ -371,31 +371,14 @@ export default function Shops() {
       {shops.length > 0 && (
         <div style={{ marginBottom: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           {/* Filtro de Status */}
-          <div
-            className="status-filter-dropdown"
-            style={{ position: 'relative', display: 'inline-block' }}
-          >
+          <div style={{ position: 'relative', display: 'inline-block' }}>
             <button
               onClick={() => {
                 setShowStatusDropdown(!showStatusDropdown)
                 setShowBusinessDropdown(false)
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: isMobile ? '10px 12px' : '10px 16px',
-                borderRadius: '10px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                fontSize: isMobile ? '13px' : '14px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                minWidth: isMobile ? 'auto' : '180px',
-                flex: isMobile ? 1 : 'none',
-                justifyContent: 'space-between',
-              }}
+              className={`replyna-dropdown-trigger ${showStatusDropdown ? 'open' : ''}`}
+              style={{ minWidth: isMobile ? 'auto' : '180px', flex: isMobile ? 1 : 'none' }}
             >
               <span>{selectedStatusLabel} ({statusCounts[statusFilter]})</span>
               <ChevronDown
@@ -409,19 +392,7 @@ export default function Shops() {
             </button>
 
             {showStatusDropdown && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                marginTop: '4px',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '10px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                zIndex: 100,
-                minWidth: '200px',
-                overflow: 'hidden',
-              }}>
+              <div className="replyna-dropdown-menu" style={{ minWidth: '200px' }}>
                 {statusFilterOptions.map((option) => {
                   // Esconder opção "Congeladas" se não houver lojas congeladas
                   if (option.value === 'frozen' && statusCounts.frozen === 0) return null
@@ -433,31 +404,13 @@ export default function Shops() {
                         setStatusFilter(option.value)
                         setShowStatusDropdown(false)
                       }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: 'none',
-                        backgroundColor: statusFilter === option.value ? 'rgba(70, 114, 236, 0.1)' : 'transparent',
-                        color: statusFilter === option.value ? 'var(--accent)' : 'var(--text-primary)',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
+                      className={`replyna-dropdown-item ${statusFilter === option.value ? 'active' : ''}`}
                     >
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {option.value === 'frozen' && <Snowflake size={14} style={{ color: '#3b82f6' }} />}
                         {option.label}
                       </span>
-                      <span style={{
-                        fontSize: '12px',
-                        color: 'var(--text-secondary)',
-                        backgroundColor: 'var(--border-color)',
-                        padding: '2px 8px',
-                        borderRadius: '9999px',
-                      }}>
+                      <span className="replyna-dropdown-badge">
                         {statusCounts[option.value]}
                       </span>
                     </button>
@@ -468,31 +421,14 @@ export default function Shops() {
           </div>
 
           {/* Filtro de Modelo de Negócio */}
-          <div
-            className="business-filter-dropdown"
-            style={{ position: 'relative', display: 'inline-block' }}
-          >
+          <div style={{ position: 'relative', display: 'inline-block' }}>
             <button
               onClick={() => {
                 setShowBusinessDropdown(!showBusinessDropdown)
                 setShowStatusDropdown(false)
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: isMobile ? '10px 12px' : '10px 16px',
-                borderRadius: '10px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                fontSize: isMobile ? '13px' : '14px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                minWidth: isMobile ? 'auto' : '160px',
-                flex: isMobile ? 1 : 'none',
-                justifyContent: 'space-between',
-              }}
+              className={`replyna-dropdown-trigger ${showBusinessDropdown ? 'open' : ''}`}
+              style={{ minWidth: isMobile ? 'auto' : '160px', flex: isMobile ? 1 : 'none' }}
             >
               <span>{selectedBusinessLabel} ({businessCounts[businessFilter]})</span>
               <ChevronDown
@@ -506,19 +442,7 @@ export default function Shops() {
             </button>
 
             {showBusinessDropdown && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                marginTop: '4px',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '10px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                zIndex: 100,
-                minWidth: '180px',
-                overflow: 'hidden',
-              }}>
+              <div className="replyna-dropdown-menu">
                 {businessFilterOptions.map((option) => (
                   <button
                     key={option.value}
@@ -526,28 +450,10 @@ export default function Shops() {
                       setBusinessFilter(option.value)
                       setShowBusinessDropdown(false)
                     }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: 'none',
-                      backgroundColor: businessFilter === option.value ? 'rgba(70, 114, 236, 0.1)' : 'transparent',
-                      color: businessFilter === option.value ? 'var(--accent)' : 'var(--text-primary)',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
+                    className={`replyna-dropdown-item ${businessFilter === option.value ? 'active' : ''}`}
                   >
                     <span>{option.label}</span>
-                    <span style={{
-                      fontSize: '12px',
-                      color: 'var(--text-secondary)',
-                      backgroundColor: 'var(--border-color)',
-                      padding: '2px 8px',
-                      borderRadius: '9999px',
-                    }}>
+                    <span className="replyna-dropdown-badge">
                       {businessCounts[option.value]}
                     </span>
                   </button>

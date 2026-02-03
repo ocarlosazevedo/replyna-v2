@@ -833,7 +833,7 @@ export default function ShopDetails() {
               <select
                 value={editData.tone_of_voice || 'professional'}
                 onChange={(e) => updateEditField('tone_of_voice', e.target.value)}
-                style={{ ...inputStyle, cursor: 'pointer' }}
+                className="replyna-select form-input"
               >
                 {toneOptions.map(tone => (
                   <option key={tone.value} value={tone.value}>{tone.label}</option>

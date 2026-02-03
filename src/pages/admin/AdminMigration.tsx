@@ -735,7 +735,7 @@ export default function AdminMigration() {
                     <select
                       value={formData.plan_id}
                       onChange={(e) => setFormData({ ...formData, plan_id: e.target.value })}
-                      style={inputStyle}
+                      className="replyna-select form-input"
                     >
                       {plans.map((plan) => (
                         <option key={plan.id} value={plan.id}>

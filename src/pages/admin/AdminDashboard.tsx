@@ -432,16 +432,11 @@ export default function AdminDashboard() {
               <select
                 value={selectedClientId}
                 onChange={(e) => setSelectedClientId(e.target.value)}
+                className="replyna-select small"
                 style={{
-                  padding: '6px 10px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: selectedClientId !== 'all' ? 'rgba(139, 92, 246, 0.1)' : 'var(--bg-primary)',
-                  color: selectedClientId !== 'all' ? '#8b5cf6' : 'var(--text-primary)',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  outline: 'none',
                   maxWidth: '180px',
+                  backgroundColor: selectedClientId !== 'all' ? 'rgba(139, 92, 246, 0.1)' : undefined,
+                  color: selectedClientId !== 'all' ? '#8b5cf6' : undefined,
                 }}
               >
                 <option value="all">Todos os clientes</option>
@@ -459,16 +454,7 @@ export default function AdminDashboard() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  outline: 'none',
-                }}
+                className="replyna-select small"
               >
                 {filterCategories.map((cat) => (
                   <option key={cat.value} value={cat.value}>{cat.label}</option>

@@ -558,7 +558,7 @@ export default function AdminAdministrators() {
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'super_admin' })}
-                  style={inputStyle}
+                  className="replyna-select form-input"
                 >
                   <option value="admin">Administrador</option>
                   <option value="super_admin">Super Admin</option>

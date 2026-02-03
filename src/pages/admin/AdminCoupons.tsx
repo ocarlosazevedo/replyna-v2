@@ -769,7 +769,7 @@ export default function AdminCoupons() {
                   <select
                     value={formData.discount_type}
                     onChange={(e) => setFormData({ ...formData, discount_type: e.target.value as 'percentage' | 'fixed_amount' })}
-                    style={inputStyle}
+                    className="replyna-select form-input"
                   >
                     <option value="percentage">Porcentagem (%)</option>
                     <option value="fixed_amount">Valor Fixo (R$)</option>
