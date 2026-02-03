@@ -657,7 +657,41 @@ body {
 }
 
 /* Custom scrollbar styles */
-/* ===== Replyna Scrollbar - Barrinha cinza com fundo do card ===== */
+/* ===== Scrollbar Global - Todas as telas ===== */
+html,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 var(--bg-primary);
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner {
+  background: var(--bg-primary);
+}
+
+/* ===== Replyna Scrollbar - Containers internos ===== */
 .replyna-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #94a3b8 var(--bg-card);
