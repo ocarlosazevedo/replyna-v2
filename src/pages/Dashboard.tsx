@@ -1,7 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { DateRange } from 'react-day-picker'
-import { Mail, CheckCircle, TrendingUp, Headphones, Package, RefreshCw, Truck, HelpCircle } from 'lucide-react'
+import { Mail, CheckCircle, TrendingUp, Headphones, Package, RefreshCw, Truck, HelpCircle, Inbox, Store } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile, useUserShops } from '../hooks/useDashboardData'
@@ -968,8 +968,21 @@ export default function Dashboard() {
         <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '14px' : '20px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: isMobile ? '12px' : '16px', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
-              <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Inbox
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: isMobile ? '32px' : '36px',
+                  height: isMobile ? '32px' : '36px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Inbox size={isMobile ? 16 : 18} style={{ color: '#8b5cf6' }} />
+                </div>
+                <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Inbox
+                </div>
               </div>
               {/* Toggle Spam / Conversas */}
               <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
@@ -1073,19 +1086,35 @@ export default function Dashboard() {
                     >
                       {!isMobile && (
                         <td style={{ padding: '12px' }}>
-                          <span
-                            style={{
-                              display: 'inline-block',
-                              maxWidth: '120px',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              color: 'var(--text-secondary)',
-                              fontWeight: 600,
-                            }}
-                          >
-                            {conversation.shop_name || 'Loja'}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div
+                              style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '6px',
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Store size={14} style={{ color: '#8b5cf6' }} />
+                            </div>
+                            <span
+                              style={{
+                                maxWidth: '120px',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                color: 'var(--text-primary)',
+                                fontWeight: 500,
+                                fontSize: '13px',
+                              }}
+                            >
+                              {conversation.shop_name || 'Loja'}
+                            </span>
+                          </div>
                         </td>
                       )}
                       <td style={{ padding: isMobile ? '10px' : '12px' }}>
