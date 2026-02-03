@@ -40,6 +40,19 @@ const toneOptions = [
   { value: 'enthusiastic', label: 'Entusiasmado' },
 ]
 
+// Componente Skeleton para loading animado
+const Skeleton = ({ height = 16, width = '100%' }: { height?: number | string; width?: number | string }) => (
+  <div
+    style={{
+      width,
+      height,
+      backgroundColor: 'var(--border-color)',
+      borderRadius: 8,
+      animation: 'replyna-pulse 1.6s ease-in-out infinite',
+    }}
+  />
+)
+
 export default function ShopDetails() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -303,8 +316,49 @@ export default function ShopDetails() {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '48px' }}>
-        <div style={{ color: 'var(--text-secondary)' }}>Carregando...</div>
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        {/* Header skeleton */}
+        <div style={{ marginBottom: isMobile ? '20px' : '32px' }}>
+          <Skeleton height={18} width={100} />
+          <div style={{ marginTop: 16 }}>
+            <Skeleton height={isMobile ? 24 : 28} width="60%" />
+            <div style={{ marginTop: 8 }}><Skeleton height={14} width="40%" /></div>
+          </div>
+        </div>
+
+        {/* Cards skeleton */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Configurações da Loja */}
+          <div style={{
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: '16px',
+            padding: isMobile ? '16px' : '24px',
+            border: '1px solid var(--border-color)',
+          }}>
+            <Skeleton height={20} width="40%" />
+            <div style={{ marginTop: 6 }}><Skeleton height={14} width="60%" /></div>
+            <div style={{ display: 'grid', gap: '16px', marginTop: '20px' }}>
+              <Skeleton height={44} />
+              <Skeleton height={44} />
+              <Skeleton height={80} />
+            </div>
+          </div>
+
+          {/* Integrações */}
+          <div style={{
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: '16px',
+            padding: isMobile ? '16px' : '24px',
+            border: '1px solid var(--border-color)',
+          }}>
+            <Skeleton height={20} width="30%" />
+            <div style={{ marginTop: 6 }}><Skeleton height={14} width="50%" /></div>
+            <div style={{ display: 'grid', gap: '16px', marginTop: '20px' }}>
+              <Skeleton height={100} />
+              <Skeleton height={100} />
+            </div>
+          </div>
+        </div>
       </div>
     )
   }

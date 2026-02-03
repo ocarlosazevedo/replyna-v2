@@ -57,10 +57,10 @@ const calculateRenewalDate = (createdAt: string | null) => {
   return renewal
 }
 
-const Skeleton = ({ height = 16 }: { height?: number }) => (
+const Skeleton = ({ height = 16, width = '100%' }: { height?: number | string; width?: number | string }) => (
   <div
     style={{
-      width: '100%',
+      width,
       height,
       backgroundColor: 'var(--border-color)',
       borderRadius: 8,
@@ -703,6 +703,74 @@ export default function Account() {
   const currentPlanData = useMemo(() => {
     return plans.find(p => p.name.toLowerCase().trim() === planName.toLowerCase().trim()) || null
   }, [plans, planName])
+
+  // Skeleton loading completo da página
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px' }}>
+        {/* Header skeleton */}
+        <div>
+          <Skeleton height={isMobile ? 28 : 32} width={180} />
+          <div style={{ marginTop: 8 }}><Skeleton height={16} width={240} /></div>
+        </div>
+
+        {/* Grid skeleton */}
+        <div className="replyna-account-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 0.8fr)', gap: '24px' }}>
+          {/* Coluna esquerda - Informações da conta */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <section style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <Skeleton height={20} width="50%" />
+                <div style={{ marginTop: 6 }}><Skeleton height={14} width="70%" /></div>
+              </div>
+              <div style={{ display: 'grid', gap: '16px' }}>
+                <Skeleton height={44} />
+                <Skeleton height={44} />
+                <div style={{ marginTop: 8 }}><Skeleton height={1} /></div>
+                <Skeleton height={44} />
+                <div style={{ marginTop: 8 }}><Skeleton height={1} /></div>
+                <Skeleton height={44} />
+              </div>
+            </section>
+          </div>
+
+          {/* Coluna direita - Plano e Aparência */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Plano e Cobrança */}
+            <section style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <Skeleton height={20} width="60%" />
+                <div style={{ marginTop: 6 }}><Skeleton height={14} width="50%" /></div>
+              </div>
+              <div style={{ display: 'grid', gap: '16px' }}>
+                <Skeleton height={120} />
+                <Skeleton height={100} />
+              </div>
+            </section>
+
+            {/* Aparência */}
+            <section style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <Skeleton height={20} width="40%" />
+                <div style={{ marginTop: 6 }}><Skeleton height={14} width="60%" /></div>
+              </div>
+              <Skeleton height={48} />
+            </section>
+          </div>
+        </div>
+
+        <style>
+          {`
+            @media (max-width: 1024px) {
+              .replyna-account-grid {
+                grid-template-columns: 1fr !important;
+              }
+            }
+          `}
+        </style>
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px' }}>
