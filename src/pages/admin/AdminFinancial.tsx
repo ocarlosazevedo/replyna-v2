@@ -132,7 +132,9 @@ export default function AdminFinancial() {
       const startDate = range?.from?.toISOString().split('T')[0]
       const endDate = range?.to?.toISOString().split('T')[0]
 
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-financial-stats?period=custom&startDate=${startDate}&endDate=${endDate}`
+      // Se for refresh manual, forçar bypass do cache
+      const refreshParam = isRefresh ? '&refresh=true' : ''
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-financial-stats?period=custom&startDate=${startDate}&endDate=${endDate}${refreshParam}`
 
       const response = await fetch(url, {
         headers: {

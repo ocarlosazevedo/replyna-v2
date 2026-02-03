@@ -7,11 +7,43 @@
  * - Invoices
  * - Subscriptions
  * - MRR calculado
+ *
+ * OTIMIZAÇÃO: Cache em memória de 5 minutos para carregamento instantâneo
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { getStripeClient } from '../_shared/stripe.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+
+// Cache em memória (5 minutos de TTL)
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+const cache = new Map<string, { data: FinancialStats; timestamp: number }>();
+
+function getCacheKey(startDate: string, endDate: string): string {
+  return `${startDate}_${endDate}`;
+}
+
+function getFromCache(key: string): FinancialStats | null {
+  const cached = cache.get(key);
+  if (!cached) return null;
+
+  const age = Date.now() - cached.timestamp;
+  if (age > CACHE_TTL_MS) {
+    cache.delete(key);
+    return null;
+  }
+
+  return cached.data;
+}
+
+function setCache(key: string, data: FinancialStats): void {
+  // Limpar cache antigo (manter no máximo 10 entradas)
+  if (cache.size > 10) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey) cache.delete(oldestKey);
+  }
+  cache.set(key, { data, timestamp: Date.now() });
+}
 
 interface FinancialStats {
   balance: {
@@ -80,13 +112,27 @@ serve(async (req) => {
   }
 
   try {
-    const stripe = getStripeClient();
-
     // Pegar período da query string
     const url = new URL(req.url);
     const period = url.searchParams.get('period') || '6months'; // 7days, 30days, 3months, 6months, 12months, all, custom
     const customStartDate = url.searchParams.get('startDate');
     const customEndDate = url.searchParams.get('endDate');
+    const forceRefresh = url.searchParams.get('refresh') === 'true';
+
+    // Verificar cache primeiro (se não for refresh forçado)
+    const cacheKey = getCacheKey(customStartDate || period, customEndDate || 'now');
+    if (!forceRefresh) {
+      const cachedData = getFromCache(cacheKey);
+      if (cachedData) {
+        console.log('[Cache HIT] Retornando dados do cache');
+        return new Response(JSON.stringify({ ...cachedData, fromCache: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+    console.log('[Cache MISS] Buscando dados do Stripe...');
+
+    const stripe = getStripeClient();
 
     // Calcular datas base
     const now = new Date();
@@ -476,7 +522,11 @@ serve(async (req) => {
       },
     };
 
-    return new Response(JSON.stringify(stats), {
+    // Salvar no cache para próximas requisições
+    setCache(cacheKey, stats);
+    console.log('[Cache SET] Dados salvos no cache');
+
+    return new Response(JSON.stringify({ ...stats, fromCache: false }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
