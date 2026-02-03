@@ -553,12 +553,16 @@ serve(async (req) => {
 
     // Atualizar plano do usuário na tabela users
     // NOTA: A tabela users NÃO tem coluna plan_id, apenas o campo texto 'plan'
+    // Quando faz upgrade, zera os contadores de emails usados (novo ciclo de billing)
     const { data: updatedUserData, error: userUpdateError } = await supabase
       .from('users')
       .update({
         plan: newPlan.name,
         emails_limit: newPlan.emails_limit,
         shops_limit: newPlan.shops_limit,
+        emails_used: 0,
+        extra_emails_used: 0,
+        pending_extra_emails: 0,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user_id)

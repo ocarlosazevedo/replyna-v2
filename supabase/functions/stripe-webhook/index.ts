@@ -571,12 +571,16 @@ async function handleSubscriptionUpdate(
         .eq('stripe_subscription_id', subscription.id);
 
       // Atualizar usuário com os dados do novo plano
+      // Quando faz upgrade, zera os contadores de emails usados (novo ciclo de billing)
       const { error: userError } = await supabase
         .from('users')
         .update({
           plan: plan.name,
           emails_limit: plan.emails_limit,
           shops_limit: plan.shops_limit,
+          emails_used: 0,
+          extra_emails_used: 0,
+          pending_extra_emails: 0,
         })
         .eq('id', sub.user_id);
 
