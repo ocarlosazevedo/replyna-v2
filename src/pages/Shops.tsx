@@ -5,6 +5,17 @@ import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User, Store, Plus, ChevronDown, Snowflake } from 'lucide-react'
 
+// Componente Skeleton para loading animado
+const Skeleton = ({ height = 16, width = '100%' }: { height?: number | string; width?: number | string }) => (
+  <div style={{
+    width,
+    height,
+    backgroundColor: 'var(--border-color)',
+    borderRadius: 8,
+    animation: 'replyna-pulse 1.6s ease-in-out infinite',
+  }} />
+)
+
 interface Shop {
   id: string
   name: string
@@ -546,8 +557,62 @@ export default function Shops() {
       )}
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '48px' }}>
-          <div style={{ color: 'var(--text-secondary)' }}>Carregando...</div>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px' }}>
+          {[1, 2, 3].map((i) => (
+            <div key={i} style={{ ...cardStyle }}>
+              {/* Header skeleton */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <Skeleton height={24} width="60%" />
+                <Skeleton height={28} width={80} />
+              </div>
+
+              {/* Info sections skeleton */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Skeleton height={36} width={36} />
+                  <div style={{ flex: 1 }}>
+                    <Skeleton height={12} width="30%" />
+                    <div style={{ marginTop: 6 }}><Skeleton height={16} width="70%" /></div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Skeleton height={36} width={36} />
+                  <div style={{ flex: 1 }}>
+                    <Skeleton height={12} width="35%" />
+                    <div style={{ marginTop: 6 }}><Skeleton height={16} width="65%" /></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Integration status skeleton */}
+              <div style={{
+                display: 'flex',
+                gap: '16px',
+                padding: '16px',
+                backgroundColor: 'rgba(70, 114, 236, 0.06)',
+                borderRadius: '12px',
+                marginBottom: '20px',
+                border: '1px solid var(--border-color)',
+              }}>
+                <div style={{ flex: 1 }}>
+                  <Skeleton height={12} width="40%" />
+                  <div style={{ marginTop: 6 }}><Skeleton height={16} width="60%" /></div>
+                </div>
+                <div style={{ width: '1px', backgroundColor: 'var(--border-color)' }} />
+                <div style={{ flex: 1 }}>
+                  <Skeleton height={12} width="40%" />
+                  <div style={{ marginTop: 6 }}><Skeleton height={16} width="60%" /></div>
+                </div>
+              </div>
+
+              {/* Actions skeleton */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <Skeleton height={42} width="100%" />
+                <Skeleton height={42} width={42} />
+                <Skeleton height={42} width={42} />
+              </div>
+            </div>
+          ))}
         </div>
       ) : filteredShops.length === 0 && shops.length === 0 ? (
         <div style={{ ...cardStyle, textAlign: 'center', padding: isMobile ? '48px 24px' : '64px 48px' }}>
