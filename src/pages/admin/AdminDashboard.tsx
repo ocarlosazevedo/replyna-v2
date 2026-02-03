@@ -17,6 +17,7 @@ import {
   Eye,
   EyeOff,
   Filter,
+  ChevronDown,
 } from 'lucide-react'
 import DateRangePicker from '../../components/DateRangePicker'
 import ConversationModal from '../../components/ConversationModal'
@@ -88,6 +89,8 @@ export default function AdminDashboard() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [showSpam, setShowSpam] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState<string>('all')
+  const [showClientDropdown, setShowClientDropdown] = useState(false)
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
   // Função para recarregar dados manualmente
@@ -426,40 +429,119 @@ export default function AdminDashboard() {
 
           {/* Filtros */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            {/* Filtro de cliente */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Users size={14} style={{ color: 'var(--text-secondary)' }} />
-              <select
-                value={selectedClientId}
-                onChange={(e) => setSelectedClientId(e.target.value)}
-                className="replyna-select small"
+            {/* Filtro de cliente - Dropdown customizado */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => {
+                  setShowClientDropdown(!showClientDropdown)
+                  setShowCategoryDropdown(false)
+                }}
+                className={`replyna-dropdown-trigger ${showClientDropdown ? 'open' : ''}`}
                 style={{
-                  maxWidth: '180px',
+                  padding: '8px 12px',
+                  fontSize: '13px',
+                  minWidth: '160px',
                   backgroundColor: selectedClientId !== 'all' ? 'rgba(139, 92, 246, 0.1)' : undefined,
+                  borderColor: selectedClientId !== 'all' ? 'rgba(139, 92, 246, 0.3)' : undefined,
                   color: selectedClientId !== 'all' ? '#8b5cf6' : undefined,
                 }}
               >
-                <option value="all">Todos os clientes</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name || client.email}
-                  </option>
-                ))}
-              </select>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Users size={14} />
+                  {selectedClientId === 'all'
+                    ? 'Todos os clientes'
+                    : (clients.find(c => c.id === selectedClientId)?.name || clients.find(c => c.id === selectedClientId)?.email || 'Cliente')}
+                </span>
+                <ChevronDown
+                  size={16}
+                  style={{
+                    transform: showClientDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </button>
+
+              {showClientDropdown && (
+                <>
+                  <div
+                    className="replyna-dropdown-menu replyna-scrollbar"
+                    style={{ maxHeight: '250px', overflowY: 'auto', minWidth: '220px' }}
+                  >
+                    <button
+                      onClick={() => {
+                        setSelectedClientId('all')
+                        setShowClientDropdown(false)
+                      }}
+                      className={`replyna-dropdown-item ${selectedClientId === 'all' ? 'active' : ''}`}
+                    >
+                      Todos os clientes
+                    </button>
+                    {clients.map((client) => (
+                      <button
+                        key={client.id}
+                        onClick={() => {
+                          setSelectedClientId(client.id)
+                          setShowClientDropdown(false)
+                        }}
+                        className={`replyna-dropdown-item ${selectedClientId === client.id ? 'active' : ''}`}
+                      >
+                        {client.name || client.email}
+                      </button>
+                    ))}
+                  </div>
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 50 }}
+                    onClick={() => setShowClientDropdown(false)}
+                  />
+                </>
+              )}
             </div>
 
-            {/* Filtro de categoria */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Filter size={14} style={{ color: 'var(--text-secondary)' }} />
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="replyna-select small"
+            {/* Filtro de categoria - Dropdown customizado */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => {
+                  setShowCategoryDropdown(!showCategoryDropdown)
+                  setShowClientDropdown(false)
+                }}
+                className={`replyna-dropdown-trigger ${showCategoryDropdown ? 'open' : ''}`}
+                style={{ padding: '8px 12px', fontSize: '13px', minWidth: '140px' }}
               >
-                {filterCategories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
-                ))}
-              </select>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Filter size={14} />
+                  {filterCategories.find(c => c.value === categoryFilter)?.label || 'Categoria'}
+                </span>
+                <ChevronDown
+                  size={16}
+                  style={{
+                    transform: showCategoryDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </button>
+
+              {showCategoryDropdown && (
+                <>
+                  <div className="replyna-dropdown-menu" style={{ minWidth: '180px' }}>
+                    {filterCategories.map((cat) => (
+                      <button
+                        key={cat.value}
+                        onClick={() => {
+                          setCategoryFilter(cat.value)
+                          setShowCategoryDropdown(false)
+                        }}
+                        className={`replyna-dropdown-item ${categoryFilter === cat.value ? 'active' : ''}`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 50 }}
+                    onClick={() => setShowCategoryDropdown(false)}
+                  />
+                </>
+              )}
             </div>
 
             {/* Toggle SPAM */}
