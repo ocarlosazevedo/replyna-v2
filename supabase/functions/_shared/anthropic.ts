@@ -2296,8 +2296,15 @@ export async function generateHumanFallbackMessage(
 ): Promise<ResponseGenerationResult> {
   // Se tem template configurado, usar ele
   if (shopContext.fallback_message_template) {
-    const message = shopContext.fallback_message_template
-      .replace('{customer_name}', customerName || 'Cliente')
+    // Remove "{customer_name}" patterns (with optional comma/space) when no name is available
+    let message = shopContext.fallback_message_template;
+    if (customerName) {
+      message = message.replace('{customer_name}', customerName);
+    } else {
+      // Remove the placeholder and any trailing comma/space
+      message = message.replace(/\{customer_name\},?\s*/g, '');
+    }
+    message = message
       .replace('{attendant_name}', shopContext.attendant_name)
       .replace('{support_email}', shopContext.support_email)
       .replace('{store_name}', shopContext.name);
@@ -2375,7 +2382,7 @@ CRITICAL RULE - IDENTITY (MAXIMUM PRIORITY - NEVER VIOLATE):
 
 YOUR TASK:
 Write a short customer service response (maximum 80 words) that:
-1. Greet the customer by name
+1. ${customerName ? `Greet the customer by name (${customerName})` : 'Start with a friendly greeting (do NOT use "Customer" as a name)'}
 2. Acknowledge you received their message
 3. Ask the customer to contact ${shopContext.support_email} for further assistance
 4. Sign with your name: ${shopContext.attendant_name}
@@ -2385,8 +2392,7 @@ RULES:
 - Do NOT mention "specialized team" or similar
 - Do NOT say "we will contact you" - the CUSTOMER must contact the email
 - Write naturally as a customer service representative
-
-Customer name: ${customerName || 'Customer'}
+- ${customerName ? '' : 'IMPORTANT: Do NOT use "Customer", "Cliente", "Dear Customer" or similar generic placeholders as a name. Use a simple greeting like "Olá!" or "Hi!" instead.'}
 
 LANGUAGE: ${languageInstruction}`;
 

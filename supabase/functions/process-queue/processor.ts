@@ -741,7 +741,7 @@ async function processMessage(
         tone_of_voice: shop.tone_of_voice || 'friendly',
         fallback_message_template: shop.fallback_message_template,
       },
-      shopifyData?.customer_name || conversation.customer_name || null,
+      shopifyData?.customer_name || conversation.customer_name || message.from_name || null,
       classification.language || 'en'
     );
 
