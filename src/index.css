@@ -657,36 +657,31 @@ body {
 }
 
 /* Custom scrollbar styles */
-/* ===== Replyna Scrollbar - Apenas barrinha cinza ===== */
+/* ===== Replyna Scrollbar - Barrinha cinza com fundo do card ===== */
 .replyna-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #94a3b8 transparent;
+  scrollbar-color: #94a3b8 var(--bg-card);
 }
 
 .replyna-scrollbar::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-  background: transparent;
+  width: 6px;
+  height: 6px;
 }
 
 .replyna-scrollbar::-webkit-scrollbar-track {
-  background: transparent !important;
-  border: none;
+  background: var(--bg-card);
+  border-radius: 3px;
 }
 
 .replyna-scrollbar::-webkit-scrollbar-thumb {
   background: #94a3b8;
-  border-radius: 10px;
+  border-radius: 3px;
 }
 
 .replyna-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #64748b;
 }
 
-.replyna-scrollbar::-webkit-scrollbar-button {
-  display: none;
-}
-
 .replyna-scrollbar::-webkit-scrollbar-corner {
-  background: transparent;
+  background: var(--bg-card);
 }
