@@ -138,20 +138,6 @@ export default function Shops() {
     loadUserLimit()
   }, [user])
 
-  // Fechar dropdowns ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (!target.closest('.status-filter-dropdown')) {
-        setShowStatusDropdown(false)
-      }
-      if (!target.closest('.business-filter-dropdown')) {
-        setShowBusinessDropdown(false)
-      }
-    }
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
-  }, [])
 
   const loadUserLimit = async () => {
     if (!user) return
@@ -371,7 +357,7 @@ export default function Shops() {
       {shops.length > 0 && (
         <div style={{ marginBottom: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           {/* Filtro de Status */}
-          <div className="status-filter-dropdown" style={{ position: 'relative', display: 'inline-block' }}>
+          <div style={{ position: 'relative' }}>
             <button
               onClick={() => {
                 setShowStatusDropdown(!showStatusDropdown)
@@ -392,36 +378,45 @@ export default function Shops() {
             </button>
 
             {showStatusDropdown && (
-              <div className="replyna-dropdown-menu" style={{ minWidth: '200px' }}>
-                {statusFilterOptions.map((option) => {
-                  // Esconder opção "Congeladas" se não houver lojas congeladas
-                  if (option.value === 'frozen' && statusCounts.frozen === 0) return null
+              <>
+                <div
+                  className="replyna-dropdown-menu replyna-scrollbar"
+                  style={{ minWidth: '200px', maxHeight: '250px', overflowY: 'auto' }}
+                >
+                  {statusFilterOptions.map((option) => {
+                    // Esconder opção "Congeladas" se não houver lojas congeladas
+                    if (option.value === 'frozen' && statusCounts.frozen === 0) return null
 
-                  return (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setStatusFilter(option.value)
-                        setShowStatusDropdown(false)
-                      }}
-                      className={`replyna-dropdown-item ${statusFilter === option.value ? 'active' : ''}`}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {option.value === 'frozen' && <Snowflake size={14} style={{ color: '#3b82f6' }} />}
-                        {option.label}
-                      </span>
-                      <span className="replyna-dropdown-badge">
-                        {statusCounts[option.value]}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setStatusFilter(option.value)
+                          setShowStatusDropdown(false)
+                        }}
+                        className={`replyna-dropdown-item ${statusFilter === option.value ? 'active' : ''}`}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {option.value === 'frozen' && <Snowflake size={14} style={{ color: '#3b82f6' }} />}
+                          {option.label}
+                        </span>
+                        <span className="replyna-dropdown-badge">
+                          {statusCounts[option.value]}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <div
+                  style={{ position: 'fixed', inset: 0, zIndex: 50 }}
+                  onClick={() => setShowStatusDropdown(false)}
+                />
+              </>
             )}
           </div>
 
           {/* Filtro de Modelo de Negócio */}
-          <div className="business-filter-dropdown" style={{ position: 'relative', display: 'inline-block' }}>
+          <div style={{ position: 'relative' }}>
             <button
               onClick={() => {
                 setShowBusinessDropdown(!showBusinessDropdown)
@@ -442,23 +437,32 @@ export default function Shops() {
             </button>
 
             {showBusinessDropdown && (
-              <div className="replyna-dropdown-menu">
-                {businessFilterOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setBusinessFilter(option.value)
-                      setShowBusinessDropdown(false)
-                    }}
-                    className={`replyna-dropdown-item ${businessFilter === option.value ? 'active' : ''}`}
-                  >
-                    <span>{option.label}</span>
-                    <span className="replyna-dropdown-badge">
-                      {businessCounts[option.value]}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <>
+                <div
+                  className="replyna-dropdown-menu replyna-scrollbar"
+                  style={{ minWidth: '180px', maxHeight: '250px', overflowY: 'auto' }}
+                >
+                  {businessFilterOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setBusinessFilter(option.value)
+                        setShowBusinessDropdown(false)
+                      }}
+                      className={`replyna-dropdown-item ${businessFilter === option.value ? 'active' : ''}`}
+                    >
+                      <span>{option.label}</span>
+                      <span className="replyna-dropdown-badge">
+                        {businessCounts[option.value]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div
+                  style={{ position: 'fixed', inset: 0, zIndex: 50 }}
+                  onClick={() => setShowBusinessDropdown(false)}
+                />
+              </>
             )}
           </div>
         </div>
