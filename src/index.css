@@ -657,28 +657,34 @@ body {
 }
 
 /* Custom scrollbar styles */
-/* ===== Replyna Scrollbar - Estilo Sutil ===== */
+/* ===== Replyna Scrollbar - Apenas barrinha cinza ===== */
 .replyna-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-color) transparent;
+  scrollbar-color: #94a3b8 transparent;
 }
 
 .replyna-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.replyna-scrollbar::-webkit-scrollbar-track {
+  width: 5px;
+  height: 5px;
   background: transparent;
 }
 
+.replyna-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+  border: none;
+}
+
 .replyna-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
+  background: #94a3b8;
+  border-radius: 10px;
 }
 
 .replyna-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: #64748b;
+}
+
+.replyna-scrollbar::-webkit-scrollbar-button {
+  display: none;
 }
 
 .replyna-scrollbar::-webkit-scrollbar-corner {
