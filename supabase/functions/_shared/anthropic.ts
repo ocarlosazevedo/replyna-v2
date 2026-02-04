@@ -294,7 +294,9 @@ function detectFrustratedCustomer(text: string): boolean {
     /\b(sick\s+of|tired\s+of|fed\s+up|enough\s+of)\b/i,
     /\b(this\s+is\s+(a\s+)?joke|what\s+a\s+joke)\b/i,
     /\b(you\s+(guys|people)\s+are)\b/i,
-    /\b(i('m|\s+am)\s+(so\s+)?(angry|furious|upset|frustrated|disappointed))\b/i,
+    /\b(i('m|\s+am)\s+(so\s+)?(angry|furious|upset|frustrated|disappointed|unhappy))\b/i,
+    /\b(very\s+unhappy|so\s+unhappy|really\s+unhappy|extremely\s+unhappy)\b/i,
+    /\bunhappy\s+(customer|client|buyer)\b/i,
     /\b(unbelievable|incredible|insane)\b/i,
 
     // Espanhol
@@ -1135,9 +1137,9 @@ REGRAS CRÍTICAS:
       result.category = 'suporte_humano';
       result.confidence = 0.95;
     }
-    // PRIORIDADE 2: Problema com produto + quer cancelar/devolver → suporte humano direto
-    else if (hasProductProblem && isCancellationRequest) {
-      console.log(`[classifyEmail] Category override to suporte_humano: product problem + cancellation request`);
+    // PRIORIDADE 2: Problema com produto (defeituoso, danificado, errado) → suporte humano direto
+    else if (hasProductProblem) {
+      console.log(`[classifyEmail] Category override to suporte_humano: product problem detected (broken/damaged/wrong)`);
       result.category = 'suporte_humano';
       result.confidence = 0.95;
     }
@@ -1161,7 +1163,7 @@ REGRAS CRÍTICAS:
 
     // Determinar categoria baseado nas detecções
     let fallbackCategory: 'suporte_humano' | 'troca_devolucao_reembolso' | 'duvidas_gerais' = 'duvidas_gerais';
-    if (isFrustratedCustomer || (hasProductProblem && isCancellationRequest)) {
+    if (isFrustratedCustomer || hasProductProblem) {
       fallbackCategory = 'suporte_humano';
     } else if (isCancellationRequest) {
       fallbackCategory = 'troca_devolucao_reembolso';
