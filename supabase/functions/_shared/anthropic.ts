@@ -283,6 +283,12 @@ function detectFrustratedCustomer(text: string): boolean {
     /\b(cansad[oa]\s+de|fart[oa]\s+de|cheio\s+de)\b/i,
     /\b(isso\s+é\s+(um\s+)?absurdo)\b/i,
     /\b(vocês\s+são|essa\s+empresa\s+é)\b/i,
+    // Palavrões e xingamentos em português (indica cliente muito irritado)
+    /\b(filho\s*d[aeo]\s*puta|fdp|puta\s+que\s+pariu|vai\s+se\s+f[ou]der)\b/i,
+    /\b(desgraçad[oa]s?|malditos?|safad[oa]s?|canalhas?|pilantras?)\b/i,
+    /\b(trapaceir[oa]s?|ladr[aõã]o|ladr[oõe]+s?|bandid[oa]s?)\b/i,
+    /\b(lixo|porcaria|merda|bosta|idiota|imbecil|otári[oa])\b/i,
+    /\b(vagabund[oa]s?|cretinos?|babacas?|arrombad[oa]s?)\b/i,
 
     // Inglês
     /\b(ridiculous|absurd|unacceptable|outrageous|disgrace)\b/i,
@@ -298,6 +304,14 @@ function detectFrustratedCustomer(text: string): boolean {
     /\b(very\s+unhappy|so\s+unhappy|really\s+unhappy|extremely\s+unhappy)\b/i,
     /\bunhappy\s+(customer|client|buyer)\b/i,
     /\b(unbelievable|incredible|insane)\b/i,
+    // Palavrões e xingamentos em inglês (indica cliente muito irritado)
+    /\b(f+u+c+k+|f+cking|f+ck|wtf|stfu)\b/i,
+    /\b(shit+y?|bullshit|damn|crap|ass+hole)\b/i,
+    /\b(son\s+of\s+a\s+bitch|bastard|bitch|dick|prick)\b/i,
+    /\b(piece\s+of\s+shit|pos|garbage|trash|junk)\b/i,
+    /\b(thief|thieves|crook|crooks|cheater|cheaters|swindler)\b/i,
+    /\b(liars?|lying|lied\s+to\s+me|you\s+lied)\b/i,
+    /\b(disgusting|pathetic|shameful|disgrace)\b/i,
 
     // Espanhol
     /\b(ridículo|absurdo|vergüenza|estafa|fraude)\b/i,
@@ -606,6 +620,16 @@ function cleanAIResponse(text: string): string {
   // CRÍTICO: Remover placeholders que vazaram na resposta
   // Padrão 1: [texto] - placeholders em colchetes
   const placeholderPatterns = [
+    // Padrões genéricos que capturam qualquer placeholder [Insert X], [Inserir X], etc.
+    /\[Insert\s+[^\]]+\]/gi,
+    /\[Inserir\s+[^\]]+\]/gi,
+    /\[Enter\s+[^\]]+\]/gi,
+    /\[Digite\s+[^\]]+\]/gi,
+    /\[Add\s+[^\]]+\]/gi,
+    /\[Your\s+[^\]]+\]/gi,
+    /\[Seu\s+[^\]]+\]/gi,
+    /\[Sua\s+[^\]]+\]/gi,
+    // Padrões específicos comuns
     /\[Cliente\]/gi,
     /\[Customer\]/gi,
     /\[Name\]/gi,
@@ -632,6 +656,11 @@ function cleanAIResponse(text: string): string {
     /\[valor\]/gi,
     /\[value\]/gi,
     /\[amount\]/gi,
+    /\[power\]/gi,
+    /\[potência\]/gi,
+    /\[size\]/gi,
+    /\[tamanho\]/gi,
+    /\[X+\]/g,  // Captura [X], [XX], [XXX], etc.
   ];
 
   for (const pattern of placeholderPatterns) {
