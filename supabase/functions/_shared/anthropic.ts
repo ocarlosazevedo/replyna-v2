@@ -1143,7 +1143,13 @@ REGRAS CRÍTICAS:
       result.category = 'suporte_humano';
       result.confidence = 0.95;
     }
-    // PRIORIDADE 3: Apenas cancelamento/devolução (sem problema de produto) → fluxo de retenção
+    // PRIORIDADE 3: Edição de pedido (alteração de endereço, tamanho, etc.) → suporte humano direto
+    else if (result.category === 'edicao_pedido') {
+      console.log(`[classifyEmail] Category override to suporte_humano: order edit requires human support`);
+      result.category = 'suporte_humano';
+      result.confidence = 0.95;
+    }
+    // PRIORIDADE 4: Apenas cancelamento/devolução (sem problema de produto) → fluxo de retenção
     else if (isCancellationRequest && result.category !== 'troca_devolucao_reembolso' && result.category !== 'suporte_humano') {
       console.log(`[classifyEmail] Category override: Claude said "${result.category}", but text contains cancellation/refund keywords`);
       result.category = 'troca_devolucao_reembolso';
