@@ -1246,6 +1246,8 @@ export async function generateResponse(
     is_cod?: boolean;
     support_email?: string;
     retention_coupon_code?: string | null;
+    retention_coupon_type?: 'percentage' | 'fixed';
+    retention_coupon_value?: number | null;
   },
   emailSubject: string,
   emailBody: string,
@@ -1511,13 +1513,13 @@ ${retentionContactCount === 2 ? `
 
 YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
 1. Reassure everything is configured for success / Tranquilizar que está tudo certo
-2. Offer a BENEFIT or DISCOUNT${shopContext.retention_coupon_code ? `: USE COUPON ${shopContext.retention_coupon_code}` : ' (mention you are looking for coupons)'}
+2. Offer a BENEFIT or DISCOUNT${shopContext.retention_coupon_code ? `: USE COUPON ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} OFF` : `${shopContext.retention_coupon_value}% OFF`})` : ''}` : ' (mention you are looking for coupons)'}
 3. Ask for one more chance / Pedir mais uma chance
 4. DO NOT mention support email / NÃO mencionar email de suporte
 
 EXAMPLE RESPONSE:
 "Hello! I've checked and EVERYTHING IS SET for your delivery!
-${shopContext.retention_coupon_code ? `I have a surprise: use coupon ${shopContext.retention_coupon_code} on your next purchase!` : 'I am looking for a special discount code for you!'}
+${shopContext.retention_coupon_code ? `I have a surprise: use coupon ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` for ${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} off` : `${shopContext.retention_coupon_value}% off`}` : ''} on your next purchase!` : 'I am looking for a special discount code for you!'}
 Can I count on your trust a little longer?"
 ` : ''}
 
@@ -1949,13 +1951,13 @@ Posso saber se há algo específico que te preocupa? Quero muito ajudar a resolv
 --- SE CONTADOR = 2 (Segundo contato) ---
 Objetivo: Mostrar que está tudo preparado + oferecer BENEFÍCIO
 
-${shopContext.retention_coupon_code ? `CUPOM DE DESCONTO DISPONÍVEL: ${shopContext.retention_coupon_code}
-Use este cupom REAL na sua resposta para convencer o cliente a não cancelar.` : 'NOTA: Não há cupom configurado pela loja. Mencione que está buscando cupons/benefícios.'}
+${shopContext.retention_coupon_code ? `CUPOM DE DESCONTO DISPONÍVEL: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`})` : ''}
+Use este cupom REAL na sua resposta para convencer o cliente a não cancelar. MENCIONE O VALOR DO DESCONTO!` : 'NOTA: Não há cupom configurado pela loja. Mencione que está buscando cupons/benefícios.'}
 
 O que fazer:
 - Reforce que já está TUDO CONFIGURADO no sistema para sucesso
 - Diga que a entrega será feita com sucesso
-${shopContext.retention_coupon_code ? `- OFEREÇA o cupom de desconto: ${shopContext.retention_coupon_code} para a próxima compra` : '- Mencione que vai PROCURAR CUPONS DE DESCONTO especiais para ele'}
+${shopContext.retention_coupon_code ? `- OFEREÇA o cupom de desconto: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` com ${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''} para a próxima compra` : '- Mencione que vai PROCURAR CUPONS DE DESCONTO especiais para ele'}
 - Ofereça um benefício/desconto para a próxima compra
 - Mostre comprometimento total em resolver
 - NÃO mencione o email de atendimento
@@ -1966,7 +1968,7 @@ Exemplo (CONTADOR = 2):
 
 Quero te tranquilizar: já verifiquei seu pedido #[número] e está TUDO CERTO no sistema para que a entrega seja realizada com sucesso!
 
-${shopContext.retention_coupon_code ? `E tenho uma surpresa especial para você: use o cupom ${shopContext.retention_coupon_code} na sua próxima compra como forma de agradecimento pela sua paciência e confiança!` : 'Inclusive, estou buscando cupons de desconto especiais para você utilizar em uma próxima compra como forma de agradecimento pela sua paciência e confiança.'}
+${shopContext.retention_coupon_code ? `E tenho uma surpresa especial para você: use o cupom ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` e ganhe ${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''} na sua próxima compra como forma de agradecimento pela sua paciência e confiança!` : 'Inclusive, estou buscando cupons de desconto especiais para você utilizar em uma próxima compra como forma de agradecimento pela sua paciência e confiança.'}
 
 Tenho certeza de que você vai adorar o produto quando receber! Posso contar com sua confiança mais um pouquinho?
 

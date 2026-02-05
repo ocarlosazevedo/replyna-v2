@@ -799,6 +799,8 @@ async function processMessage(
       is_cod: shop.is_cod,
       support_email: shop.support_email,
       retention_coupon_code: shop.retention_coupon_code,
+      retention_coupon_type: shop.retention_coupon_type,
+      retention_coupon_value: shop.retention_coupon_value,
     },
     message.subject || '',
     cleanBody,

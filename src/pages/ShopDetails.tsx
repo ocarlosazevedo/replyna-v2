@@ -30,6 +30,8 @@ interface ShopData {
   store_description: string
   tone_of_voice: string
   retention_coupon_code: string
+  retention_coupon_type: 'percentage' | 'fixed'
+  retention_coupon_value: number | null
   is_active: boolean
 }
 
@@ -849,11 +851,36 @@ export default function ShopDetails() {
                 style={inputStyle}
                 placeholder="Ex: FICA10, DESC20"
               />
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                A IA oferecerá este cupom para clientes que desejam cancelar ou devolver.
-                <br />
-                <strong style={{ color: 'var(--warning, #d97706)' }}>Importante:</strong> Crie este cupom na sua loja (Shopify, etc.) antes de cadastrar aqui.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={labelStyle}>Tipo de desconto</label>
+                <select
+                  value={editData.retention_coupon_type || 'percentage'}
+                  onChange={(e) => updateEditField('retention_coupon_type', e.target.value as 'percentage' | 'fixed')}
+                  className="replyna-select form-input"
+                >
+                  <option value="percentage">Porcentagem (%)</option>
+                  <option value="fixed">Valor fixo (R$)</option>
+                </select>
               </div>
+              <div>
+                <label style={labelStyle}>Valor do desconto</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editData.retention_coupon_value || ''}
+                  onChange={(e) => updateEditField('retention_coupon_value', e.target.value ? parseFloat(e.target.value) : null)}
+                  style={inputStyle}
+                  placeholder={editData.retention_coupon_type === 'fixed' ? 'Ex: 15.00' : 'Ex: 10'}
+                />
+              </div>
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              A IA oferecerá este cupom com o valor configurado para clientes que desejam cancelar ou devolver.
+              <br />
+              <strong style={{ color: 'var(--warning, #d97706)' }}>Importante:</strong> Crie este cupom na sua loja (Shopify, etc.) antes de cadastrar aqui.
             </div>
           </div>
         ) : (
@@ -884,16 +911,33 @@ export default function ShopDetails() {
               <label style={labelStyle}>Cupom de retenção</label>
               <div style={valueStyle}>
                 {shop.retention_coupon_code ? (
-                  <span style={{
-                    backgroundColor: 'var(--accent)',
-                    color: '#fff',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    fontFamily: 'monospace',
-                    fontWeight: 600
-                  }}>
-                    {shop.retention_coupon_code}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <span style={{
+                      backgroundColor: 'var(--accent)',
+                      color: '#fff',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontFamily: 'monospace',
+                      fontWeight: 600
+                    }}>
+                      {shop.retention_coupon_code}
+                    </span>
+                    {shop.retention_coupon_value && (
+                      <span style={{
+                        backgroundColor: 'rgba(34, 197, 94, 0.16)',
+                        color: '#15803d',
+                        padding: '2px 10px',
+                        borderRadius: '4px',
+                        fontSize: '14px',
+                        fontWeight: 600
+                      }}>
+                        {shop.retention_coupon_type === 'fixed'
+                          ? `R$ ${shop.retention_coupon_value.toFixed(2).replace('.', ',')} de desconto`
+                          : `${shop.retention_coupon_value}% de desconto`
+                        }
+                      </span>
+                    )}
+                  </div>
                 ) : (
                   <span style={{ color: 'var(--text-secondary)' }}>Não configurado</span>
                 )}
