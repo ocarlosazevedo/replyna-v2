@@ -47,6 +47,8 @@ interface ShopData {
   store_description: string
   tone_of_voice: string
   retention_coupon_code: string
+  retention_coupon_type: 'percentage' | 'fixed'
+  retention_coupon_value: number | null
 }
 
 const initialShopData: ShopData = {
@@ -73,6 +75,8 @@ const initialShopData: ShopData = {
   store_description: '',
   tone_of_voice: 'professional',
   retention_coupon_code: '',
+  retention_coupon_type: 'percentage',
+  retention_coupon_value: null,
 }
 
 const steps = [
@@ -192,6 +196,8 @@ export default function ShopSetup() {
           store_description: shop.store_description || '',
           tone_of_voice: shop.tone_of_voice || 'professional',
           retention_coupon_code: shop.retention_coupon_code || '',
+          retention_coupon_type: shop.retention_coupon_type || 'percentage',
+          retention_coupon_value: shop.retention_coupon_value || null,
         })
       }
     } catch (err) {
@@ -200,7 +206,7 @@ export default function ShopSetup() {
     }
   }
 
-  const updateField = (field: keyof ShopData, value: string | boolean) => {
+  const updateField = (field: keyof ShopData, value: string | boolean | number | null) => {
     setShopData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -371,6 +377,8 @@ export default function ShopSetup() {
         store_description: shopData.store_description || null,
         tone_of_voice: shopData.tone_of_voice,
         retention_coupon_code: shopData.retention_coupon_code || null,
+        retention_coupon_type: shopData.retention_coupon_type || 'percentage',
+        retention_coupon_value: shopData.retention_coupon_value,
         is_active: activate,
       }
 
@@ -1372,6 +1380,31 @@ export default function ShopSetup() {
           style={inputStyle}
           placeholder="Ex: FICA10, DESC20"
         />
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+          <div>
+            <label style={labelStyle}>Tipo de desconto</label>
+            <select
+              value={shopData.retention_coupon_type || 'percentage'}
+              onChange={(e) => updateField('retention_coupon_type', e.target.value as 'percentage' | 'fixed')}
+              className="replyna-select form-input"
+            >
+              <option value="percentage">Porcentagem (%)</option>
+              <option value="fixed">Valor fixo (R$)</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Valor do desconto</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={shopData.retention_coupon_value || ''}
+              onChange={(e) => updateField('retention_coupon_value', e.target.value ? parseFloat(e.target.value) : null)}
+              style={inputStyle}
+              placeholder={shopData.retention_coupon_type === 'fixed' ? 'Ex: 15.00' : 'Ex: 10'}
+            />
+          </div>
+        </div>
         <div style={{
           backgroundColor: 'rgba(70, 114, 236, 0.08)',
           padding: '12px 16px',
@@ -1381,7 +1414,7 @@ export default function ShopSetup() {
         }}>
           <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: 0, lineHeight: '1.5' }}>
             <strong>Como funciona:</strong> Quando um cliente solicitar cancelamento ou devolução,
-            a IA oferecerá este cupom como incentivo para manter a compra.
+            a IA oferecerá este cupom com o valor configurado como incentivo para manter a compra.
           </p>
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '8px 0 0 0', lineHeight: '1.5' }}>
             <strong style={{ color: '#d97706' }}>Importante:</strong> Crie este cupom na sua loja (Shopify, etc.) antes de cadastrar aqui.
@@ -1533,17 +1566,34 @@ export default function ShopSetup() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: 'var(--text-secondary)' }}>Cupom de retenção</span>
             {shopData.retention_coupon_code ? (
-              <span style={{
-                backgroundColor: 'var(--accent)',
-                color: '#fff',
-                padding: '2px 10px',
-                borderRadius: '6px',
-                fontFamily: 'monospace',
-                fontWeight: '600',
-                fontSize: '14px'
-              }}>
-                {shopData.retention_coupon_code}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <span style={{
+                  backgroundColor: 'var(--accent)',
+                  color: '#fff',
+                  padding: '2px 10px',
+                  borderRadius: '6px',
+                  fontFamily: 'monospace',
+                  fontWeight: '600',
+                  fontSize: '14px'
+                }}>
+                  {shopData.retention_coupon_code}
+                </span>
+                {shopData.retention_coupon_value && (
+                  <span style={{
+                    backgroundColor: 'rgba(34, 197, 94, 0.16)',
+                    color: '#15803d',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '13px',
+                    fontWeight: 600
+                  }}>
+                    {shopData.retention_coupon_type === 'fixed'
+                      ? `R$ ${shopData.retention_coupon_value.toFixed(2).replace('.', ',')}`
+                      : `${shopData.retention_coupon_value}%`
+                    }
+                  </span>
+                )}
+              </div>
             ) : (
               <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>Não configurado</span>
             )}
