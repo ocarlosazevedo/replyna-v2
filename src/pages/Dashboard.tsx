@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 import DateRangePicker from '../components/DateRangePicker'
 import CreditsWarningBanner from '../components/CreditsWarningBanner'
 import ShopifyErrorBanner from '../components/ShopifyErrorBanner'
+import EmailErrorBanner from '../components/EmailErrorBanner'
 import FeatureTipBanner from '../components/FeatureTipBanner'
 import ConversationModal from '../components/ConversationModal'
 import { getCategoryBadgeStyle, getCategoryLabel, CATEGORY_COLORS, CATEGORY_LABELS } from '../constants/categories'
@@ -737,6 +738,11 @@ export default function Dashboard() {
       {/* Banner de Shopify offline */}
       {activeShopIds.length > 0 && (
         <ShopifyErrorBanner shopIds={activeShopIds} />
+      )}
+
+      {/* Banner de erro de email (IMAP) */}
+      {activeShopIds.length > 0 && (
+        <EmailErrorBanner shopIds={activeShopIds} />
       )}
 
       {/* Banner de créditos - não mostrar para planos ilimitados (emails_limit === null) */}
