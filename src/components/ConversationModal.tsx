@@ -138,6 +138,14 @@ function sanitizeEmailHtml(html: string): string {
     .replace(/<button[^>]*>[\s\S]*?<\/button>/gi, '')
     // Converter imagens CID para placeholder (cid:xxx não funciona no browser)
     .replace(/src\s*=\s*["']cid:[^"']+["']/gi, 'src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'%3E%3Crect fill=\'%23ddd\' width=\'100\' height=\'100\'/%3E%3Ctext x=\'50\' y=\'50\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%23999\' font-size=\'12\'%3EImagem%3C/text%3E%3C/svg%3E" alt="[Imagem incorporada]"')
+    // CRÍTICO: Remover backgrounds brancos/claros que causam texto ilegível
+    // Isso evita quadrados brancos com texto ilegível quando o tema é escuro
+    .replace(/background(-color)?:\s*(#fff|#ffffff|white|rgb\s*\(\s*255\s*,\s*255\s*,\s*255\s*\)|rgba\s*\(\s*255\s*,\s*255\s*,\s*255\s*,[^)]+\))[^;]*(;|")/gi, '$3')
+    .replace(/background(-color)?:\s*(#f[a-f0-9]{5}|#f[a-f0-9]{2}|rgb\s*\(\s*2[4-5][0-9]\s*,\s*2[4-5][0-9]\s*,\s*2[4-5][0-9]\s*\))[^;]*(;|")/gi, '$3')
+    // Remover cores de texto explícitas para evitar conflito com tema
+    .replace(/(?<!background-)color:\s*(#000|#000000|black|rgb\s*\(\s*0\s*,\s*0\s*,\s*0\s*\))[^;]*(;|")/gi, '$2')
+    // Remover bgcolor atributo (HTML antigo)
+    .replace(/\s+bgcolor\s*=\s*["'][^"']*["']/gi, '')
 
   return sanitized
 }
@@ -1116,13 +1124,19 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
           max-width: 100% !important;
           box-sizing: border-box;
         }
-        /* Forçar cor do texto para o tema atual - evita texto preto em fundo escuro */
+        /* Forçar cor do texto e remover backgrounds para evitar texto ilegível */
         .email-html-content,
         .email-html-content * {
           color: var(--text-primary) !important;
+          background-color: transparent !important;
+          background: transparent !important;
         }
         .email-html-content a {
           color: var(--accent) !important;
+        }
+        /* Manter backgrounds apenas em elementos específicos que precisam (como imagens placeholder) */
+        .email-html-content img[src^="data:image/svg"] {
+          background-color: var(--bg-primary) !important;
         }
         .email-html-content img {
           max-width: 100% !important;
