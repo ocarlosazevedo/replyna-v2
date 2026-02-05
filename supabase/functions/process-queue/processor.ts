@@ -12,8 +12,8 @@
 
 import {
   getUserById,
-  checkCreditsAvailable,
-  incrementEmailsUsed,
+  tryReserveCredit,
+  incrementEmailsUsed,  // Mantido para compatibilidade
   updateMessage,
   getConversationHistory,
   updateConversation,
@@ -428,9 +428,10 @@ async function processMessage(
     conversationHistory.slice(0, -1) // Excluir a mensagem atual
   );
 
-  // 8. Verificar créditos disponíveis (APÓS classificar)
-  const hasCredits = await checkCreditsAvailable(user.id);
-  if (!hasCredits) {
+  // 8. Reservar crédito atomicamente (verifica E reserva em uma única transação)
+  // Isso evita race condition quando múltiplos emails são processados em paralelo
+  const creditReserved = await tryReserveCredit(user.id);
+  if (!creditReserved) {
     // Notificar usuário que os créditos acabaram (não cobra automaticamente)
     console.log(`[Processor] User ${user.id} sem créditos - enviando notificação`);
     const notifyResult = await notifyCreditsExhausted(user.id);
@@ -890,8 +891,8 @@ async function processMessage(
     });
   }
 
-  // 16. Incrementar uso de créditos
-  await incrementEmailsUsed(user.id);
+  // 16. Crédito já foi reservado atomicamente no passo 8 (tryReserveCredit)
+  // Não precisa mais chamar incrementEmailsUsed aqui
 
   console.log(`[Processor] Message ${message.id} processed successfully`);
   return true; // Marked as processing at the beginning

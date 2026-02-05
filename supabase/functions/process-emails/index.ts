@@ -25,8 +25,8 @@ import {
   getSupabaseClient,
   getActiveShopsWithEmail,
   getUserById,
-  checkCreditsAvailable,
-  incrementEmailsUsed,
+  tryReserveCredit,
+  incrementEmailsUsed,  // Mantido para compatibilidade
   getOrCreateConversation,
   saveMessage,
   updateMessage,
@@ -873,8 +873,10 @@ async function processMessageInternal(
     return 'skipped';
   }
 
-  const hasCredits = await checkCreditsAvailable(user.id);
-  if (!hasCredits) {
+  // Operação atômica: verifica E reserva o crédito em uma única transação
+  // Isso evita race condition quando múltiplos emails são processados em paralelo
+  const creditReserved = await tryReserveCredit(user.id);
+  if (!creditReserved) {
     await updateMessage(message.id, {
       status: 'pending_credits',
       category: 'duvidas_gerais', // Categoria padrão temporária até ter créditos
@@ -1163,8 +1165,8 @@ async function processMessageInternal(
     replied_at: new Date().toISOString(),
   });
 
-  // 10. Incrementar contador de emails usados
-  await incrementEmailsUsed(user.id);
+  // 10. Crédito já foi reservado atomicamente no início (tryReserveCredit)
+  // Não precisa mais chamar incrementEmailsUsed aqui
 
   // 10.1 Verificar cobrança de extras
   await checkAndChargeExtraEmails(user.id, shop.id);

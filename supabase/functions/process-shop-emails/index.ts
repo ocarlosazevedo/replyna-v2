@@ -19,8 +19,9 @@ declare const Deno: {
 import {
   getSupabaseClient,
   getUserById,
-  checkCreditsAvailable,
-  incrementEmailsUsed,
+  tryReserveCredit,
+  checkCreditsAvailable,  // Mantido para verificações não-atômicas
+  incrementEmailsUsed,  // Mantido para compatibilidade
   getOrCreateConversation,
   saveMessage,
   updateMessage,
@@ -503,19 +504,20 @@ async function processMessage(
     return 'skipped';
   }
 
-  let hasCredits = await checkCreditsAvailable(user.id);
-  if (!hasCredits) {
+  // Operação atômica: tenta reservar crédito (verifica E incrementa em uma única transação)
+  let creditReserved = await tryReserveCredit(user.id);
+  if (!creditReserved) {
     // Tentar cobrar pacote de emails extras automaticamente
     console.log(`[Worker] Usuário ${user.id} sem créditos - tentando cobrar pacote extra automaticamente`);
     const chargeSuccess = await tryChargeExtraEmailsPackage(user.id, shop.id);
 
     if (chargeSuccess) {
-      // Cobrança OK, verificar créditos novamente
-      hasCredits = await checkCreditsAvailable(user.id);
-      console.log(`[Worker] Cobrança realizada, créditos disponíveis: ${hasCredits}`);
+      // Cobrança OK, tentar reservar crédito novamente
+      creditReserved = await tryReserveCredit(user.id);
+      console.log(`[Worker] Cobrança realizada, crédito reservado: ${creditReserved}`);
     }
 
-    if (!hasCredits) {
+    if (!creditReserved) {
       // Cobrança falhou ou ainda sem créditos - não processar
       await updateMessage(message.id, { status: 'pending_credits' });
       await handleCreditsExhausted(shop, user, message);
@@ -755,8 +757,8 @@ async function processMessage(
     replied_at: new Date().toISOString(),
   });
 
-  // 10. Incrementar contador de emails usados
-  await incrementEmailsUsed(user.id);
+  // 10. Crédito já foi reservado atomicamente no início (tryReserveCredit)
+  // Não precisa mais chamar incrementEmailsUsed aqui
 
   // 10.1 Verificar cobrança de extras
   await checkAndChargeExtraEmails(user.id, shop.id);

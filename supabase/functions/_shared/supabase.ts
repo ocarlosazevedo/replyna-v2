@@ -225,7 +225,24 @@ export async function checkCreditsAvailable(userId: string): Promise<boolean> {
 }
 
 /**
+ * Tenta reservar um crédito de email (operação atômica)
+ * Verifica disponibilidade E incrementa o contador em uma única transação
+ * @returns true se crédito foi reservado, false se não há créditos disponíveis
+ */
+export async function tryReserveCredit(userId: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase.rpc('try_reserve_credit', {
+    p_user_id: userId,
+  });
+
+  if (error) throw error;
+  return data as boolean;
+}
+
+/**
  * Incrementa contador de emails usados
+ * @deprecated Use tryReserveCredit() para operação atômica
  */
 export async function incrementEmailsUsed(userId: string): Promise<number> {
   const supabase = getSupabaseClient();
