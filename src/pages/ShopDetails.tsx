@@ -118,7 +118,7 @@ export default function ShopDetails() {
     setError('')
   }
 
-  const updateEditField = (field: keyof ShopData, value: string | boolean) => {
+  const updateEditField = (field: keyof ShopData, value: string | boolean | number | null) => {
     setEditData(prev => ({ ...prev, [field]: value }))
   }
 
