@@ -661,6 +661,22 @@ function cleanAIResponse(text: string): string {
     /\[size\]/gi,
     /\[tamanho\]/gi,
     /\[X+\]/g,  // Captura [X], [XX], [XXX], etc.
+    // Padrões de prazo/tempo que a IA deixa como placeholder
+    /\[X+\s*dias?\s*(úteis|uteis)?\]/gi,  // [X dias úteis], [X dias]
+    /\[X+\s*business\s*days?\]/gi,  // [X business days]
+    /\[X+\s*working\s*days?\]/gi,  // [X working days]
+    /\[X+\s*days?\]/gi,  // [X days]
+    /\[X+\s*hours?\]/gi,  // [X hours]
+    /\[X+\s*horas?\]/gi,  // [X horas]
+    /\[X+\s*semanas?\]/gi,  // [X semanas]
+    /\[X+\s*weeks?\]/gi,  // [X weeks]
+    /\[número\s+de\s+dias\]/gi,  // [número de dias]
+    /\[number\s+of\s+days\]/gi,  // [number of days]
+    /\[prazo\]/gi,  // [prazo]
+    /\[deadline\]/gi,  // [deadline]
+    /\[timeframe\]/gi,  // [timeframe]
+    // Padrão genérico: qualquer coisa entre colchetes com palavras-chave de tempo
+    /\[[^\]]*(?:dias?|days?|hours?|horas?|weeks?|semanas?|business|úteis|uteis|working)[^\]]*\]/gi,
   ];
 
   for (const pattern of placeholderPatterns) {
