@@ -259,6 +259,22 @@ export default function NotificationCenter({
                       >
                         {notification.description}
                       </div>
+                      {/* Data para features/tips (não críticos) */}
+                      {!isCritical && notification.createdAt && (
+                        <div
+                          style={{
+                            marginTop: '6px',
+                            fontSize: '11px',
+                            color: 'var(--text-muted)',
+                          }}
+                        >
+                          {new Date(notification.createdAt).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </div>
+                      )}
                       {notification.actionLabel && (
                         <div
                           style={{
