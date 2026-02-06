@@ -5,13 +5,9 @@ import { Mail, CheckCircle, TrendingUp, Headphones, Package, RefreshCw, Truck, H
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile, useUserShops } from '../hooks/useDashboardData'
+import { useNotificationContext } from '../context/NotificationContext'
 import { supabase } from '../lib/supabase'
 import DateRangePicker from '../components/DateRangePicker'
-import CreditsWarningBanner from '../components/CreditsWarningBanner'
-import ShopifyErrorBanner from '../components/ShopifyErrorBanner'
-import EmailErrorBanner from '../components/EmailErrorBanner'
-import FeatureTipBanner from '../components/FeatureTipBanner'
-import AIInstructionsTipBanner from '../components/AIInstructionsTipBanner'
 import ConversationModal from '../components/ConversationModal'
 import { getCategoryBadgeStyle, getCategoryLabel, CATEGORY_COLORS, CATEGORY_LABELS } from '../constants/categories'
 
@@ -211,6 +207,7 @@ export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
+  const { setUserId, setShopId, setDynamicAlerts } = useNotificationContext()
   const cacheRef = useRef(new Map<string, { timestamp: number; data: unknown }>())
 
   // SWR hooks para dados com cache automático
@@ -251,6 +248,31 @@ export default function Dashboard() {
   const storagePrefix = useMemo(() => (user?.id ? `replyna.dashboard.${user.id}` : 'replyna.dashboard'), [user?.id])
 
   const activeShopIds = useMemo(() => shops.map((shop) => shop.id), [shops])
+
+  // Configurar notificações
+  useEffect(() => {
+    setUserId(user?.id)
+  }, [user?.id, setUserId])
+
+  useEffect(() => {
+    const firstShopId = shops.length > 0 ? shops[0].id : null
+    setShopId(firstShopId)
+  }, [shops, setShopId])
+
+  useEffect(() => {
+    // Verificar se créditos acabaram (apenas para planos com limite)
+    const noCredits = profile &&
+      profile.emails_limit !== null &&
+      profile.emails_used !== null &&
+      profile.emails_used >= (profile.emails_limit + (profile.extra_emails_purchased ?? 0))
+
+    setDynamicAlerts({
+      noCredits: !!noCredits,
+      // Shopify e Email errors serão configurados pelos componentes de erro quando detectados
+      // Por enquanto, não temos acesso direto a esses estados aqui
+    })
+  }, [profile, setDynamicAlerts])
+
   const effectiveShopIds = useMemo(() => {
     if (selectedShopId === 'all') return activeShopIds
     return [selectedShopId]
@@ -735,31 +757,6 @@ export default function Dashboard() {
           }
         }}
       />
-
-      {/* Banner de Shopify offline */}
-      {activeShopIds.length > 0 && (
-        <ShopifyErrorBanner shopIds={activeShopIds} />
-      )}
-
-      {/* Banner de erro de email (IMAP) */}
-      {activeShopIds.length > 0 && (
-        <EmailErrorBanner shopIds={activeShopIds} />
-      )}
-
-      {/* Banner de créditos - não mostrar para planos ilimitados (emails_limit === null) */}
-      {profile && profile.emails_limit !== null && profile.emails_used !== null && (
-        <CreditsWarningBanner
-          emailsUsed={profile.emails_used ?? 0}
-          emailsLimit={profile.emails_limit}
-          extraEmailsPurchased={profile.extra_emails_purchased ?? 0}
-        />
-      )}
-
-      {/* Banner de dica: cupom de retenção */}
-      <FeatureTipBanner shopId={shops.length > 0 ? shops[0].id : null} userId={user?.id} />
-
-      {/* Banner de dica: instruções personalizadas para IA */}
-      <AIInstructionsTipBanner shopId={shops.length > 0 ? shops[0].id : null} userId={user?.id} />
 
       {/* Banner quando não há lojas ativas */}
       {!loadingShops && shops.length === 0 && (

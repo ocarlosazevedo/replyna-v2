@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { AdminProvider, useAdmin } from './context/AdminContext'
+import { NotificationProvider } from './context/NotificationContext'
 
 // Pages
 import Login from './pages/Login'
@@ -154,6 +155,7 @@ function App() {
   return (
     <BrowserRouter>
       <AdminProvider>
+        <NotificationProvider>
         <Routes>
           {/* Rotas publicas */}
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
@@ -270,6 +272,7 @@ function App() {
           {/* Redirect padrao */}
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
+        </NotificationProvider>
       </AdminProvider>
     </BrowserRouter>
   )
