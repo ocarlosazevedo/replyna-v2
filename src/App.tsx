@@ -16,6 +16,14 @@ import Account from './pages/Account'
 import ConversationDetails from './pages/ConversationDetails'
 import LandingPage from './pages/LandingPage'
 
+// Verifica se estamos no domínio da Landing Page (replyna.me sem subdomain)
+const isLandingDomain = () => {
+  const hostname = window.location.hostname
+  // replyna.me (sem www ou subdomain) = landing page
+  // app.replyna.me, localhost, etc = app
+  return hostname === 'replyna.me' || hostname === 'www.replyna.me'
+}
+
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -131,6 +139,18 @@ function AdminPublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  // Se estamos no domínio da landing page (replyna.me), mostrar apenas a LP
+  if (isLandingDomain()) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="*" element={<LandingPage />} />
+        </Routes>
+      </BrowserRouter>
+    )
+  }
+
+  // Se estamos no domínio do app (app.replyna.me, localhost, etc), mostrar o app
   return (
     <BrowserRouter>
       <AdminProvider>
@@ -244,8 +264,8 @@ function App() {
             </AdminRoute>
           } />
 
-          {/* Landing Page */}
-          <Route path="/" element={<LandingPage />} />
+          {/* No app, redirecionar / para login ou dashboard */}
+          <Route path="/" element={<Navigate to="/login" />} />
 
           {/* Redirect padrao */}
           <Route path="*" element={<Navigate to="/dashboard" />} />

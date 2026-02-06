@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
 import {
   Shield,
   Zap,
@@ -22,6 +21,17 @@ import {
   Play,
   Sparkles
 } from 'lucide-react'
+
+// URL base do app (para links de login/register)
+const getAppUrl = (path: string) => {
+  // Em produção, sempre usar app.replyna.me
+  // Em desenvolvimento (localhost), usar caminho relativo
+  const hostname = window.location.hostname
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return path
+  }
+  return `https://app.replyna.me${path}`
+}
 
 // Dados dos planos
 const plans = [
@@ -813,9 +823,9 @@ export default function LandingPage() {
             <a href="#faq" onClick={(e) => scrollToSection(e, 'faq')} className="lp-nav-link">
               FAQ
             </a>
-            <Link to="/login" className="lp-nav-link">
+            <a href={getAppUrl('/login')} className="lp-nav-link">
               Entrar
-            </Link>
+            </a>
             <a
               href="#precos"
               onClick={(e) => scrollToSection(e, 'precos')}
@@ -913,8 +923,8 @@ export default function LandingPage() {
                 {item.label}
               </a>
             ))}
-            <Link
-              to="/login"
+            <a
+              href={getAppUrl('/login')}
               onClick={() => setMobileMenuOpen(false)}
               style={{
                 color: '#fff',
@@ -928,7 +938,7 @@ export default function LandingPage() {
               }}
             >
               Entrar
-            </Link>
+            </a>
           </nav>
 
           {/* Mobile Nav CTA */}
@@ -1899,8 +1909,8 @@ export default function LandingPage() {
                     Fale conosco
                   </a>
                 ) : (
-                  <Link
-                    to={`/register?plan=${plan.name.toLowerCase().replace(' ', '-')}`}
+                  <a
+                    href={getAppUrl(`/register?plan=${plan.name.toLowerCase().replace(' ', '-')}`)}
                     className={plan.popular ? 'lp-btn-primary' : 'lp-btn-secondary'}
                     style={{
                       display: 'flex',
@@ -1921,7 +1931,7 @@ export default function LandingPage() {
                   >
                     Selecionar
                     <ArrowRight size={16} />
-                  </Link>
+                  </a>
                 )}
                 </div>
               </div>
