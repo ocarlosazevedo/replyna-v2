@@ -125,8 +125,8 @@ export default function NotificationCenter({
             position: 'absolute',
             top: 'calc(100% + 8px)',
             right: 0,
-            width: '400px',
-            maxHeight: '520px',
+            width: '460px',
+            maxHeight: '600px',
             backgroundColor: 'var(--bg-card)',
             border: '1px solid var(--border-color)',
             borderRadius: '12px',
@@ -257,11 +257,7 @@ export default function NotificationCenter({
                         style={{
                           fontSize: '13px',
                           color: 'var(--text-secondary)',
-                          lineHeight: '1.4',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
+                          lineHeight: '1.5',
                         }}
                       >
                         {notification.description}

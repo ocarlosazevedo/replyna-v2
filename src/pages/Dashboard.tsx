@@ -1222,13 +1222,13 @@ export default function Dashboard() {
                       <div
                         style={{
                           width: `${usagePercent}%`,
-                          backgroundColor: 'var(--accent)',
+                          backgroundColor: usagePercent >= 100 ? '#ef4444' : 'var(--accent)',
                           height: '8px',
                           borderRadius: '999px',
                         }}
                       />
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', fontWeight: 600 }}>
+                    <div style={{ fontSize: '12px', color: usagePercent >= 100 ? '#ef4444' : 'var(--text-secondary)', marginTop: '6px', fontWeight: 600 }}>
                       {formatPercent(usagePercent)} utilizado
                     </div>
                   </>
