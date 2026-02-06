@@ -830,7 +830,7 @@ export default function ShopDetails() {
                 placeholder="Descreva sua loja e adicione instruções para a IA..."
               />
               <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', lineHeight: '1.4' }}>
-                Descreva sua loja e inclua instruções específicas para a IA. Exemplo: "Vendemos kits de 3 produtos enviados em pacotes separados. Quando o cliente reclamar que recebeu só 1 pacote, tranquilize informando que os outros estão a caminho."
+                Descreva sua loja e inclua instruções específicas para a IA. Exemplo: "Vendemos produtos artesanais feitos sob encomenda. Quando o cliente perguntar sobre prazo, explique que cada peça é única e pode levar até 15 dias para produção."
                 <br />
                 <span style={{ color: 'var(--accent-purple)' }}>Importante:</span> A IA usará essas informações de forma natural, sem revelar que são instruções internas.
               </p>
