@@ -122,11 +122,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const notifications = useMemo<Notification[]>(() => {
     const all: Notification[] = []
 
-    // Adicionar notificações de funcionalidades com link da loja
+    // Adicionar notificações de funcionalidades
+    // Apenas notificações com actionLabel recebem link
     FEATURE_NOTIFICATIONS.forEach(n => {
       all.push({
         ...n,
-        actionLink: shopId ? `/shops/${shopId}` : '/shops',
+        // Só adiciona link se tiver actionLabel (é uma feature configurável)
+        actionLink: n.actionLabel ? (shopId ? `/shops/${shopId}` : '/shops') : undefined,
       })
     })
 

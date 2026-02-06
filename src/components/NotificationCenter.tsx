@@ -55,6 +55,13 @@ export default function NotificationCenter({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen])
 
+  // Marcar todas como lidas ao abrir o dropdown
+  useEffect(() => {
+    if (isOpen && unreadCount > 0) {
+      markAllAsRead()
+    }
+  }, [isOpen, unreadCount, markAllAsRead])
+
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id)
     if (notification.actionLink) {
@@ -118,8 +125,8 @@ export default function NotificationCenter({
             position: 'absolute',
             top: 'calc(100% + 8px)',
             right: 0,
-            width: '340px',
-            maxHeight: '420px',
+            width: '400px',
+            maxHeight: '520px',
             backgroundColor: 'var(--bg-card)',
             border: '1px solid var(--border-color)',
             borderRadius: '12px',

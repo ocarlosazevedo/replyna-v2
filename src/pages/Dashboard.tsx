@@ -9,6 +9,10 @@ import { useNotificationContext } from '../context/NotificationContext'
 import { supabase } from '../lib/supabase'
 import DateRangePicker from '../components/DateRangePicker'
 import ConversationModal from '../components/ConversationModal'
+import NotificationCenter from '../components/NotificationCenter'
+import CreditsWarningBanner from '../components/CreditsWarningBanner'
+import ShopifyErrorBanner from '../components/ShopifyErrorBanner'
+import EmailErrorBanner from '../components/EmailErrorBanner'
 import { getCategoryBadgeStyle, getCategoryLabel, CATEGORY_COLORS, CATEGORY_LABELS } from '../constants/categories'
 
 const VolumeChart = lazy(() => import('../components/VolumeChart'))
@@ -207,7 +211,8 @@ export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
-  const { setUserId, setShopId, setDynamicAlerts } = useNotificationContext()
+  const notificationContext = useNotificationContext()
+  const { setUserId, setShopId, setDynamicAlerts } = notificationContext
   const cacheRef = useRef(new Map<string, { timestamp: number; data: unknown }>())
 
   // SWR hooks para dados com cache automático
@@ -899,8 +904,26 @@ export default function Dashboard() {
           </select>
 
           <DateRangePicker value={range} onChange={setRange} />
+
+          {/* Notification Bell - apenas desktop */}
+          {!isMobile && <NotificationCenter {...notificationContext} />}
         </div>
       </div>
+
+      {/* Banners de erro crítico */}
+      {!loadingProfile && profile && (
+        <CreditsWarningBanner
+          emailsUsed={profile.emails_used ?? 0}
+          emailsLimit={profile.emails_limit}
+          extraEmailsPurchased={profile.extra_emails_purchased ?? 0}
+        />
+      )}
+      {!loadingShops && activeShopIds.length > 0 && (
+        <>
+          <ShopifyErrorBanner shopIds={activeShopIds} />
+          <EmailErrorBanner shopIds={activeShopIds} />
+        </>
+      )}
 
       {error && (
         <div

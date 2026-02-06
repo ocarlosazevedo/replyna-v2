@@ -2,16 +2,13 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { LayoutGrid, Store, User, LogOut, Menu, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { useNotificationContext } from '../context/NotificationContext'
 import WhatsAppButton from './WhatsAppButton'
-import NotificationCenter from './NotificationCenter'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const notificationContext = useNotificationContext()
   const { user, signOut } = useAuth()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -197,8 +194,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             alt="Replyna"
             style={{ height: '32px', width: 'auto' }}
           />
-          {/* Notification Bell */}
-          <NotificationCenter {...notificationContext} />
+          {/* Spacer para manter logo centralizada */}
+          <div style={{ width: '40px' }} />
         </header>
       )}
 
@@ -249,21 +246,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           maxWidth: isMobile ? '100vw' : undefined,
         }}
       >
-        {/* Desktop Header with Notification Bell */}
-        {!isMobile && (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              padding: '16px 40px',
-              borderBottom: '1px solid var(--border-color)',
-              backgroundColor: 'var(--bg-primary)',
-            }}
-          >
-            <NotificationCenter {...notificationContext} />
-          </div>
-        )}
         <div style={{ padding: isMobile ? '0' : '32px 40px' }}>
           {children}
         </div>
