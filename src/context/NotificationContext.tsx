@@ -14,12 +14,6 @@ export interface Notification {
   persistent?: boolean
 }
 
-interface DynamicAlerts {
-  noCredits?: boolean
-  shopifyError?: { shopId: string; shopName: string } | null
-  emailError?: { shopId: string; shopName: string } | null
-}
-
 interface NotificationContextType {
   notifications: Notification[]
   unreadCount: number
@@ -27,7 +21,6 @@ interface NotificationContextType {
   markAsRead: (id: string) => void
   markAllAsRead: () => void
   isRead: (id: string) => boolean
-  setDynamicAlerts: (alerts: DynamicAlerts) => void
   setShopId: (shopId: string | null) => void
   setUserId: (userId: string | undefined) => void
 }
@@ -95,7 +88,6 @@ const FEATURE_NOTIFICATIONS: Omit<Notification, 'actionLink'>[] = [
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | undefined>()
   const [shopId, setShopId] = useState<string | null>(null)
-  const [dynamicAlerts, setDynamicAlerts] = useState<DynamicAlerts>({})
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set())
 
   // Carregar notificações vistas do localStorage
@@ -118,7 +110,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY_PREFIX + userId, JSON.stringify([...ids]))
   }, [userId])
 
-  // Gerar todas as notificações (estáticas + dinâmicas)
+  // Gerar notificações (apenas features/tips estáticos - erros são exibidos como banners na Dashboard)
   const notifications = useMemo<Notification[]>(() => {
     const all: Notification[] = []
 
@@ -132,72 +124,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       })
     })
 
-    // Adicionar alertas dinâmicos (críticos)
-    if (dynamicAlerts.noCredits) {
-      all.push({
-        id: 'no-credits',
-        type: 'alert',
-        priority: 'high',
-        title: 'Seus créditos acabaram!',
-        description: 'Você usou todos os seus créditos. Novos emails não estão sendo respondidos automaticamente.',
-        icon: 'AlertTriangle',
-        color: '#ef4444',
-        actionLabel: 'Fazer upgrade',
-        actionLink: '/account',
-        createdAt: new Date().toISOString(),
-        persistent: true,
-      })
-    }
-
-    if (dynamicAlerts.shopifyError) {
-      all.push({
-        id: `shopify-error-${dynamicAlerts.shopifyError.shopId}`,
-        type: 'error',
-        priority: 'high',
-        title: 'Erro na conexão Shopify',
-        description: `A loja "${dynamicAlerts.shopifyError.shopName}" está com problemas na integração com o Shopify.`,
-        icon: 'XCircle',
-        color: '#f97316',
-        actionLabel: 'Verificar conexão',
-        actionLink: `/shops/${dynamicAlerts.shopifyError.shopId}`,
-        createdAt: new Date().toISOString(),
-        persistent: true,
-      })
-    }
-
-    if (dynamicAlerts.emailError) {
-      all.push({
-        id: `email-error-${dynamicAlerts.emailError.shopId}`,
-        type: 'error',
-        priority: 'high',
-        title: 'Erro na conexão de Email',
-        description: `A loja "${dynamicAlerts.emailError.shopName}" está com problemas na conexão de email.`,
-        icon: 'XCircle',
-        color: '#f97316',
-        actionLabel: 'Verificar conexão',
-        actionLink: `/shops/${dynamicAlerts.emailError.shopId}`,
-        createdAt: new Date().toISOString(),
-        persistent: true,
-      })
-    }
-
-    // Ordenar: críticos primeiro, depois por data
+    // Ordenar por data (mais recente primeiro)
     return all.sort((a, b) => {
-      if (a.priority === 'high' && b.priority !== 'high') return -1
-      if (b.priority === 'high' && a.priority !== 'high') return 1
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     })
-  }, [shopId, dynamicAlerts])
+  }, [shopId])
 
   // Calcular não lidas (excluindo persistentes que são sempre "ativas")
   const unreadCount = useMemo(() => {
     return notifications.filter(n => !n.persistent && !seenIds.has(n.id)).length
   }, [notifications, seenIds])
 
-  // Verificar se há alertas críticos ativos
-  const hasCriticalAlert = useMemo(() => {
-    return notifications.some(n => n.priority === 'high')
-  }, [notifications])
+  // Não há mais alertas críticos no sino (erros são exibidos como banners)
+  const hasCriticalAlert = false
 
   // Marcar uma notificação como lida
   const markAsRead = useCallback((notificationId: string) => {
@@ -239,7 +178,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     markAsRead,
     markAllAsRead,
     isRead,
-    setDynamicAlerts,
     setShopId,
     setUserId,
   }), [notifications, unreadCount, hasCriticalAlert, markAsRead, markAllAsRead, isRead])

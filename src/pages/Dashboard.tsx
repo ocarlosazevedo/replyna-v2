@@ -212,7 +212,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const notificationContext = useNotificationContext()
-  const { setUserId, setShopId, setDynamicAlerts } = notificationContext
+  const { setUserId, setShopId } = notificationContext
   const cacheRef = useRef(new Map<string, { timestamp: number; data: unknown }>())
 
   // SWR hooks para dados com cache automático
@@ -263,74 +263,6 @@ export default function Dashboard() {
     const firstShopId = shops.length > 0 ? shops[0].id : null
     setShopId(firstShopId)
   }, [shops, setShopId])
-
-  // Verificar erros de Shopify, Email e créditos para notificações
-  useEffect(() => {
-    if (!user || activeShopIds.length === 0) {
-      // Verificar apenas créditos se não tem lojas
-      const noCredits = profile &&
-        profile.emails_limit !== null &&
-        profile.emails_used !== null &&
-        profile.emails_used >= (profile.emails_limit + (profile.extra_emails_purchased ?? 0))
-      setDynamicAlerts({ noCredits: !!noCredits })
-      return
-    }
-
-    const checkErrors = async () => {
-      // Verificar se créditos acabaram
-      const noCredits = profile &&
-        profile.emails_limit !== null &&
-        profile.emails_used !== null &&
-        profile.emails_used >= (profile.emails_limit + (profile.extra_emails_purchased ?? 0))
-
-      // Verificar erros de Shopify (circuit breakers abertos)
-      let shopifyError: { shopId: string; shopName: string } | null = null
-      try {
-        const { data: circuits } = await supabase
-          .from('circuit_breakers')
-          .select('shop_id')
-          .in('shop_id', activeShopIds)
-          .eq('service', 'shopify')
-          .in('state', ['open', 'half_open'])
-          .limit(1)
-
-        if (circuits && circuits.length > 0) {
-          const shopWithError = shops.find(s => s.id === circuits[0].shop_id)
-          if (shopWithError) {
-            shopifyError = { shopId: shopWithError.id, shopName: shopWithError.name }
-          }
-        }
-      } catch (err) {
-        console.error('Erro ao verificar circuit breakers:', err)
-      }
-
-      // Verificar erros de Email (email_sync_error preenchido)
-      let emailError: { shopId: string; shopName: string } | null = null
-      try {
-        const { data: shopsWithEmailError } = await supabase
-          .from('shops')
-          .select('id, name')
-          .in('id', activeShopIds)
-          .not('email_sync_error', 'is', null)
-          .neq('email_sync_error', '')
-          .limit(1)
-
-        if (shopsWithEmailError && shopsWithEmailError.length > 0) {
-          emailError = { shopId: shopsWithEmailError[0].id, shopName: shopsWithEmailError[0].name }
-        }
-      } catch (err) {
-        console.error('Erro ao verificar erros de email:', err)
-      }
-
-      setDynamicAlerts({
-        noCredits: !!noCredits,
-        shopifyError,
-        emailError,
-      })
-    }
-
-    checkErrors()
-  }, [user, profile, shops, activeShopIds, setDynamicAlerts])
 
   const effectiveShopIds = useMemo(() => {
     if (selectedShopId === 'all') return activeShopIds
@@ -817,6 +749,21 @@ export default function Dashboard() {
         }}
       />
 
+      {/* Banners de erro crítico - ACIMA DE TUDO */}
+      {!loadingProfile && profile && (
+        <CreditsWarningBanner
+          emailsUsed={profile.emails_used ?? 0}
+          emailsLimit={profile.emails_limit}
+          extraEmailsPurchased={profile.extra_emails_purchased ?? 0}
+        />
+      )}
+      {!loadingShops && activeShopIds.length > 0 && (
+        <>
+          <ShopifyErrorBanner shopIds={activeShopIds} />
+          <EmailErrorBanner shopIds={activeShopIds} />
+        </>
+      )}
+
       {/* Banner quando não há lojas ativas */}
       {!loadingShops && shops.length === 0 && (
         <div
@@ -909,21 +856,6 @@ export default function Dashboard() {
           {!isMobile && <NotificationCenter {...notificationContext} />}
         </div>
       </div>
-
-      {/* Banners de erro crítico */}
-      {!loadingProfile && profile && (
-        <CreditsWarningBanner
-          emailsUsed={profile.emails_used ?? 0}
-          emailsLimit={profile.emails_limit}
-          extraEmailsPurchased={profile.extra_emails_purchased ?? 0}
-        />
-      )}
-      {!loadingShops && activeShopIds.length > 0 && (
-        <>
-          <ShopifyErrorBanner shopIds={activeShopIds} />
-          <EmailErrorBanner shopIds={activeShopIds} />
-        </>
-      )}
 
       {error && (
         <div
