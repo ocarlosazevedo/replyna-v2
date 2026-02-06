@@ -527,14 +527,28 @@ serve(async (req) => {
     });
 
     // Atualizar subscription no banco de dados
+    // IMPORTANTE: Se foi upgrade, sincronizar as novas datas do período de cobrança
+    const subscriptionUpdate: any = {
+      plan_id: new_plan_id,
+      stripe_price_id: newStripePriceId,
+      billing_cycle: finalBillingCycle,
+      status: 'active',
+      updated_at: new Date().toISOString(),
+    };
+
+    // Se foi upgrade, atualizar as datas do período baseado na subscription atualizada do Stripe
+    if (isUpgrade && updatedSubscription.current_period_start && updatedSubscription.current_period_end) {
+      subscriptionUpdate.current_period_start = new Date(updatedSubscription.current_period_start * 1000).toISOString();
+      subscriptionUpdate.current_period_end = new Date(updatedSubscription.current_period_end * 1000).toISOString();
+      console.log('Upgrade: sincronizando datas do período:', {
+        current_period_start: subscriptionUpdate.current_period_start,
+        current_period_end: subscriptionUpdate.current_period_end,
+      });
+    }
+
     const { data: updatedSubData, error: updateError } = await supabase
       .from('subscriptions')
-      .update({
-        plan_id: new_plan_id,
-        stripe_price_id: newStripePriceId,
-        billing_cycle: finalBillingCycle,
-        updated_at: new Date().toISOString(),
-      })
+      .update(subscriptionUpdate)
       .eq('id', subscription.id)
       .select();
 
