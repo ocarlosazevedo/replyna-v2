@@ -1080,11 +1080,37 @@ async function processMessageInternal(
       extractOrderNumber(cleanBody) ||
       conversation.shopify_order_id;
 
+    // Tentar buscar com email do remetente primeiro
     shopifyData = await getOrderDataForAI(
       shopifyCredentials,
       message.from_email,
       orderNumber
     );
+
+    // Se não encontrou e tem número do pedido, tentar com emails alternativos mencionados no corpo
+    if (!shopifyData && orderNumber) {
+      // Extrair emails mencionados no corpo da mensagem (cliente pode ter usado outro email)
+      const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
+      const mentionedEmails = cleanBody.match(emailPattern) || [];
+
+      // Filtrar emails que são diferentes do remetente
+      const alternativeEmails = mentionedEmails
+        .filter(email => email.toLowerCase() !== message.from_email.toLowerCase())
+        .filter((email, index, self) => self.indexOf(email) === index); // Remover duplicados
+
+      for (const altEmail of alternativeEmails) {
+        console.log(`[Shop ${shop.name}] Tentando email alternativo: ${altEmail}`);
+        shopifyData = await getOrderDataForAI(
+          shopifyCredentials,
+          altEmail,
+          orderNumber
+        );
+        if (shopifyData) {
+          console.log(`[Shop ${shop.name}] Pedido encontrado com email alternativo: ${altEmail}`);
+          break;
+        }
+      }
+    }
 
     if (shopifyData) {
       await updateConversation(conversation.id, {
