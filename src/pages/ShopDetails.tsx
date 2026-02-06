@@ -829,11 +829,32 @@ export default function ShopDetails() {
                 style={{ ...inputStyle, minHeight: '100px', resize: 'vertical' }}
                 placeholder="Descreva sua loja e adicione instruções para a IA..."
               />
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', lineHeight: '1.4' }}>
-                Descreva sua loja e inclua instruções específicas para a IA. Exemplo: "Vendemos produtos artesanais feitos sob encomenda. Quando o cliente perguntar sobre prazo, explique que cada peça é única e pode levar até 15 dias para produção."
-                <br />
-                <span style={{ color: 'var(--accent-purple)' }}>Importante:</span> A IA usará essas informações de forma natural, sem revelar que são instruções internas.
-              </p>
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                marginTop: '8px',
+                lineHeight: '1.5',
+                backgroundColor: 'rgba(139, 92, 246, 0.08)',
+                border: '1px solid rgba(139, 92, 246, 0.2)',
+                borderRadius: '8px',
+                padding: '12px'
+              }}>
+                <div style={{ marginBottom: '8px' }}>
+                  <strong style={{ color: 'var(--text-primary)' }}>Dica:</strong> Descreva sua loja e inclua instruções específicas para a IA.
+                </div>
+                <div style={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                  padding: '8px 10px',
+                  borderRadius: '6px',
+                  fontStyle: 'italic',
+                  marginBottom: '8px'
+                }}>
+                  Exemplo: "Vendemos produtos artesanais feitos sob encomenda. Quando o cliente perguntar sobre prazo, explique que cada peça é única e pode levar até 15 dias para produção."
+                </div>
+                <div style={{ color: 'var(--accent-purple)', fontWeight: 500 }}>
+                  Importante: A IA usará essas informações de forma natural, sem revelar que são instruções internas.
+                </div>
+              </div>
             </div>
             <div>
               <label style={labelStyle}>Tom de voz</label>
