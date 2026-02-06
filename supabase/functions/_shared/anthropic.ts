@@ -1337,6 +1337,24 @@ DÚVIDAS SOBRE AUTENTICIDADE / PRODUTOS ORIGINAIS (MUITO IMPORTANTE):
   // Montar contexto do Shopify
   let shopifyContext = '';
   if (shopifyData && shopifyData.order_number) {
+    // Determinar instrução baseada no status de tracking
+    let trackingInstruction = '';
+    if (!shopifyData.tracking_number) {
+      if (shopifyData.fulfillment_status === 'Enviado' || shopifyData.fulfillment_status === 'Parcialmente enviado') {
+        trackingInstruction = `
+ATENÇÃO: O pedido foi ENVIADO mas o código de rastreio ainda não está no sistema.
+→ Diga ao cliente que o pedido foi enviado e está a caminho
+→ Informe que o código de rastreio será enviado assim que estiver disponível
+→ NUNCA peça ao cliente para fornecer o tracking - é responsabilidade da loja`;
+      } else {
+        trackingInstruction = `
+ATENÇÃO: O pedido ainda está AGUARDANDO ENVIO.
+→ Informe ao cliente que o pedido está sendo preparado
+→ Diga que assim que for enviado, ele receberá o código de rastreio
+→ NUNCA peça ao cliente para fornecer o tracking`;
+      }
+    }
+
     shopifyContext = `
 DADOS DO PEDIDO DO CLIENTE:
 - Número do pedido: ${shopifyData.order_number}
@@ -1346,7 +1364,7 @@ DADOS DO PEDIDO DO CLIENTE:
 - Código de rastreio: ${shopifyData.tracking_number || 'Ainda não disponível'}
 - Link de rastreio: ${shopifyData.tracking_url || 'N/A'}
 - Itens: ${shopifyData.items.map((i) => `${i.name} (x${i.quantity})`).join(', ') || 'N/A'}
-- Nome do cliente: ${shopifyData.customer_name || 'N/A'}`;
+- Nome do cliente: ${shopifyData.customer_name || 'N/A'}${trackingInstruction}`;
 
     // Se houver pedidos adicionais, incluir no contexto
     if (additionalOrders.length > 0) {
@@ -1782,6 +1800,19 @@ COMPORTAMENTO INTELIGENTE (REGRA CRÍTICA - SEGUIR SEMPRE):
 - Se o cliente perguntou sobre prazo, responda SOMENTE sobre prazo
 - NÃO adicione informações não solicitadas como "caso queira cancelar..." ou "se tiver problemas..."
 - NÃO seja "ansioso" em oferecer opções que o cliente não pediu
+
+REGRA CRÍTICA - NUNCA PEÇA TRACKING AO CLIENTE (PRIORIDADE MÁXIMA):
+- O código de rastreio é responsabilidade da LOJA, não do cliente
+- NUNCA peça ao cliente para fornecer: tracking number, tracking code, código de rastreio, link de rastreio
+- Se o cliente reclama que o tracking não funciona ou não tem tracking:
+  → Use os dados do pedido que você tem (DADOS DO PEDIDO DO CLIENTE acima)
+  → Se "Código de rastreio: Ainda não disponível" → diga que o pedido está sendo preparado/processado
+  → Se tem tracking mas cliente diz que não funciona → forneça o código/link que você tem
+  → Se "Status de envio: Enviado" mas sem tracking → diga que está verificando com a transportadora
+  → Se "Status de envio: Aguardando envio" → diga que está sendo preparado e em breve será enviado
+- NUNCA diga "Could you provide the tracking number?" - O CLIENTE não tem tracking, a LOJA tem!
+- Exemplo ERRADO: "Could you please provide the tracking number or link?"
+- Exemplo CORRETO: "I'm checking on your order status. According to our records, your order is [status]. I'll look into the tracking issue and get back to you."
 
 REGRA CRÍTICA - AMEAÇAS DE PAYPAL/DISPUTA NÃO SÃO PEDIDOS DE REEMBOLSO:
 - Se o cliente diz "IF I don't receive... I will ask for refund" ou "I'll report to PayPal" → isso é AMEAÇA/AVISO, NÃO um pedido
@@ -2307,6 +2338,13 @@ ANALISE A MENSAGEM DO CLIENTE PRIMEIRO:
 - Se o cliente menciona detalhes do pedido (produto, data, valor) mas não tem número → peça apenas o número do pedido
 - Se o cliente não forneceu nada → peça email ou número do pedido
 
+REGRA CRÍTICA - NUNCA PEÇA TRACKING AO CLIENTE:
+- O código de rastreio (tracking) é responsabilidade da LOJA, não do cliente
+- NUNCA peça ao cliente para fornecer tracking number, tracking code, código de rastreio
+- NUNCA peça ao cliente para fornecer link de rastreamento
+- Se o cliente reclama que tracking não funciona → diga que você vai verificar o status
+- Peça APENAS: número do pedido, email de compra, ou confirmação de compra
+
 REGRAS IMPORTANTES:
 1. NÃO use markdown (nada de **, ##, *, etc.)
 2. Escreva como uma pessoa real - NÃO seja robótico!
@@ -2315,6 +2353,7 @@ REGRAS IMPORTANTES:
 5. NUNCA peça email se o cliente já disse que é o mesmo
 6. Use linguagem natural: "Oi!", "Olá!", "Hey!" - não "Prezado cliente"
 7. Varie o início - não comece sempre com "Obrigado por entrar em contato"
+8. NUNCA peça tracking/rastreio ao cliente - isso é responsabilidade da loja
 ${urgencyNote}`;
 
   const response = await callClaude(
