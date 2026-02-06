@@ -827,8 +827,13 @@ export default function ShopDetails() {
                 value={editData.store_description || ''}
                 onChange={(e) => updateEditField('store_description', e.target.value)}
                 style={{ ...inputStyle, minHeight: '100px', resize: 'vertical' }}
-                placeholder="Descreva sua loja para a IA entender o contexto..."
+                placeholder="Descreva sua loja e adicione instruções para a IA..."
               />
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', lineHeight: '1.4' }}>
+                Descreva sua loja e inclua instruções específicas para a IA. Exemplo: "Vendemos kits de 3 produtos enviados em pacotes separados. Quando o cliente reclamar que recebeu só 1 pacote, tranquilize informando que os outros estão a caminho."
+                <br />
+                <span style={{ color: 'var(--accent-purple)' }}>Importante:</span> A IA usará essas informações de forma natural, sem revelar que são instruções internas.
+              </p>
             </div>
             <div>
               <label style={labelStyle}>Tom de voz</label>
