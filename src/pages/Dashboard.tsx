@@ -11,6 +11,7 @@ import CreditsWarningBanner from '../components/CreditsWarningBanner'
 import ShopifyErrorBanner from '../components/ShopifyErrorBanner'
 import EmailErrorBanner from '../components/EmailErrorBanner'
 import FeatureTipBanner from '../components/FeatureTipBanner'
+import AIInstructionsTipBanner from '../components/AIInstructionsTipBanner'
 import ConversationModal from '../components/ConversationModal'
 import { getCategoryBadgeStyle, getCategoryLabel, CATEGORY_COLORS, CATEGORY_LABELS } from '../constants/categories'
 
@@ -756,6 +757,9 @@ export default function Dashboard() {
 
       {/* Banner de dica: cupom de retenção */}
       <FeatureTipBanner shopId={shops.length > 0 ? shops[0].id : null} userId={user?.id} />
+
+      {/* Banner de dica: instruções personalizadas para IA */}
+      <AIInstructionsTipBanner shopId={shops.length > 0 ? shops[0].id : null} userId={user?.id} />
 
       {/* Banner quando não há lojas ativas */}
       {!loadingShops && shops.length === 0 && (
