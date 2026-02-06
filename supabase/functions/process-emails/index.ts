@@ -151,9 +151,82 @@ function extractEmailFromShopifyContactForm(bodyText: string, bodyHtml?: string)
 }
 
 /**
+ * Verifica se a mensagem é um auto-responder (out-of-office, férias, etc.)
+ */
+function isAutoResponder(body: string, subject: string): boolean {
+  const cleanBody = (body || '').toLowerCase();
+  const cleanSubject = (subject || '').toLowerCase();
+
+  // Padrões de auto-responder no ASSUNTO
+  const autoReplySubjectPatterns = [
+    /out of office/i,
+    /automatic reply/i,
+    /auto[- ]?reply/i,
+    /fora do escrit[oó]rio/i,
+    /resposta autom[aá]tica/i,
+    /abwesenheitsnotiz/i,  // Alemão: out of office
+    /automatische antwort/i,  // Alemão: automatic reply
+    /absence/i,
+    /vacation/i,
+    /holiday/i,
+  ];
+
+  for (const pattern of autoReplySubjectPatterns) {
+    if (pattern.test(cleanSubject)) {
+      console.log('[AutoResponder] Detectado por assunto:', cleanSubject);
+      return true;
+    }
+  }
+
+  // Padrões de auto-responder no CONTEÚDO (férias, ausência, etc.)
+  const autoReplyBodyPatterns = [
+    // Português
+    /estou (de|em) f[eé]rias/i,
+    /estarei dispon[ií]vel (novamente |)a partir de/i,
+    /retorno (em|no dia|dia)/i,
+    /durante minha aus[eê]ncia/i,
+    /n[aã]o (ser[aã]o|serão) lidos? (nem |ou |)encaminhados?/i,
+    /responderei .{0,30} ap[oó]s meu retorno/i,
+    /aus[eê]ncia programada/i,
+    // Inglês
+    /i('m| am) (currently )?(on |out of |away |on )vacation/i,
+    /i('ll| will) be (back|available|returning) on/i,
+    /during my absence/i,
+    /will not be (read|monitored|checked)/i,
+    /out of (the )?office/i,
+    /away from (the )?office/i,
+    /i('m| am) away/i,
+    // Alemão
+    /bin (derzeit |aktuell |)im urlaub/i,  // estou de férias
+    /bin (ab |wieder |)(dem |).*? wieder erreichbar/i,  // estarei disponível novamente
+    /w[aä]hrend meiner abwesenheit/i,  // durante minha ausência
+    /e-?mails? werden? nicht (gelesen|weitergeleitet)/i,  // emails não serão lidos
+    /nach meiner r[uü]ckkehr/i,  // após meu retorno
+    // Padrões genéricos de assinatura de auto-reply
+    /this is an auto(matic)?[- ]?(generated )?reply/i,
+    /esta [eé] uma resposta autom[aá]tica/i,
+    /dies ist eine automatische/i,
+  ];
+
+  for (const pattern of autoReplyBodyPatterns) {
+    if (pattern.test(cleanBody)) {
+      console.log('[AutoResponder] Detectado por conteúdo, padrão:', pattern.toString());
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Verifica se a mensagem é apenas um agradecimento/confirmação que não precisa de resposta
  */
 function isAcknowledgmentMessage(body: string, subject: string): boolean {
+  // Primeiro verificar se é auto-responder
+  if (isAutoResponder(body, subject)) {
+    return true;
+  }
+
   const cleanBody = (body || '').toLowerCase().trim();
   const cleanSubject = (subject || '').toLowerCase().trim();
 
@@ -180,18 +253,6 @@ function isAcknowledgmentMessage(body: string, subject: string): boolean {
       if (pattern.test(cleanBody) || pattern.test(bodyWithoutGreetings)) {
         return true;
       }
-    }
-  }
-
-  // Verificar se o assunto indica resposta automática ou out-of-office
-  const autoReplySubjectPatterns = [
-    /^(re:\s*)*(fora do escrit[oó]rio|out of office|automatic reply|resposta autom[aá]tica)/i,
-    /^(re:\s*)*(obrigad[oa]|thanks)/i,
-  ];
-
-  for (const pattern of autoReplySubjectPatterns) {
-    if (pattern.test(cleanSubject)) {
-      return true;
     }
   }
 
@@ -923,6 +984,41 @@ async function processMessageInternal(
     });
 
     return 'acknowledgment';
+  }
+
+  // 2.2 Verificar se há loop de auto-responder (muitas respostas em pouco tempo)
+  const supabase = getSupabaseClient();
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+
+  const { data: recentOutboundMessages, error: loopCheckError } = await supabase
+    .from('messages')
+    .select('id, created_at')
+    .eq('conversation_id', conversation.id)
+    .eq('direction', 'outbound')
+    .gte('created_at', twoHoursAgo)
+    .order('created_at', { ascending: false });
+
+  if (!loopCheckError && recentOutboundMessages && recentOutboundMessages.length >= 5) {
+    console.log(`[Shop ${shop.name}] LOOP DETECTADO: ${recentOutboundMessages.length} respostas nas últimas 2h para conversa ${conversation.id}`);
+    await updateMessage(message.id, {
+      status: 'replied',
+      category: 'auto-responder-loop',
+      error_message: `Loop detectado: ${recentOutboundMessages.length} respostas em 2h - não respondendo para evitar spam`,
+      processed_at: new Date().toISOString(),
+    });
+
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'loop_detected',
+      event_data: {
+        recent_outbound_count: recentOutboundMessages.length,
+        reason: 'Possível loop de auto-responder detectado',
+      },
+    });
+
+    return 'loop_detected';
   }
 
   // 3. Buscar histórico da conversa
