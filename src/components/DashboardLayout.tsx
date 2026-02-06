@@ -68,8 +68,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <img
           src="/replyna-logo.webp"
           alt="Replyna"
-          style={{ width: isMobile ? '140px' : '180px', height: 'auto', display: 'block' }}
+          style={{ width: isMobile ? '140px' : '140px', height: 'auto', display: 'block' }}
         />
+        {/* Desktop: Notification Bell no sidebar */}
+        {!isMobile && (
+          <NotificationCenter {...notificationContext} />
+        )}
         {isMobile && (
           <button
             onClick={() => setIsMobileMenuOpen(false)}
@@ -249,23 +253,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           maxWidth: isMobile ? '100vw' : undefined,
         }}
       >
-        {/* Desktop Notification Bell - fixed top right */}
-        {!isMobile && (
-          <div
-            style={{
-              position: 'fixed',
-              top: '16px',
-              right: '24px',
-              zIndex: 999,
-              backgroundColor: 'var(--bg-card)',
-              borderRadius: '12px',
-              padding: '4px',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-            }}
-          >
-            <NotificationCenter {...notificationContext} />
-          </div>
-        )}
         {children}
       </main>
 

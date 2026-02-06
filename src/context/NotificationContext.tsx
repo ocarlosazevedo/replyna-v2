@@ -36,18 +36,37 @@ const NotificationContext = createContext<NotificationContextType | null>(null)
 
 const STORAGE_KEY_PREFIX = 'replyna_notifications_seen_'
 
-// Notificações estáticas de funcionalidades
+// Notificações estáticas de funcionalidades (ordenadas da mais recente para mais antiga)
 const FEATURE_NOTIFICATIONS: Omit<Notification, 'actionLink'>[] = [
   {
-    id: 'retention-coupon-v2',
+    id: 'notification-center-v1',
     type: 'feature',
     priority: 'low',
-    title: 'Nova funcionalidade: Cupom de retenção',
-    description: 'Configure um cupom de desconto que a IA oferecerá automaticamente para clientes que desejam cancelar ou devolver pedidos.',
+    title: 'Nova central de notificações',
+    description: 'Agora você tem uma central de notificações para acompanhar atualizações, novas funcionalidades e alertas importantes.',
+    icon: 'Bell',
+    color: '#10b981',
+    createdAt: '2025-02-06',
+  },
+  {
+    id: 'auto-responder-detection-v1',
+    type: 'tip',
+    priority: 'low',
+    title: 'Melhoria: Detecção de auto-responder',
+    description: 'A IA agora detecta automaticamente mensagens de férias/ausência e evita loops de respostas automáticas.',
     icon: 'Lightbulb',
     color: '#3b82f6',
-    actionLabel: 'Configurar cupom',
-    createdAt: '2025-01-15',
+    createdAt: '2025-02-05',
+  },
+  {
+    id: 'alternative-email-search-v1',
+    type: 'tip',
+    priority: 'low',
+    title: 'Melhoria: Busca de pedidos aprimorada',
+    description: 'Quando o cliente usa um email diferente do cadastrado no pedido, a IA agora busca automaticamente por emails alternativos mencionados na mensagem.',
+    icon: 'Lightbulb',
+    color: '#3b82f6',
+    createdAt: '2025-02-04',
   },
   {
     id: 'ai-instructions-v1',
@@ -59,6 +78,17 @@ const FEATURE_NOTIFICATIONS: Omit<Notification, 'actionLink'>[] = [
     color: '#8b5cf6',
     actionLabel: 'Configurar instruções',
     createdAt: '2025-01-20',
+  },
+  {
+    id: 'retention-coupon-v2',
+    type: 'feature',
+    priority: 'low',
+    title: 'Nova funcionalidade: Cupom de retenção',
+    description: 'Configure um cupom de desconto que a IA oferecerá automaticamente para clientes que desejam cancelar ou devolver pedidos.',
+    icon: 'Lightbulb',
+    color: '#3b82f6',
+    actionLabel: 'Configurar cupom',
+    createdAt: '2025-01-15',
   },
 ]
 
