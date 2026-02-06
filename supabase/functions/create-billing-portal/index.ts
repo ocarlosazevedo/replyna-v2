@@ -7,14 +7,18 @@
  * - Dados de cobrança
  */
 
-import { corsHeaders, handleCors } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getStripeClient } from '../_shared/stripe.ts';
 
 Deno.serve(async (req: Request) => {
-  // Handle CORS
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
     const { user_id } = await req.json();
@@ -29,10 +33,10 @@ Deno.serve(async (req: Request) => {
     const supabase = getSupabaseClient();
     const stripe = getStripeClient();
 
-    // Buscar customer_id do usuário
+    // Buscar stripe_customer_id do usuário
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('customer_id, email')
+      .select('stripe_customer_id, email')
       .eq('id', user_id)
       .single();
 
@@ -44,7 +48,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (!user.customer_id) {
+    if (!user.stripe_customer_id) {
       return new Response(
         JSON.stringify({
           error: 'Você precisa ter uma assinatura ativa para gerenciar seus pagamentos.',
@@ -60,7 +64,7 @@ Deno.serve(async (req: Request) => {
     const returnUrl = Deno.env.get('APP_URL') || 'https://app.replyna.me';
 
     const portalSession = await stripe.billingPortal.sessions.create({
-      customer: user.customer_id,
+      customer: user.stripe_customer_id,
       return_url: `${returnUrl}/account`,
     });
 
