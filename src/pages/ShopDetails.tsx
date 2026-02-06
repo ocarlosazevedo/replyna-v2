@@ -24,6 +24,7 @@ interface ShopData {
   smtp_user: string
   smtp_password: string
   mail_status: string
+  email_sync_error: string | null
   delivery_time: string
   dispatch_time: string
   warranty_info: string
@@ -173,7 +174,8 @@ export default function ShopDetails() {
       const data = await response.json()
 
       if (data.success) {
-        setEditData(prev => ({ ...prev, mail_status: 'ok' }))
+        setEditData(prev => ({ ...prev, mail_status: 'ok', email_sync_error: null }))
+        setShop(prev => prev ? { ...prev, email_sync_error: null } : prev)
         setSuccess('Conexão de email testada com sucesso!')
       } else {
         setError(data.error || 'Falha na conexão de email')
@@ -314,6 +316,25 @@ export default function ShopDetails() {
         {isOk ? 'Conectado' : 'Pendente'}
       </span>
     )
+  }
+
+  const emailStatusBadge = () => {
+    const hasError = shop?.email_sync_error && shop.email_sync_error.trim() !== ''
+    if (hasError) {
+      return (
+        <span style={{
+          backgroundColor: '#fef2f2',
+          color: '#dc2626',
+          padding: '4px 12px',
+          borderRadius: '9999px',
+          fontSize: '13px',
+          fontWeight: '500',
+        }}>
+          Erro de conexão
+        </span>
+      )
+    }
+    return statusBadge(shop?.mail_status || '')
   }
 
   if (loading) {
@@ -624,7 +645,7 @@ export default function ShopDetails() {
           <div style={sectionTitleStyle}>
             <Mail size={22} style={{ color: 'var(--accent)' }} />
             Integração de Email
-            <div style={{ marginLeft: '8px' }}>{statusBadge(shop.mail_status)}</div>
+            <div style={{ marginLeft: '8px' }}>{emailStatusBadge()}</div>
           </div>
           {editingSection !== 'email' ? (
             <button onClick={() => startEditing('email')} style={buttonSecondary}>
@@ -644,6 +665,26 @@ export default function ShopDetails() {
             </div>
           )}
         </div>
+
+        {/* Mensagem de erro de sincronização */}
+        {shop.email_sync_error && shop.email_sync_error.trim() !== '' && (
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            color: '#dc2626',
+            fontSize: '13px',
+            lineHeight: '1.4',
+          }}>
+            <strong>Erro na última sincronização:</strong> {shop.email_sync_error.trim()}
+            <br />
+            <span style={{ color: '#6b7280', fontSize: '12px' }}>
+              Os emails não estão sendo recebidos. Por favor, verifique as credenciais e teste a conexão novamente.
+            </span>
+          </div>
+        )}
 
         {editingSection === 'email' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

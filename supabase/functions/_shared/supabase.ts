@@ -495,6 +495,8 @@ export async function incrementRateLimit(shopId: string, customerEmail: string):
 
 /**
  * Atualiza última sincronização de email de uma loja
+ * Se houver erro, também atualiza mail_status para 'error'
+ * Se não houver erro, mantém mail_status como 'ok'
  */
 export async function updateShopEmailSync(
   shopId: string,
@@ -502,12 +504,19 @@ export async function updateShopEmailSync(
 ): Promise<void> {
   const supabase = getSupabaseClient();
 
+  const updateData: Record<string, unknown> = {
+    last_email_sync_at: new Date().toISOString(),
+    email_sync_error: error || null,
+  };
+
+  // Se houver erro, atualizar mail_status para refletir o problema
+  if (error) {
+    updateData.mail_status = 'error';
+  }
+
   await supabase
     .from('shops')
-    .update({
-      last_email_sync_at: new Date().toISOString(),
-      email_sync_error: error || null,
-    })
+    .update(updateData)
     .eq('id', shopId);
 }
 
