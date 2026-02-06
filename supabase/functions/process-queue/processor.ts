@@ -413,6 +413,31 @@ async function processMessage(
     throw new Error('Usuário não encontrado');
   }
 
+  // 5.1 Verificar se usuário está com pagamento em dia
+  if (user.status === 'suspended' || user.status === 'inactive') {
+    console.log(`[Processor] User ${user.id} com status ${user.status} - pagamento pendente`);
+
+    await updateMessage(message.id, {
+      status: 'pending_credits',
+      error_message: user.status === 'suspended'
+        ? 'Pagamento pendente - aguardando regularização'
+        : 'Conta inativa - assinatura cancelada',
+    });
+
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'payment_pending',
+      event_data: {
+        user_status: user.status,
+        reason: user.status === 'suspended' ? 'payment_failed' : 'subscription_canceled',
+      },
+    });
+
+    throw new Error(`Usuário com status ${user.status} - processamento bloqueado`);
+  }
+
   // 6. Buscar histórico da conversa ANTES de classificar
   const rawHistory = await getConversationHistory(conversation.id, 3);
   const conversationHistory = (rawHistory || []).map((msg: Message) => ({

@@ -634,7 +634,7 @@ async function handleSubscriptionCanceled(
 }
 
 /**
- * Fatura paga - renovação de assinatura
+ * Fatura paga - renovação de assinatura ou pagamento atrasado regularizado
  */
 async function handleInvoicePaid(
   invoice: Stripe.Invoice,
@@ -646,6 +646,12 @@ async function handleInvoicePaid(
 
   const subscriptionId = invoice.subscription as string;
 
+  // Atualizar status da assinatura para active
+  await supabase
+    .from('subscriptions')
+    .update({ status: 'active' })
+    .eq('stripe_subscription_id', subscriptionId);
+
   // Buscar assinatura
   const { data: sub } = await supabase
     .from('subscriptions')
@@ -655,30 +661,22 @@ async function handleInvoicePaid(
 
   if (!sub) return;
 
-  // Buscar limites do plano
-  if (sub.plan_id) {
-    const { data: plan } = await supabase
-      .from('plans')
-      .select('emails_limit')
-      .eq('id', sub.plan_id)
-      .single();
+  // SEMPRE reativar o usuário quando pagamento é realizado
+  console.log('Reativando usuário após pagamento:', sub.user_id);
 
-    if (plan) {
-      // Resetar emails_used no início do novo período
-      await supabase
-        .from('users')
-        .update({
-          emails_used: 0,
-          status: 'active',
-        })
-        .eq('id', sub.user_id);
+  // Resetar emails_used no início do novo período e reativar conta
+  await supabase
+    .from('users')
+    .update({
+      emails_used: 0,
+      status: 'active',
+    })
+    .eq('id', sub.user_id);
 
-      console.log('Créditos resetados para usuário:', sub.user_id);
+  console.log('Usuário reativado e créditos resetados:', sub.user_id);
 
-      // Reprocessar mensagens pendentes de créditos para este usuário
-      await processPendingCreditsForUser(sub.user_id);
-    }
-  }
+  // Reprocessar mensagens pendentes para este usuário
+  await processPendingCreditsForUser(sub.user_id);
 }
 
 /**

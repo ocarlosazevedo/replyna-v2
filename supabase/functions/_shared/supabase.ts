@@ -64,6 +64,7 @@ export interface User {
   email: string;
   name: string | null;
   plan: string;
+  status: 'active' | 'suspended' | 'inactive';  // active = ok, suspended = pagamento pendente, inactive = cancelado
   emails_limit: number | null;  // null = ilimitado
   emails_used: number;
   shops_limit: number | null;   // null = ilimitado
