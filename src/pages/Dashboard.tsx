@@ -259,19 +259,73 @@ export default function Dashboard() {
     setShopId(firstShopId)
   }, [shops, setShopId])
 
+  // Verificar erros de Shopify, Email e créditos para notificações
   useEffect(() => {
-    // Verificar se créditos acabaram (apenas para planos com limite)
-    const noCredits = profile &&
-      profile.emails_limit !== null &&
-      profile.emails_used !== null &&
-      profile.emails_used >= (profile.emails_limit + (profile.extra_emails_purchased ?? 0))
+    if (!user || activeShopIds.length === 0) {
+      // Verificar apenas créditos se não tem lojas
+      const noCredits = profile &&
+        profile.emails_limit !== null &&
+        profile.emails_used !== null &&
+        profile.emails_used >= (profile.emails_limit + (profile.extra_emails_purchased ?? 0))
+      setDynamicAlerts({ noCredits: !!noCredits })
+      return
+    }
 
-    setDynamicAlerts({
-      noCredits: !!noCredits,
-      // Shopify e Email errors serão configurados pelos componentes de erro quando detectados
-      // Por enquanto, não temos acesso direto a esses estados aqui
-    })
-  }, [profile, setDynamicAlerts])
+    const checkErrors = async () => {
+      // Verificar se créditos acabaram
+      const noCredits = profile &&
+        profile.emails_limit !== null &&
+        profile.emails_used !== null &&
+        profile.emails_used >= (profile.emails_limit + (profile.extra_emails_purchased ?? 0))
+
+      // Verificar erros de Shopify (circuit breakers abertos)
+      let shopifyError: { shopId: string; shopName: string } | null = null
+      try {
+        const { data: circuits } = await supabase
+          .from('circuit_breakers')
+          .select('shop_id')
+          .in('shop_id', activeShopIds)
+          .eq('service', 'shopify')
+          .in('state', ['open', 'half_open'])
+          .limit(1)
+
+        if (circuits && circuits.length > 0) {
+          const shopWithError = shops.find(s => s.id === circuits[0].shop_id)
+          if (shopWithError) {
+            shopifyError = { shopId: shopWithError.id, shopName: shopWithError.name }
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao verificar circuit breakers:', err)
+      }
+
+      // Verificar erros de Email (email_sync_error preenchido)
+      let emailError: { shopId: string; shopName: string } | null = null
+      try {
+        const { data: shopsWithEmailError } = await supabase
+          .from('shops')
+          .select('id, name')
+          .in('id', activeShopIds)
+          .not('email_sync_error', 'is', null)
+          .neq('email_sync_error', '')
+          .limit(1)
+
+        if (shopsWithEmailError && shopsWithEmailError.length > 0) {
+          emailError = { shopId: shopsWithEmailError[0].id, shopName: shopsWithEmailError[0].name }
+        }
+      } catch (err) {
+        console.error('Erro ao verificar erros de email:', err)
+      }
+
+      setDynamicAlerts({
+        noCredits: !!noCredits,
+        shopifyError,
+        emailError,
+      })
+    }
+
+    checkErrors()
+  }, [user, profile, shops, activeShopIds, setDynamicAlerts])
 
   const effectiveShopIds = useMemo(() => {
     if (selectedShopId === 'all') return activeShopIds
