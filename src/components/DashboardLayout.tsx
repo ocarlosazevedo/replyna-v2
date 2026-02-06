@@ -70,10 +70,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           alt="Replyna"
           style={{ width: isMobile ? '140px' : '140px', height: 'auto', display: 'block' }}
         />
-        {/* Desktop: Notification Bell no sidebar */}
-        {!isMobile && (
-          <NotificationCenter {...notificationContext} />
-        )}
         {isMobile && (
           <button
             onClick={() => setIsMobileMenuOpen(false)}
@@ -244,7 +240,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <main
         style={{
           flex: 1,
-          padding: isMobile ? '76px 16px 24px' : '32px 40px',
+          padding: isMobile ? '76px 16px 24px' : '0',
           backgroundColor: 'var(--bg-primary)',
           marginLeft: isMobile ? 0 : '264px',
           width: isMobile ? '100%' : 'calc(100% - 264px)',
@@ -253,7 +249,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           maxWidth: isMobile ? '100vw' : undefined,
         }}
       >
-        {children}
+        {/* Desktop Header with Notification Bell */}
+        {!isMobile && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              padding: '16px 40px',
+              borderBottom: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-primary)',
+            }}
+          >
+            <NotificationCenter {...notificationContext} />
+          </div>
+        )}
+        <div style={{ padding: isMobile ? '0' : '32px 40px' }}>
+          {children}
+        </div>
       </main>
 
       {/* Botão flutuante de WhatsApp */}
