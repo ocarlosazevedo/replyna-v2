@@ -979,25 +979,30 @@ IMPORTANT:
 
 CLASSIFY AS SPAM (confidence 0.95+) - THESE ARE NOT REAL CUSTOMERS:
 
-1. SERVICE OFFERS / CONSULTING / MARKETING:
+1. SERVICE OFFERS / CONSULTING / MARKETING (ANY LANGUAGE):
    - Anyone offering to improve the store, website, design, speed, conversion
-   - "I noticed opportunities", "I can help improve", "brief consultation"
-   - "grow your business", "increase revenue", "boost sales", "improve experience"
-   - Mentions: SEO, marketing, development, design, consulting, optimization
-   - Phrases: "I work with Shopify businesses", "I can share improvements", "quick list of improvements"
-   - Anyone identifying as: consultant, developer, specialist, agency, expert, freelancer
+   - ENGLISH: "I noticed opportunities", "I can help improve", "brief consultation", "grow your business", "increase revenue", "boost sales"
+   - PORTUGUESE: "notei oportunidades", "posso ajudar a melhorar", "breve consulta", "crescer seu negócio", "aumentar vendas", "aumentar receita", "aumentar conversão", "melhorar conversão", "otimização de conversão"
+   - SPANISH: "noté oportunidades", "puedo ayudar a mejorar", "breve consulta", "crecer tu negocio", "aumentar ventas", "aumentar ingresos"
+   - Mentions: SEO, marketing, development, design, consulting, optimization, otimização, consultoria, desenvolvimento
+   - Anyone identifying as (ANY LANGUAGE):
+     * EN: consultant, developer, specialist, agency, expert, freelancer
+     * PT: consultor(a), desenvolvedor(a), especialista, agência, expert, freelancer, "especialista em Shopify", "especialista certificado"
+     * ES: consultor(a), desarrollador(a), especialista, agencia, experto
+   - Offering services like: "design de lojas", "otimização de lojas", "funis de venda", "funis de marketing", "automação de email", "campanhas de tráfego"
 
-2. COLD OUTREACH / SALES PITCHES / AFFILIATE OFFERS:
+2. COLD OUTREACH / SALES PITCHES / AFFILIATE OFFERS (ANY LANGUAGE):
    - Emails that START with compliments about the store then offer services
-   - "I took a look at your store and noticed..."
-   - "Would you be open to..." (ANY offer, call, discussion, partnership)
-   - "I can help you without relying on ads"
+   - ENGLISH: "I took a look at your store and noticed...", "Would you be open to..."
+   - PORTUGUESE: "visitei sua loja", "analisei sua loja", "fiquei impressionado com sua loja", "vi sua loja Shopify", "após analisar sua loja"
+   - SPANISH: "visité tu tienda", "analicé tu tienda", "me impresionó tu tienda"
    - Generic emails that could be sent to any store (not specific to a purchase)
-   - Commission-based offers: "X% commission", "commission if I bring you"
-   - Lead generation: "bring you orders", "bring you customers", "bring you sales"
-   - Affiliate marketing: "PCEO", "lead generation", "traffic strategy"
-   - "Tired of running ads?", "Stop wasting money on ads"
-   - Promises: "X orders weekly", "guaranteed results", "increase your sales"
+   - Offering (ANY LANGUAGE):
+     * EN: "free audit", "free consultation", "free analysis", "detailed proposal"
+     * PT: "auditoria gratuita", "consultoria gratuita", "análise gratuita", "proposta detalhada", "plano de ação"
+     * ES: "auditoría gratuita", "consulta gratuita", "análisis gratuito", "propuesta detallada"
+   - Promises in ANY LANGUAGE: "guaranteed results", "resultados garantidos", "resultados garantizados"
+   - Lead generation phrases: "bring you orders", "trazer pedidos", "traer pedidos", "gerar tráfego", "generar tráfico"
 
 3. SYSTEM/AUTOMATED EMAILS:
    - Delivery Status Notification, Mail Delivery Subsystem, mailer-daemon
@@ -1007,9 +1012,11 @@ CLASSIFY AS SPAM (confidence 0.95+) - THESE ARE NOT REAL CUSTOMERS:
 4. OTHER SPAM SIGNALS:
    - No mention of ANY specific order or purchase they made
    - Email sounds like a template (could be sent to hundreds of stores)
-   - Offering "free audit", "free consultation", "free analysis"
+   - Offering services to "transform your store" / "transformar sua loja" / "transformar tu tienda"
+   - Offering to make store a "sales machine" / "máquina de vendas" / "máquina de ventas"
    - Partnership proposals, collaboration offers
    - B2B sales pitches
+   - Emails with long lists of services offered (design, SEO, marketing, ads, etc.)
 
 5. VERIFICATION/PROBING EMAILS (SPAM):
    - "Is your store still active?" → SPAM
