@@ -96,6 +96,46 @@ export default function Account() {
   const [pendingInvoices, setPendingInvoices] = useState<PendingInvoice[]>([])
   const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null)
   const [buyingExtras, setBuyingExtras] = useState(false)
+  const [openingBillingPortal, setOpeningBillingPortal] = useState(false)
+
+  // Função para abrir o Stripe Billing Portal (gerenciar cartão)
+  const handleOpenBillingPortal = async () => {
+    if (!user || openingBillingPortal) return
+
+    setOpeningBillingPortal(true)
+    setNotice(null)
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-billing-portal`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ user_id: user.id }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (data.success && data.url) {
+        // Redirecionar para o Stripe Customer Portal
+        window.location.href = data.url
+      } else {
+        throw new Error(data.error || 'Erro ao abrir portal de pagamentos')
+      }
+    } catch (err) {
+      console.error('Erro ao abrir billing portal:', err)
+      setNotice({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Erro ao abrir portal de pagamentos. Tente novamente.',
+      })
+    } finally {
+      setOpeningBillingPortal(false)
+    }
+  }
 
   // Função para comprar emails extras manualmente
   const handleBuyExtraEmails = async () => {
@@ -1010,6 +1050,41 @@ export default function Account() {
                       Cancelar plano
                     </button>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenBillingPortal}
+                    disabled={openingBillingPortal}
+                    style={{
+                      marginTop: '10px',
+                      width: '100%',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-primary)',
+                      padding: '10px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      background: 'var(--bg-card)',
+                      cursor: openingBillingPortal ? 'not-allowed' : 'pointer',
+                      opacity: openingBillingPortal ? 0.7 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    {openingBillingPortal ? (
+                      'Abrindo...'
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                          <line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                        Gerenciar cartão de crédito
+                      </>
+                    )}
+                  </button>
                 </div>
 
                 <div style={{ borderRadius: '14px', border: '1px solid var(--border-color)', padding: '16px', backgroundColor: 'var(--bg-primary)' }}>
