@@ -646,11 +646,47 @@ async function handleInvoicePaid(
 
   const subscriptionId = invoice.subscription as string;
 
-  // Atualizar status da assinatura para active
-  await supabase
+  // Buscar subscription atualizada do Stripe para obter as datas corretas
+  const stripe = getStripeClient();
+  let stripeSubscription: Stripe.Subscription | null = null;
+
+  try {
+    stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+    console.log('Subscription do Stripe:', {
+      id: stripeSubscription.id,
+      status: stripeSubscription.status,
+      current_period_start: stripeSubscription.current_period_start,
+      current_period_end: stripeSubscription.current_period_end,
+    });
+  } catch (stripeError) {
+    console.error('Erro ao buscar subscription do Stripe:', stripeError);
+  }
+
+  // Preparar dados de atualização da subscription
+  const subscriptionUpdate: Record<string, any> = {
+    status: 'active',
+    updated_at: new Date().toISOString(),
+  };
+
+  // Se conseguimos buscar a subscription do Stripe, sincronizar as datas do período
+  if (stripeSubscription) {
+    subscriptionUpdate.current_period_start = new Date(stripeSubscription.current_period_start * 1000).toISOString();
+    subscriptionUpdate.current_period_end = new Date(stripeSubscription.current_period_end * 1000).toISOString();
+    console.log('Sincronizando datas do período:', {
+      current_period_start: subscriptionUpdate.current_period_start,
+      current_period_end: subscriptionUpdate.current_period_end,
+    });
+  }
+
+  // Atualizar subscription no banco
+  const { error: subError } = await supabase
     .from('subscriptions')
-    .update({ status: 'active' })
+    .update(subscriptionUpdate)
     .eq('stripe_subscription_id', subscriptionId);
+
+  if (subError) {
+    console.error('Erro ao atualizar subscription:', subError);
+  }
 
   // Buscar assinatura
   const { data: sub } = await supabase
