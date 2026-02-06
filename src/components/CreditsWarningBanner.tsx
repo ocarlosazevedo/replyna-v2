@@ -90,17 +90,17 @@ export default function CreditsWarningBanner({
             color: 'var(--text-secondary)',
             fontSize: '13px',
             margin: 0,
-            lineHeight: '1.4',
+            lineHeight: '1.5',
           }}
         >
-          Você usou todos os seus créditos. Novos emails não estão sendo respondidos automaticamente.
+          Seus emails não estão sendo respondidos automaticamente. Compre créditos extras para continuar agora ou faça upgrade do seu plano para não ficar sem créditos.
         </p>
       </div>
 
-      {/* Action button */}
-      <div style={{ paddingLeft: '32px' }}>
+      {/* Action buttons */}
+      <div style={{ paddingLeft: '32px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
         <Link
-          to="/account"
+          to="/account?action=buy-credits"
           style={{
             backgroundColor: '#ef4444',
             color: 'white',
@@ -111,6 +111,23 @@ export default function CreditsWarningBanner({
             textDecoration: 'none',
             display: 'inline-flex',
             alignItems: 'center',
+          }}
+        >
+          Comprar créditos extras
+        </Link>
+        <Link
+          to="/account"
+          style={{
+            backgroundColor: 'transparent',
+            color: '#ef4444',
+            padding: '8px 14px',
+            borderRadius: '8px',
+            fontWeight: 600,
+            fontSize: '13px',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            border: '1px solid #ef4444',
           }}
         >
           Fazer upgrade
