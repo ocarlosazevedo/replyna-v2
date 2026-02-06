@@ -661,6 +661,21 @@ function cleanAIResponse(text: string): string {
     /\[size\]/gi,
     /\[tamanho\]/gi,
     /\[X+\]/g,  // Captura [X], [XX], [XXX], etc.
+    // Padrões de dados de pedido
+    /\[ORDER[_\s]?DATE\]/gi,
+    /\[ORDER[_\s]?STATUS\]/gi,
+    /\[ORDER[_\s]?TOTAL\]/gi,
+    /\[SHIP[_\s]?TO[_\s]?ADDRESS\]/gi,
+    /\[SHIPPING[_\s]?ADDRESS\]/gi,
+    /\[BILLING[_\s]?ADDRESS\]/gi,
+    /\[DELIVERY[_\s]?ADDRESS\]/gi,
+    /\[ADDRESS\]/gi,
+    /\[ENDEREÇO\]/gi,
+    /\[DATA[_\s]?DO[_\s]?PEDIDO\]/gi,
+    /\[STATUS[_\s]?DO[_\s]?PEDIDO\]/gi,
+    /\[FULFILLMENT[_\s]?STATUS\]/gi,
+    // Padrão genérico para QUALQUER texto em maiúsculas entre colchetes (placeholders)
+    /\[[A-Z][A-Z\s_]{2,}[A-Z]\]/g,  // Ex: [ORDER DATE], [SHIP TO ADDRESS], [TRACKING NUMBER]
     // Padrões de prazo/tempo que a IA deixa como placeholder
     /\[X+\s*dias?\s*(úteis|uteis)?\]/gi,  // [X dias úteis], [X dias]
     /\[X+\s*business\s*days?\]/gi,  // [X business days]
@@ -1798,6 +1813,18 @@ REGRA CRÍTICA - NÃO ASSUMA PROBLEMAS QUE NÃO EXISTEM:
 - Exemplo ERRADO: Cliente diz "Comprei óculos em janeiro" → Resposta "Lamento pelo problema, qual o número do pedido para resolver?"
 - Exemplo CORRETO: Cliente diz "Comprei óculos em janeiro" → Resposta "Olá! Vi que você mencionou sua compra. Como posso ajudá-lo hoje?"
 - Espere o cliente dizer O QUE ELE QUER antes de assumir que há problema
+
+REGRA CRÍTICA - RECONHEÇA QUANDO O CLIENTE DIZ QUE O PROBLEMA FOI RESOLVIDO:
+- Se o cliente diz que ENCONTROU o pacote, que RECEBEU, ou que ESTÁ TUDO BEM → NÃO continue perguntando informações!
+- Frases que indicam problema resolvido (em qualquer idioma):
+  * "I found the package", "found it", "received it", "all is good", "all good now", "no problem anymore"
+  * "Encontrei o pacote", "já recebi", "está tudo bem", "tudo certo", "problema resolvido"
+  * "Ich habe es gefunden", "alles gut", "Problem gelöst"
+- Quando o cliente confirma que está resolvido, responda APENAS com:
+  * Exemplo: "That's great to hear! I'm glad everything worked out. Let me know if you need anything else!"
+  * Exemplo: "Que bom que deu tudo certo! Fico feliz em saber. Qualquer coisa, estou à disposição!"
+- NÃO peça mais informações do pedido se o cliente já disse que está resolvido
+- NÃO continue o atendimento anterior se o cliente confirmou que não precisa mais de ajuda
 
 10. REGRA CRÍTICA - NUNCA USE PLACEHOLDERS NA RESPOSTA (EM NENHUM IDIOMA):
     - NUNCA use textos entre colchetes [ ] em NENHUM idioma
