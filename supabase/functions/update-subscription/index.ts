@@ -348,6 +348,8 @@ serve(async (req) => {
         proration_behavior: 'none',
         billing_cycle_anchor: 'now',
         payment_behavior: 'error_if_incomplete',
+        // Forçar cobrança automática para evitar erro de 'days_until_due'
+        collection_method: 'charge_automatically',
         metadata: {
           plan_id: new_plan_id,
           plan_name: newPlan.name,
@@ -442,6 +444,8 @@ serve(async (req) => {
           },
         ],
         proration_behavior: 'none',
+        // Forçar cobrança automática para evitar erro de 'days_until_due'
+        collection_method: 'charge_automatically',
         metadata: {
           plan_id: new_plan_id,
           plan_name: newPlan.name,
