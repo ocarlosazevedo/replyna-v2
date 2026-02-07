@@ -1018,6 +1018,28 @@ CLASSIFY AS SPAM (confidence 0.95+) - THESE ARE NOT REAL CUSTOMERS:
    - B2B sales pitches
    - Emails with long lists of services offered (design, SEO, marketing, ads, etc.)
 
+4b. SOPHISTICATED COLD OUTREACH (CRITICAL - ALWAYS SPAM):
+   These are sales emails disguised as "helpful analysis" - ALWAYS SPAM:
+   - "identifiquei uma perda de receita" / "identified revenue loss" / "identifiqué pérdida de ingresos"
+   - "funil de conversão" / "conversion funnel" / "embudo de conversión"
+   - "falhas ocultas" / "hidden flaws" / "fallas ocultas"
+   - "estancar a sangria" / "stop the bleeding"
+   - "basta responder" / "just reply" / "solo responde" (call-to-action to engage)
+   - "analisei seu negócio" / "analyzed your business" / "analicé tu negocio"
+   - "expor as falhas" / "expose the flaws"
+   - "I analyze" / "Eu analiso" / "Yo analizo" (positioning as analyst/consultant)
+   - Mentions: "abandono de carrinho" / "cart abandonment" / "abandono del carrito"
+   - Mentions: "taxa de conversão" / "conversion rate" / "tasa de conversión"
+   - Mentions: "tráfego que não converte" / "traffic that doesn't convert"
+   - Mentions: "visitantes que saem" / "visitors leaving" / "visitantes que salen"
+   - "seus produtos não são o problema" / "your products aren't the problem"
+   - "a maioria dos freelancers" / "most freelancers" (comparing themselves to others)
+   - "as agências fazem promessas" / "agencies make promises"
+   - Long emails with bullet points explaining "problems" with the store
+   - Emails that diagnose store issues without being asked
+   - ANY email offering business/conversion/revenue analysis → SPAM
+   - Emails ending with "respond with X word to continue" → SPAM
+
 5. VERIFICATION/PROBING EMAILS (SPAM):
    - "Is your store still active?" → SPAM
    - "Are you still accepting orders?" → SPAM
