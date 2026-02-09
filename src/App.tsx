@@ -16,6 +16,7 @@ import ShopDetails from './pages/ShopDetails'
 import Account from './pages/Account'
 import ConversationDetails from './pages/ConversationDetails'
 import LandingPage from './pages/LandingPage'
+import Masterclass from './pages/Masterclass'
 
 // Verifica se estamos no domínio da Landing Page (replyna.me sem subdomain)
 const isLandingDomain = () => {
@@ -140,11 +141,12 @@ function AdminPublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  // Se estamos no domínio da landing page (replyna.me), mostrar apenas a LP
+  // Se estamos no domínio da landing page (replyna.me), mostrar LP e páginas de captura
   if (isLandingDomain()) {
     return (
       <BrowserRouter>
         <Routes>
+          <Route path="/masterclass" element={<Masterclass />} />
           <Route path="*" element={<LandingPage />} />
         </Routes>
       </BrowserRouter>
