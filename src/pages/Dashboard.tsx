@@ -846,7 +846,7 @@ export default function Dashboard() {
             <option value="all">Todas as lojas</option>
             {shops.map((shop) => (
               <option key={shop.id} value={shop.id}>
-                {shop.name}
+                {privacyMode ? '••••••' : shop.name}
               </option>
             ))}
           </select>
@@ -1267,7 +1267,7 @@ export default function Dashboard() {
               <div>
                 <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Lojas ativas</div>
                 <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
-                  {isShopsUnlimited ? (
+                  {privacyMode ? '••' : isShopsUnlimited ? (
                     <>
                       {formatNumber(shops.length)} de <span style={{ color: '#22c55e' }}>Ilimitado</span>
                     </>
