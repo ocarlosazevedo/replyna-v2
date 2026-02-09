@@ -10,7 +10,7 @@ import {
   Users,
   TrendingDown,
   Clock,
-  XCircle,
+
   Star,
   Shield
 } from 'lucide-react'
@@ -108,6 +108,7 @@ export default function Masterclass() {
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [showSticky, setShowSticky] = useState(false)
+  const [checkedPains, setCheckedPains] = useState<boolean[]>([false, false, false, false])
   const formRef = useRef<HTMLDivElement>(null)
   const countdown = useCountdown()
 
@@ -381,27 +382,34 @@ export default function Masterclass() {
 
         {/* ===== PAIN POINTS ===== */}
         <div className="mc-pain-section">
-          <h2 className="mc-section-title">Você está passando por isso?</h2>
+          <h2 className="mc-section-title">Você se identifica com algo abaixo?</h2>
+          <p className="mc-pain-subtitle">Selecione os itens que se aplicam a você:</p>
           <div className="mc-pain-list">
-            <div className="mc-pain-item">
-              <XCircle size={18} color="#f87171" />
-              <span>Sua taxa de chargeback está acima de 1%</span>
-            </div>
-            <div className="mc-pain-item">
-              <XCircle size={18} color="#f87171" />
-              <span>Já teve ou tem medo de ter a conta bloqueada</span>
-            </div>
-            <div className="mc-pain-item">
-              <XCircle size={18} color="#f87171" />
-              <span>Perde horas toda semana respondendo contestações</span>
-            </div>
-            <div className="mc-pain-item">
-              <XCircle size={18} color="#f87171" />
-              <span>Sente que está perdendo dinheiro com disputas</span>
-            </div>
+            {[
+              'Sua taxa de chargeback está acima de 1%',
+              'Já teve ou tem medo de ter a conta bloqueada',
+              'Perde horas toda semana respondendo contestações',
+              'Sente que está perdendo dinheiro com disputas'
+            ].map((text, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`mc-pain-item${checkedPains[i] ? ' mc-pain-checked' : ''}`}
+                onClick={() => setCheckedPains(prev => prev.map((v, idx) => idx === i ? !v : v))}
+              >
+                <span className="mc-pain-checkbox">
+                  {checkedPains[i] && <CheckCircle2 size={18} />}
+                </span>
+                <span>{text}</span>
+              </button>
+            ))}
           </div>
           <p className="mc-pain-cta">
-            Se marcou pelo menos <strong>1 item</strong>, essa masterclass foi feita para você.
+            {checkedPains.filter(Boolean).length === 0
+              ? 'Marque os itens que se aplicam a você.'
+              : checkedPains.filter(Boolean).length >= 1
+                ? <>Você marcou <strong>{checkedPains.filter(Boolean).length} {checkedPains.filter(Boolean).length === 1 ? 'item' : 'itens'}</strong> — essa masterclass foi feita para você.</>
+                : ''}
           </p>
         </div>
 
@@ -818,38 +826,87 @@ const styles = `
     border-top: 1px solid rgba(255,255,255,0.06);
   }
 
+  .mc-pain-subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    margin: 0 0 18px;
+  }
+
   .mc-pain-list {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    margin-bottom: 16px;
+    gap: 10px;
+    margin-bottom: 18px;
   }
 
   .mc-pain-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: rgba(239, 68, 68, 0.06);
-    border: 1px solid rgba(239, 68, 68, 0.12);
-    border-radius: 10px;
+    gap: 14px;
+    padding: 16px 18px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
     font-size: 14px;
-    color: rgba(255,255,255,0.85);
+    color: rgba(255,255,255,0.75);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+    font-family: inherit;
   }
 
-  .mc-pain-item svg {
+  .mc-pain-item:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.14);
+  }
+
+  .mc-pain-checked {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.35);
+    color: rgba(255,255,255,0.95);
+  }
+
+  .mc-pain-checked:hover {
+    background: rgba(139, 92, 246, 0.14);
+    border-color: rgba(139, 92, 246, 0.45);
+  }
+
+  .mc-pain-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid rgba(255,255,255,0.15);
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    background: transparent;
+  }
+
+  .mc-pain-checked .mc-pain-checkbox {
+    border-color: #8b5cf6;
+    background: #8b5cf6;
+    color: #fff;
+  }
+
+  .mc-pain-checkbox svg {
     flex-shrink: 0;
   }
 
   .mc-pain-cta {
     text-align: center;
     font-size: 14px;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255,255,255,0.5);
     margin: 0;
+    min-height: 20px;
+    transition: all 0.3s ease;
   }
 
   .mc-pain-cta strong {
-    color: #f87171;
+    color: #a78bfa;
   }
 
   /* ===== INSTRUCTOR (expanded) ===== */
@@ -1375,7 +1432,7 @@ const styles = `
     .mc-pain-list {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      gap: 12px;
     }
 
     .mc-instructor-wrap {
