@@ -1312,7 +1312,7 @@ const styles = `
   @media (min-width: 1024px) {
     .mc-header {
       padding: 32px 48px;
-      justify-content: flex-start;
+      justify-content: center;
     }
 
     .mc-logo {
@@ -1338,7 +1338,7 @@ const styles = `
 
     .mc-hero-text {
       grid-area: hero;
-      text-align: left;
+      text-align: center;
       margin-bottom: 28px;
     }
 
@@ -1352,7 +1352,7 @@ const styles = `
     }
 
     .mc-countdown {
-      align-items: flex-start;
+      align-items: center;
     }
 
     /* Form card in sidebar */
@@ -1399,7 +1399,7 @@ const styles = `
     }
 
     .mc-section-title {
-      text-align: left;
+      text-align: center;
       font-size: 20px;
     }
 
