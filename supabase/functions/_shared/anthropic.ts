@@ -423,6 +423,16 @@ export function isSpamByPattern(subject: string, body: string): boolean {
     /\brelatório\s+(semanal|diário|mensal)\s+de\s+(desempenho|vendas|marketing)/i,
     /\bperformance\s+report\s+is\s+ready/i,
     /\byour\s+(weekly|daily|monthly)\s+.{0,20}\s+report/i,
+    // Raw Message-ID as subject (automated/scripted sends)
+    /^message-id:\s*</i,
+    // Cold outreach subjects
+    /\bhappy\s+new\s+month/i,
+    /\binquiry\s+regarding\s+your\s+services/i,
+    /\byour\s+product\s+deserves/i,
+    /\bstore\s+update$/i,
+    /\bnew\s+customer$/i,
+    // Follow-up cold outreach
+    /\bfollow[- ]?up\s+with\s+\w+/i,
   ];
 
   for (const pattern of spamSubjectPatterns) {
@@ -483,6 +493,45 @@ export function isSpamByPattern(subject: string, body: string): boolean {
     /\bveja\s+(as\s+)?análises\s+detalhadas/i,
     /\bsee\s+(the\s+)?(detailed\s+)?analytics/i,
     /\btransformar\s+insights\s+em\b/i,
+
+    // === STORE OWNER SEEKING (cold outreach disfarçado - MUITO COMUM) ===
+    /\b(can\s+i|may\s+i|could\s+i)\s+(connect|speak|talk|chat)\s+(with|to|directly\s+with)\s+(the\s+)?(store\s+)?owner/i,
+    /\b(is\s+the\s+)?store\s+owner\s+available/i,
+    /\b(am\s+i\s+)?speaking\s+(directly\s+)?(with|to)\s+(the\s+)?(store\s+)?owner/i,
+    /\bspeak\s+directly\s+with\s+the\s+person\s+responsible/i,
+    /\b(best|right)\s+(way|place)\s+to\s+reach\s+(out\s+)?(to\s+)?the\s+(store\s+)?owner/i,
+    /\bforward\s+my\s+message\s+to\s+the\s+(store\s+)?owner/i,
+    /\bbrief\s+conversation\s+with\s+the\s+(store\s+)?owner/i,
+    /\b(are\s+you\s+)?(still\s+)?selling\s+on\s+this\s+website/i,
+    /\bwhat\s+you'?ve\s+built\s+looks?\s+promising/i,
+
+    // === SHOPIFY FREELANCER / AGENCY PITCHES ===
+    /\b(redesign|revamp|renovate)\s+your\s+(store|shop|website)/i,
+    /\b\d+k\s+targeted\s+traffic\s+(daily|per\s+day)/i,
+    /\bconverting\s+into\s+\d+.{0,5}\d*\s+sales/i,
+    /\b(no\s+upfront|zero\s+upfront)\s+(service\s+)?fees/i,
+    /\bbattle[- ]?tested\s+(shopify\s+)?strategies/i,
+    /\berror\s+(was\s+)?(silently\s+)?blocking\s+your\s+store/i,
+    /\b(genuine|strong)\s+belief\s+in\s+your\s+store/i,
+    /\byour\s+product\s+deserves\s+to\s+be\s+seen/i,
+    /\bkick[- ]?start\s+.{0,20}\s+plan\s+for\s+growth/i,
+
+    // === FRENCH COLD OUTREACH ===
+    /\b(je\s+viens\s+de\s+)?découvrir\s+(votre|ta)\s+(boutique|magasin|site)/i,
+    /\baugmenter\s+(leurs?|vos?|tes?)\s+conversions/i,
+    /\boptimisations?\s+rapides/i,
+    /\baméliorer\s+(vos|tes|leurs?)\s+résultats/i,
+
+    // === COLD OUTREACH FOLLOW-UPS ===
+    /\bi\s+haven'?t\s+heard\s+back\s+from\s+you/i,
+    /\bhave\s+not\s+given\s+up\s+on\s+(sharing|helping|reaching)/i,
+    /\bfollowing\s+up\s+on\s+(our|my)\s+previous\s+(conversation|message|email)/i,
+    /\blet'?s?\s+connect\s+on\s+whatsapp/i,
+    /\bvideo\s+of\s+the\s+analysis/i,
+
+    // === COMPLIMENTING STORE DESIGN (opener for cold outreach) ===
+    /\b(i\s+like|love)\s+how\s+(clean|nice|great|beautiful)\s+your\s+(product\s+page|store|shop|website)\s+looks/i,
+    /\bI\s+was\s+checking\s+out\s+your\s+store/i,
   ];
 
   for (const pattern of spamBodyPatterns) {
@@ -1183,6 +1232,29 @@ CLASSIFY AS SPAM (confidence 0.95+) - THESE ARE NOT REAL CUSTOMERS:
    - Questions about YOUR business operations/marketing/shipping providers → SPAM
    - "What shipping service do you use?", "How do you handle X?" (not about their order) → SPAM
    - Any email that is NOT about: buying products from this store OR an existing order they placed → SPAM
+
+7. "CAN I SPEAK WITH THE STORE OWNER?" (CRITICAL - ALWAYS SPAM):
+   These are cold outreach emails DISGUISED as customer inquiries. ALWAYS classify as SPAM:
+   - "Can I connect with the store owner?" → SPAM
+   - "Can I speak with the store owner?" → SPAM
+   - "Is the store owner available?" → SPAM
+   - "Am I speaking with the store owner?" → SPAM
+   - "Is this the best way to reach the store owner?" → SPAM
+   - "What you've built looks promising" → SPAM (B2B compliment)
+   - "Forward my message to the store owner" → SPAM
+   - "Are you still selling on this website?" → SPAM (probing)
+   - "I was checking out your store" + generic question → SPAM
+   - "Your product deserves to be seen" → SPAM (marketing pitch)
+   - Subject is raw "Message-ID: <...>" → SPAM (scripted send)
+   - Subject "HAPPY NEW MONTH" → SPAM (cold outreach greeting)
+   - Subject "Store Update" + asking for owner → SPAM
+   - Subject "NEW CUSTOMER" + asking for owner → SPAM
+   - "Haven't heard back from you" without order context → SPAM
+   - "Let's connect on WhatsApp" → SPAM
+   - "Redesign your store" / "5k targeted traffic" / "battle-tested strategies" → SPAM
+   - "Error blocking your store from getting orders" → SPAM (freelancer pitch)
+   - "No upfront fees" → SPAM (service offer)
+   REAL CUSTOMERS NEVER ask to "connect with the store owner". They ask about THEIR order or products.
 
    CRITICAL: The AI ONLY helps customers of THIS STORE. It does NOT:
    - Give business advice to other store owners
