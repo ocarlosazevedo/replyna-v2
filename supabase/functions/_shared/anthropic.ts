@@ -389,6 +389,90 @@ function detectProductProblem(text: string): boolean {
 }
 
 /**
+ * Detecta se o email é spam baseado em padrões (pré-AI)
+ * Captura cold outreach, partnership proposals, template emails, etc.
+ * Retorna true se detectar spam com alta confiança
+ */
+export function isSpamByPattern(subject: string, body: string): boolean {
+  const fullText = `${subject || ''} ${body || ''}`.toLowerCase().trim();
+  if (!fullText || fullText.length < 5) return false;
+
+  const subjectLower = (subject || '').toLowerCase().trim();
+
+  // 1. Subject-level spam signals (alta confiança)
+  const spamSubjectPatterns = [
+    // Partnership / collaboration cold outreach
+    /\bpartnership\s+opportunit/i,
+    /\bcollaboration\s+opportunit/i,
+    /\bbusiness\s+opportunit/i,
+    /\bpartnership\s+proposal/i,
+    /\bcollaboration\s+proposal/i,
+    /\bproposta\s+de\s+(parceria|colaboração)/i,
+    /\bpropuesta\s+de\s+(asociación|colaboración)/i,
+    // Service offers
+    /\b(free|complimentary)\s+(audit|consultation|analysis|review|assessment)/i,
+    /\b(auditoria|consultoria|análise)\s+(gratuita|grátis)/i,
+    /\b(grow|boost|increase|scale)\s+your\s+(business|sales|revenue|store)/i,
+    /\bcrescer\s+(seu|sua)\s+(negócio|loja|vendas)/i,
+    // Scheduling
+    /\bschedule\s+a\s+(call|meeting|demo|consultation)/i,
+    /\bagendar\s+uma\s+(reunião|chamada|consulta)/i,
+    /\bbook\s+a\s+(call|meeting|demo)/i,
+  ];
+
+  for (const pattern of spamSubjectPatterns) {
+    if (pattern.test(subjectLower)) {
+      console.log(`[isSpamByPattern] Spam subject detected: ${pattern}`);
+      return true;
+    }
+  }
+
+  // 2. Template placeholder detection (emails gerados por template)
+  const templatePlaceholders = /\{(naam|name|nome|nombre|company|empresa|maatskappy|store|loja|tienda|first_name|last_name|business)\}/i;
+  if (templatePlaceholders.test(fullText)) {
+    console.log(`[isSpamByPattern] Template placeholders detected in email`);
+    return true;
+  }
+
+  // 3. Body-level spam patterns (cold outreach em qualquer idioma)
+  const spamBodyPatterns = [
+    // Cold outreach openings (qualquer idioma)
+    /\b(i\s+noticed|i\s+came\s+across|i\s+found)\s+(your|the)\s+(store|shop|website|site)/i,
+    /\b(visitei|analisei|encontrei|vi)\s+(sua|a\s+sua|tua)\s+(loja|site|website)/i,
+    /\b(i\s+believe|i\s+think)\s+there'?s?\s+(a|an)\s+(great|wonderful|amazing)\s+opportunit/i,
+    // Service offers
+    /\b(i\s+can\s+help|we\s+can\s+help|let\s+me\s+help)\s+(you\s+)?(grow|improve|boost|increase|optimize)/i,
+    /\b(posso\s+ajudar|podemos\s+ajudar)\s+(a\s+)?(crescer|melhorar|aumentar|otimizar)/i,
+    // Self-introduction as professional
+    /\bmy\s+name\s+is\s+.{2,30}\s+and\s+i\s+(am|work|specialize|run|own)\b/i,
+    /\bmeu\s+nome\s+é\s+.{2,30}\s+e\s+eu\s+(sou|trabalho|especializo)\b/i,
+    // Afrikaans cold outreach
+    /\bek\s+kontak\s+jou\b/i,
+    /\b(wonderlike|groot)\s+geleentheid\b/i,
+    /\bvoordeel\s+te\s+trek\b/i,
+    /\b'n\s+afspraak\s+skeduleer\b/i,
+    /\bgeagte\b/i,
+    // Meeting scheduling in body
+    /\b(would\s+you\s+be\s+open\s+to|i'?d?\s+love\s+to\s+(schedule|set\s+up|book))\b/i,
+    /\b(gostaria\s+de\s+agendar|posso\s+agendar)\b/i,
+    // B2B / business pitch
+    /\b(work\s+with\s+(brands|stores|businesses)\s+(like|similar))\b/i,
+    /\b(trabalh(o|amos)\s+com\s+(marcas|lojas|empresas)\s+(como|semelhantes))\b/i,
+    /\b(our\s+(agency|company|team|firm)\s+(specializ|focus|help))/i,
+    /\b(nossa\s+(agência|empresa|equipe)\s+(especializ|foc|ajud))/i,
+  ];
+
+  for (const pattern of spamBodyPatterns) {
+    if (pattern.test(fullText)) {
+      console.log(`[isSpamByPattern] Spam body pattern detected: ${pattern}`);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Remove formatação markdown do texto
  */
 function stripMarkdown(text: string): string {
@@ -996,7 +1080,9 @@ CLASSIFY AS SPAM (confidence 0.95+) - THESE ARE NOT REAL CUSTOMERS:
    - ENGLISH: "I took a look at your store and noticed...", "Would you be open to..."
    - PORTUGUESE: "visitei sua loja", "analisei sua loja", "fiquei impressionado com sua loja", "vi sua loja Shopify", "após analisar sua loja"
    - SPANISH: "visité tu tienda", "analicé tu tienda", "me impresionó tu tienda"
+   - AFRIKAANS: "ek kontak jou", "wonderlike geleentheid", "voordeel te trek", "afspraak skeduleer"
    - Generic emails that could be sent to any store (not specific to a purchase)
+   - Emails with TEMPLATE PLACEHOLDERS like {naam}, {name}, {company}, {maatskappy} → ALWAYS SPAM
    - Offering (ANY LANGUAGE):
      * EN: "free audit", "free consultation", "free analysis", "detailed proposal"
      * PT: "auditoria gratuita", "consultoria gratuita", "análise gratuita", "proposta detalhada", "plano de ação"
@@ -1012,11 +1098,15 @@ CLASSIFY AS SPAM (confidence 0.95+) - THESE ARE NOT REAL CUSTOMERS:
 4. OTHER SPAM SIGNALS:
    - No mention of ANY specific order or purchase they made
    - Email sounds like a template (could be sent to hundreds of stores)
+   - Email body or subject contains template placeholders like {naam}, {name}, {company}, {maatskappy} → ALWAYS SPAM
+   - Emails in UNCOMMON LANGUAGES (Afrikaans, etc.) that talk about "opportunities" or "partnerships" → SPAM
+   - Subject line contains "partnership opportunity", "collaboration opportunity", "business opportunity" → SPAM
    - Offering services to "transform your store" / "transformar sua loja" / "transformar tu tienda"
    - Offering to make store a "sales machine" / "máquina de vendas" / "máquina de ventas"
-   - Partnership proposals, collaboration offers
+   - Partnership proposals, collaboration offers, "schedule a meeting/call"
    - B2B sales pitches
    - Emails with long lists of services offered (design, SEO, marketing, ads, etc.)
+   - Email is NOT about: buying a product or asking about an existing order → likely SPAM
 
 4b. SOPHISTICATED COLD OUTREACH (CRITICAL - ALWAYS SPAM):
    These are sales emails disguised as "helpful analysis" - ALWAYS SPAM:
@@ -1234,11 +1324,23 @@ REGRAS CRÍTICAS:
       }
     }
 
+    // CRÍTICO: Verificar spam por padrões ANTES de qualquer override
+    // Isso garante que emails de spam nunca sejam reclassificados
+    const isPatternSpam = isSpamByPattern(emailSubject, emailBody);
+    if (isPatternSpam && result.category !== 'spam') {
+      console.log(`[classifyEmail] Pattern-based spam override: AI said "${result.category}", but patterns detected spam`);
+      result.category = 'spam';
+      result.confidence = 0.98;
+    }
+
     // CRÍTICO: Detectar casos que devem ir para suporte humano
+    // MAS NUNCA sobrescrever classificação de spam!
     const isCancellationRequest = detectCancellationRequest(textToAnalyze);
     const isFrustratedCustomer = detectFrustratedCustomer(textToAnalyze);
     const hasProductProblem = detectProductProblem(textToAnalyze);
 
+    // PROTEÇÃO: Se é spam (por AI ou por padrão), NUNCA mudar a categoria
+    if (result.category !== 'spam') {
     // PRIORIDADE 1: Cliente muito irritado/frustrado → suporte humano direto
     if (isFrustratedCustomer) {
       console.log(`[classifyEmail] Category override to suporte_humano: frustrated customer detected`);
@@ -1263,6 +1365,7 @@ REGRAS CRÍTICAS:
       result.category = 'troca_devolucao_reembolso';
       result.confidence = 0.95;
     }
+    } // Fim do guard: result.category !== 'spam'
 
     console.log(`[classifyEmail] Final language: ${result.language}, category: ${result.category}`);
     return result;
@@ -1271,6 +1374,19 @@ REGRAS CRÍTICAS:
     // Tentar detectar idioma e categoria do texto mesmo no fallback
     const textToAnalyze = `${emailSubject || ''} ${emailBody || ''}`.trim();
     const detectedLanguage = detectLanguageFromText(textToAnalyze) || 'en';
+
+    // Verificar spam por padrões no fallback também
+    const isPatternSpam = isSpamByPattern(emailSubject, emailBody);
+    if (isPatternSpam) {
+      return {
+        category: 'spam',
+        confidence: 0.98,
+        language: detectedLanguage,
+        order_id_found: null,
+        summary: 'Spam detected by pattern matching',
+      };
+    }
+
     const isCancellationRequest = detectCancellationRequest(textToAnalyze);
     const isFrustratedCustomer = detectFrustratedCustomer(textToAnalyze);
     const hasProductProblem = detectProductProblem(textToAnalyze);

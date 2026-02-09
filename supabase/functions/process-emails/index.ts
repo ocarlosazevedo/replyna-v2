@@ -64,6 +64,7 @@ import {
   generateResponse,
   generateDataRequestMessage,
   generateHumanFallbackMessage,
+  isSpamByPattern,
 } from '../_shared/anthropic.ts';
 
 // Constantes - ESCALA AUMENTADA
@@ -923,7 +924,54 @@ async function processMessageInternal(
 
   const startTime = Date.now();
 
-  // 1. Verificar créditos
+  // 1. Limpar corpo do email (movido para antes do crédito para permitir spam check)
+  let cleanBody = cleanEmailBody(message.body_text || '', message.body_html || '');
+
+  if ((!cleanBody || cleanBody.trim().length < 3) && message.subject && message.subject.trim().length > 3) {
+    cleanBody = message.subject;
+  }
+
+  if (!cleanBody || cleanBody.trim().length < 3) {
+    await updateMessage(message.id, {
+      status: 'failed',
+      category: 'spam', // Emails vazios são tratados como spam
+      error_message: 'Corpo e assunto do email vazios',
+    });
+    return 'skipped';
+  }
+
+  // 1.1 PRÉ-CLASSIFICAÇÃO: Detectar spam por padrões ANTES de gastar créditos
+  if (isSpamByPattern(message.subject || '', cleanBody)) {
+    console.log(`[Shop ${shop.name}] Msg ${message.id} detectada como spam por padrão (pré-AI)`);
+    await updateMessage(message.id, {
+      status: 'failed',
+      category: 'spam',
+      category_confidence: 0.98,
+      error_message: 'Spam detectado por padrão (cold outreach/template)',
+      processed_at: new Date().toISOString(),
+    });
+
+    await updateConversation(conversation.id, {
+      category: 'spam',
+      status: 'closed',
+    });
+
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'spam_pattern_detected',
+      event_data: {
+        subject: message.subject,
+        body_preview: cleanBody.substring(0, 150),
+        reason: 'Pre-AI pattern-based spam detection',
+      },
+    });
+
+    return 'spam';
+  }
+
+  // 2. Verificar créditos
   const user = await getUserById(shop.user_id);
   if (!user) {
     await updateMessage(message.id, {
@@ -944,22 +992,6 @@ async function processMessageInternal(
     });
     await handleCreditsExhausted(shop, user, message);
     return 'pending_credits';
-  }
-
-  // 2. Limpar corpo do email
-  let cleanBody = cleanEmailBody(message.body_text || '', message.body_html || '');
-
-  if ((!cleanBody || cleanBody.trim().length < 3) && message.subject && message.subject.trim().length > 3) {
-    cleanBody = message.subject;
-  }
-
-  if (!cleanBody || cleanBody.trim().length < 3) {
-    await updateMessage(message.id, {
-      status: 'failed',
-      category: 'spam', // Emails vazios são tratados como spam
-      error_message: 'Corpo e assunto do email vazios',
-    });
-    return 'skipped';
   }
 
   // 2.1 Verificar se é apenas uma mensagem de agradecimento/confirmação

@@ -59,6 +59,7 @@ import {
   generateResponse,
   generateDataRequestMessage,
   generateHumanFallbackMessage,
+  isSpamByPattern,
 } from '../_shared/anthropic.ts';
 
 // Constantes
@@ -496,6 +497,38 @@ async function processMessage(
   await updateMessage(message.id, { status: 'processing' });
 
   const startTime = Date.now();
+
+  // 0.5 PRÉ-CLASSIFICAÇÃO: Detectar spam por padrões ANTES de gastar créditos
+  const preCleanBody = cleanEmailBody(message.body_text || '', message.body_html || '');
+  if (isSpamByPattern(message.subject || '', preCleanBody || message.body_text || '')) {
+    console.log(`[Worker] Msg ${message.id} detectada como spam por padrão (pré-AI)`);
+    await updateMessage(message.id, {
+      status: 'failed',
+      category: 'spam',
+      category_confidence: 0.98,
+      error_message: 'Spam detectado por padrão (cold outreach/template)',
+      processed_at: new Date().toISOString(),
+    });
+
+    await updateConversation(conversation.id, {
+      category: 'spam',
+      status: 'closed',
+    });
+
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'spam_pattern_detected',
+      event_data: {
+        subject: message.subject,
+        body_preview: (preCleanBody || message.body_text || '').substring(0, 150),
+        reason: 'Pre-AI pattern-based spam detection',
+      },
+    });
+
+    return 'spam';
+  }
 
   // 1. Verificar créditos
   const user = await getUserById(shop.user_id);
