@@ -248,6 +248,8 @@ const styles = `
   .mcw-page {
     min-height: 100vh;
     min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
     background: #050508;
     color: #fff;
     font-family: "Inter", -apple-system, sans-serif;
@@ -329,7 +331,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: calc(100vh - 180px);
+    flex: 1;
     padding: 24px 20px;
   }
 
