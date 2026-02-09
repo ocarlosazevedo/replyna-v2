@@ -1328,8 +1328,8 @@ const styles = `
         "pain         form"
         "instructor   form"
         "benefits     form"
-        "testimonials form"
-        "faq          form";
+        "testimonials testimonials"
+        "faq          faq";
       gap: 0 60px;
       max-width: 1100px;
       padding: 0 48px 64px;
@@ -1382,20 +1382,27 @@ const styles = `
 
     .mc-testimonials {
       grid-area: testimonials;
+      padding-top: 40px;
     }
 
     .mc-testimonial-list {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
     }
 
     .mc-testimonial-card:last-child {
-      grid-column: 1 / -1;
+      grid-column: auto;
     }
 
     .mc-faq {
       grid-area: faq;
+    }
+
+    .mc-faq-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
 
     .mc-section-title {
