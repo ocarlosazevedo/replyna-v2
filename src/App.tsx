@@ -17,6 +17,7 @@ import Account from './pages/Account'
 import ConversationDetails from './pages/ConversationDetails'
 import LandingPage from './pages/LandingPage'
 import Masterclass from './pages/Masterclass'
+import MasterclassWatch from './pages/MasterclassWatch'
 
 // Verifica se estamos no domínio da Landing Page (replyna.me sem subdomain)
 const isLandingDomain = () => {
@@ -147,6 +148,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/masterclass" element={<Masterclass />} />
+          <Route path="/masterclass/assistir" element={<MasterclassWatch />} />
           <Route path="*" element={<LandingPage />} />
         </Routes>
       </BrowserRouter>
