@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Play,
-  CheckCircle2,
+  AlertCircle,
 
   ChevronDown,
   Loader2,
@@ -108,7 +108,6 @@ export default function Masterclass() {
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [showSticky, setShowSticky] = useState(false)
-  const [checkedPains, setCheckedPains] = useState<boolean[]>([false, false, false, false])
   const formRef = useRef<HTMLDivElement>(null)
   const countdown = useCountdown()
 
@@ -358,7 +357,6 @@ export default function Masterclass() {
         {/* ===== PAIN POINTS ===== */}
         <div className="mc-pain-section">
           <h2 className="mc-section-title">Você se identifica com algo abaixo?</h2>
-          <p className="mc-pain-subtitle">Selecione os itens que se aplicam a você:</p>
           <div className="mc-pain-list">
             {[
               'Sua taxa de chargeback está acima de 1%',
@@ -366,25 +364,16 @@ export default function Masterclass() {
               'Perde horas toda semana respondendo contestações',
               'Sente que está perdendo dinheiro com disputas'
             ].map((text, i) => (
-              <button
-                key={i}
-                type="button"
-                className={`mc-pain-item${checkedPains[i] ? ' mc-pain-checked' : ''}`}
-                onClick={() => setCheckedPains(prev => prev.map((v, idx) => idx === i ? !v : v))}
-              >
-                <span className="mc-pain-checkbox">
-                  {checkedPains[i] && <CheckCircle2 size={18} />}
+              <div key={i} className="mc-pain-item mc-pain-static">
+                <span className="mc-pain-icon">
+                  <AlertCircle size={18} />
                 </span>
                 <span>{text}</span>
-              </button>
+              </div>
             ))}
           </div>
           <p className="mc-pain-cta">
-            {checkedPains.filter(Boolean).length === 0
-              ? 'Marque os itens que se aplicam a você.'
-              : checkedPains.filter(Boolean).length >= 1
-                ? <>Você marcou <strong>{checkedPains.filter(Boolean).length} {checkedPains.filter(Boolean).length === 1 ? 'item' : 'itens'}</strong> — essa masterclass foi feita para você.</>
-                : ''}
+            Se você marcaria ao menos <strong>1 item</strong>, essa masterclass foi feita para você.
           </p>
         </div>
 
@@ -843,50 +832,16 @@ const styles = `
     border-radius: 12px;
     font-size: 14px;
     color: rgba(255,255,255,0.75);
-    cursor: pointer;
-    transition: all 0.2s ease;
     text-align: left;
-    width: 100%;
-    font-family: inherit;
   }
 
-  .mc-pain-item:hover {
-    background: rgba(255,255,255,0.05);
-    border-color: rgba(255,255,255,0.14);
-  }
-
-  .mc-pain-checked {
-    background: rgba(139, 92, 246, 0.1);
-    border-color: rgba(139, 92, 246, 0.35);
-    color: rgba(255,255,255,0.95);
-  }
-
-  .mc-pain-checked:hover {
-    background: rgba(139, 92, 246, 0.14);
-    border-color: rgba(139, 92, 246, 0.45);
-  }
-
-  .mc-pain-checkbox {
+  .mc-pain-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
-    border: 2px solid rgba(255,255,255,0.15);
     flex-shrink: 0;
-    transition: all 0.2s ease;
-    background: transparent;
-  }
-
-  .mc-pain-checked .mc-pain-checkbox {
-    border-color: #8b5cf6;
-    background: #8b5cf6;
-    color: #fff;
-  }
-
-  .mc-pain-checkbox svg {
-    flex-shrink: 0;
+    color: #f59e0b;
+    opacity: 0.8;
   }
 
   .mc-pain-cta {
