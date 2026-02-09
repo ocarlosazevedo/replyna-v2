@@ -21,7 +21,6 @@ export default function Masterclass() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [errors, setErrors] = useState<{[key: string]: string}>({})
 
-  // Scroll to top on load
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
@@ -42,32 +41,32 @@ export default function Masterclass() {
 
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {}
-    
+
     if (!formData.name.trim()) {
       newErrors.name = 'Digite seu nome'
     }
-    
+
     if (!formData.email.trim()) {
-      newErrors.email = 'Digite seu email'
+      newErrors.email = 'Digite seu e-mail'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email inválido'
+      newErrors.email = 'E-mail inválido'
     }
-    
+
     if (!formData.whatsapp.trim()) {
       newErrors.whatsapp = 'Digite seu WhatsApp'
     } else if (formData.whatsapp.replace(/\D/g, '').length < 10) {
       newErrors.whatsapp = 'WhatsApp inválido'
     }
-    
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateForm()) return
-    
+
     setIsSubmitting(true)
 
     try {
@@ -101,22 +100,18 @@ export default function Masterclass() {
     return (
       <div className="mc-page">
         <style>{styles}</style>
-        
+
         <div className="mc-thank-you">
-          {/* Success Icon */}
           <div className="mc-success-icon">
             <CheckCircle2 size={48} color="#22c55e" />
           </div>
 
-          <h1 className="mc-thank-title">
-            Acesso Liberado!
-          </h1>
-          
+          <h1 className="mc-thank-title">Acesso Liberado!</h1>
+
           <p className="mc-thank-subtitle">
-            Assista a masterclass completa agora
+            Assista à masterclass completa agora
           </p>
 
-          {/* Video */}
           <div className="mc-video-wrapper">
             <div className="mc-video-container">
               <iframe
@@ -128,7 +123,6 @@ export default function Masterclass() {
             </div>
           </div>
 
-          {/* CTA */}
           <div className="mc-thank-cta">
             <a href="https://app.replyna.me/register" className="mc-btn-cta">
               Quero testar a Replyna
@@ -148,173 +142,181 @@ export default function Masterclass() {
     <div className="mc-page">
       <style>{styles}</style>
 
-      {/* ===== MOBILE FIRST: HERO + FORM ===== */}
-      <section className="mc-hero">
-        {/* Logo */}
-        <img 
-          src="/replyna-logo.webp" 
-          alt="Replyna" 
+      {/* Header */}
+      <header className="mc-header">
+        <img
+          src="/replyna-logo.webp"
+          alt="Replyna"
           className="mc-logo"
         />
+      </header>
 
-        {/* Badge */}
-        <div className="mc-badge">
-          <AlertTriangle size={14} />
-          <span>Masterclass Gratuita</span>
-        </div>
-
-        {/* Headline - Mobile First */}
-        <h1 className="mc-headline">
-          Como Reduzir <span className="mc-highlight">90% dos Chargebacks</span> e Proteger sua Conta
-        </h1>
-
-        {/* Subheadline */}
-        <p className="mc-subheadline">
-          O método usado por operações de 7 dígitos
-        </p>
-
-        {/* ===== FORMULÁRIO ===== */}
-        <form onSubmit={handleSubmit} className="mc-form">
-          <div className="mc-field">
-            <label htmlFor="name">Seu nome</label>
-            <input
-              id="name"
-              type="text"
-              placeholder="Ex: João"
-              value={formData.name}
-              onChange={e => {
-                setFormData(prev => ({ ...prev, name: e.target.value }))
-                if (errors.name) setErrors(prev => ({ ...prev, name: '' }))
-              }}
-              className={errors.name ? 'mc-input-error' : ''}
-            />
-            {errors.name && <span className="mc-error">{errors.name}</span>}
+      {/* Main Layout - Grid on desktop, flex column on mobile */}
+      <div className="mc-layout">
+        {/* Left Column: Hero copy */}
+        <div className="mc-hero-text">
+          <div className="mc-badge">
+            <AlertTriangle size={14} />
+            <span>Masterclass Gratuita</span>
           </div>
 
-          <div className="mc-field">
-            <label htmlFor="email">Seu melhor e-mail</label>
-            <input
-              id="email"
-              type="email"
-              placeholder="Ex: joao@email.com"
-              value={formData.email}
-              onChange={e => {
-                setFormData(prev => ({ ...prev, email: e.target.value }))
-                if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
-              }}
-              className={errors.email ? 'mc-input-error' : ''}
-            />
-            {errors.email && <span className="mc-error">{errors.email}</span>}
-          </div>
+          <h1 className="mc-headline">
+            Como Reduzir{' '}
+            <span className="mc-highlight">90% dos Chargebacks</span>{' '}
+            e Proteger sua Conta
+          </h1>
 
-          <div className="mc-field">
-            <label htmlFor="whatsapp">WhatsApp</label>
-            <input
-              id="whatsapp"
-              type="tel"
-              placeholder="(00) 00000-0000"
-              value={formData.whatsapp}
-              onChange={handleWhatsAppChange}
-              className={errors.whatsapp ? 'mc-input-error' : ''}
-            />
-            {errors.whatsapp && <span className="mc-error">{errors.whatsapp}</span>}
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="mc-btn-submit"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 size={20} className="mc-spin" />
-                Liberando acesso...
-              </>
-            ) : (
-              <>
-                <Play size={20} fill="#fff" />
-                QUERO ASSISTIR AGORA
-              </>
-            )}
-          </button>
-
-          <p className="mc-privacy">
-            <Lock size={12} />
-            Seus dados estão seguros
+          <p className="mc-subheadline">
+            O método usado por operações de 7 dígitos
           </p>
-        </form>
-
-        {/* Instructor Mini */}
-        <div className="mc-instructor-mini">
-          <img src="/influencers/carlos-azevedo.webp" alt="Carlos Azevedo" />
-          <div>
-            <strong>Carlos Azevedo</strong>
-            <span>Mentor de +1.000 alunos</span>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== BELOW FOLD: BENEFÍCIOS ===== */}
-      <section className="mc-benefits">
-        <h2 className="mc-section-title">O que você vai aprender:</h2>
-        
-        <div className="mc-benefit-list">
-          <div className="mc-benefit-item">
-            <div className="mc-benefit-icon">
-              <TrendingDown size={20} />
-            </div>
-            <div>
-              <strong>Os 7 pilares anti-chargeback</strong>
-              <span>Método completo para proteger sua operação</span>
-            </div>
-          </div>
-
-          <div className="mc-benefit-item">
-            <div className="mc-benefit-icon">
-              <Users size={20} />
-            </div>
-            <div>
-              <strong>Por que 71% dos chargebacks não são fraude</strong>
-              <span>Entenda a real causa dos seus problemas</span>
-            </div>
-          </div>
-
-          <div className="mc-benefit-item">
-            <div className="mc-benefit-icon">
-              <Clock size={20} />
-            </div>
-            <div>
-              <strong>A regra dos 2 minutos</strong>
-              <span>O segredo que muda tudo no atendimento</span>
-            </div>
-          </div>
         </div>
 
-        {/* Stats */}
-        <div className="mc-stats">
-          <div className="mc-stat">
-            <span className="mc-stat-value">1.000+</span>
-            <span className="mc-stat-label">Alunos</span>
-          </div>
-          <div className="mc-stat">
-            <span className="mc-stat-value">90%</span>
-            <span className="mc-stat-label">Redução</span>
-          </div>
-          <div className="mc-stat">
-            <span className="mc-stat-value">7+</span>
-            <span className="mc-stat-label">Anos exp.</span>
+        {/* Right Column: Form */}
+        <div className="mc-form-section" id="mc-form">
+          <form onSubmit={handleSubmit} className="mc-form">
+            <div className="mc-field">
+              <label htmlFor="name">Seu nome</label>
+              <input
+                id="name"
+                type="text"
+                placeholder="Ex: João"
+                value={formData.name}
+                onChange={e => {
+                  setFormData(prev => ({ ...prev, name: e.target.value }))
+                  if (errors.name) setErrors(prev => ({ ...prev, name: '' }))
+                }}
+                className={errors.name ? 'mc-input-error' : ''}
+              />
+              {errors.name && <span className="mc-error">{errors.name}</span>}
+            </div>
+
+            <div className="mc-field">
+              <label htmlFor="email">Seu melhor e-mail</label>
+              <input
+                id="email"
+                type="email"
+                placeholder="Ex: joao@email.com"
+                value={formData.email}
+                onChange={e => {
+                  setFormData(prev => ({ ...prev, email: e.target.value }))
+                  if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
+                }}
+                className={errors.email ? 'mc-input-error' : ''}
+              />
+              {errors.email && <span className="mc-error">{errors.email}</span>}
+            </div>
+
+            <div className="mc-field">
+              <label htmlFor="whatsapp">WhatsApp</label>
+              <input
+                id="whatsapp"
+                type="tel"
+                placeholder="(00) 00000-0000"
+                value={formData.whatsapp}
+                onChange={handleWhatsAppChange}
+                className={errors.whatsapp ? 'mc-input-error' : ''}
+              />
+              {errors.whatsapp && <span className="mc-error">{errors.whatsapp}</span>}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="mc-btn-submit"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={20} className="mc-spin" />
+                  Liberando acesso...
+                </>
+              ) : (
+                <>
+                  <Play size={20} fill="#fff" />
+                  QUERO ASSISTIR AGORA
+                </>
+              )}
+            </button>
+
+            <p className="mc-privacy">
+              <Lock size={12} />
+              Seus dados estão seguros
+            </p>
+          </form>
+        </div>
+
+        {/* Instructor */}
+        <div className="mc-instructor-wrap">
+          <div className="mc-instructor-mini">
+            <img src="/influencers/carlos-azevedo.webp" alt="Carlos Azevedo" />
+            <div>
+              <strong>Carlos Azevedo</strong>
+              <span>Mentor de +1.000 alunos</span>
+            </div>
           </div>
         </div>
 
-        {/* CTA Repeat */}
-        <button 
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="mc-btn-secondary"
-        >
-          <Play size={18} fill="#fff" />
-          Quero assistir grátis
-        </button>
-      </section>
+        {/* Benefits */}
+        <div className="mc-benefits">
+          <h2 className="mc-section-title">O que você vai aprender:</h2>
+
+          <div className="mc-benefit-list">
+            <div className="mc-benefit-item">
+              <div className="mc-benefit-icon">
+                <TrendingDown size={20} />
+              </div>
+              <div>
+                <strong>Os 7 pilares anti-chargeback</strong>
+                <span>Método completo para proteger sua operação</span>
+              </div>
+            </div>
+
+            <div className="mc-benefit-item">
+              <div className="mc-benefit-icon">
+                <Users size={20} />
+              </div>
+              <div>
+                <strong>Por que 71% dos chargebacks não são fraude</strong>
+                <span>Entenda a real causa dos seus problemas</span>
+              </div>
+            </div>
+
+            <div className="mc-benefit-item">
+              <div className="mc-benefit-icon">
+                <Clock size={20} />
+              </div>
+              <div>
+                <strong>A regra dos 2 minutos</strong>
+                <span>O segredo que muda tudo no atendimento</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="mc-stats">
+            <div className="mc-stat">
+              <span className="mc-stat-value">1.000+</span>
+              <span className="mc-stat-label">Alunos</span>
+            </div>
+            <div className="mc-stat">
+              <span className="mc-stat-value">90%</span>
+              <span className="mc-stat-label">Redução</span>
+            </div>
+            <div className="mc-stat">
+              <span className="mc-stat-value">7+</span>
+              <span className="mc-stat-label">Anos de exp.</span>
+            </div>
+          </div>
+
+          {/* CTA Repeat - only visible on mobile */}
+          <button
+            onClick={() => document.getElementById('mc-form')?.scrollIntoView({ behavior: 'smooth' })}
+            className="mc-btn-secondary"
+          >
+            <Play size={18} fill="#fff" />
+            Quero assistir grátis
+          </button>
+        </div>
+      </div>
 
       {/* Footer */}
       <footer className="mc-footer">
@@ -339,22 +341,34 @@ const styles = `
     -webkit-font-smoothing: antialiased;
   }
 
-  /* ===== HERO SECTION ===== */
-  .mc-hero {
-    padding: 24px 20px 32px;
+  /* ===== HEADER ===== */
+  .mc-header {
+    padding: 20px;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    max-width: 440px;
-    margin: 0 auto;
+    justify-content: center;
   }
 
   .mc-logo {
     height: 28px;
     width: auto;
-    margin-bottom: 20px;
     opacity: 0.9;
+  }
+
+  /* ===== LAYOUT (Mobile default: flex column) ===== */
+  .mc-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 440px;
+    margin: 0 auto;
+    padding: 0 20px 32px;
+  }
+
+  /* ===== HERO TEXT ===== */
+  .mc-hero-text {
+    text-align: center;
+    margin-bottom: 24px;
+    width: 100%;
   }
 
   .mc-badge {
@@ -389,16 +403,20 @@ const styles = `
   .mc-subheadline {
     font-size: 16px;
     color: rgba(255,255,255,0.6);
-    margin: 0 0 24px;
+    margin: 0;
   }
 
-  /* ===== FORM ===== */
+  /* ===== FORM SECTION ===== */
+  .mc-form-section {
+    width: 100%;
+    margin-bottom: 24px;
+  }
+
   .mc-form {
     width: 100%;
     display: flex;
     flex-direction: column;
     gap: 14px;
-    margin-bottom: 24px;
   }
 
   .mc-field {
@@ -421,8 +439,9 @@ const styles = `
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 12px;
     color: #fff;
-    font-size: 16px; /* Prevents zoom on iOS */
+    font-size: 16px;
     transition: all 0.2s;
+    box-sizing: border-box;
   }
 
   .mc-field input::placeholder {
@@ -490,7 +509,12 @@ const styles = `
     margin: 0;
   }
 
-  /* ===== INSTRUCTOR MINI ===== */
+  /* ===== INSTRUCTOR ===== */
+  .mc-instructor-wrap {
+    width: 100%;
+    margin-bottom: 32px;
+  }
+
   .mc-instructor-mini {
     display: flex;
     align-items: center;
@@ -499,7 +523,6 @@ const styles = `
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
-    width: 100%;
   }
 
   .mc-instructor-mini img {
@@ -526,12 +549,11 @@ const styles = `
     color: rgba(255,255,255,0.5);
   }
 
-  /* ===== BENEFITS SECTION ===== */
+  /* ===== BENEFITS ===== */
   .mc-benefits {
-    padding: 40px 20px;
+    width: 100%;
+    padding-top: 32px;
     border-top: 1px solid rgba(255,255,255,0.06);
-    max-width: 440px;
-    margin: 0 auto;
   }
 
   .mc-section-title {
@@ -732,28 +754,39 @@ const styles = `
     color: #22c55e;
   }
 
-  /* ===== DESKTOP (min-width: 768px) ===== */
+  /* ===== TABLET (768px - 1023px) ===== */
   @media (min-width: 768px) {
-    .mc-hero {
-      padding: 48px 24px;
-      max-width: 520px;
+    .mc-layout {
+      max-width: 560px;
+      padding: 0 24px 48px;
     }
 
     .mc-headline {
       font-size: 36px;
     }
 
-    .mc-benefits {
-      padding: 60px 24px;
-      max-width: 520px;
+    .mc-subheadline {
+      font-size: 18px;
     }
 
     .mc-benefit-list {
       gap: 20px;
     }
 
+    .mc-benefit-item strong {
+      font-size: 15px;
+    }
+
+    .mc-benefit-item span {
+      font-size: 14px;
+    }
+
     .mc-stats {
       gap: 48px;
+    }
+
+    .mc-stat-value {
+      font-size: 28px;
     }
 
     .mc-thank-you {
@@ -765,26 +798,136 @@ const styles = `
     }
   }
 
-  /* ===== LARGE DESKTOP (min-width: 1024px) ===== */
+  /* ===== DESKTOP (1024px+) ===== */
   @media (min-width: 1024px) {
-    .mc-hero {
-      padding: 64px 24px;
-      max-width: 600px;
+    .mc-header {
+      padding: 32px 48px;
+      justify-content: flex-start;
+    }
+
+    .mc-logo {
+      height: 32px;
+    }
+
+    /* Grid layout: 2 columns */
+    .mc-layout {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      grid-template-rows: auto auto 1fr;
+      grid-template-areas:
+        "hero       form"
+        "instructor form"
+        "benefits   form";
+      gap: 0 60px;
+      max-width: 1100px;
+      padding: 0 48px 64px;
+      align-items: start;
+    }
+
+    .mc-hero-text {
+      grid-area: hero;
+      text-align: left;
+      margin-bottom: 28px;
     }
 
     .mc-headline {
+      font-size: 46px;
+      line-height: 1.15;
+    }
+
+    .mc-subheadline {
+      font-size: 18px;
+    }
+
+    /* Form card in sidebar */
+    .mc-form-section {
+      grid-area: form;
+      position: sticky;
+      top: 32px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 0;
+    }
+
+    .mc-instructor-wrap {
+      grid-area: instructor;
+      margin-bottom: 28px;
+    }
+
+    .mc-benefits {
+      grid-area: benefits;
+      padding-top: 28px;
+    }
+
+    .mc-section-title {
+      text-align: left;
+      font-size: 20px;
+    }
+
+    .mc-benefit-item strong {
+      font-size: 15px;
+    }
+
+    .mc-benefit-item span {
+      font-size: 14px;
+    }
+
+    .mc-stats {
+      justify-content: flex-start;
+      gap: 48px;
+    }
+
+    /* Hide mobile CTA on desktop (form always visible) */
+    .mc-btn-secondary {
+      display: none;
+    }
+
+    /* Hover states (desktop) */
+    .mc-btn-submit:hover:not(:disabled) {
+      background: linear-gradient(135deg, #3b5fd9 0%, #3451c4 100%);
+      box-shadow: 0 8px 24px rgba(70, 114, 236, 0.3);
+    }
+
+    .mc-btn-cta:hover {
+      box-shadow: 0 8px 24px rgba(70, 114, 236, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .mc-field input:hover {
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    /* Thank you page */
+    .mc-thank-you {
+      padding: 64px 24px;
+      max-width: 700px;
+    }
+
+    .mc-thank-title {
       font-size: 42px;
     }
 
-    .mc-form {
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
+    .mc-thank-subtitle {
+      font-size: 18px;
     }
 
-    .mc-instructor-mini {
-      max-width: 400px;
-      margin: 0 auto;
+    .mc-footer {
+      padding: 32px 48px;
+    }
+  }
+
+  /* ===== LARGE DESKTOP (1280px+) ===== */
+  @media (min-width: 1280px) {
+    .mc-layout {
+      grid-template-columns: 1fr 440px;
+      gap: 0 80px;
+      max-width: 1200px;
+    }
+
+    .mc-headline {
+      font-size: 52px;
     }
   }
 `
