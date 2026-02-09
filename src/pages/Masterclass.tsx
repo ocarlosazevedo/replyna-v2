@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Play,
   CheckCircle2,
-  ChevronRight,
+
   ChevronDown,
   Loader2,
   Lock,
@@ -104,7 +104,6 @@ export default function Masterclass() {
     whatsapp: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [showSticky, setShowSticky] = useState(false)
@@ -185,12 +184,15 @@ export default function Masterclass() {
       const data = await response.json()
 
       if (response.ok && data.success) {
-        setIsSubmitted(true)
-        window.scrollTo(0, 0)
+        window.location.href = '/masterclass/assistir'
       } else {
-        alert('Erro ao cadastrar. Tente novamente.')
+        console.error('API error:', data)
+        alert(data.code === 'MISSING_API_KEY'
+          ? 'Erro de configuração do servidor. Contate o suporte.'
+          : `Erro ao cadastrar: ${data.error || 'Tente novamente.'}`)
       }
-    } catch {
+    } catch (err) {
+      console.error('Network error:', err)
       alert('Erro de conexão. Tente novamente.')
     } finally {
       setIsSubmitting(false)
@@ -199,48 +201,6 @@ export default function Masterclass() {
 
   const scrollToForm = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  // ==================== PÁGINA DE OBRIGADO ====================
-  if (isSubmitted) {
-    return (
-      <div className="mc-page">
-        <style>{styles}</style>
-
-        <div className="mc-thank-you">
-          <div className="mc-success-icon">
-            <CheckCircle2 size={48} color="#22c55e" />
-          </div>
-
-          <h1 className="mc-thank-title">Acesso Liberado!</h1>
-
-          <p className="mc-thank-subtitle">
-            Assista à masterclass completa agora
-          </p>
-
-          <div className="mc-video-wrapper">
-            <div className="mc-video-container">
-              <iframe
-                src="https://www.youtube.com/embed/VIDEO_ID_AQUI?rel=0&modestbranding=1"
-                title="Masterclass Anti-Chargeback"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
-
-          <div className="mc-thank-cta">
-            <a href="https://app.replyna.me/register" className="mc-btn-cta">
-              Quero testar a Replyna
-              <ChevronRight size={20} />
-            </a>
-            <p className="mc-coupon">
-              Cupom <strong>CARLOS10</strong> = 10% off
-            </p>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   // ==================== PÁGINA DE CAPTURA ====================
@@ -1342,87 +1302,6 @@ const styles = `
     color: rgba(255,255,255,0.3);
   }
 
-  /* ===== THANK YOU PAGE ===== */
-  .mc-thank-you {
-    padding: 32px 20px;
-    max-width: 560px;
-    margin: 0 auto;
-    text-align: center;
-  }
-
-  .mc-success-icon {
-    margin-bottom: 16px;
-  }
-
-  .mc-thank-title {
-    font-size: 28px;
-    font-weight: 800;
-    margin: 0 0 8px;
-  }
-
-  .mc-thank-subtitle {
-    font-size: 16px;
-    color: rgba(255,255,255,0.6);
-    margin: 0 0 24px;
-  }
-
-  .mc-video-wrapper {
-    margin-bottom: 24px;
-  }
-
-  .mc-video-container {
-    position: relative;
-    width: 100%;
-    padding-bottom: 56.25%;
-    border-radius: 16px;
-    overflow: hidden;
-    background: rgba(255,255,255,0.05);
-  }
-
-  .mc-video-container iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border: none;
-  }
-
-  .mc-thank-cta {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .mc-btn-cta {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 18px 32px;
-    background: linear-gradient(135deg, #4672ec 0%, #3b5fd9 100%);
-    border-radius: 12px;
-    color: #fff;
-    font-size: 16px;
-    font-weight: 700;
-    text-decoration: none;
-    transition: all 0.2s;
-  }
-
-  .mc-btn-cta:active {
-    transform: scale(0.98);
-  }
-
-  .mc-coupon {
-    font-size: 14px;
-    color: rgba(255,255,255,0.5);
-    margin: 0;
-  }
-
-  .mc-coupon strong {
-    color: #22c55e;
-  }
-
   /* ===== TABLET (768px - 1023px) ===== */
   @media (min-width: 768px) {
     .mc-layout {
@@ -1464,13 +1343,6 @@ const styles = `
       grid-column: 1 / -1;
     }
 
-    .mc-thank-you {
-      padding: 48px 24px;
-    }
-
-    .mc-thank-title {
-      font-size: 36px;
-    }
   }
 
   /* ===== DESKTOP (1024px+) ===== */
@@ -1617,11 +1489,6 @@ const styles = `
       box-shadow: 0 8px 24px rgba(70, 114, 236, 0.3);
     }
 
-    .mc-btn-cta:hover {
-      box-shadow: 0 8px 24px rgba(70, 114, 236, 0.3);
-      transform: translateY(-1px);
-    }
-
     .mc-field input:hover {
       border-color: rgba(255,255,255,0.2);
     }
@@ -1638,19 +1505,6 @@ const styles = `
       color: rgba(255,255,255,0.5);
     }
 
-    /* Thank you page */
-    .mc-thank-you {
-      padding: 64px 24px;
-      max-width: 700px;
-    }
-
-    .mc-thank-title {
-      font-size: 42px;
-    }
-
-    .mc-thank-subtitle {
-      font-size: 18px;
-    }
   }
 
   /* ===== LARGE DESKTOP (1280px+) ===== */
