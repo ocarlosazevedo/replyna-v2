@@ -14,6 +14,7 @@ import {
   Star,
   Shield
 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 // ==================== DATA ====================
 
@@ -171,7 +172,23 @@ export default function Masterclass() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch('/api/subscribe', {
+      // 1. Salvar no Supabase (primário - sempre funciona)
+      const { error: dbError } = await supabase
+        .from('masterclass_leads')
+        .insert({
+          name: formData.name.trim(),
+          email: formData.email.toLowerCase().trim(),
+          whatsapp: formData.whatsapp.replace(/\D/g, '')
+        })
+
+      if (dbError) {
+        console.error('Supabase error:', dbError)
+        alert('Erro ao cadastrar. Tente novamente.')
+        return
+      }
+
+      // 2. Sync com Brevo em background (não bloqueia o redirect)
+      fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -179,20 +196,12 @@ export default function Masterclass() {
           email: formData.email,
           whatsapp: formData.whatsapp
         })
-      })
+      }).catch(() => {}) // fire-and-forget
 
-      const data = await response.json()
-
-      if (response.ok && data.success) {
-        window.location.href = '/masterclass/assistir'
-      } else {
-        console.error('API error:', data)
-        alert(data.code === 'MISSING_API_KEY'
-          ? 'Erro de configuração do servidor. Contate o suporte.'
-          : `Erro ao cadastrar: ${data.error || 'Tente novamente.'}`)
-      }
+      // 3. Redirect imediato após Supabase salvar
+      window.location.href = '/masterclass/assistir'
     } catch (err) {
-      console.error('Network error:', err)
+      console.error('Submit error:', err)
       alert('Erro de conexão. Tente novamente.')
     } finally {
       setIsSubmitting(false)
