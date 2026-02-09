@@ -172,23 +172,8 @@ export default function Masterclass() {
     setIsSubmitting(true)
 
     try {
-      // 1. Salvar no Supabase (primário - sempre funciona)
-      const { error: dbError } = await supabase
-        .from('masterclass_leads')
-        .insert({
-          name: formData.name.trim(),
-          email: formData.email.toLowerCase().trim(),
-          whatsapp: formData.whatsapp.replace(/\D/g, '')
-        })
-
-      if (dbError) {
-        console.error('Supabase error:', dbError)
-        alert('Erro ao cadastrar. Tente novamente.')
-        return
-      }
-
-      // 2. Sync com Brevo em background (não bloqueia o redirect)
-      fetch('/api/subscribe', {
+      // 1. Salvar no Brevo (primário)
+      const response = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -196,9 +181,27 @@ export default function Masterclass() {
           email: formData.email,
           whatsapp: formData.whatsapp
         })
-      }).catch(() => {}) // fire-and-forget
+      })
 
-      // 3. Redirect imediato após Supabase salvar
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        console.error('Brevo error:', data)
+        alert('Erro ao cadastrar. Tente novamente.')
+        return
+      }
+
+      // 2. Backup no Supabase (não bloqueia o redirect)
+      supabase
+        .from('masterclass_leads')
+        .insert({
+          name: formData.name.trim(),
+          email: formData.email.toLowerCase().trim(),
+          whatsapp: formData.whatsapp.replace(/\D/g, '')
+        })
+        .then(() => {}) // fire-and-forget
+
+      // 3. Redirect após Brevo salvar
       window.location.href = '/masterclass/assistir'
     } catch (err) {
       console.error('Submit error:', err)
