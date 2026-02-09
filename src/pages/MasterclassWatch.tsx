@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ChevronRight, LogOut, Mail, Loader2, Play, Lock, AlertCircle } from 'lucide-react'
+import { ChevronRight, LogOut, Mail, Loader2, Play, AlertCircle } from 'lucide-react'
 
 export default function MasterclassWatch() {
   const [authenticated, setAuthenticated] = useState(false)
@@ -95,9 +95,7 @@ export default function MasterclassWatch() {
 
         <div className="mcw-login-wrapper">
           <div className="mcw-login-card">
-            <div className="mcw-login-icon">
-              <Lock size={28} />
-            </div>
+            <img src="/replyna-logo.webp" alt="Replyna" className="mcw-login-logo" />
 
             <h1 className="mcw-login-title">Área de Membros</h1>
             <p className="mcw-login-subtitle">
@@ -349,16 +347,12 @@ const styles = `
     text-align: center;
   }
 
-  .mcw-login-icon {
-    width: 56px;
-    height: 56px;
+  .mcw-login-logo {
+    height: 36px;
+    width: auto;
     margin: 0 auto 20px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(70, 114, 236, 0.2), rgba(139, 92, 246, 0.15));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #818cf8;
+    display: block;
+    opacity: 0.9;
   }
 
   .mcw-login-title {
