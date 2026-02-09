@@ -1659,6 +1659,7 @@ DADOS DO PEDIDO DO CLIENTE:
 - Data: ${shopifyData.order_date || 'N/A'}
 - Valor total: ${shopifyData.order_total || 'N/A'}
 - Status de envio: ${shopifyData.fulfillment_status || 'N/A'}
+- Status do pagamento: ${shopifyData.order_status || 'N/A'}
 - Código de rastreio: ${shopifyData.tracking_number || 'Ainda não disponível'}
 - Link de rastreio: ${shopifyData.tracking_url || 'N/A'}
 - Itens: ${shopifyData.items.map((i) => `${i.name} (x${i.quantity})`).join(', ') || 'N/A'}
@@ -1674,6 +1675,7 @@ DADOS DO PEDIDO DO CLIENTE:
 - Data: ${order.order_date || 'N/A'}
 - Valor total: ${order.order_total || 'N/A'}
 - Status de envio: ${order.fulfillment_status || 'N/A'}
+- Status do pagamento: ${order.order_status || 'N/A'}
 - Código de rastreio: ${order.tracking_number || 'Ainda não disponível'}
 - Link de rastreio: ${order.tracking_url || 'N/A'}
 - Itens: ${order.items.map((i) => `${i.name} (x${i.quantity})`).join(', ') || 'N/A'}`;
@@ -1787,40 +1789,75 @@ IGNORE the language of the history - respond ONLY in ${detectedLangName} based o
 The instructions below are in Portuguese for internal use, but YOUR RESPONSE must be in ${detectedLangName}.
 ===`;
 
+  // Determinar estado COD: pré-entrega vs pós-entrega
+  let codDeliveryState: 'pre_delivery' | 'post_delivery' | 'unknown' = 'unknown';
+  if (shopContext.is_cod && shopifyData) {
+    if (shopifyData.order_status === 'Pago') {
+      codDeliveryState = 'post_delivery';
+    } else {
+      codDeliveryState = 'pre_delivery';
+    }
+  } else if (shopContext.is_cod) {
+    // Sem dados Shopify - assumir pré-entrega (mais seguro, retém mais)
+    codDeliveryState = 'pre_delivery';
+  }
+
+  // Para COD pré-entrega, threshold de encaminhamento é 4 (1 contato extra)
+  const codPreDelivery = shopContext.is_cod && codDeliveryState === 'pre_delivery';
+  const forwardThreshold = codPreDelivery ? 4 : 3;
+
   // Instruções específicas para Cash on Delivery (COD)
   let codInstructions = '';
   if (shopContext.is_cod) {
-    codInstructions = `
-IMPORTANTE - MODELO CASH ON DELIVERY (COD):
+    if (codDeliveryState === 'pre_delivery') {
+      codInstructions = `
+IMPORTANTE - MODELO CASH ON DELIVERY (COD) - PEDIDO PRÉ-ENTREGA:
 Esta loja opera no modelo de pagamento na entrega (Cash on Delivery / COD).
 O cliente paga apenas quando recebe o produto.
 
-Regras para COD - DEPENDE DO STATUS DO PEDIDO:
+*** ESTADO ATUAL: O CLIENTE AINDA NÃO PAGOU NADA ***
+O pedido ainda NÃO foi entregue, portanto o cliente tem ZERO risco financeiro.
+- Se quiser cancelar: o pedido será cancelado sem custo nenhum
+- Se quiser recusar: basta recusar na entrega, sem valor a devolver
+- NÃO existe reembolso porque NÃO houve pagamento
+- NUNCA mencione "reembolso", "devolver dinheiro", "refund" - o cliente não pagou nada!
 
-1. Se o pedido AINDA NÃO FOI ENTREGUE (Status: "Aguardando envio" ou "Enviado" mas não entregue):
-   - O cliente AINDA NÃO PAGOU
-   - Para cancelar: o pedido será cancelado sem custo
-   - Para recusar: basta recusar na entrega, não há valor a devolver
-   - NÃO mencione reembolso pois não houve pagamento
+VANTAGEM ESTRATÉGICA PARA RETENÇÃO COD PRÉ-ENTREGA:
+Como o cliente NÃO pagou nada e NÃO tem risco financeiro, o argumento de retenção é MUITO FORTE:
+- "Você não tem nada a perder esperando - se não gostar quando receber, basta recusar na entrega!"
+- "Não há custo nenhum para você - o pagamento só acontece quando você receber e aprovar o produto"
+- "Experimente quando chegar! Se não gostar, recuse na porta e não paga nada"
+- Use esses argumentos nos contatos de retenção (ver fluxo abaixo)
 
-2. Se o pedido JÁ FOI ENTREGUE (cliente já recebeu e pagou na entrega):
-   - O cliente JÁ PAGOU no ato da entrega
-   - Se quiser devolver: TEM DIREITO ao reembolso após devolução do produto
-   - NUNCA diga que "não há valor a ser reembolsado" se o cliente já recebeu/pagou
-
-   IMPORTANTE - Quando encaminhar para humano vs. tentar reter:
-
-   a) ENCAMINHAR DIRETO PARA HUMANO (sem retenção):
-      - Cliente JÁ ENVIOU o produto de volta
-      - Produto com defeito grave, danificado, ou produto errado
-      - Nesses casos: adicione [FORWARD_TO_HUMAN] e forneça o email de suporte
-
-   b) TENTAR RETER PRIMEIRO (aplicar fluxo de retenção):
-      - Cliente quer devolver mas AINDA TEM o produto
-      - Cliente insatisfeito mas sem defeito grave
-      - Aplique o fluxo de retenção (3 contatos) antes de encaminhar
+RETENÇÃO ESTENDIDA: Para COD pré-entrega, são ${forwardThreshold} CONTATOS antes de encaminhar (não 3).
 
 `;
+    } else if (codDeliveryState === 'post_delivery') {
+      codInstructions = `
+IMPORTANTE - MODELO CASH ON DELIVERY (COD) - PEDIDO PÓS-ENTREGA:
+Esta loja opera no modelo de pagamento na entrega (Cash on Delivery / COD).
+
+*** ESTADO ATUAL: O CLIENTE JÁ RECEBEU E JÁ PAGOU ***
+O cliente pagou no ato da entrega, portanto:
+- Se quiser devolver: TEM DIREITO ao reembolso após devolução do produto
+- NUNCA diga que "não há valor a ser reembolsado" - o cliente JÁ pagou
+- Aplique o fluxo de retenção PADRÃO (3 contatos) - mesmo que para lojas prepaid
+
+ENCAMINHAR DIRETO PARA HUMANO (sem retenção) SE:
+- Cliente JÁ ENVIOU o produto de volta (não apenas quer devolver)
+- Produto com defeito grave, danificado, ou produto errado
+- Nesses casos: adicione [FORWARD_TO_HUMAN] e forneça o email de suporte
+
+`;
+    } else {
+      codInstructions = `
+IMPORTANTE - MODELO CASH ON DELIVERY (COD):
+Esta loja opera no modelo de pagamento na entrega (Cash on Delivery / COD).
+O cliente paga apenas quando recebe o produto.
+Sem dados de pedido disponíveis - aplique o fluxo de retenção padrão.
+
+`;
+    }
   }
 
   // Instrução de retenção no TOPO do prompt quando contador >= 1
@@ -1830,10 +1867,31 @@ Regras para COD - DEPENDE DO STATUS DO PEDIDO:
 ###############################################################################
 
 RETENTION COUNTER / CONTADOR: ${retentionContactCount}
+FORWARD THRESHOLD / LIMITE PARA ENCAMINHAR: ${forwardThreshold} contacts
+${codPreDelivery ? 'MODE / MODO: COD PRE-DELIVERY (cliente NÃO pagou - retenção estendida a 4 contatos)' : shopContext.is_cod && codDeliveryState === 'post_delivery' ? 'MODE / MODO: COD POST-DELIVERY (cliente JÁ pagou - retenção padrão 3 contatos)' : 'MODE / MODO: STANDARD (retenção padrão 3 contatos)'}
 
 ${retentionContactCount === 1 ? `
 ***** FIRST CONTACT (COUNTER = 1) / PRIMEIRO CONTATO *****
+${codPreDelivery ? `
+COD PRE-DELIVERY SCRIPT (ZERO RISK STRATEGY):
+YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
+1. Reassure the customer they have ZERO financial risk / Tranquilize que tem ZERO risco
+2. Emphasize they haven't paid anything yet / Enfatize que não pagou nada
+3. Say "When you receive it, if you don't like it, just refuse the delivery - no cost!" / "Se não gostar, recuse na entrega!"
+4. Highlight they can SEE and TOUCH the product before paying / Pode ver e tocar antes de pagar
+5. Mark order with SPECIAL PREFERENCE / Marque com PREFERÊNCIA ESPECIAL
+6. DO NOT mention support email / NÃO mencionar email de suporte
+7. DO NOT mention refund (there was no payment!) / NÃO mencionar reembolso (não houve pagamento!)
+8. DO NOT say "I will escalate" or "I will process" / NÃO dizer "vou encaminhar"
 
+EXAMPLE RESPONSE (adapt to customer's language):
+"Hello! I understand your concern and want to help!
+Great news - since payment only happens at delivery, you have absolutely zero risk!
+When you receive the package, you can see the product, and if for any reason you don't want it, you can simply refuse the delivery at no cost to you.
+I've marked your order with SPECIAL PREFERENCE to ensure everything goes perfectly.
+Why not give it a chance? You literally have nothing to lose!"
+` : `
+STANDARD SCRIPT:
 YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
 1. Make the customer feel SPECIAL and IMPORTANT / Fazer o cliente se sentir ESPECIAL
 2. Say their order will have SPECIAL PREFERENCE / Dizer que terá PREFERÊNCIA ESPECIAL
@@ -1846,17 +1904,33 @@ EXAMPLE RESPONSE (adapt to customer's language):
 "Hello! I understand your concern and want you to know you are very important to us!
 I will mark your order with SPECIAL PREFERENCE in our system.
 Can you tell me what specifically worries you? I really want to help!"
+`}
 
 FORBIDDEN PHRASES:
 - "Let me escalate this"
 - "I will forward to our team"
 - "Please contact support"
-- "I will process your refund"
+${codPreDelivery ? '- "I will process your refund" (NO PAYMENT WAS MADE!)' : '- "I will process your refund"'}
 ` : ''}
 
 ${retentionContactCount === 2 ? `
 ***** SECOND CONTACT (COUNTER = 2) / SEGUNDO CONTATO *****
+${codPreDelivery ? `
+COD PRE-DELIVERY SCRIPT (ZERO RISK + BENEFIT):
+YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
+1. Reinforce ZERO RISK - "you haven't paid anything!" / Reforce ZERO RISCO
+2. Emphasize "just try it when it arrives, refuse if you don't like it" / "Experimente, recuse se não gostar"
+3. Offer a BENEFIT or DISCOUNT${shopContext.retention_coupon_code ? `: USE COUPON ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} OFF` : `${shopContext.retention_coupon_value}% OFF`})` : ''}` : ' (mention you are looking for coupons)'}
+4. Say the product is WORTH trying risk-free / Diga que vale a pena experimentar sem risco
+5. DO NOT mention support email / NÃO mencionar email de suporte
 
+EXAMPLE RESPONSE:
+"Hello! I checked and everything is PERFECT with your order!
+Remember: you don't pay anything until delivery. You can see the product, touch it, and only pay if you're happy with it. If not, refuse at the door - zero cost!
+${shopContext.retention_coupon_code ? `Plus, I have a special surprise: use coupon ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` for ${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} off` : `${shopContext.retention_coupon_value}% off`}` : ''} on your next purchase!` : 'I am looking for a special discount for you!'}
+It's completely risk-free to wait and try it. Can I count on you?"
+` : `
+STANDARD SCRIPT:
 YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
 1. Reassure everything is configured for success / Tranquilizar que está tudo certo
 2. Offer a BENEFIT or DISCOUNT${shopContext.retention_coupon_code ? `: USE COUPON ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} OFF` : `${shopContext.retention_coupon_value}% OFF`})` : ''}` : ' (mention you are looking for coupons)'}
@@ -1867,10 +1941,34 @@ EXAMPLE RESPONSE:
 "Hello! I've checked and EVERYTHING IS SET for your delivery!
 ${shopContext.retention_coupon_code ? `I have a surprise: use coupon ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` for ${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} off` : `${shopContext.retention_coupon_value}% off`}` : ''} on your next purchase!` : 'I am looking for a special discount code for you!'}
 Can I count on your trust a little longer?"
+`}
 ` : ''}
 
-${retentionContactCount >= 3 ? `
-***** THIRD CONTACT OR MORE (COUNTER >= 3) *****
+${codPreDelivery && retentionContactCount === 3 ? `
+***** THIRD CONTACT (COUNTER = 3) - COD PRE-DELIVERY EXTRA CONTACT *****
+This is the EXTRA contact for COD pre-delivery. ONE MORE chance before escalation.
+
+COD PRE-DELIVERY SCRIPT (FINAL APPEAL):
+YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
+1. Final appeal: "This is our last effort to keep you happy" / Último esforço
+2. Remind them ONE MORE TIME: zero risk, refuse at delivery costs nothing / Lembrar: zero risco
+3. Offer the BEST possible deal (coupon + any additional benefit)
+${shopContext.retention_coupon_code ? `4. OFFER COUPON AGAIN: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} OFF` : `${shopContext.retention_coupon_value}% OFF`})` : ''}` : '4. Mention you are working to get a special discount'}
+5. Ask if there is ANY specific concern you can address / Pergunte se há algo específico
+6. DO NOT mention support email yet / NÃO mencionar email de suporte
+7. DO NOT add [FORWARD_TO_HUMAN]
+
+EXAMPLE RESPONSE:
+"Hello! I really don't want you to miss out on this!
+I understand your concern, and I want to make one final effort:
+- You pay NOTHING until delivery
+- If you don't like it, refuse at the door - zero cost
+${shopContext.retention_coupon_code ? `- Plus you get ${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} off` : `${shopContext.retention_coupon_value}% off`} on your next order with code ${shopContext.retention_coupon_code}` : '- I am arranging a special discount for you'}
+Is there something specific about the order that concerns you? I really want to help resolve this!"
+` : ''}
+
+${retentionContactCount >= forwardThreshold ? `
+***** CONTACT ${retentionContactCount} (COUNTER >= ${forwardThreshold}) - ESCALATION *****
 NOW you CAN provide the support email: ${shopContext.support_email}
 Add [FORWARD_TO_HUMAN] at the beginning of your response.
 ` : ''}
@@ -1881,6 +1979,7 @@ NOTE: You may think "I can't process refunds, so I should give the support email
 WRONG! Your job is to RETAIN the customer, not process refunds.
 - You CAN make them feel special
 - You CAN offer discounts
+${codPreDelivery ? '- You CAN remind them they have ZERO RISK (no payment made!)' : ''}
 - You CAN ask what worries them
 - You DON'T NEED to process anything - just keep them happy!
 ###############################################################################
@@ -2205,9 +2304,10 @@ CONTADOR ATUAL: ${retentionContactCount}
 SE O CONTADOR >= 1, VOCÊ DEVE SEGUIR O FLUXO DE RETENÇÃO (PRIORIDADE 3).
 
 Isso significa que o cliente JÁ pediu cancelamento/reembolso antes e você DEVE:
-- Contador = 1 → Fazer cliente se sentir especial (NÃO dê email de suporte!)
-- Contador = 2 → Oferecer desconto/benefício (NÃO dê email de suporte!)
-- Contador >= 3 → Agora sim, fornecer email de suporte
+- Contador = 1 → ${codPreDelivery ? 'Mostrar que tem ZERO RISCO (COD: não pagou nada!)' : 'Fazer cliente se sentir especial'} (NÃO dê email de suporte!)
+- Contador = 2 → ${codPreDelivery ? 'Reforçar ZERO RISCO + oferecer desconto' : 'Oferecer desconto/benefício'} (NÃO dê email de suporte!)
+${codPreDelivery ? `- Contador = 3 → COD: Último apelo zero risco + desconto (NÃO dê email de suporte!)
+- Contador >= 4 → Agora sim, fornecer email de suporte` : `- Contador >= 3 → Agora sim, fornecer email de suporte`}
 
 ÚNICAS EXCEÇÕES que podem bypassar o fluxo de retenção mesmo com CONTADOR >= 1:
 1. AMEAÇA LEGAL: cliente menciona "procon", "advogado", "processo", "justiça", "tribunal"
@@ -2226,14 +2326,25 @@ Se NENHUMA dessas exceções se aplicar e CONTADOR >= 1:
 
 Verifique o "Status de envio" nos dados do pedido:
 
-Se Status = "Enviado" ou "Parcialmente enviado":
+${codPreDelivery ? `⚠️ LOJA COD PRÉ-ENTREGA - REGRA ESPECIAL PARA PEDIDOS EM TRÂNSITO:
+Se Status = "Enviado" ou "Parcialmente enviado" E "Status do pagamento" = "Pagamento pendente":
+→ O pedido foi enviado MAS o cliente AINDA NÃO PAGOU (COD)
+→ O cliente PODE recusar na entrega sem custo
+→ APLIQUE o fluxo de retenção COD (prioridade 3) - use o argumento "recuse na entrega se não gostar"
+→ NÃO diga que "não é possível cancelar" - o cliente pode recusar!
+→ NÃO adicione [FORWARD_TO_HUMAN] se o contador < ${forwardThreshold}
+
+Se Status = "Enviado" E "Status do pagamento" = "Pago":
+→ O cliente JÁ RECEBEU e JÁ PAGOU na entrega
+→ Aplique o fluxo de retenção PADRÃO (3 contatos)
+` : `Se Status = "Enviado" ou "Parcialmente enviado":
 → O pedido JÁ FOI ENVIADO e está a caminho
 → NÃO é possível cancelar pedido em trânsito
 → Informe que após RECEBER, pode entrar em contato se quiser devolver
 → Use os DADOS REAIS de rastreio (nunca placeholders)
 → NÃO aplique fluxo de retenção para pedidos em trânsito
 → NÃO adicione [FORWARD_TO_HUMAN]
-
+`}
 Se Status = "Aguardando envio" ou "N/A":
 → O pedido AINDA NÃO foi enviado
 → NÃO diga que foi enviado
@@ -2254,7 +2365,7 @@ NÃO são exceções (DEVEM passar pela retenção):
 - Cliente pedindo reembolso pela primeira vez (use retenção)
 - Produto com defeito simples (use retenção, tente resolver)
 - Atraso na entrega (use retenção, tranquilize o cliente)
-- Cliente dizendo "quero meu dinheiro de volta" (use retenção se contador < 3)
+- Cliente dizendo "quero meu dinheiro de volta" (use retenção se contador < ${forwardThreshold})
 
 QUANDO FOR EXCEÇÃO GRAVE (ameaça legal, produto já devolvido, dano físico):
 - Forneça o email: ${shopContext.support_email}
@@ -2263,12 +2374,14 @@ QUANDO FOR EXCEÇÃO GRAVE (ameaça legal, produto já devolvido, dano físico):
 - Exemplo: "[FORWARD_TO_HUMAN] Entendo sua situação. Entre em contato: ${shopContext.support_email}"
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  PRIORIDADE 3: FLUXO DE RETENÇÃO - 3 CONTATOS (OBRIGATÓRIO)                  ║
+║  PRIORIDADE 3: FLUXO DE RETENÇÃO - ${forwardThreshold} CONTATOS (OBRIGATÓRIO)                  ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 *** ESTA É A SEÇÃO MAIS IMPORTANTE PARA CANCELAMENTOS/REEMBOLSOS ***
 
 CONTADOR ATUAL DE RETENÇÃO: ${retentionContactCount}
+LIMITE PARA ENCAMINHAR: ${forwardThreshold} contatos
+${codPreDelivery ? 'MODO: COD PRÉ-ENTREGA (retenção estendida - argumento zero risco)' : ''}
 
 QUANDO APLICAR (OBRIGATÓRIO se contador >= 1):
 ✅ Cliente quer CANCELAR o pedido
@@ -2282,20 +2395,44 @@ QUANDO NÃO APLICAR:
 REGRAS INVIOLÁVEIS:
 → Se CONTADOR >= 1: Você DEVE seguir o script abaixo
 → NUNCA ofereça processar reembolso diretamente
-→ NUNCA dê email de suporte se contador < 3
-→ NUNCA diga "I would be happy to process a refund"
+→ NUNCA dê email de suporte se contador < ${forwardThreshold}
+${codPreDelivery ? '→ NUNCA mencione "reembolso" ou "refund" - O CLIENTE NÃO PAGOU NADA!' : '→ NUNCA diga "I would be happy to process a refund"'}
 → NUNCA diga "vou processar seu reembolso"
 
 === AÇÕES BASEADAS NO CONTADOR ===
 - Se contador = 0 → Responda normalmente (não é cancelamento/reembolso)
-- Se contador = 1 → PRIMEIRO CONTATO: Faça o cliente se sentir especial (NÃO mencione email!)
-- Se contador = 2 → SEGUNDO CONTATO: Ofereça benefício/desconto (NÃO mencione email!)
-- Se contador >= 3 → TERCEIRO CONTATO: Agora sim, forneça o email de suporte
+- Se contador = 1 → PRIMEIRO CONTATO: ${codPreDelivery ? 'Zero risco + especial' : 'Faça o cliente se sentir especial'} (NÃO mencione email!)
+- Se contador = 2 → SEGUNDO CONTATO: ${codPreDelivery ? 'Zero risco + desconto' : 'Ofereça benefício/desconto'} (NÃO mencione email!)
+${codPreDelivery ? `- Se contador = 3 → TERCEIRO CONTATO COD: Último apelo zero risco + desconto (NÃO mencione email!)
+- Se contador >= 4 → QUARTO CONTATO: Agora sim, forneça o email de suporte` : `- Se contador >= 3 → TERCEIRO CONTATO: Agora sim, forneça o email de suporte`}
 
-IMPORTANTE: NUNCA forneça o email de suporte se contador < 3 (exceto em casos de PRIORIDADE 2).
+IMPORTANTE: NUNCA forneça o email de suporte se contador < ${forwardThreshold} (exceto em casos de PRIORIDADE 2).
 
 --- SE CONTADOR = 1 (Primeiro contato) ---
-Objetivo: Fazer o cliente se sentir ESPECIAL e ABRAÇADO
+${codPreDelivery ? `Objetivo: Mostrar que o cliente tem ZERO RISCO com COD
+
+O que fazer:
+- Enfatize que o cliente NÃO PAGOU NADA e não tem risco financeiro
+- Diga que pode VER e TOCAR o produto antes de pagar
+- Se não gostar, basta RECUSAR na entrega - custo zero
+- Marque o pedido com PREFERÊNCIA ESPECIAL
+- Pergunte se há algo específico que o preocupa
+- NÃO mencione o email de atendimento
+- NÃO adicione [FORWARD_TO_HUMAN]
+- NÃO mencione reembolso (não houve pagamento!)
+
+Exemplo (CONTADOR = 1, COD):
+"Olá [Nome]!
+
+Entendo sua preocupação, mas tenho uma ótima notícia: como o pagamento só acontece na entrega, você tem zero risco!
+
+Quando receber o pacote, você pode ver o produto, conferir tudo, e se por qualquer motivo não quiser, basta recusar na entrega - sem nenhum custo para você.
+
+Vou marcar seu pedido #[número] com PREFERÊNCIA ESPECIAL para garantir que tudo corra perfeitamente.
+
+Por que não dar uma chance? Você literalmente não tem nada a perder!
+
+[Assinatura]"` : `Objetivo: Fazer o cliente se sentir ESPECIAL e ABRAÇADO
 
 O que fazer:
 - Demonstre empatia genuína pelo cliente
@@ -2317,10 +2454,33 @@ Estamos trabalhando para que seu pedido chegue o mais rápido possível e com to
 
 Posso saber se há algo específico que te preocupa? Quero muito ajudar a resolver qualquer questão!
 
-[Assinatura]"
+[Assinatura]"`}
 
 --- SE CONTADOR = 2 (Segundo contato) ---
-Objetivo: Mostrar que está tudo preparado + oferecer BENEFÍCIO
+${codPreDelivery ? `Objetivo: Reforçar ZERO RISCO + oferecer desconto
+
+${shopContext.retention_coupon_code ? `CUPOM DISPONÍVEL: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`})` : ''}` : 'NOTA: Não há cupom configurado. Mencione que está buscando benefícios.'}
+
+O que fazer:
+- Reforce que NÃO PAGOU NADA e pode recusar na entrega
+- Diga que pode experimentar o produto SEM COMPROMISSO
+${shopContext.retention_coupon_code ? `- OFEREÇA o cupom: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` com ${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''}` : '- Mencione que vai procurar cupons'}
+- Mostre que está tudo configurado para sucesso
+- NÃO mencione o email de atendimento
+- NÃO adicione [FORWARD_TO_HUMAN]
+
+Exemplo (CONTADOR = 2, COD):
+"Olá [Nome]!
+
+Verifiquei seu pedido e está TUDO CERTO para a entrega!
+
+Lembre-se: você não paga nada até receber. Pode ver o produto, tocar, conferir a qualidade, e só paga se ficar satisfeito. Se não gostar, recuse na porta - simples assim, sem custo nenhum!
+
+${shopContext.retention_coupon_code ? `E tenho uma surpresa: use o cupom ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` e ganhe ${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''} na sua próxima compra!` : 'Estou buscando um desconto especial para você!'}
+
+É totalmente sem risco esperar e experimentar. Posso contar com sua confiança?
+
+[Assinatura]"` : `Objetivo: Mostrar que está tudo preparado + oferecer BENEFÍCIO
 
 ${shopContext.retention_coupon_code ? `CUPOM DE DESCONTO DISPONÍVEL: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`})` : ''}
 Use este cupom REAL na sua resposta para convencer o cliente a não cancelar. MENCIONE O VALOR DO DESCONTO!` : 'NOTA: Não há cupom configurado pela loja. Mencione que está buscando cupons/benefícios.'}
@@ -2343,9 +2503,37 @@ ${shopContext.retention_coupon_code ? `E tenho uma surpresa especial para você:
 
 Tenho certeza de que você vai adorar o produto quando receber! Posso contar com sua confiança mais um pouquinho?
 
-[Assinatura]"
+[Assinatura]"`}
 
---- SE CONTADOR >= 3 (Terceiro contato ou mais - cliente quer desistir) ---
+${codPreDelivery ? `--- SE CONTADOR = 3 (Terceiro contato - COD PRÉ-ENTREGA EXTRA) ---
+Objetivo: Último apelo antes de encaminhar - argumento final de zero risco
+
+O que fazer:
+- Último esforço de retenção com argumento zero risco
+- Reforce pela última vez: "você não pagou nada, pode recusar na entrega"
+${shopContext.retention_coupon_code ? `- Ofereça o cupom novamente: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` com ${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''}` : '- Tente oferecer um benefício adicional'}
+- Pergunte se há algo ESPECÍFICO que possa resolver
+- Tom de "último esforço" mas ainda positivo
+- NÃO mencione o email de atendimento
+- NÃO adicione [FORWARD_TO_HUMAN]
+
+Exemplo (CONTADOR = 3, COD):
+"Olá [Nome]!
+
+Realmente não quero que você perca essa oportunidade!
+
+Quero fazer um último apelo: lembre-se que o pagamento só acontece NA ENTREGA. Você pode:
+1. Ver o produto pessoalmente
+2. Conferir a qualidade
+3. Se não gostar, recusar na porta - custo ZERO
+
+${shopContext.retention_coupon_code ? `Além disso, o cupom ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` de ${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''} continua válido para sua próxima compra!` : 'Estou trabalhando para conseguir um desconto especial para você!'}
+
+Há algo específico sobre o pedido que te preocupa? Quero muito ajudar a resolver qualquer questão!
+
+[Assinatura]"
+` : ''}
+--- SE CONTADOR >= ${forwardThreshold} (${codPreDelivery ? 'Quarto' : 'Terceiro'} contato ou mais - cliente quer desistir) ---
 Objetivo: Aceitar a decisão e direcionar para atendimento
 
 O que fazer:
@@ -2356,7 +2544,7 @@ O que fazer:
 - NÃO diga "entraremos em contato" - o CLIENTE deve entrar em contato
 - SEMPRE adicione [FORWARD_TO_HUMAN] no início
 
-Exemplo (CONTADOR >= 3):
+Exemplo (CONTADOR >= ${forwardThreshold}):
 "[FORWARD_TO_HUMAN] Olá [Nome]!
 
 Entendo sua decisão referente ao pedido #[número].
