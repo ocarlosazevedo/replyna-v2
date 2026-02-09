@@ -1,7 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { DateRange } from 'react-day-picker'
-import { Mail, CheckCircle, TrendingUp, Headphones, Package, RefreshCw, Truck, HelpCircle, Inbox, Store } from 'lucide-react'
+import { Mail, CheckCircle, TrendingUp, Headphones, Package, RefreshCw, Truck, HelpCircle, Inbox, Store, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile, useUserShops } from '../hooks/useDashboardData'
@@ -238,6 +238,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [privacyMode, setPrivacyMode] = useState(false)
 
   const cacheFetch = useCallback(<T,>(key: string, fetcher: () => Promise<T>): Promise<T> => {
     const cached = cacheRef.current.get(key)
@@ -1036,6 +1037,29 @@ export default function Dashboard() {
                   Spam ({conversations.filter(c => c.category === 'spam' && c.category).length})
                 </button>
               </div>
+              {/* Toggle Privacidade - ocultar dados sensíveis para screenshots */}
+              <button
+                type="button"
+                onClick={() => setPrivacyMode(!privacyMode)}
+                title={privacyMode ? 'Mostrar dados' : 'Ocultar dados para screenshot'}
+                style={{
+                  padding: isMobile ? '5px 8px' : '6px 10px',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  backgroundColor: privacyMode ? 'rgba(139, 92, 246, 0.15)' : 'var(--bg-card)',
+                  color: privacyMode ? '#8b5cf6' : 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                  fontSize: isMobile ? '12px' : '13px',
+                  fontWeight: 600,
+                }}
+              >
+                {privacyMode ? <EyeOff size={isMobile ? 14 : 16} /> : <Eye size={isMobile ? 14 : 16} />}
+                {!isMobile && (privacyMode ? 'Oculto' : 'Ocultar')}
+              </button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
               {/* Filtro por categoria (só aparece quando não está em Spam) */}
@@ -1128,7 +1152,7 @@ export default function Dashboard() {
                                 fontSize: '13px',
                               }}
                             >
-                              {conversation.shop_name || 'Loja'}
+                              {privacyMode ? '••••••' : (conversation.shop_name || 'Loja')}
                             </span>
                           </div>
                         </td>
@@ -1146,7 +1170,7 @@ export default function Dashboard() {
                             fontSize: isMobile ? '12px' : '14px',
                           }}
                         >
-                          {conversation.customer_name || conversation.customer_email}
+                          {privacyMode ? '••••••' : (conversation.customer_name || conversation.customer_email)}
                         </span>
                       </td>
                       {!isMobile && (
@@ -1161,7 +1185,7 @@ export default function Dashboard() {
                               color: 'var(--text-secondary)',
                             }}
                           >
-                            {conversation.subject || 'Sem assunto'}
+                            {privacyMode ? '••••••' : (conversation.subject || 'Sem assunto')}
                           </span>
                         </td>
                       )}
