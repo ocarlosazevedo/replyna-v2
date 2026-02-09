@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react'
 import {
   Play,
   CheckCircle2,
-  TrendingDown,
-  AlertTriangle,
   ChevronRight,
   Loader2,
-  Instagram,
+  Lock,
+  AlertTriangle,
   Users,
-  Award,
-  Zap
+  TrendingDown,
+  Clock
 } from 'lucide-react'
 
 export default function Masterclass() {
@@ -20,14 +19,11 @@ export default function Masterclass() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
+  const [errors, setErrors] = useState<{[key: string]: string}>({})
 
+  // Scroll to top on load
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    window.scrollTo(0, 0)
   }, [])
 
   const formatWhatsApp = (value: string) => {
@@ -41,18 +37,43 @@ export default function Masterclass() {
   const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatWhatsApp(e.target.value)
     setFormData(prev => ({ ...prev, whatsapp: formatted }))
+    if (errors.whatsapp) setErrors(prev => ({ ...prev, whatsapp: '' }))
+  }
+
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {}
+    
+    if (!formData.name.trim()) {
+      newErrors.name = 'Digite seu nome'
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Digite seu email'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Email inválido'
+    }
+    
+    if (!formData.whatsapp.trim()) {
+      newErrors.whatsapp = 'Digite seu WhatsApp'
+    } else if (formData.whatsapp.replace(/\D/g, '').length < 10) {
+      newErrors.whatsapp = 'WhatsApp inválido'
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validateForm()) return
+    
     setIsSubmitting(true)
 
     try {
       const response = await fetch('/api/subscribe', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
@@ -64,887 +85,706 @@ export default function Masterclass() {
 
       if (response.ok && data.success) {
         setIsSubmitted(true)
+        window.scrollTo(0, 0)
       } else {
-        console.error('Erro ao cadastrar:', data)
         alert('Erro ao cadastrar. Tente novamente.')
       }
-    } catch (error) {
-      console.error('Erro na requisição:', error)
+    } catch {
       alert('Erro de conexão. Tente novamente.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // Se já submeteu, mostrar página de obrigado com vídeo
+  // ==================== PÁGINA DE OBRIGADO ====================
   if (isSubmitted) {
     return (
-      <div className="mc-container">
-        <style>{masterclassStyles}</style>
-        <div className="mc-noise" />
+      <div className="mc-page">
+        <style>{styles}</style>
+        
+        <div className="mc-thank-you">
+          {/* Success Icon */}
+          <div className="mc-success-icon">
+            <CheckCircle2 size={48} color="#22c55e" />
+          </div>
 
-        {/* Background Effects */}
-        <div className="mc-orb mc-orb-1" />
-        <div className="mc-orb mc-orb-2" />
+          <h1 className="mc-thank-title">
+            Acesso Liberado!
+          </h1>
+          
+          <p className="mc-thank-subtitle">
+            Assista a masterclass completa agora
+          </p>
 
-        <div style={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '24px',
-          position: 'relative',
-          zIndex: 1
-        }}>
-          <div style={{
-            maxWidth: '900px',
-            width: '100%',
-            textAlign: 'center'
-          }}>
-            {/* Success Badge */}
-            <div className="mc-fade-in" style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: 'rgba(34, 197, 94, 0.15)',
-              padding: '10px 20px',
-              borderRadius: '50px',
-              marginBottom: '24px',
-              border: '1px solid rgba(34, 197, 94, 0.3)'
-            }}>
-              <CheckCircle2 size={18} color="#22c55e" />
-              <span style={{ fontSize: '14px', color: '#22c55e', fontWeight: 600 }}>
-                Inscrição confirmada!
-              </span>
-            </div>
-
-            <h1 className="mc-fade-in mc-fade-in-delay-1" style={{
-              fontSize: 'clamp(28px, 5vw, 42px)',
-              fontWeight: 800,
-              marginBottom: '16px',
-              lineHeight: 1.2
-            }}>
-              Assista a Masterclass Agora
-            </h1>
-
-            <p className="mc-fade-in mc-fade-in-delay-2" style={{
-              fontSize: '18px',
-              color: 'rgba(255,255,255,0.6)',
-              marginBottom: '40px',
-              maxWidth: '600px',
-              margin: '0 auto 40px'
-            }}>
-              O Carlos preparou um conteúdo exclusivo pra você. Assista até o final.
-            </p>
-
-            {/* Video Container */}
-            <div className="mc-fade-in mc-fade-in-delay-3 mc-video-container" style={{
-              position: 'relative',
-              width: '100%',
-              paddingBottom: '56.25%',
-              borderRadius: '20px',
-              overflow: 'hidden',
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              marginBottom: '32px'
-            }}>
-              {/* Substituir pelo embed real do YouTube */}
+          {/* Video */}
+          <div className="mc-video-wrapper">
+            <div className="mc-video-container">
               <iframe
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  border: 'none'
-                }}
                 src="https://www.youtube.com/embed/VIDEO_ID_AQUI?rel=0&modestbranding=1"
                 title="Masterclass Anti-Chargeback"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             </div>
+          </div>
 
-            {/* CTA após vídeo */}
-            <div className="mc-fade-in mc-fade-in-delay-4" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '16px'
-            }}>
-              <a
-                href="https://app.replyna.me/register"
-                className="mc-btn-primary"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '18px 36px',
-                  borderRadius: '14px',
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  color: '#fff',
-                  textDecoration: 'none'
-                }}
-              >
-                Quero testar a Replyna
-                <ChevronRight size={20} />
-              </a>
-              <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)' }}>
-                Use o cupom <strong style={{ color: '#22c55e' }}>CARLOS10</strong> e ganhe 10% de desconto
-              </span>
-            </div>
+          {/* CTA */}
+          <div className="mc-thank-cta">
+            <a href="https://app.replyna.me/register" className="mc-btn-cta">
+              Quero testar a Replyna
+              <ChevronRight size={20} />
+            </a>
+            <p className="mc-coupon">
+              Cupom <strong>CARLOS10</strong> = 10% off
+            </p>
           </div>
         </div>
       </div>
     )
   }
 
+  // ==================== PÁGINA DE CAPTURA ====================
   return (
-    <div className="mc-container">
-      <style>{masterclassStyles}</style>
-      <div className="mc-noise" />
+    <div className="mc-page">
+      <style>{styles}</style>
 
-      {/* Background Effects */}
-      <div className="mc-orb mc-orb-1" />
-      <div className="mc-orb mc-orb-2" />
-      <div className="mc-orb mc-orb-3" />
+      {/* ===== MOBILE FIRST: HERO + FORM ===== */}
+      <section className="mc-hero">
+        {/* Logo */}
+        <img 
+          src="/replyna-logo.webp" 
+          alt="Replyna" 
+          className="mc-logo"
+        />
 
-      {/* Header */}
-      <header style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 100,
-        padding: '16px 24px',
-        transition: 'all 0.3s ease',
-        backgroundColor: scrolled ? 'rgba(5, 5, 8, 0.9)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : 'none'
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <img
-            src="/replyna-logo.webp"
-            alt="Replyna"
-            style={{ height: '32px', width: 'auto' }}
-          />
-          <a
-            href="#form"
-            className="mc-btn-primary"
-            style={{
-              padding: '12px 24px',
-              borderRadius: '10px',
-              fontSize: '14px',
-              fontWeight: 600,
-              color: '#fff',
-              textDecoration: 'none'
-            }}
-          >
-            Quero assistir grátis
-          </a>
+        {/* Badge */}
+        <div className="mc-badge">
+          <AlertTriangle size={14} />
+          <span>Masterclass Gratuita</span>
         </div>
-      </header>
 
-      {/* Hero Section */}
-      <section style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        padding: '120px 24px 80px',
-        position: 'relative'
-      }}>
-        <div className="mc-grid-pattern" />
+        {/* Headline - Mobile First */}
+        <h1 className="mc-headline">
+          Como Reduzir <span className="mc-highlight">90% dos Chargebacks</span> e Proteger sua Conta
+        </h1>
 
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          width: '100%',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 480px), 1fr))',
-          gap: '60px',
-          alignItems: 'center'
-        }}>
-          {/* Left Content */}
-          <div>
-            {/* Badge */}
-            <div className="mc-fade-in mc-badge" style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: 'rgba(239, 68, 68, 0.15)',
-              padding: '10px 18px',
-              borderRadius: '50px',
-              marginBottom: '24px',
-              border: '1px solid rgba(239, 68, 68, 0.3)'
-            }}>
-              <AlertTriangle size={16} color="#ef4444" />
-              <span style={{ fontSize: '13px', color: '#ef4444', fontWeight: 600 }}>
-                Masterclass Gratuita
-              </span>
-            </div>
+        {/* Subheadline */}
+        <p className="mc-subheadline">
+          O método usado por operações de 7 dígitos
+        </p>
 
-            {/* Headline */}
-            <h1 className="mc-fade-in mc-fade-in-delay-1" style={{
-              fontSize: 'clamp(32px, 6vw, 52px)',
-              fontWeight: 800,
-              lineHeight: 1.1,
-              marginBottom: '20px',
-              letterSpacing: '-0.03em'
-            }}>
-              Como Reduzir até{' '}
-              <span className="mc-gradient-text">90% dos Chargebacks</span>{' '}
-              e Blindar sua Conta Shopify Payments
-            </h1>
+        {/* ===== FORMULÁRIO ===== */}
+        <form onSubmit={handleSubmit} className="mc-form">
+          <div className="mc-field">
+            <label htmlFor="name">Seu nome</label>
+            <input
+              id="name"
+              type="text"
+              placeholder="Ex: João"
+              value={formData.name}
+              onChange={e => {
+                setFormData(prev => ({ ...prev, name: e.target.value }))
+                if (errors.name) setErrors(prev => ({ ...prev, name: '' }))
+              }}
+              className={errors.name ? 'mc-input-error' : ''}
+            />
+            {errors.name && <span className="mc-error">{errors.name}</span>}
+          </div>
 
-            {/* Subheadline */}
-            <p className="mc-fade-in mc-fade-in-delay-2" style={{
-              fontSize: '18px',
-              color: 'rgba(255,255,255,0.6)',
-              lineHeight: 1.7,
-              marginBottom: '32px',
-              maxWidth: '520px'
-            }}>
-              Descubra o método que donos de operações de 7 dígitos usam pra manter a taxa de chargeback perto de zero — mesmo vendendo pra fora do Brasil.
-            </p>
+          <div className="mc-field">
+            <label htmlFor="email">Seu melhor e-mail</label>
+            <input
+              id="email"
+              type="email"
+              placeholder="Ex: joao@email.com"
+              value={formData.email}
+              onChange={e => {
+                setFormData(prev => ({ ...prev, email: e.target.value }))
+                if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
+              }}
+              className={errors.email ? 'mc-input-error' : ''}
+            />
+            {errors.email && <span className="mc-error">{errors.email}</span>}
+          </div>
 
-            {/* Benefits List */}
-            <div className="mc-fade-in mc-fade-in-delay-3" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px',
-              marginBottom: '32px'
-            }}>
-              {[
-                'Os 7 pilares anti-chargeback que toda operação precisa',
-                'Por que 71% dos chargebacks não são fraude real',
-                'A regra dos 2 minutos que muda tudo',
-                'Como automatizar o atendimento sem perder qualidade'
-              ].map((item, i) => (
-                <div key={i} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}>
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <CheckCircle2 size={14} color="#22c55e" />
-                  </div>
-                  <span style={{ fontSize: '15px', color: 'rgba(255,255,255,0.8)' }}>
-                    {item}
-                  </span>
-                </div>
-              ))}
-            </div>
+          <div className="mc-field">
+            <label htmlFor="whatsapp">WhatsApp</label>
+            <input
+              id="whatsapp"
+              type="tel"
+              placeholder="(00) 00000-0000"
+              value={formData.whatsapp}
+              onChange={handleWhatsAppChange}
+              className={errors.whatsapp ? 'mc-input-error' : ''}
+            />
+            {errors.whatsapp && <span className="mc-error">{errors.whatsapp}</span>}
+          </div>
 
-            {/* Mobile CTA */}
-            <div className="mc-mobile-cta mc-fade-in mc-fade-in-delay-4">
-              <a
-                href="#form"
-                className="mc-btn-primary"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  width: '100%',
-                  padding: '18px 32px',
-                  borderRadius: '14px',
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  color: '#fff',
-                  textDecoration: 'none'
-                }}
-              >
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="mc-btn-submit"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 size={20} className="mc-spin" />
+                Liberando acesso...
+              </>
+            ) : (
+              <>
                 <Play size={20} fill="#fff" />
-                Quero assistir grátis
-              </a>
-            </div>
-          </div>
+                QUERO ASSISTIR AGORA
+              </>
+            )}
+          </button>
 
-          {/* Right - Form */}
-          <div id="form" className="mc-fade-in mc-fade-in-delay-4">
-            <div className="mc-form-card">
-              {/* Instructor Badge */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '14px',
-                marginBottom: '24px',
-                paddingBottom: '24px',
-                borderBottom: '1px solid rgba(255,255,255,0.08)'
-              }}>
-                <img
-                  src="/influencers/carlos-azevedo.webp"
-                  alt="Carlos Azevedo"
-                  style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    border: '2px solid rgba(70, 114, 236, 0.5)'
-                  }}
-                />
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '16px', marginBottom: '2px' }}>
-                    Carlos Azevedo
-                  </div>
-                  <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
-                    Mentor de +1.000 alunos em Dropshipping Global
-                  </div>
-                </div>
-              </div>
-
-              <h2 style={{
-                fontSize: '22px',
-                fontWeight: 700,
-                marginBottom: '8px',
-                textAlign: 'center'
-              }}>
-                Assista a Masterclass Grátis
-              </h2>
-              <p style={{
-                fontSize: '14px',
-                color: 'rgba(255,255,255,0.5)',
-                textAlign: 'center',
-                marginBottom: '28px'
-              }}>
-                Preencha abaixo e acesse o conteúdo imediatamente
-              </p>
-
-              <form onSubmit={handleSubmit} style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px'
-              }}>
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: 'rgba(255,255,255,0.7)',
-                    marginBottom: '8px'
-                  }}>
-                    Seu nome
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: João Silva"
-                    required
-                    value={formData.name}
-                    onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="mc-input"
-                  />
-                </div>
-
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: 'rgba(255,255,255,0.7)',
-                    marginBottom: '8px'
-                  }}>
-                    Seu melhor e-mail
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="Ex: joao@email.com"
-                    required
-                    value={formData.email}
-                    onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    className="mc-input"
-                  />
-                </div>
-
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: 'rgba(255,255,255,0.7)',
-                    marginBottom: '8px'
-                  }}>
-                    WhatsApp
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="(00) 00000-0000"
-                    required
-                    value={formData.whatsapp}
-                    onChange={handleWhatsAppChange}
-                    className="mc-input"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="mc-btn-primary mc-btn-submit"
-                  style={{
-                    width: '100%',
-                    padding: '18px',
-                    borderRadius: '12px',
-                    fontSize: '16px',
-                    fontWeight: 700,
-                    color: '#fff',
-                    border: 'none',
-                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                    opacity: isSubmitting ? 0.7 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    marginTop: '8px'
-                  }}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 size={20} className="mc-spin" />
-                      Processando...
-                    </>
-                  ) : (
-                    <>
-                      <Play size={20} fill="#fff" />
-                      Quero assistir agora
-                    </>
-                  )}
-                </button>
-
-                <p style={{
-                  fontSize: '12px',
-                  color: 'rgba(255,255,255,0.35)',
-                  textAlign: 'center',
-                  marginTop: '8px'
-                }}>
-                  🔒 Seus dados estão seguros. Não enviamos spam.
-                </p>
-              </form>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Social Proof Section */}
-      <section style={{
-        padding: '80px 24px',
-        position: 'relative',
-        borderTop: '1px solid rgba(255,255,255,0.05)'
-      }}>
-        <div style={{
-          maxWidth: '1000px',
-          margin: '0 auto'
-        }}>
-          {/* Stats */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '32px',
-            marginBottom: '60px'
-          }}>
-            {[
-              { icon: Users, value: '1.000+', label: 'Alunos treinados' },
-              { icon: TrendingDown, value: '90%', label: 'Redução média em chargebacks' },
-              { icon: Award, value: '7+', label: 'Anos de experiência' },
-              { icon: Zap, value: '24/7', label: 'Método funciona non-stop' }
-            ].map((stat, i) => (
-              <div key={i} style={{
-                textAlign: 'center',
-                padding: '24px'
-              }}>
-                <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '16px',
-                  backgroundColor: 'rgba(70, 114, 236, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 16px'
-                }}>
-                  <stat.icon size={26} color="#4672ec" />
-                </div>
-                <div className="mc-gradient-text" style={{
-                  fontSize: '36px',
-                  fontWeight: 800,
-                  marginBottom: '4px'
-                }}>
-                  {stat.value}
-                </div>
-                <div style={{
-                  fontSize: '14px',
-                  color: 'rgba(255,255,255,0.5)'
-                }}>
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* About Carlos */}
-          <div className="mc-about-card">
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-              gap: '40px',
-              alignItems: 'center'
-            }}>
-              <div style={{ textAlign: 'center' }}>
-                <img
-                  src="/influencers/carlos-azevedo.webp"
-                  alt="Carlos Azevedo"
-                  style={{
-                    width: '180px',
-                    height: '180px',
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    border: '4px solid rgba(70, 114, 236, 0.3)',
-                    marginBottom: '20px'
-                  }}
-                />
-                <a
-                  href="https://www.instagram.com/ocarlosazevedo/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    color: 'rgba(255,255,255,0.6)',
-                    textDecoration: 'none',
-                    fontSize: '14px',
-                    transition: 'color 0.2s'
-                  }}
-                >
-                  <Instagram size={18} />
-                  @ocarlosazevedo
-                </a>
-              </div>
-              <div>
-                <h3 style={{
-                  fontSize: '24px',
-                  fontWeight: 700,
-                  marginBottom: '16px'
-                }}>
-                  Quem é Carlos Azevedo?
-                </h3>
-                <p style={{
-                  fontSize: '16px',
-                  color: 'rgba(255,255,255,0.6)',
-                  lineHeight: 1.8,
-                  marginBottom: '20px'
-                }}>
-                  Mentor de mais de 1.000 alunos em Dropshipping Global, Carlos é referência quando o assunto é operar com Shopify Payments sem ter a conta banida.
-                </p>
-                <p style={{
-                  fontSize: '16px',
-                  color: 'rgba(255,255,255,0.6)',
-                  lineHeight: 1.8
-                }}>
-                  Nesta masterclass, ele vai compartilhar o método exato que usa pra manter a taxa de chargeback de suas operações perto de zero — e como você pode fazer o mesmo.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA Section */}
-      <section style={{
-        padding: '80px 24px',
-        textAlign: 'center',
-        position: 'relative'
-      }}>
-        <div className="mc-orb" style={{
-          width: '600px',
-          height: '600px',
-          background: 'radial-gradient(circle, rgba(70, 114, 236, 0.2) 0%, transparent 70%)',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)'
-        }} />
-
-        <div style={{
-          maxWidth: '600px',
-          margin: '0 auto',
-          position: 'relative',
-          zIndex: 1
-        }}>
-          <h2 style={{
-            fontSize: 'clamp(28px, 5vw, 40px)',
-            fontWeight: 800,
-            marginBottom: '16px',
-            lineHeight: 1.2
-          }}>
-            Sua conta Shopify Payments está em risco?
-          </h2>
-          <p style={{
-            fontSize: '18px',
-            color: 'rgba(255,255,255,0.5)',
-            marginBottom: '32px'
-          }}>
-            Assista a masterclass gratuita e descubra como proteger seu negócio.
+          <p className="mc-privacy">
+            <Lock size={12} />
+            Seus dados estão seguros
           </p>
-          <a
-            href="#form"
-            className="mc-btn-primary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '20px 40px',
-              borderRadius: '14px',
-              fontSize: '18px',
-              fontWeight: 700,
-              color: '#fff',
-              textDecoration: 'none'
-            }}
-          >
-            <Play size={22} fill="#fff" />
-            Assistir masterclass grátis
-          </a>
+        </form>
+
+        {/* Instructor Mini */}
+        <div className="mc-instructor-mini">
+          <img src="/influencers/carlos-azevedo.webp" alt="Carlos Azevedo" />
+          <div>
+            <strong>Carlos Azevedo</strong>
+            <span>Mentor de +1.000 alunos</span>
+          </div>
         </div>
+      </section>
+
+      {/* ===== BELOW FOLD: BENEFÍCIOS ===== */}
+      <section className="mc-benefits">
+        <h2 className="mc-section-title">O que você vai aprender:</h2>
+        
+        <div className="mc-benefit-list">
+          <div className="mc-benefit-item">
+            <div className="mc-benefit-icon">
+              <TrendingDown size={20} />
+            </div>
+            <div>
+              <strong>Os 7 pilares anti-chargeback</strong>
+              <span>Método completo para proteger sua operação</span>
+            </div>
+          </div>
+
+          <div className="mc-benefit-item">
+            <div className="mc-benefit-icon">
+              <Users size={20} />
+            </div>
+            <div>
+              <strong>Por que 71% dos chargebacks não são fraude</strong>
+              <span>Entenda a real causa dos seus problemas</span>
+            </div>
+          </div>
+
+          <div className="mc-benefit-item">
+            <div className="mc-benefit-icon">
+              <Clock size={20} />
+            </div>
+            <div>
+              <strong>A regra dos 2 minutos</strong>
+              <span>O segredo que muda tudo no atendimento</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="mc-stats">
+          <div className="mc-stat">
+            <span className="mc-stat-value">1.000+</span>
+            <span className="mc-stat-label">Alunos</span>
+          </div>
+          <div className="mc-stat">
+            <span className="mc-stat-value">90%</span>
+            <span className="mc-stat-label">Redução</span>
+          </div>
+          <div className="mc-stat">
+            <span className="mc-stat-value">7+</span>
+            <span className="mc-stat-label">Anos exp.</span>
+          </div>
+        </div>
+
+        {/* CTA Repeat */}
+        <button 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="mc-btn-secondary"
+        >
+          <Play size={18} fill="#fff" />
+          Quero assistir grátis
+        </button>
       </section>
 
       {/* Footer */}
-      <footer style={{
-        padding: '32px 24px',
-        borderTop: '1px solid rgba(255,255,255,0.05)',
-        textAlign: 'center'
-      }}>
-        <img
-          src="/replyna-logo.webp"
-          alt="Replyna"
-          style={{ height: '24px', width: 'auto', opacity: 0.5, marginBottom: '16px' }}
-        />
-        <p style={{
-          fontSize: '13px',
-          color: 'rgba(255,255,255,0.3)'
-        }}>
-          © {new Date().getFullYear()} Replyna. Todos os direitos reservados.
-        </p>
+      <footer className="mc-footer">
+        <img src="/replyna-logo.webp" alt="Replyna" />
+        <span>© {new Date().getFullYear()} Replyna</span>
       </footer>
     </div>
   )
 }
 
-// Styles
-const masterclassStyles = `
+// ==================== STYLES ====================
+const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-  .mc-container {
+  /* Reset & Base */
+  .mc-page {
     min-height: 100vh;
-    background-color: #050508;
-    color: #ffffff;
-    font-family: "Inter", "Manrope", sans-serif;
-    overflow-x: hidden;
+    min-height: 100dvh;
+    background: #050508;
+    color: #fff;
+    font-family: "Inter", -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* Noise Texture */
-  .mc-noise {
-    position: fixed;
-    inset: 0;
-    opacity: 0.03;
-    pointer-events: none;
-    z-index: 1000;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  /* ===== HERO SECTION ===== */
+  .mc-hero {
+    padding: 24px 20px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 440px;
+    margin: 0 auto;
   }
 
-  /* Gradient Orbs */
-  .mc-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.5;
-    pointer-events: none;
-  }
-  .mc-orb-1 {
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(70, 114, 236, 0.4) 0%, transparent 70%);
-    top: -200px;
-    left: -200px;
-  }
-  .mc-orb-2 {
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
-    top: 40%;
-    right: -200px;
-  }
-  .mc-orb-3 {
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(239, 68, 68, 0.2) 0%, transparent 70%);
-    bottom: 20%;
-    left: 10%;
+  .mc-logo {
+    height: 28px;
+    width: auto;
+    margin-bottom: 20px;
+    opacity: 0.9;
   }
 
-  /* Grid Pattern */
-  .mc-grid-pattern {
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-    background-size: 60px 60px;
-    mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
-    z-index: 0;
+  .mc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    padding: 8px 14px;
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 16px;
   }
 
-  /* Animations */
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  .mc-fade-in {
-    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-  .mc-fade-in-delay-1 { animation-delay: 0.1s; opacity: 0; }
-  .mc-fade-in-delay-2 { animation-delay: 0.2s; opacity: 0; }
-  .mc-fade-in-delay-3 { animation-delay: 0.3s; opacity: 0; }
-  .mc-fade-in-delay-4 { animation-delay: 0.4s; opacity: 0; }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  .mc-spin {
-    animation: spin 1s linear infinite;
+  .mc-headline {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 0 0 10px;
+    letter-spacing: -0.02em;
   }
 
-  /* Gradient Text */
-  .mc-gradient-text {
-    background: linear-gradient(135deg, #4672ec 0%, #8b5cf6 50%, #06b6d4 100%);
+  .mc-highlight {
+    background: linear-gradient(135deg, #4672ec, #8b5cf6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* Badge */
-  .mc-badge {
-    position: relative;
-    overflow: hidden;
+  .mc-subheadline {
+    font-size: 16px;
+    color: rgba(255,255,255,0.6);
+    margin: 0 0 24px;
   }
 
-  /* Primary Button */
-  .mc-btn-primary {
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    background: linear-gradient(135deg, #4672ec 0%, #3b5fd9 100%);
-  }
-  .mc-btn-primary::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-  .mc-btn-primary:hover::before {
-    opacity: 1;
-  }
-  .mc-btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 15px 40px rgba(70, 114, 236, 0.35);
+  /* ===== FORM ===== */
+  .mc-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 24px;
   }
 
-  /* Form Card */
-  .mc-form-card {
-    background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 24px;
-    padding: 32px;
-    position: relative;
-    backdrop-filter: blur(20px);
-  }
-  .mc-form-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 24px;
-    padding: 1px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 100%);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    -webkit-mask-composite: xor;
-    pointer-events: none;
+  .mc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: left;
   }
 
-  /* Input */
-  .mc-input {
+  .mc-field label {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.8);
+  }
+
+  .mc-field input {
     width: 100%;
     padding: 16px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 16px; /* Prevents zoom on iOS */
+    transition: all 0.2s;
+  }
+
+  .mc-field input::placeholder {
+    color: rgba(255,255,255,0.3);
+  }
+
+  .mc-field input:focus {
+    outline: none;
+    border-color: #4672ec;
+    background: rgba(70, 114, 236, 0.08);
+  }
+
+  .mc-input-error {
+    border-color: #ef4444 !important;
+    background: rgba(239, 68, 68, 0.08) !important;
+  }
+
+  .mc-error {
+    font-size: 13px;
+    color: #f87171;
+  }
+
+  .mc-btn-submit {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #4672ec 0%, #3b5fd9 100%);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+  }
+
+  .mc-btn-submit:active {
+    transform: scale(0.98);
+  }
+
+  .mc-btn-submit:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .mc-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  .mc-privacy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    margin: 0;
+  }
+
+  /* ===== INSTRUCTOR MINI ===== */
+  .mc-instructor-mini {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    width: 100%;
+  }
+
+  .mc-instructor-mini img {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(70, 114, 236, 0.4);
+  }
+
+  .mc-instructor-mini div {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+  }
+
+  .mc-instructor-mini strong {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .mc-instructor-mini span {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* ===== BENEFITS SECTION ===== */
+  .mc-benefits {
+    padding: 40px 20px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    max-width: 440px;
+    margin: 0 auto;
+  }
+
+  .mc-section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 20px;
+    text-align: center;
+  }
+
+  .mc-benefit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .mc-benefit-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .mc-benefit-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(70, 114, 236, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #4672ec;
+  }
+
+  .mc-benefit-item strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .mc-benefit-item span {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* ===== STATS ===== */
+  .mc-stats {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 28px;
+    padding: 20px 0;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .mc-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .mc-stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #4672ec, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .mc-stat-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .mc-btn-secondary {
+    width: 100%;
+    padding: 16px;
+    background: rgba(70, 114, 236, 0.15);
+    border: 1px solid rgba(70, 114, 236, 0.3);
     border-radius: 12px;
     color: #fff;
     font-size: 15px;
-    transition: all 0.2s ease;
-    outline: none;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
   }
-  .mc-input::placeholder {
+
+  .mc-btn-secondary:active {
+    transform: scale(0.98);
+  }
+
+  /* ===== FOOTER ===== */
+  .mc-footer {
+    padding: 24px 20px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mc-footer img {
+    height: 20px;
+    opacity: 0.4;
+  }
+
+  .mc-footer span {
+    font-size: 12px;
     color: rgba(255,255,255,0.3);
   }
-  .mc-input:focus {
-    border-color: #4672ec;
-    background: rgba(70, 114, 236, 0.05);
-    box-shadow: 0 0 0 3px rgba(70, 114, 236, 0.15);
+
+  /* ===== THANK YOU PAGE ===== */
+  .mc-thank-you {
+    padding: 32px 20px;
+    max-width: 560px;
+    margin: 0 auto;
+    text-align: center;
   }
 
-  /* About Card */
-  .mc-about-card {
-    background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 24px;
-    padding: 48px;
+  .mc-success-icon {
+    margin-bottom: 16px;
   }
 
-  /* Video Container Glow */
+  .mc-thank-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 8px;
+  }
+
+  .mc-thank-subtitle {
+    font-size: 16px;
+    color: rgba(255,255,255,0.6);
+    margin: 0 0 24px;
+  }
+
+  .mc-video-wrapper {
+    margin-bottom: 24px;
+  }
+
   .mc-video-container {
-    box-shadow: 0 25px 80px rgba(70, 114, 236, 0.2), 0 0 60px rgba(70, 114, 236, 0.1);
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%;
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
   }
 
-  /* Mobile CTA (hidden on desktop) */
-  .mc-mobile-cta {
-    display: none;
+  .mc-video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
   }
 
-  /* Mobile Responsive */
-  @media (max-width: 900px) {
-    .mc-form-card {
-      padding: 24px;
+  .mc-thank-cta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .mc-btn-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 18px 32px;
+    background: linear-gradient(135deg, #4672ec 0%, #3b5fd9 100%);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .mc-btn-cta:active {
+    transform: scale(0.98);
+  }
+
+  .mc-coupon {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    margin: 0;
+  }
+
+  .mc-coupon strong {
+    color: #22c55e;
+  }
+
+  /* ===== DESKTOP (min-width: 768px) ===== */
+  @media (min-width: 768px) {
+    .mc-hero {
+      padding: 48px 24px;
+      max-width: 520px;
     }
-    .mc-about-card {
-      padding: 32px;
+
+    .mc-headline {
+      font-size: 36px;
+    }
+
+    .mc-benefits {
+      padding: 60px 24px;
+      max-width: 520px;
+    }
+
+    .mc-benefit-list {
+      gap: 20px;
+    }
+
+    .mc-stats {
+      gap: 48px;
+    }
+
+    .mc-thank-you {
+      padding: 48px 24px;
+    }
+
+    .mc-thank-title {
+      font-size: 36px;
     }
   }
 
-  @media (max-width: 768px) {
-    .mc-mobile-cta {
-      display: block;
+  /* ===== LARGE DESKTOP (min-width: 1024px) ===== */
+  @media (min-width: 1024px) {
+    .mc-hero {
+      padding: 64px 24px;
+      max-width: 600px;
+    }
+
+    .mc-headline {
+      font-size: 42px;
+    }
+
+    .mc-form {
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .mc-instructor-mini {
+      max-width: 400px;
+      margin: 0 auto;
     }
   }
 `
