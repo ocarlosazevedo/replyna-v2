@@ -201,7 +201,10 @@ export default function Masterclass() {
         })
         .then(() => {}) // fire-and-forget
 
-      // 3. Redirect após Brevo salvar
+      // 3. Salvar email no localStorage para auto-login na área de membros
+      localStorage.setItem('masterclass_email', formData.email.toLowerCase().trim())
+
+      // 4. Redirect após Brevo salvar
       window.location.href = '/masterclass/assistir'
     } catch (err) {
       console.error('Submit error:', err)

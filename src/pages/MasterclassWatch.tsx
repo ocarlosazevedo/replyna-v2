@@ -1,47 +1,243 @@
-import { useEffect } from 'react'
-import { CheckCircle2, ChevronRight } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ChevronRight, LogOut, Mail, Loader2, Play, Lock, AlertCircle } from 'lucide-react'
 
 export default function MasterclassWatch() {
+  const [authenticated, setAuthenticated] = useState(false)
+  const [userName, setUserName] = useState('')
+  const [userEmail, setUserEmail] = useState('')
+  const [loginEmail, setLoginEmail] = useState('')
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [loginError, setLoginError] = useState('')
+  const [initialLoading, setInitialLoading] = useState(true)
+
   useEffect(() => {
     window.scrollTo(0, 0)
+
+    // Verificar se já tem email salvo no localStorage
+    const savedEmail = localStorage.getItem('masterclass_email')
+    if (savedEmail) {
+      // Auto-verificar o email salvo
+      verifyEmail(savedEmail, true)
+    } else {
+      setInitialLoading(false)
+    }
   }, [])
 
+  const verifyEmail = async (email: string, isAutoLogin = false) => {
+    if (!isAutoLogin) setIsVerifying(true)
+    setLoginError('')
+
+    try {
+      const response = await fetch('/api/verify-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase().trim() })
+      })
+
+      const data = await response.json()
+
+      if (data.exists) {
+        setUserEmail(email.toLowerCase().trim())
+        setUserName(data.name || '')
+        localStorage.setItem('masterclass_email', email.toLowerCase().trim())
+        setAuthenticated(true)
+      } else {
+        if (!isAutoLogin) {
+          setLoginError('E-mail não encontrado. Cadastre-se primeiro na página da masterclass.')
+        }
+        localStorage.removeItem('masterclass_email')
+      }
+    } catch {
+      if (!isAutoLogin) {
+        setLoginError('Erro de conexão. Tente novamente.')
+      }
+    } finally {
+      setIsVerifying(false)
+      setInitialLoading(false)
+    }
+  }
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!loginEmail.trim()) return
+    verifyEmail(loginEmail)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('masterclass_email')
+    setAuthenticated(false)
+    setUserEmail('')
+    setUserName('')
+    setLoginEmail('')
+  }
+
+  // ===== Loading screen =====
+  if (initialLoading) {
+    return (
+      <div className="mcw-page">
+        <style>{styles}</style>
+        <div className="mcw-loading">
+          <Loader2 size={32} className="mcw-spinner" />
+        </div>
+      </div>
+    )
+  }
+
+  // ===== TELA 2: Login =====
+  if (!authenticated) {
+    return (
+      <div className="mcw-page">
+        <style>{styles}</style>
+
+        <header className="mcw-header">
+          <img src="/replyna-logo.webp" alt="Replyna" className="mcw-logo" />
+        </header>
+
+        <div className="mcw-login-wrapper">
+          <div className="mcw-login-card">
+            <div className="mcw-login-icon">
+              <Lock size={28} />
+            </div>
+
+            <h1 className="mcw-login-title">Área de Membros</h1>
+            <p className="mcw-login-subtitle">
+              Digite o e-mail que você usou no cadastro para acessar a masterclass
+            </p>
+
+            <form onSubmit={handleLogin} className="mcw-login-form">
+              <div className="mcw-login-field">
+                <Mail size={18} className="mcw-login-field-icon" />
+                <input
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={loginEmail}
+                  onChange={(e) => { setLoginEmail(e.target.value); setLoginError('') }}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              {loginError && (
+                <div className="mcw-login-error">
+                  <AlertCircle size={14} />
+                  <span>{loginError}</span>
+                </div>
+              )}
+
+              <button type="submit" className="mcw-login-btn" disabled={isVerifying || !loginEmail.trim()}>
+                {isVerifying ? (
+                  <>
+                    <Loader2 size={18} className="mcw-spinner" />
+                    Verificando...
+                  </>
+                ) : (
+                  <>
+                    Acessar Masterclass
+                    <ChevronRight size={18} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mcw-login-divider" />
+
+            <p className="mcw-login-info">
+              Ainda não se cadastrou?{' '}
+              <a href="/masterclass">Cadastre-se gratuitamente</a>
+            </p>
+
+            <p className="mcw-login-tip">
+              Para reassistir o material, basta acessar esta página e fazer login com seu e-mail novamente.
+            </p>
+          </div>
+        </div>
+
+        <footer className="mcw-footer">
+          <img src="/replyna-logo.webp" alt="Replyna" />
+          <span>&copy; {new Date().getFullYear()} Replyna</span>
+        </footer>
+      </div>
+    )
+  }
+
+  // ===== TELA 3: Área de Membros =====
   return (
     <div className="mcw-page">
       <style>{styles}</style>
 
-      <header className="mcw-header">
+      {/* Header com info do usuário */}
+      <header className="mcw-header mcw-header-auth">
         <img src="/replyna-logo.webp" alt="Replyna" className="mcw-logo" />
+        <div className="mcw-user-info">
+          <span className="mcw-user-email">{userEmail}</span>
+          <button onClick={handleLogout} className="mcw-logout-btn" title="Sair">
+            <LogOut size={16} />
+          </button>
+        </div>
       </header>
 
-      <div className="mcw-content">
-        <div className="mcw-success">
-          <CheckCircle2 size={48} color="#22c55e" />
-        </div>
-
-        <h1 className="mcw-title">Acesso Liberado!</h1>
-        <p className="mcw-subtitle">Assista à masterclass completa agora</p>
-
-        <div className="mcw-video-wrapper">
-          <div className="mcw-video-container">
-            <iframe
-              src="https://www.youtube.com/embed/VIDEO_ID_AQUI?rel=0&modestbranding=1"
-              title="Masterclass Anti-Chargeback"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+      {/* Área de membros */}
+      <div className="mcw-members">
+        {/* Sidebar / Info */}
+        <aside className="mcw-sidebar">
+          <div className="mcw-sidebar-badge">
+            <Play size={14} />
+            <span>Masterclass</span>
           </div>
-        </div>
 
-        <div className="mcw-cta">
-          <a href="https://app.replyna.me/register" className="mcw-btn">
-            Quero testar a Replyna
-            <ChevronRight size={20} />
-          </a>
-          <p className="mcw-coupon">
-            Cupom <strong>CARLOS10</strong> = 10% off
+          <h2 className="mcw-sidebar-title">
+            Como Reduzir 90% dos Chargebacks e Proteger sua Conta
+          </h2>
+
+          <div className="mcw-sidebar-instructor">
+            <img src="/influencers/carlos-azevedo.webp" alt="Carlos Azevedo" className="mcw-sidebar-avatar" />
+            <div>
+              <strong>Carlos Azevedo</strong>
+              <span>Especialista Anti-Chargeback</span>
+            </div>
+          </div>
+
+          <p className="mcw-sidebar-desc">
+            {userName ? `Olá, ${userName}! ` : ''}Assista à masterclass completa e descubra o método que já ajudou
+            mais de 1.000 empreendedores a protegerem suas operações.
           </p>
-        </div>
+
+          {/* CTA */}
+          <div className="mcw-sidebar-cta">
+            <a href="https://app.replyna.me/register" className="mcw-cta-btn">
+              Quero testar a Replyna
+              <ChevronRight size={18} />
+            </a>
+            <p className="mcw-cta-coupon">
+              Cupom <strong>CARLOS10</strong> = 10% off
+            </p>
+          </div>
+        </aside>
+
+        {/* Video Player */}
+        <main className="mcw-main">
+          <div className="mcw-video-wrapper">
+            <div className="mcw-video-container">
+              <iframe
+                src="https://www.youtube.com/embed/VIDEO_ID_AQUI?rel=0&modestbranding=1"
+                title="Masterclass Anti-Chargeback"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+
+          {/* CTA Mobile (aparece abaixo do vídeo no mobile) */}
+          <div className="mcw-mobile-cta">
+            <a href="https://app.replyna.me/register" className="mcw-cta-btn">
+              Quero testar a Replyna
+              <ChevronRight size={18} />
+            </a>
+            <p className="mcw-cta-coupon">
+              Cupom <strong>CARLOS10</strong> = 10% off
+            </p>
+          </div>
+        </main>
       </div>
 
       <footer className="mcw-footer">
@@ -64,10 +260,36 @@ const styles = `
     -webkit-font-smoothing: antialiased;
   }
 
+  /* ===== LOADING ===== */
+  .mcw-loading {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mcw-spinner {
+    animation: mcw-spin 1s linear infinite;
+    color: #818cf8;
+  }
+
+  @keyframes mcw-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* ===== HEADER ===== */
   .mcw-header {
     padding: 20px;
     display: flex;
     justify-content: center;
+    align-items: center;
+  }
+
+  .mcw-header-auth {
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
   }
 
   .mcw-logo {
@@ -76,32 +298,218 @@ const styles = `
     opacity: 0.9;
   }
 
-  .mcw-content {
-    max-width: 640px;
-    margin: 0 auto;
-    padding: 24px 20px 48px;
+  .mcw-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mcw-user-email {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    display: none;
+  }
+
+  .mcw-logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.03);
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .mcw-logout-btn:hover {
+    border-color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.8);
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* ===== TELA 2: LOGIN ===== */
+  .mcw-login-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 180px);
+    padding: 24px 20px;
+  }
+
+  .mcw-login-card {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 24px;
+    padding: 40px 28px;
     text-align: center;
   }
 
-  .mcw-success {
-    margin-bottom: 16px;
+  .mcw-login-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 20px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.2), rgba(139, 92, 246, 0.15));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #818cf8;
   }
 
-  .mcw-title {
-    font-size: 28px;
+  .mcw-login-title {
+    font-size: 24px;
     font-weight: 800;
     margin: 0 0 8px;
     letter-spacing: -0.02em;
   }
 
-  .mcw-subtitle {
-    font-size: 16px;
-    color: rgba(255,255,255,0.6);
+  .mcw-login-subtitle {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
     margin: 0 0 28px;
+    line-height: 1.6;
+  }
+
+  .mcw-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .mcw-login-field {
+    position: relative;
+  }
+
+  .mcw-login-field-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255,255,255,0.3);
+    pointer-events: none;
+  }
+
+  .mcw-login-field input {
+    width: 100%;
+    padding: 16px 16px 16px 46px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    color: #fff;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s;
+    box-sizing: border-box;
+  }
+
+  .mcw-login-field input:focus {
+    border-color: rgba(70, 114, 236, 0.5);
+    background: rgba(255,255,255,0.07);
+    box-shadow: 0 0 0 3px rgba(70, 114, 236, 0.1);
+  }
+
+  .mcw-login-field input::placeholder {
+    color: rgba(255,255,255,0.25);
+  }
+
+  .mcw-login-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 12px;
+    font-size: 13px;
+    color: #f87171;
+    text-align: left;
+  }
+
+  .mcw-login-error svg {
+    flex-shrink: 0;
+  }
+
+  .mcw-login-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #4672ec 0%, #5b4dd6 100%);
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 4px 20px rgba(70, 114, 236, 0.25);
+    letter-spacing: 0.02em;
+    font-family: inherit;
+  }
+
+  .mcw-login-btn:active {
+    transform: scale(0.97);
+  }
+
+  .mcw-login-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .mcw-login-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 24px 0;
+  }
+
+  .mcw-login-info {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    margin: 0 0 12px;
+  }
+
+  .mcw-login-info a {
+    color: #818cf8;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .mcw-login-info a:hover {
+    text-decoration: underline;
+  }
+
+  .mcw-login-tip {
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* ===== TELA 3: MEMBERS AREA ===== */
+  .mcw-members {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 24px 20px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* Video */
+  .mcw-main {
+    width: 100%;
   }
 
   .mcw-video-wrapper {
-    margin-bottom: 32px;
+    margin-bottom: 24px;
   }
 
   .mcw-video-container {
@@ -123,44 +531,130 @@ const styles = `
     border: none;
   }
 
-  .mcw-cta {
+  /* Sidebar */
+  .mcw-sidebar {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 24px;
+  }
+
+  .mcw-sidebar-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.15), rgba(139, 92, 246, 0.15));
+    border: 1px solid rgba(70, 114, 236, 0.3);
+    color: #a5b4fc;
+    padding: 6px 14px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .mcw-sidebar-title {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.3;
+    margin: 0 0 20px;
+    letter-spacing: -0.02em;
+  }
+
+  .mcw-sidebar-instructor {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+
+  .mcw-sidebar-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(70, 114, 236, 0.3);
+  }
+
+  .mcw-sidebar-instructor > div {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mcw-sidebar-instructor strong {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .mcw-sidebar-instructor span {
+    font-size: 12px;
+    color: #818cf8;
+  }
+
+  .mcw-sidebar-desc {
+    font-size: 14px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.5);
+    margin: 0 0 20px;
+  }
+
+  /* CTA section */
+  .mcw-sidebar-cta {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.06);
   }
 
-  .mcw-btn {
+  .mcw-cta-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 18px 36px;
+    width: 100%;
+    padding: 16px 24px;
     background: linear-gradient(135deg, #4672ec 0%, #5b4dd6 100%);
     border-radius: 14px;
     color: #fff;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     text-decoration: none;
     transition: all 0.25s;
     box-shadow: 0 4px 20px rgba(70, 114, 236, 0.25);
     letter-spacing: 0.02em;
+    text-align: center;
   }
 
-  .mcw-btn:active {
+  .mcw-cta-btn:active {
     transform: scale(0.97);
   }
 
-  .mcw-coupon {
-    font-size: 14px;
-    color: rgba(255,255,255,0.5);
+  .mcw-cta-coupon {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
     margin: 0;
   }
 
-  .mcw-coupon strong {
+  .mcw-cta-coupon strong {
     color: #4ade80;
   }
 
+  /* Mobile CTA (shown below video on mobile, hidden on desktop) */
+  .mcw-mobile-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* ===== FOOTER ===== */
   .mcw-footer {
     padding: 24px 20px;
     border-top: 1px solid rgba(255,255,255,0.06);
@@ -180,41 +674,93 @@ const styles = `
     color: rgba(255,255,255,0.3);
   }
 
+  /* ===== TABLET (768px) ===== */
   @media (min-width: 768px) {
-    .mcw-content {
-      padding: 48px 24px 64px;
+    .mcw-login-card {
+      padding: 48px 36px;
     }
 
-    .mcw-title {
-      font-size: 36px;
+    .mcw-login-title {
+      font-size: 28px;
     }
 
-    .mcw-subtitle {
-      font-size: 18px;
+    .mcw-user-email {
+      display: inline;
+    }
+
+    .mcw-sidebar-title {
+      font-size: 22px;
     }
   }
 
+  /* ===== DESKTOP (1024px) ===== */
   @media (min-width: 1024px) {
     .mcw-header {
-      padding: 32px 48px;
+      padding: 20px 40px;
+    }
+
+    .mcw-header-auth {
+      padding: 16px 40px;
     }
 
     .mcw-logo {
-      height: 32px;
+      height: 30px;
     }
 
-    .mcw-content {
-      max-width: 720px;
-      padding: 64px 24px 80px;
+    .mcw-login-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, #3b5fd9 0%, #3451c4 100%);
+      box-shadow: 0 8px 24px rgba(70, 114, 236, 0.3);
     }
 
-    .mcw-title {
-      font-size: 42px;
+    .mcw-login-field input:hover {
+      border-color: rgba(255,255,255,0.2);
     }
 
-    .mcw-btn:hover {
+    /* Members area: side-by-side layout */
+    .mcw-members {
+      flex-direction: row-reverse;
+      align-items: flex-start;
+      gap: 32px;
+      padding: 32px 40px 64px;
+    }
+
+    .mcw-sidebar {
+      width: 340px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 24px;
+    }
+
+    .mcw-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Hide mobile CTA on desktop (sidebar has it) */
+    .mcw-mobile-cta {
+      display: none;
+    }
+
+    .mcw-cta-btn:hover {
       box-shadow: 0 8px 24px rgba(70, 114, 236, 0.3);
       transform: translateY(-1px);
+    }
+  }
+
+  /* ===== LARGE DESKTOP (1280px) ===== */
+  @media (min-width: 1280px) {
+    .mcw-members {
+      max-width: 1100px;
+      gap: 40px;
+    }
+
+    .mcw-sidebar {
+      width: 380px;
+      padding: 28px;
+    }
+
+    .mcw-sidebar-title {
+      font-size: 24px;
     }
   }
 `
