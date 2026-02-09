@@ -39,7 +39,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const cleanEmail = email.toLowerCase().trim()
   const cleanName = name.trim()
-  const cleanWhatsapp = whatsapp.replace(/\D/g, '')
 
   try {
     // Criar/atualizar contato no Brevo (apenas atributos padrão)
@@ -53,9 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify({
         email: cleanEmail,
         attributes: {
-          FIRSTNAME: cleanName,
-          LASTNAME: '',
-          SMS: `+55${cleanWhatsapp}`
+          FIRSTNAME: cleanName
         },
         updateEnabled: true
       })
@@ -81,8 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           },
           body: JSON.stringify({
             attributes: {
-              FIRSTNAME: cleanName,
-              SMS: `+55${cleanWhatsapp}`
+              FIRSTNAME: cleanName
             }
           })
         })
