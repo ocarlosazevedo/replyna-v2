@@ -6,7 +6,7 @@ import {
   ChevronDown,
   Loader2,
   Lock,
-  AlertTriangle,
+
   Users,
   TrendingDown,
   Clock,
@@ -259,7 +259,7 @@ export default function Masterclass() {
         {/* ===== HERO TEXT ===== */}
         <div className="mc-hero-text">
           <div className="mc-badge">
-            <AlertTriangle size={14} />
+            <Play size={14} />
             <span>Masterclass Gratuita</span>
           </div>
 
@@ -415,9 +415,12 @@ export default function Masterclass() {
 
         {/* ===== INSTRUCTOR (expanded) ===== */}
         <div className="mc-instructor-wrap">
+          <h2 className="mc-section-title">Quem vai ensinar você</h2>
           <div className="mc-instructor-card">
             <div className="mc-instructor-header">
-              <img src="/influencers/carlos-azevedo.webp" alt="Carlos Azevedo" />
+              <div className="mc-instructor-img-wrap">
+                <img src="/influencers/carlos-azevedo.webp" alt="Carlos Azevedo" />
+              </div>
               <div>
                 <strong>Carlos Azevedo</strong>
                 <span>Especialista Anti-Chargeback</span>
@@ -429,15 +432,15 @@ export default function Masterclass() {
               taxas de chargeback. Responsável por proteger operações que faturam milhões por mês.
             </p>
             <div className="mc-instructor-stats">
-              <div>
+              <div className="mc-stat-item">
                 <strong>1.000+</strong>
                 <span>Alunos</span>
               </div>
-              <div>
+              <div className="mc-stat-item">
                 <strong>7+ anos</strong>
                 <span>Experiência</span>
               </div>
-              <div>
+              <div className="mc-stat-item">
                 <strong>90%</strong>
                 <span>Redução média</span>
               </div>
@@ -447,37 +450,31 @@ export default function Masterclass() {
 
         {/* ===== BENEFITS ===== */}
         <div className="mc-benefits">
-          <h2 className="mc-section-title">O que você vai aprender:</h2>
+          <h2 className="mc-section-title">O que você vai aprender</h2>
 
           <div className="mc-benefit-list">
-            <div className="mc-benefit-item">
+            <div className="mc-benefit-card">
               <div className="mc-benefit-icon">
-                <TrendingDown size={20} />
+                <TrendingDown size={22} />
               </div>
-              <div>
-                <strong>Os 7 pilares anti-chargeback</strong>
-                <span>Método completo para proteger sua operação</span>
-              </div>
+              <strong>Os 7 pilares anti-chargeback</strong>
+              <span>Método completo para proteger sua operação de ponta a ponta</span>
             </div>
 
-            <div className="mc-benefit-item">
+            <div className="mc-benefit-card">
               <div className="mc-benefit-icon">
-                <Users size={20} />
+                <Users size={22} />
               </div>
-              <div>
-                <strong>Por que 71% dos chargebacks não são fraude</strong>
-                <span>Entenda a real causa dos seus problemas</span>
-              </div>
+              <strong>Por que 71% dos chargebacks não são fraude</strong>
+              <span>Entenda a real causa e elimine os problemas na raiz</span>
             </div>
 
-            <div className="mc-benefit-item">
+            <div className="mc-benefit-card">
               <div className="mc-benefit-icon">
-                <Clock size={20} />
+                <Clock size={22} />
               </div>
-              <div>
-                <strong>A regra dos 2 minutos</strong>
-                <span>O segredo que muda tudo no atendimento</span>
-              </div>
+              <strong>A regra dos 2 minutos</strong>
+              <span>O segredo que transforma seu atendimento e evita disputas</span>
             </div>
           </div>
         </div>
@@ -488,6 +485,7 @@ export default function Masterclass() {
           <div className="mc-testimonial-list">
             {testimonials.map((t, i) => (
               <div key={i} className="mc-testimonial-card">
+                <span className="mc-testimonial-quote">"</span>
                 <div className="mc-testimonial-top">
                   <div className="mc-testimonial-stars">
                     {Array.from({ length: 5 }, (_, j) => (
@@ -496,10 +494,15 @@ export default function Masterclass() {
                   </div>
                   <span className="mc-testimonial-result">{t.result}</span>
                 </div>
-                <p className="mc-testimonial-text">"{t.text}"</p>
+                <p className="mc-testimonial-text">{t.text}</p>
                 <div className="mc-testimonial-author">
-                  <strong>{t.name}</strong>
-                  <span>{t.role}</span>
+                  <div className="mc-testimonial-avatar">
+                    {t.name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                  <div>
+                    <strong>{t.name}</strong>
+                    <span>{t.role}</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -596,15 +599,16 @@ const styles = `
   .mc-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    background: rgba(239, 68, 68, 0.15);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #f87171;
-    padding: 8px 14px;
+    gap: 7px;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.15), rgba(139, 92, 246, 0.15));
+    border: 1px solid rgba(70, 114, 236, 0.3);
+    color: #a5b4fc;
+    padding: 8px 16px;
     border-radius: 50px;
     font-size: 13px;
     font-weight: 600;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
+    letter-spacing: 0.02em;
   }
 
   .mc-headline {
@@ -633,55 +637,62 @@ const styles = `
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 16px;
-    background: rgba(239, 68, 68, 0.08);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: 14px;
+    gap: 10px;
+    padding: 20px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
   }
 
   .mc-countdown-label {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
-    color: #f87171;
+    color: rgba(255,255,255,0.5);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
   }
 
   .mc-countdown-timer {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
 
   .mc-countdown-block {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 48px;
+    min-width: 56px;
+    padding: 10px 0;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
   }
 
   .mc-countdown-value {
     font-size: 28px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
-    color: #fff;
+    background: linear-gradient(180deg, #fff 30%, rgba(255,255,255,0.6));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     line-height: 1;
   }
 
   .mc-countdown-unit {
     font-size: 10px;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.35);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-top: 2px;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
   }
 
   .mc-countdown-sep {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
-    color: rgba(255,255,255,0.3);
-    margin-bottom: 12px;
+    color: rgba(255,255,255,0.2);
+    margin-bottom: 14px;
   }
 
   /* ===== FORM SECTION ===== */
@@ -695,13 +706,17 @@ const styles = `
     align-items: center;
     justify-content: center;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
     font-size: 13px;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255,255,255,0.55);
+    padding: 10px 16px;
+    background: rgba(34, 197, 94, 0.06);
+    border: 1px solid rgba(34, 197, 94, 0.12);
+    border-radius: 10px;
   }
 
   .mc-form-social strong {
-    color: #fff;
+    color: #4ade80;
   }
 
   .mc-live-dot {
@@ -710,6 +725,7 @@ const styles = `
     border-radius: 50%;
     background: #22c55e;
     animation: pulse-dot 2s ease-in-out infinite;
+    flex-shrink: 0;
   }
 
   @keyframes pulse-dot {
@@ -772,9 +788,9 @@ const styles = `
   .mc-btn-submit {
     width: 100%;
     padding: 18px;
-    background: linear-gradient(135deg, #4672ec 0%, #3b5fd9 100%);
+    background: linear-gradient(135deg, #4672ec 0%, #5b4dd6 100%);
     border: none;
-    border-radius: 12px;
+    border-radius: 14px;
     color: #fff;
     font-size: 16px;
     font-weight: 700;
@@ -783,12 +799,14 @@ const styles = `
     justify-content: center;
     gap: 10px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s;
     margin-top: 4px;
+    box-shadow: 0 4px 20px rgba(70, 114, 236, 0.25);
+    letter-spacing: 0.02em;
   }
 
   .mc-btn-submit:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
   }
 
   .mc-btn-submit:disabled {
@@ -916,81 +934,116 @@ const styles = `
   }
 
   .mc-instructor-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    padding: 20px;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.06), rgba(139, 92, 246, 0.04));
+    border: 1px solid rgba(70, 114, 236, 0.15);
+    border-radius: 20px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mc-instructor-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #4672ec, #8b5cf6, #4672ec);
+    opacity: 0.7;
   }
 
   .mc-instructor-header {
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin-bottom: 14px;
+    gap: 16px;
+    margin-bottom: 16px;
   }
 
-  .mc-instructor-header img {
-    width: 56px;
-    height: 56px;
+  .mc-instructor-img-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .mc-instructor-img-wrap::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4672ec, #8b5cf6);
+    z-index: 0;
+  }
+
+  .mc-instructor-img-wrap img {
+    position: relative;
+    z-index: 1;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(70, 114, 236, 0.4);
+    border: 3px solid #0a0a0f;
   }
 
-  .mc-instructor-header div {
+  .mc-instructor-header > div {
     display: flex;
     flex-direction: column;
     text-align: left;
   }
 
   .mc-instructor-header strong {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
   }
 
   .mc-instructor-header span {
     font-size: 13px;
-    color: #4672ec;
+    color: #818cf8;
     font-weight: 500;
   }
 
   .mc-instructor-bio {
     font-size: 14px;
-    line-height: 1.6;
-    color: rgba(255,255,255,0.65);
-    margin: 0 0 16px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.6);
+    margin: 0 0 20px;
+    text-align: left;
   }
 
   .mc-instructor-bio strong {
-    color: #fff;
+    color: rgba(255,255,255,0.95);
   }
 
   .mc-instructor-stats {
-    display: flex;
-    justify-content: space-around;
-    padding-top: 16px;
-    border-top: 1px solid rgba(255,255,255,0.08);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
   }
 
-  .mc-instructor-stats > div {
+  .mc-stat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
+    padding: 14px 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
   }
 
-  .mc-instructor-stats strong {
-    font-size: 18px;
+  .mc-stat-item strong {
+    font-size: 20px;
     font-weight: 800;
-    background: linear-gradient(135deg, #4672ec, #8b5cf6);
+    background: linear-gradient(135deg, #4672ec, #a78bfa);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  .mc-instructor-stats span {
+  .mc-stat-item span {
     font-size: 11px;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
   /* ===== BENEFITS ===== */
@@ -1003,45 +1056,53 @@ const styles = `
   .mc-section-title {
     font-size: 18px;
     font-weight: 700;
-    margin: 0 0 20px;
+    margin: 0 0 24px;
     text-align: center;
+    color: rgba(255,255,255,0.95);
   }
 
   .mc-benefit-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
   }
 
-  .mc-benefit-item {
+  .mc-benefit-card {
     display: flex;
-    gap: 14px;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
     text-align: left;
+    transition: border-color 0.2s;
   }
 
   .mc-benefit-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: rgba(70, 114, 236, 0.15);
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.2), rgba(139, 92, 246, 0.15));
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: #4672ec;
+    color: #818cf8;
+    margin-bottom: 4px;
   }
 
-  .mc-benefit-item strong {
+  .mc-benefit-card strong {
     display: block;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
-    margin-bottom: 2px;
+    color: rgba(255,255,255,0.95);
   }
 
-  .mc-benefit-item span {
+  .mc-benefit-card span {
     font-size: 13px;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.45);
+    line-height: 1.5;
   }
 
   /* ===== TESTIMONIALS ===== */
@@ -1058,17 +1119,35 @@ const styles = `
   }
 
   .mc-testimonial-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
-    padding: 18px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 18px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .mc-testimonial-quote {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.15), rgba(139, 92, 246, 0.08));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    pointer-events: none;
+    font-family: Georgia, serif;
   }
 
   .mc-testimonial-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
   }
 
   .mc-testimonial-stars {
@@ -1077,23 +1156,48 @@ const styles = `
   }
 
   .mc-testimonial-result {
-    font-size: 12px;
-    font-weight: 600;
-    color: #22c55e;
+    font-size: 11px;
+    font-weight: 700;
+    color: #4ade80;
     background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.15);
     padding: 4px 10px;
     border-radius: 50px;
+    letter-spacing: 0.02em;
   }
 
   .mc-testimonial-text {
     font-size: 14px;
-    line-height: 1.6;
-    color: rgba(255,255,255,0.75);
-    margin: 0 0 12px;
-    font-style: italic;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.7);
+    margin: 0 0 16px;
+    position: relative;
   }
 
   .mc-testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .mc-testimonial-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4672ec, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .mc-testimonial-author > div {
     display: flex;
     flex-direction: column;
   }
@@ -1101,11 +1205,12 @@ const styles = `
   .mc-testimonial-author strong {
     font-size: 14px;
     font-weight: 600;
+    color: rgba(255,255,255,0.9);
   }
 
   .mc-testimonial-author span {
     font-size: 12px;
-    color: rgba(255,255,255,0.45);
+    color: rgba(255,255,255,0.4);
   }
 
   /* ===== FAQ ===== */
@@ -1122,54 +1227,55 @@ const styles = `
   }
 
   .mc-faq-item {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
     overflow: hidden;
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .mc-faq-item:hover {
-    border-color: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.04);
   }
 
   .mc-faq-open {
-    border-color: rgba(70, 114, 236, 0.3);
-    background: rgba(70, 114, 236, 0.05);
+    border-color: rgba(70, 114, 236, 0.3) !important;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.06), rgba(139, 92, 246, 0.03)) !important;
   }
 
   .mc-faq-question {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px;
+    padding: 18px 20px;
     gap: 12px;
   }
 
   .mc-faq-question span {
     font-size: 14px;
     font-weight: 600;
-    color: rgba(255,255,255,0.9);
+    color: rgba(255,255,255,0.85);
   }
 
   .mc-faq-arrow {
     flex-shrink: 0;
-    color: rgba(255,255,255,0.4);
-    transition: transform 0.2s;
+    color: rgba(255,255,255,0.3);
+    transition: all 0.25s ease;
   }
 
   .mc-faq-arrow-open {
     transform: rotate(180deg);
-    color: #4672ec;
+    color: #818cf8;
   }
 
   .mc-faq-answer {
-    padding: 0 16px 16px;
+    padding: 0 20px 18px;
     margin: 0;
     font-size: 14px;
-    line-height: 1.6;
-    color: rgba(255,255,255,0.6);
+    line-height: 1.7;
+    color: rgba(255,255,255,0.55);
   }
 
   /* ===== STICKY CTA (mobile) ===== */
@@ -1196,9 +1302,9 @@ const styles = `
   .mc-sticky-btn {
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, #4672ec 0%, #3b5fd9 100%);
+    background: linear-gradient(135deg, #4672ec 0%, #5b4dd6 100%);
     border: none;
-    border-radius: 12px;
+    border-radius: 14px;
     color: #fff;
     font-size: 15px;
     font-weight: 700;
@@ -1207,10 +1313,12 @@ const styles = `
     justify-content: center;
     gap: 8px;
     cursor: pointer;
+    box-shadow: 0 4px 20px rgba(70, 114, 236, 0.3);
+    letter-spacing: 0.02em;
   }
 
   .mc-sticky-btn:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
   }
 
   /* ===== FOOTER ===== */
@@ -1441,23 +1549,12 @@ const styles = `
     }
 
     .mc-instructor-card {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      grid-template-rows: auto auto;
-      gap: 0 24px;
-      padding: 28px;
+      padding: 32px;
     }
 
-    .mc-instructor-header {
-      grid-column: 1 / -1;
-    }
-
-    .mc-instructor-bio {
-      grid-column: 1 / -1;
-    }
-
-    .mc-instructor-stats {
-      grid-column: 1 / -1;
+    .mc-instructor-img-wrap img {
+      width: 72px;
+      height: 72px;
     }
 
     .mc-benefits {
@@ -1467,7 +1564,11 @@ const styles = `
     .mc-benefit-list {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 20px;
+      gap: 16px;
+    }
+
+    .mc-benefit-card:hover {
+      border-color: rgba(70, 114, 236, 0.2);
     }
 
     .mc-testimonials {
@@ -1530,7 +1631,11 @@ const styles = `
     }
 
     .mc-testimonial-card:hover {
-      border-color: rgba(255,255,255,0.15);
+      border-color: rgba(70, 114, 236, 0.2);
+    }
+
+    .mc-faq-item:hover .mc-faq-arrow {
+      color: rgba(255,255,255,0.5);
     }
 
     /* Thank you page */
