@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react'
 import {
   Play,
   CheckCircle2,
-  Shield,
-  Clock,
   TrendingDown,
   AlertTriangle,
   ChevronRight,
