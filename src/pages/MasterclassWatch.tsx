@@ -89,10 +89,6 @@ export default function MasterclassWatch() {
       <div className="mcw-page">
         <style>{styles}</style>
 
-        <header className="mcw-header">
-          <img src="/replyna-logo.webp" alt="Replyna" className="mcw-logo" />
-        </header>
-
         <div className="mcw-login-wrapper">
           <div className="mcw-login-card">
             <img src="/replyna-logo.webp" alt="Replyna" className="mcw-login-logo" />
