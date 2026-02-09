@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY
-const BREVO_LIST_ID = 4 // Lista "Leads Masterclass"
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers (must be set BEFORE any method check)
@@ -38,8 +37,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Email inválido' })
   }
 
+  const cleanEmail = email.toLowerCase().trim()
+  const cleanName = name.trim()
+  const cleanWhatsapp = whatsapp.replace(/\D/g, '')
+
   try {
-    // Criar/atualizar contato no Brevo
+    // Criar/atualizar contato no Brevo (apenas atributos padrão)
     const response = await fetch('https://api.brevo.com/v3/contacts', {
       method: 'POST',
       headers: {
@@ -48,13 +51,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'api-key': BREVO_API_KEY
       },
       body: JSON.stringify({
-        email: email.toLowerCase().trim(),
+        email: cleanEmail,
         attributes: {
-          FIRSTNAME: name.trim(),
-          WHATSAPP: whatsapp.replace(/\D/g, ''),
-          SOURCE: 'Masterclass Anti-Chargeback'
+          FIRSTNAME: cleanName,
+          LASTNAME: '',
+          SMS: `+55${cleanWhatsapp}`
         },
-        listIds: [BREVO_LIST_ID],
         updateEnabled: true
       })
     })
@@ -64,27 +66,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ success: true, message: 'Lead cadastrado com sucesso' })
     }
 
-    // Se o contato já existe
+    // Se o contato já existe (duplicate)
     if (response.status === 400) {
       const error = await response.json()
 
       if (error.code === 'duplicate_parameter') {
-        await fetch(`https://api.brevo.com/v3/contacts/lists/${BREVO_LIST_ID}/contacts/add`, {
-          method: 'POST',
+        // Contato já existe, atualizar atributos
+        await fetch(`https://api.brevo.com/v3/contacts/${encodeURIComponent(cleanEmail)}`, {
+          method: 'PUT',
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
             'api-key': BREVO_API_KEY
           },
           body: JSON.stringify({
-            emails: [email.toLowerCase().trim()]
+            attributes: {
+              FIRSTNAME: cleanName,
+              SMS: `+55${cleanWhatsapp}`
+            }
           })
         })
-        return res.status(200).json({ success: true, message: 'Lead adicionado à lista' })
+        return res.status(200).json({ success: true, message: 'Lead atualizado' })
       }
 
-      console.error('Brevo error:', JSON.stringify(error))
-      return res.status(400).json({ error: 'Erro ao cadastrar lead', code: error.code })
+      // Outro erro 400 - logar detalhes
+      console.error('Brevo 400 error:', JSON.stringify(error))
+      return res.status(400).json({
+        error: 'Erro ao cadastrar lead',
+        code: error.code,
+        detail: error.message
+      })
     }
 
     // Erro de autenticação
