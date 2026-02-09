@@ -1325,9 +1325,9 @@ const styles = `
       grid-template-columns: 1fr 400px;
       grid-template-areas:
         "hero         form"
-        "pain         form"
-        "instructor   form"
-        "benefits     form"
+        "pain         pain"
+        "instructor   instructor"
+        "benefits     benefits"
         "testimonials testimonials"
         "faq          faq";
       gap: 0 60px;
@@ -1369,6 +1369,13 @@ const styles = `
 
     .mc-pain-section {
       grid-area: pain;
+      padding-top: 40px;
+    }
+
+    .mc-pain-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
     }
 
     .mc-instructor-wrap {
@@ -1376,8 +1383,34 @@ const styles = `
       margin-bottom: 0;
     }
 
+    .mc-instructor-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto auto;
+      gap: 0 24px;
+      padding: 28px;
+    }
+
+    .mc-instructor-header {
+      grid-column: 1 / -1;
+    }
+
+    .mc-instructor-bio {
+      grid-column: 1 / -1;
+    }
+
+    .mc-instructor-stats {
+      grid-column: 1 / -1;
+    }
+
     .mc-benefits {
       grid-area: benefits;
+    }
+
+    .mc-benefit-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
     }
 
     .mc-testimonials {
