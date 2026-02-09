@@ -418,6 +418,11 @@ export function isSpamByPattern(subject: string, body: string): boolean {
     /\bschedule\s+a\s+(call|meeting|demo|consultation)/i,
     /\bagendar\s+uma\s+(reunião|chamada|consulta)/i,
     /\bbook\s+a\s+(call|meeting|demo)/i,
+    // Automated SaaS reports / newsletters / app notifications
+    /\b(weekly|daily|monthly)\s+(performance|tiktok|analytics|sales|marketing)\s+report/i,
+    /\brelatório\s+(semanal|diário|mensal)\s+de\s+(desempenho|vendas|marketing)/i,
+    /\bperformance\s+report\s+is\s+ready/i,
+    /\byour\s+(weekly|daily|monthly)\s+.{0,20}\s+report/i,
   ];
 
   for (const pattern of spamSubjectPatterns) {
@@ -437,12 +442,22 @@ export function isSpamByPattern(subject: string, body: string): boolean {
   // 3. Body-level spam patterns (cold outreach em qualquer idioma)
   const spamBodyPatterns = [
     // Cold outreach openings (qualquer idioma)
-    /\b(i\s+noticed|i\s+came\s+across|i\s+found)\s+(your|the)\s+(store|shop|website|site)/i,
-    /\b(visitei|analisei|encontrei|vi)\s+(sua|a\s+sua|tua)\s+(loja|site|website)/i,
+    /\b(i\s+noticed|i\s+came\s+across|i\s+found|i\s+just\s+discovered)\s+(your|the)\s+(store|shop|website|site)/i,
+    /\b(visitei|analisei|encontrei|vi|descobri)\s+(sua|a\s+sua|tua)\s+(loja|site|website)/i,
+    /\bacabei\s+de\s+descobrir\s+(sua|a\s+sua|tua)\s+loja/i,
+    /\bachei\s+o\s+que\s+voc(ê|e)\s+(está|esta)\s+(desenvolvendo|fazendo|construindo)/i,
     /\b(i\s+believe|i\s+think)\s+there'?s?\s+(a|an)\s+(great|wonderful|amazing)\s+opportunit/i,
-    // Service offers
+    // Service offers - English
     /\b(i\s+can\s+help|we\s+can\s+help|let\s+me\s+help)\s+(you\s+)?(grow|improve|boost|increase|optimize)/i,
+    // Service offers - Portuguese (expandido)
     /\b(posso\s+ajudar|podemos\s+ajudar)\s+(a\s+)?(crescer|melhorar|aumentar|otimizar)/i,
+    /\baumentar\s+(suas?|as)\s+(conversões|vendas|receita|faturamento)/i,
+    /\bmelhorar\s+(o\s+)?(desempenho|performance|resultados)/i,
+    /\botimizações?\s+(rápidas?|simples|fáceis)/i,
+    /\bcompartilhar\s+uma\s+(dica|estratégia|oportunidade)/i,
+    // "I work with store owners" patterns
+    /\btrabalho\s+com\s+(donos?|proprietários?)\s+de\s+(lojas?|e-?commerce|negócios?)/i,
+    /\bi\s+work\s+with\s+(store\s+owners|shop\s+owners|ecommerce|business\s+owners)/i,
     // Self-introduction as professional
     /\bmy\s+name\s+is\s+.{2,30}\s+and\s+i\s+(am|work|specialize|run|own)\b/i,
     /\bmeu\s+nome\s+é\s+.{2,30}\s+e\s+eu\s+(sou|trabalho|especializo)\b/i,
@@ -460,6 +475,14 @@ export function isSpamByPattern(subject: string, body: string): boolean {
     /\b(trabalh(o|amos)\s+com\s+(marcas|lojas|empresas)\s+(como|semelhantes))\b/i,
     /\b(our\s+(agency|company|team|firm)\s+(specializ|focus|help))/i,
     /\b(nossa\s+(agência|empresa|equipe)\s+(especializ|foc|ajud))/i,
+    // SaaS automated reports / newsletters / app notifications
+    /\bmétricas\s+rastreadas\s+pelo\s+nosso\s+aplicativo/i,
+    /\bdesempenho\s+da\s+sua\s+loja\b.{0,30}\b(últimos?\s+\d+\s+dias?|last\s+\d+\s+days?)/i,
+    /\b(receita\s+total|total\s+revenue)\b.{0,50}\b(valor\s+médio|average\s+order)/i,
+    /\btaxa\s+de\s+convers(ã|a)o\b.{0,100}\btaxa\s+de\s+convers(ã|a)o\b/i,
+    /\bveja\s+(as\s+)?análises\s+detalhadas/i,
+    /\bsee\s+(the\s+)?(detailed\s+)?analytics/i,
+    /\btransformar\s+insights\s+em\b/i,
   ];
 
   for (const pattern of spamBodyPatterns) {
@@ -1077,12 +1100,17 @@ CLASSIFY AS SPAM (confidence 0.95+) - THESE ARE NOT REAL CUSTOMERS:
 
 2. COLD OUTREACH / SALES PITCHES / AFFILIATE OFFERS (ANY LANGUAGE):
    - Emails that START with compliments about the store then offer services
-   - ENGLISH: "I took a look at your store and noticed...", "Would you be open to..."
-   - PORTUGUESE: "visitei sua loja", "analisei sua loja", "fiquei impressionado com sua loja", "vi sua loja Shopify", "após analisar sua loja"
+   - ENGLISH: "I took a look at your store and noticed...", "Would you be open to...", "I just discovered your store"
+   - PORTUGUESE: "visitei sua loja", "analisei sua loja", "descobri sua loja", "acabei de descobrir sua loja",
+     "achei o que você está desenvolvendo muito interessante", "fiquei impressionado com sua loja"
    - SPANISH: "visité tu tienda", "analicé tu tienda", "me impresionó tu tienda"
    - AFRIKAANS: "ek kontak jou", "wonderlike geleentheid", "voordeel te trek", "afspraak skeduleer"
    - Generic emails that could be sent to any store (not specific to a purchase)
    - Emails with TEMPLATE PLACEHOLDERS like {naam}, {name}, {company}, {maatskappy} → ALWAYS SPAM
+   - "Trabalho com donos de lojas" / "I work with store owners" → ALWAYS SPAM
+   - "aumentar suas conversões" / "increase your conversions" → SPAM (service offer)
+   - "otimizações rápidas" / "quick optimizations" → SPAM (consulting pitch)
+   - "compartilhar uma dica" / "share a tip/strategy" → SPAM (lead-in for sales pitch)
    - Offering (ANY LANGUAGE):
      * EN: "free audit", "free consultation", "free analysis", "detailed proposal"
      * PT: "auditoria gratuita", "consultoria gratuita", "análise gratuita", "proposta detalhada", "plano de ação"
@@ -1090,10 +1118,17 @@ CLASSIFY AS SPAM (confidence 0.95+) - THESE ARE NOT REAL CUSTOMERS:
    - Promises in ANY LANGUAGE: "guaranteed results", "resultados garantidos", "resultados garantizados"
    - Lead generation phrases: "bring you orders", "trazer pedidos", "traer pedidos", "gerar tráfego", "generar tráfico"
 
-3. SYSTEM/AUTOMATED EMAILS:
+3. SYSTEM/AUTOMATED EMAILS AND SAAS REPORTS:
    - Delivery Status Notification, Mail Delivery Subsystem, mailer-daemon
    - Undeliverable, Delivery Failure, Mail delivery failed
    - Bounce notifications, postmaster messages
+   - AUTOMATED APP REPORTS (ALWAYS SPAM):
+     * Weekly/daily/monthly performance reports from SaaS apps (TikTok, analytics, etc.)
+     * "Your weekly TikTok performance report is ready" → SPAM
+     * "relatório semanal de desempenho" → SPAM
+     * Emails with revenue metrics, conversion rates, order counts from third-party apps → SPAM
+     * Emails from analytics/marketing tools: Track123, Omega, TwoOwls, etc. → SPAM
+     * These are NOT customer messages - they are automated app notifications
 
 4. OTHER SPAM SIGNALS:
    - No mention of ANY specific order or purchase they made
