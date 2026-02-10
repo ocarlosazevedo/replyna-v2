@@ -221,7 +221,11 @@ function isRetryableError(error: any): boolean {
   // Erros permanentes (no retry)
   if (
     message.includes('invalid_email') ||
+    message.includes('inválido') ||  // Detecta "Email do remetente inválido"
+    message.includes('remetente') ||  // Extra segurança
     message.includes('spam') ||
+    message.includes('vazio') ||  // Detecta "Corpo do email vazio"
+    message.includes('sistema') ||  // Detecta "Email de sistema ignorado"
     message.includes('404') ||
     message.includes('401') ||
     message.includes('forbidden')
