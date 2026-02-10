@@ -144,12 +144,18 @@ function detectLanguageFromText(text: string): string | null {
     }
   }
 
-  // ESPANHOL - Padrões claros
+  // ESPANHOL - Padrões claros (priorizar palavras únicas do espanhol)
   const spanishPatterns = [
     /^hola\b/i, /^buenos días/i, /^buenas tardes/i, /^buenas noches/i,
+    // Palavras ÚNICAS do espanhol (não existem em português)
+    /\b(bueno|buena|bien|muy|llega|llegó|llegaron)\b/i,
+    /\b(dónde|donde|cuándo|cuando|cómo|como está)\b/i,
+    /\b(envío|enviar|enviado|enviaron)\b/i,
     /\b(usted|ustedes|quiero|necesito|recibí|compré|pagué)\b/i,
-    /\b(pedido|envío|reembolso|devolución)\b/i,
-    /\b(gracias|por favor)\b/i,
+    /\b(puede|pueden|podría|podrían)\b/i,
+    /\b(gracias|por favor|muchas gracias)\b/i,
+    // Palavras ambíguas por último (também existem em português)
+    /\b(pedido|reembolso|devolución)\b/i,
   ];
 
   for (const pattern of spanishPatterns) {
