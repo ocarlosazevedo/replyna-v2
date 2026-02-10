@@ -356,24 +356,22 @@ export default function Masterclass() {
 
         {/* ===== PAIN POINTS ===== */}
         <div className="mc-pain-section">
-          <h2 className="mc-section-title">Você se identifica com algo abaixo?</h2>
+          <h2 className="mc-section-title">Se isso parece com a sua realidade...</h2>
           <div className="mc-pain-list">
             {[
-              'Sua taxa de chargeback está acima de 1%',
-              'Já teve ou tem medo de ter a conta bloqueada',
-              'Perde horas toda semana respondendo contestações',
-              'Sente que está perdendo dinheiro com disputas'
-            ].map((text, i) => (
-              <div key={i} className="mc-pain-item mc-pain-static">
-                <span className="mc-pain-icon">
-                  <AlertCircle size={18} />
-                </span>
-                <span>{text}</span>
+              { icon: <TrendingDown size={20} />, text: 'Taxa de chargeback acima de 1%' },
+              { icon: <Lock size={20} />, text: 'Medo de ter a conta bloqueada' },
+              { icon: <Clock size={20} />, text: 'Horas perdidas respondendo contestações' },
+              { icon: <AlertCircle size={20} />, text: 'Dinheiro escorrendo com disputas' }
+            ].map((item, i) => (
+              <div key={i} className="mc-pain-item">
+                <span className="mc-pain-icon">{item.icon}</span>
+                <span>{item.text}</span>
               </div>
             ))}
           </div>
           <p className="mc-pain-cta">
-            Se você marcaria ao menos <strong>1 item</strong>, essa masterclass foi feita para você.
+            ...então essa masterclass foi <strong>feita para você</strong>.
           </p>
         </div>
 
@@ -826,13 +824,15 @@ const styles = `
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 16px 18px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
     font-size: 14px;
     color: rgba(255,255,255,0.75);
     text-align: left;
+  }
+
+  .mc-pain-item:last-child {
+    border-bottom: none;
   }
 
   .mc-pain-icon {
@@ -840,8 +840,8 @@ const styles = `
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: #f59e0b;
-    opacity: 0.8;
+    color: #f87171;
+    opacity: 0.7;
   }
 
   .mc-pain-cta {
@@ -1382,7 +1382,7 @@ const styles = `
     .mc-pain-list {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      gap: 0;
     }
 
     .mc-instructor-wrap {
