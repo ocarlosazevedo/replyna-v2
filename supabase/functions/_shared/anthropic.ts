@@ -126,42 +126,80 @@ function detectLanguageFromText(text: string): string | null {
     }
   }
 
-  // PORTUGUÊS - Padrões claros
-  const portuguesePatterns = [
-    /^olá\b/i, /^oi\b/i, /^bom dia/i, /^boa tarde/i, /^boa noite/i,
-    /^prezado/i, /^caro\b/i, /^cara\b/i,
-    /\b(você|voce|vocês|meu|minha|nosso|nossa)\b/i,
-    /\b(gostaria|quero|preciso|recebi|comprei|paguei)\b/i,
-    /\b(pedido|encomenda|entrega|rastreio|rastreamento|reembolso|devolução|troca)\b/i,
-    /\b(obrigado|obrigada|por favor)\b/i,
-    /\b(chegou|chegaram|enviado|enviaram)\b/i,
+  // ============================================================================
+  // ETAPA 1: Verificar palavras ÚNICAS de cada idioma (não ambíguas)
+  // ============================================================================
+
+  // ESPANHOL - Palavras ÚNICAS (não existem em português)
+  const spanishUniquePatterns = [
+    /^hola\b/i, // "hola" é único do espanhol (PT usa "olá")
+    /^buenos días/i, /^buenas tardes/i, /^buenas noches/i,
+    /\b(bueno|buena|bien|muy)\b/i, // não existem em PT
+    /\b(llega|llegó|llegaron|llegarán)\b/i, // PT usa "chega/chegou"
+    /\b(dónde|donde|cuándo|cuando|cómo)\b/i, // PT usa "onde/quando/como"
+    /\b(usted|ustedes)\b/i, // não existe em PT (PT usa "você/vocês")
+    /\b(puede|pueden|podría|podrían)\b/i, // PT usa "pode/podem/poderia"
+    /\b(necesito|necesita|necesitamos)\b/i, // PT usa "preciso/precisa"
+    /\b(gracias|muchas gracias)\b/i, // PT usa "obrigado/obrigada"
   ];
 
-  for (const pattern of portuguesePatterns) {
+  for (const pattern of spanishUniquePatterns) {
     if (pattern.test(lowerText)) {
-      console.log(`[detectLanguage] Portuguese detected by pattern: ${pattern}`);
+      console.log(`[detectLanguage] Spanish detected by UNIQUE word: ${pattern}`);
+      return 'es';
+    }
+  }
+
+  // PORTUGUÊS - Palavras ÚNICAS (não existem em espanhol)
+  const portugueseUniquePatterns = [
+    /^olá\b/i, /^oi\b/i, // ES usa "hola"
+    /^bom dia/i, /^boa tarde/i, /^boa noite/i, // ES usa "buenos/buenas"
+    /\b(você|voce|vocês)\b/i, // não existe em ES (ES usa "usted/ustedes")
+    /\b(gostaria|gosto)\b/i, // não existe em ES
+    /\b(obrigado|obrigada)\b/i, // ES usa "gracias"
+    /\b(preciso|precisa|precisamos)\b/i, // ES usa "necesito"
+    /\b(chegou|chegaram|chegando)\b/i, // ES usa "llegó/llegaron"
+    /\b(rastreio|rastreamento)\b/i, // palavra única PT para tracking
+    /\b(encomenda)\b/i, // palavra única PT para order (ES usa "pedido")
+  ];
+
+  for (const pattern of portugueseUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Portuguese detected by UNIQUE word: ${pattern}`);
       return 'pt';
     }
   }
 
-  // ESPANHOL - Padrões claros (priorizar palavras únicas do espanhol)
-  const spanishPatterns = [
-    /^hola\b/i, /^buenos días/i, /^buenas tardes/i, /^buenas noches/i,
-    // Palavras ÚNICAS do espanhol (não existem em português)
-    /\b(bueno|buena|bien|muy|llega|llegó|llegaron)\b/i,
-    /\b(dónde|donde|cuándo|cuando|cómo|como está)\b/i,
-    /\b(envío|enviar|enviado|enviaron)\b/i,
-    /\b(usted|ustedes|quiero|necesito|recibí|compré|pagué)\b/i,
-    /\b(puede|pueden|podría|podrían)\b/i,
-    /\b(gracias|por favor|muchas gracias)\b/i,
-    // Palavras ambíguas por último (também existem em português)
-    /\b(pedido|reembolso|devolución)\b/i,
+  // ============================================================================
+  // ETAPA 2: Verificar palavras AMBÍGUAS com contexto
+  // (Palavras que existem em ambos: pedido, reembolso, etc.)
+  // ============================================================================
+
+  // ESPANHOL - Padrões com palavras ambíguas (verificar depois das únicas)
+  const spanishAmbiguousPatterns = [
+    /\b(pedido|envío|enviado|enviaron)\b/i,
+    /\b(reembolso|devolución)\b/i,
+    /\b(por favor)\b/i, // existe em ambos mas comum em ES
   ];
 
-  for (const pattern of spanishPatterns) {
+  for (const pattern of spanishAmbiguousPatterns) {
     if (pattern.test(lowerText)) {
-      console.log(`[detectLanguage] Spanish detected by pattern: ${pattern}`);
+      console.log(`[detectLanguage] Spanish detected by ambiguous word (last resort): ${pattern}`);
       return 'es';
+    }
+  }
+
+  // PORTUGUÊS - Padrões com palavras ambíguas (verificar por último)
+  const portugueseAmbiguousPatterns = [
+    /\b(pedido|entrega|enviado|enviaram)\b/i,
+    /\b(reembolso|devolução|troca)\b/i,
+    /\b(quero|recebi|comprei|paguei)\b/i,
+  ];
+
+  for (const pattern of portugueseAmbiguousPatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Portuguese detected by ambiguous word (last resort): ${pattern}`);
+      return 'pt';
     }
   }
 

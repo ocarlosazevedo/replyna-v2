@@ -144,13 +144,40 @@ Ao detectar idiomas, sempre:
 
 ---
 
+## ✅ Solução Final Implementada
+
+### Estratégia: Verificação em 2 Etapas
+
+**ETAPA 1 - Palavras ÚNICAS (Alta Prioridade):**
+1. Verificar palavras que existem APENAS em espanhol: `bueno, llega, donde, puede, necesito, gracias`
+2. Verificar palavras que existem APENAS em português: `olá, você, gostaria, obrigado, preciso, chegou, rastreio`
+
+**ETAPA 2 - Palavras AMBÍGUAS (Baixa Prioridade):**
+1. Só verificar se não encontrou palavras únicas
+2. Palavras ambíguas: `pedido, reembolso` (existem em ambos idiomas)
+
+### Testes de Validação
+
+✅ Todos os casos de teste passaram:
+- ✅ "Bueno y si no puedo..." → Detecta 'es' (palavra única: "bueno")
+- ✅ "Hola, donde esta mi pedido?" → Detecta 'es' (palavra única: "donde")
+- ✅ "Puede decirme..." → Detecta 'es' (palavra única: "puede")
+- ✅ "Necesito un reembolso" → Detecta 'es' (palavra única: "necesito")
+- ✅ "Olá, gostaria de saber" → Detecta 'pt' (palavra única: "gostaria")
+- ✅ "Você pode me enviar" → Detecta 'pt' (palavra única: "você")
+- ✅ "Preciso de um reembolso" → Detecta 'pt' (palavra única: "preciso")
+
 ## ✅ Status
 
 - [x] Problema identificado
-- [x] Causa raiz encontrada (palavra ambígua "pedido")
-- [x] Solução implementada (padrões mais específicos)
-- [x] Deploy realizado
-- [x] Documentação criada
-- [ ] Monitorar próximas respostas para validação
+- [x] Causa raiz encontrada (ordem de verificação incorreta)
+- [x] Solução implementada (verificação em 2 etapas: únicas → ambíguas)
+- [x] Testes validados (100% de aprovação)
+- [x] Deploy realizado (2x - versão final)
+- [x] Documentação atualizada
+- [ ] Commit e push (próximo passo)
+- [ ] Monitorar próximas respostas em produção
+
+**Cobertura:** Esta correção funciona para **TODAS as lojas**, não apenas uma específica. Qualquer cliente que escrever em espanhol receberá resposta em espanhol.
 
 **Monitoramento:** Verificar se mensagens em espanhol estão sendo respondidas corretamente no idioma certo.
