@@ -170,9 +170,54 @@ function detectLanguageFromText(text: string): string | null {
     }
   }
 
+  // ALEMÃO - Palavras ÚNICAS (verificar ANTES de ambíguas PT/ES)
+  const germanUniquePatterns = [
+    /^hallo\b/i, /^guten tag/i, /^guten morgen/i, /^guten abend/i,
+    /\b(ich|mein|meine|haben|möchte|brauche)\b/i,
+    /\b(bestellung|lieferung|rückerstattung|rücksendung)\b/i,
+    /\b(aber|noch|keine|bekommen|bestellt)\b/i, // palavras alemãs comuns
+    /\b(danke|bitte|deutsch|schreiben)\b/i,
+  ];
+
+  for (const pattern of germanUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] German detected by UNIQUE word: ${pattern}`);
+      return 'de';
+    }
+  }
+
+  // FRANCÊS - Palavras ÚNICAS (verificar ANTES de ambíguas PT/ES)
+  const frenchUniquePatterns = [
+    /^bonjour\b/i, /^bonsoir\b/i, /^salut\b/i,
+    /\b(je|mon|ma|mes|voudrais|besoin|reçu|acheté)\b/i,
+    /\b(commande|livraison|remboursement|retour)\b/i,
+    /\b(merci|s'il vous plaît)\b/i,
+  ];
+
+  for (const pattern of frenchUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] French detected by UNIQUE word: ${pattern}`);
+      return 'fr';
+    }
+  }
+
+  // ITALIANO - Palavras ÚNICAS
+  const italianUniquePatterns = [
+    /^ciao\b/i, /^buongiorno\b/i, /^buonasera\b/i,
+    /\b(grazie|per favore|prego)\b/i,
+    /\b(ordine|spedizione|rimborso)\b/i,
+  ];
+
+  for (const pattern of italianUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Italian detected by UNIQUE word: ${pattern}`);
+      return 'it';
+    }
+  }
+
   // ============================================================================
-  // ETAPA 2: Verificar palavras AMBÍGUAS com contexto
-  // (Palavras que existem em ambos: pedido, reembolso, etc.)
+  // ETAPA 2: Verificar palavras AMBÍGUAS (APENAS para PT/ES)
+  // Outros idiomas já foram verificados acima
   // ============================================================================
 
   // ESPANHOL - Padrões com palavras ambíguas (verificar depois das únicas)
@@ -203,50 +248,6 @@ function detectLanguageFromText(text: string): string | null {
     }
   }
 
-  // ALEMÃO - Padrões claros
-  const germanPatterns = [
-    /^hallo\b/i, /^guten tag/i, /^guten morgen/i, /^guten abend/i,
-    /\b(ich|mein|meine|haben|möchte|brauche)\b/i,
-    /\b(bestellung|lieferung|rückerstattung|rücksendung)\b/i,
-    /\b(danke|bitte)\b/i,
-  ];
-
-  for (const pattern of germanPatterns) {
-    if (pattern.test(lowerText)) {
-      console.log(`[detectLanguage] German detected by pattern: ${pattern}`);
-      return 'de';
-    }
-  }
-
-  // FRANCÊS - Padrões claros
-  const frenchPatterns = [
-    /^bonjour\b/i, /^bonsoir\b/i, /^salut\b/i,
-    /\b(je|mon|ma|mes|voudrais|besoin|reçu|acheté)\b/i,
-    /\b(commande|livraison|remboursement|retour)\b/i,
-    /\b(merci|s'il vous plaît)\b/i,
-  ];
-
-  for (const pattern of frenchPatterns) {
-    if (pattern.test(lowerText)) {
-      console.log(`[detectLanguage] French detected by pattern: ${pattern}`);
-      return 'fr';
-    }
-  }
-
-  // ITALIANO - Padrões claros
-  const italianPatterns = [
-    /^ciao\b/i, /^buongiorno\b/i, /^buonasera\b/i,
-    /\b(io|mio|mia|vorrei|ho bisogno|ricevuto|comprato)\b/i,
-    /\b(ordine|consegna|rimborso|reso)\b/i,
-    /\b(grazie|per favore)\b/i,
-  ];
-
-  for (const pattern of italianPatterns) {
-    if (pattern.test(lowerText)) {
-      console.log(`[detectLanguage] Italian detected by pattern: ${pattern}`);
-      return 'it';
-    }
-  }
 
   return null; // Não conseguiu detectar com confiança
 }
