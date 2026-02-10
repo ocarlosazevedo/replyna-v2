@@ -814,25 +814,24 @@ const styles = `
   }
 
   .mc-pain-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
   }
 
   .mc-pain-item {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 14px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    font-size: 14px;
-    color: rgba(255,255,255,0.75);
+    padding: 18px 20px;
+    background: rgba(248, 113, 113, 0.06);
+    border: 1px solid rgba(248, 113, 113, 0.15);
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.9);
     text-align: left;
-  }
-
-  .mc-pain-item:last-child {
-    border-bottom: none;
   }
 
   .mc-pain-icon {
@@ -840,17 +839,19 @@ const styles = `
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(248, 113, 113, 0.12);
     color: #f87171;
-    opacity: 0.7;
   }
 
   .mc-pain-cta {
     text-align: center;
-    font-size: 14px;
-    color: rgba(255,255,255,0.5);
+    font-size: 16px;
+    color: rgba(255,255,255,0.6);
     margin: 0;
     min-height: 20px;
-    transition: all 0.3s ease;
   }
 
   .mc-pain-cta strong {
@@ -1382,7 +1383,7 @@ const styles = `
     .mc-pain-list {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0;
+      gap: 14px;
     }
 
     .mc-instructor-wrap {
