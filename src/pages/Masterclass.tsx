@@ -953,24 +953,22 @@ export default function Masterclass() {
 
       {/* ===== FOOTER ===== */}
       <footer className="mc-footer">
-        <div className="mc-footer-inner">
-          <div className="mc-footer-col mc-footer-brand">
-            <img src="/replyna-logo.webp" alt="Replyna" />
-            <p>Proteja sua operação na Shopify Payments com o método anti-chargeback mais completo do mercado.</p>
-          </div>
-          <div className="mc-footer-col">
-            <strong>Masterclass</strong>
+        <div className="mc-footer-content">
+          <img src="/Logo Replyna.png" alt="Replyna" className="mc-footer-logo" />
+          <p className="mc-footer-desc">
+            Proteja sua operação na Shopify Payments com o método anti-chargeback mais completo do mercado.
+          </p>
+          <nav className="mc-footer-links">
             <a href="#conteudo">Conteúdo</a>
+            <span className="mc-footer-dot" />
             <a href="#instrutor">Instrutor</a>
-            <a href="#faq">Perguntas frequentes</a>
-          </div>
-          <div className="mc-footer-col">
-            <strong>Contato</strong>
-            <a href="mailto:support@replyna.com">support@replyna.com</a>
-          </div>
-        </div>
-        <div className="mc-footer-bottom">
-          <span>&copy; {new Date().getFullYear()} Replyna. Todos os direitos reservados.</span>
+            <span className="mc-footer-dot" />
+            <a href="#faq">FAQ</a>
+            <span className="mc-footer-dot" />
+            <a href="mailto:support@replyna.com">Contato</a>
+          </nav>
+          <div className="mc-footer-divider" />
+          <span className="mc-footer-copy">&copy; {new Date().getFullYear()} Replyna. Todos os direitos reservados.</span>
         </div>
       </footer>
     </div>
@@ -2171,40 +2169,65 @@ const styles = `
 
   /* ===== FOOTER ===== */
   .mc-footer {
-    padding: 48px 20px 24px;
+    padding: 56px 20px 24px;
     border-top: 1px solid rgba(255,255,255,0.06);
-    background: linear-gradient(180deg, #0a1628 0%, #0e1d35 100%);
+    background: linear-gradient(180deg, #0a1628 0%, #060d18 100%);
   }
-  .mc-footer-inner {
-    max-width: 900px;
+  .mc-footer-content {
+    max-width: 600px;
     margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 32px;
-    padding-bottom: 32px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .mc-footer-brand img { height: 24px; opacity: 0.6; margin-bottom: 12px; }
-  .mc-footer-brand p { font-size: 13px; color: rgba(255,255,255,0.35); line-height: 1.6; margin: 0; max-width: 280px; }
-  .mc-footer-col { display: flex; flex-direction: column; gap: 10px; }
-  .mc-footer-col strong {
-    font-size: 13px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.7);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 4px;
-  }
-  .mc-footer-col a { font-size: 14px; color: rgba(255,255,255,0.4); text-decoration: none; transition: color 0.2s; }
-  .mc-footer-col a:hover { color: #1E90FF; }
-  .mc-footer-bottom {
-    max-width: 900px;
-    margin: 0 auto;
-    padding-top: 20px;
-    padding-bottom: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
+    gap: 16px;
   }
-  .mc-footer-bottom span { font-size: 12px; color: rgba(255,255,255,0.25); }
+  .mc-footer-logo {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    opacity: 0.8;
+  }
+  .mc-footer-desc {
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.7;
+    margin: 0;
+    max-width: 400px;
+  }
+  .mc-footer-links {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .mc-footer-links a {
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    text-decoration: none;
+    transition: color 0.2s;
+    font-weight: 500;
+  }
+  .mc-footer-links a:hover { color: #1E90FF; }
+  .mc-footer-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+  }
+  .mc-footer-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    margin: 8px 0;
+  }
+  .mc-footer-copy {
+    font-size: 12px;
+    color: rgba(255,255,255,0.2);
+    padding-bottom: 60px;
+  }
 
   /* ===== TABLET (768px) ===== */
   @media (min-width: 768px) {
@@ -2217,7 +2240,7 @@ const styles = `
     .mc-testimonials-grid { grid-template-columns: 1fr 1fr; }
     .mc-modules-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
     .mc-loss-item { gap: 20px; }
-    .mc-footer-inner { grid-template-columns: 1.5fr 1fr 1fr; }
+    .mc-footer-logo { height: 48px; }
     .mc-stat-value { font-size: 32px; }
     .mc-hero-visual { max-width: 420px; }
     .mc-orbit-logo { width: 52px; height: 52px; font-size: 16px; }
@@ -2275,7 +2298,7 @@ const styles = `
     .mc-testimonial-card:hover { border-color: rgba(30,144,255,0.2); background: rgba(255,255,255,0.05); transform: translateY(-2px); }
     .mc-final-title { font-size: 36px; }
     .mc-sticky-cta { display: none; }
-    .mc-footer { padding: 56px 48px 24px; }
+    .mc-footer { padding: 64px 48px 24px; }
     .mc-field input:hover { border-color: rgba(255,255,255,0.2); }
     .mc-faq-item:hover .mc-faq-arrow { color: rgba(255,255,255,0.5); }
   }
