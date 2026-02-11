@@ -586,8 +586,8 @@ export default function Masterclass() {
                   src="/Logo Replyna.png"
                   alt="Replyna"
                   style={{
-                    width: 54,
-                    height: 54,
+                    width: 160,
+                    height: 160,
                     objectFit: 'contain',
                     filter: 'brightness(0) invert(1)',
                   }}
