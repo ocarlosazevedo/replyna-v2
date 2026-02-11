@@ -731,18 +731,21 @@ export default function Masterclass() {
           <h2 className="mc-section-title">Quem será o seu mentor nessa aula?</h2>
 
           <div className="mc-instructor-card">
-            <div className="mc-instructor-top">
+            <div className="mc-instructor-hero">
               <div className="mc-instructor-img-wrap">
                 <img src="/influencers/carlos-azevedo.jpg" alt="Carlos Azevedo" />
               </div>
-              <div className="mc-instructor-info">
-                <strong>Carlos Azevedo</strong>
+              <div className="mc-instructor-headline">
+                <h3 className="mc-instructor-name">Carlos Azevedo</h3>
                 <span className="mc-instructor-role">Empresário & Especialista em E-commerce Global</span>
-                <p className="mc-instructor-quote">
-                  "Minha missão é mostrar que é possível escalar sem medo de perder tudo da noite pro dia."
-                </p>
               </div>
             </div>
+
+            <p className="mc-instructor-quote">
+              "Minha missão é mostrar que é possível escalar sem medo de perder tudo da noite pro dia."
+            </p>
+
+            <div className="mc-instructor-divider" />
 
             <p className="mc-instructor-bio">
               Empresário com mais de <strong>6 anos no mercado de e-commerce global</strong>.
@@ -753,14 +756,17 @@ export default function Masterclass() {
 
             <div className="mc-instructor-stats">
               <div className="mc-istat-item">
+                <DollarSign size={18} />
                 <strong>$500K+</strong>
                 <span>Faturamento/mês</span>
               </div>
               <div className="mc-istat-item">
+                <Clock size={18} />
                 <strong>6+ anos</strong>
                 <span>No mercado</span>
               </div>
               <div className="mc-istat-item">
+                <TrendingUp size={18} />
                 <strong>40%</strong>
                 <span>Margem</span>
               </div>
@@ -1852,12 +1858,15 @@ const styles = `
 
   /* ===== INSTRUCTOR ===== */
   .mc-instructor-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(30,144,255,0.15);
+    background: linear-gradient(135deg, rgba(30,144,255,0.04), rgba(32,178,170,0.02));
+    border: 1px solid rgba(255,255,255,0.06);
     border-radius: 24px;
-    padding: 32px 24px;
+    padding: 36px 28px;
     position: relative;
     overflow: hidden;
+    text-align: center;
+    max-width: 640px;
+    margin: 0 auto;
   }
   .mc-instructor-card::before {
     content: '';
@@ -1866,15 +1875,20 @@ const styles = `
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, #1E90FF, #20B2AA, #1E90FF);
-    opacity: 0.7;
+    background: linear-gradient(90deg, transparent, #1E90FF, #20B2AA, transparent);
   }
-  .mc-instructor-top { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px; }
+  .mc-instructor-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
   .mc-instructor-img-wrap { position: relative; flex-shrink: 0; }
   .mc-instructor-img-wrap::after {
     content: '';
     position: absolute;
-    inset: -3px;
+    inset: -4px;
     border-radius: 50%;
     background: linear-gradient(135deg, #1E90FF, #20B2AA);
     z-index: 0;
@@ -1882,43 +1896,79 @@ const styles = `
   .mc-instructor-img-wrap img {
     position: relative;
     z-index: 1;
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #0a1628;
+    border: 4px solid #0e1d35;
   }
-  .mc-instructor-info { display: flex; flex-direction: column; gap: 4px; text-align: left; }
-  .mc-instructor-info strong { font-size: 20px; font-weight: 800; }
-  .mc-instructor-role { font-size: 13px; color: #1E90FF; font-weight: 500; }
-  .mc-instructor-quote {
-    font-size: 13px;
-    color: rgba(255,255,255,0.45);
-    font-style: italic;
-    margin: 8px 0 0;
-    line-height: 1.5;
-  }
-  .mc-instructor-bio {
-    font-size: 15px;
-    line-height: 1.7;
-    color: rgba(255,255,255,0.6);
-    margin: 0 0 24px;
-    text-align: left;
-  }
-  .mc-instructor-bio strong { color: rgba(255,255,255,0.95); }
-  .mc-instructor-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .mc-istat-item {
+  .mc-instructor-headline {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    padding: 16px 8px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(30,144,255,0.1);
-    border-radius: 14px;
+  }
+  .mc-instructor-name {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0;
+    color: #fff;
+  }
+  .mc-instructor-role {
+    font-size: 14px;
+    color: #1E90FF;
+    font-weight: 500;
+  }
+  .mc-instructor-quote {
+    font-size: 15px;
+    color: rgba(255,255,255,0.5);
+    font-style: italic;
+    margin: 0 0 0;
+    line-height: 1.6;
+    max-width: 460px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .mc-instructor-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(30,144,255,0.2), transparent);
+    margin: 24px 0;
+  }
+  .mc-instructor-bio {
+    font-size: 15px;
+    line-height: 1.75;
+    color: rgba(255,255,255,0.6);
+    margin: 0 0 28px;
+    text-align: center;
+  }
+  .mc-instructor-bio strong { color: rgba(255,255,255,0.95); }
+  .mc-instructor-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .mc-istat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 20px 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+  }
+  .mc-istat-item:hover {
+    border-color: rgba(30,144,255,0.2);
+    background: rgba(255,255,255,0.05);
+    transform: translateY(-2px);
+  }
+  .mc-istat-item svg {
+    color: #20B2AA;
+    opacity: 0.7;
   }
   .mc-istat-item strong {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 800;
     background: linear-gradient(135deg, #1E90FF, #20B2AA);
     -webkit-background-clip: text;
@@ -1929,7 +1979,8 @@ const styles = `
     font-size: 11px;
     color: rgba(255,255,255,0.45);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
+    font-weight: 600;
   }
 
   /* ===== TESTIMONIALS ===== */
@@ -2198,11 +2249,13 @@ const styles = `
     .mc-tab-module-title { font-size: 20px; }
     .mc-audience-grid { grid-template-columns: 1fr 1fr; gap: 24px; max-width: 900px; margin-left: auto; margin-right: auto; }
     .mc-audience-card { padding: 32px; }
-    .mc-instructor-card { padding: 40px; max-width: 700px; margin-left: auto; margin-right: auto; }
-    .mc-instructor-img-wrap img { width: 96px; height: 96px; }
-    .mc-instructor-info strong { font-size: 24px; }
-    .mc-instructor-role { font-size: 14px; }
-    .mc-instructor-quote { font-size: 14px; }
+    .mc-instructor-card { padding: 48px 40px; }
+    .mc-instructor-img-wrap img { width: 120px; height: 120px; }
+    .mc-instructor-name { font-size: 28px; }
+    .mc-instructor-role { font-size: 15px; }
+    .mc-instructor-quote { font-size: 16px; }
+    .mc-istat-item { padding: 24px 16px; }
+    .mc-istat-item strong { font-size: 26px; }
     .mc-access-card { max-width: 700px; margin-left: auto; margin-right: auto; padding: 48px 40px; }
     .mc-testimonials-grid { grid-template-columns: 1fr 1fr; gap: 20px; max-width: 800px; margin-left: auto; margin-right: auto; }
     .mc-testimonial-card:hover { border-color: rgba(30,144,255,0.2); background: rgba(255,255,255,0.05); transform: translateY(-2px); }
