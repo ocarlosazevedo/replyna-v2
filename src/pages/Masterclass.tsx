@@ -111,6 +111,33 @@ export default function Masterclass() {
   const formRef = useRef<HTMLDivElement>(null)
   const countdown = useCountdown()
 
+  // Meta Pixel
+  useEffect(() => {
+    if ((window as any).fbq) return
+
+    const f = window as any
+    const n = f.fbq = function (...args: any[]) {
+      n.callMethod ? n.callMethod.apply(n, args) : n.queue.push(args)
+    }
+    if (!f._fbq) f._fbq = n
+    n.push = n
+    n.loaded = true
+    n.version = '2.0'
+    n.queue = [] as any[]
+
+    const script = document.createElement('script')
+    script.async = true
+    script.src = 'https://connect.facebook.net/en_US/fbevents.js'
+    document.head.appendChild(script)
+
+    f.fbq('init', '1587401225738187')
+    f.fbq('track', 'PageView')
+
+    return () => {
+      document.head.removeChild(script)
+    }
+  }, [])
+
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
@@ -200,10 +227,17 @@ export default function Masterclass() {
         })
         .then(() => {}) // fire-and-forget
 
-      // 3. Salvar email no localStorage para auto-login na área de membros
+      // 3. Meta Pixel - track Lead conversion
+      if ((window as any).fbq) {
+        (window as any).fbq('track', 'Lead', {
+          content_name: 'Masterclass Replyna',
+        })
+      }
+
+      // 4. Salvar email no localStorage para auto-login na área de membros
       localStorage.setItem('masterclass_email', formData.email.toLowerCase().trim())
 
-      // 4. Redirect após Brevo salvar
+      // 5. Redirect após Brevo salvar
       window.location.href = '/masterclass/assistir'
     } catch (err) {
       console.error('Submit error:', err)
