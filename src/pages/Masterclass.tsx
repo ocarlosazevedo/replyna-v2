@@ -635,39 +635,6 @@ export default function Masterclass() {
         </div>
       </section>
 
-      {/* ===== VIDEO EMBED ===== */}
-      {VIDEO_URL && (
-        <section className="mc-section mc-video-section mc-fade-in">
-          <div className="mc-section-inner">
-            <h2 className="mc-section-title">
-              Veja um trecho da <span className="mc-highlight">masterclass</span>
-            </h2>
-            <div className="mc-video-wrap">
-              <iframe
-                src={VIDEO_URL}
-                title="Trecho da Masterclass"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {!VIDEO_URL && (
-        <section className="mc-section mc-video-section mc-fade-in">
-          <div className="mc-section-inner">
-            <h2 className="mc-section-title">
-              Veja um trecho da <span className="mc-highlight">masterclass</span>
-            </h2>
-            <div className="mc-video-placeholder" onClick={openModal}>
-              <PlayCircle size={64} />
-              <span>Cadastre-se para assistir a masterclass completa</span>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ===== LOSS CALCULATOR ===== */}
       <section className="mc-section mc-losses mc-fade-in">
         <div className="mc-section-inner">
