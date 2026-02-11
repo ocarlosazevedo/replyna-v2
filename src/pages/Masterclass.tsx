@@ -586,8 +586,8 @@ export default function Masterclass() {
                   src="/Logo Replyna.png"
                   alt="Replyna"
                   style={{
-                    width: 38,
-                    height: 38,
+                    width: 54,
+                    height: 54,
                     objectFit: 'contain',
                     filter: 'brightness(0) invert(1)',
                   }}
@@ -1240,9 +1240,9 @@ const styles = `
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 3;
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
     background: linear-gradient(135deg, #1E90FF, #20B2AA);
     display: flex;
     align-items: center;
