@@ -413,7 +413,7 @@ async function handleCheckoutCompleted(
     cancel_at_period_end: subscription.cancel_at_period_end,
   };
 
-  // Verificar se já existe assinatura
+  // Verificar se já existe assinatura com esse stripe_subscription_id
   const { data: existingSub } = await supabase
     .from('subscriptions')
     .select('id')
@@ -426,6 +426,33 @@ async function handleCheckoutCompleted(
       .update(subscriptionData)
       .eq('id', existingSub.id);
   } else {
+    // Antes de inserir, cancelar outras assinaturas ativas do mesmo usuário
+    // para evitar duplicatas (ex: usuário fez checkout 2x)
+    const { data: oldSubs } = await supabase
+      .from('subscriptions')
+      .select('id, stripe_subscription_id')
+      .eq('user_id', userId)
+      .in('status', ['active', 'trialing', 'past_due'])
+      .neq('stripe_subscription_id', subscriptionId);
+
+    if (oldSubs && oldSubs.length > 0) {
+      console.log(`Cancelando ${oldSubs.length} assinatura(s) antiga(s) do usuário ${userId}`);
+      for (const oldSub of oldSubs) {
+        // Cancelar no Stripe
+        try {
+          await stripe.subscriptions.cancel(oldSub.stripe_subscription_id);
+          console.log('Subscription cancelada no Stripe:', oldSub.stripe_subscription_id);
+        } catch (cancelErr) {
+          console.error('Erro ao cancelar subscription antiga no Stripe:', cancelErr);
+        }
+        // Marcar como cancelada no banco
+        await supabase
+          .from('subscriptions')
+          .update({ status: 'canceled', canceled_at: new Date().toISOString() })
+          .eq('id', oldSub.id);
+      }
+    }
+
     await supabase
       .from('subscriptions')
       .insert(subscriptionData);

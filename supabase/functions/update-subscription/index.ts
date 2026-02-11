@@ -70,12 +70,17 @@ serve(async (req) => {
     }
 
     // Buscar subscription atual do usuário
-    const { data: subscription, error: subError } = await supabase
+    // Aceitar assinaturas active, trialing ou past_due (todas são válidas para upgrade)
+    // Ordenar por created_at desc e pegar a mais recente (caso haja duplicatas)
+    const { data: subscriptions, error: subError } = await supabase
       .from('subscriptions')
       .select('id, stripe_subscription_id, stripe_customer_id, plan_id, billing_cycle, status')
       .eq('user_id', user_id)
-      .eq('status', 'active')
-      .single();
+      .in('status', ['active', 'trialing', 'past_due'])
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const subscription = subscriptions?.[0] || null;
 
     if (subError || !subscription) {
       console.error('Erro ao buscar subscription:', subError);

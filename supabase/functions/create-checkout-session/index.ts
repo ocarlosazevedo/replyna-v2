@@ -102,6 +102,25 @@ serve(async (req) => {
         .single();
 
       stripeCustomerId = existingUser?.stripe_customer_id || undefined;
+
+      // Verificar se já tem assinatura ativa - se sim, deve usar update-subscription
+      const { data: existingSubs } = await supabase
+        .from('subscriptions')
+        .select('id, status, stripe_subscription_id')
+        .eq('user_id', user_id)
+        .in('status', ['active', 'trialing', 'past_due'])
+        .limit(1);
+
+      if (existingSubs && existingSubs.length > 0) {
+        console.log('Usuário já tem assinatura ativa:', existingSubs[0].stripe_subscription_id);
+        return new Response(
+          JSON.stringify({
+            error: 'Você já possui uma assinatura ativa. Use a opção de alterar plano na sua conta.',
+            has_active_subscription: true,
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Se não tem customer, criar um
