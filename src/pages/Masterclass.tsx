@@ -37,8 +37,6 @@ import { supabase } from '../lib/supabase'
 
 // ==================== CONSTANTS ====================
 
-const VIDEO_URL = '' // Placeholder — substituir pela URL real do video
-
 const heroWords = ['chargebacks', 'disputas', 'bloqueios', 'prejuízos']
 
 const statsData = [
