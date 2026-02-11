@@ -23,8 +23,7 @@ import {
   CreditCard,
   Calendar,
   PlayCircle,
-  X,
-  TrendingDown
+  X
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -166,6 +165,30 @@ const faqItems = [
   }
 ]
 
+// ==================== ORBIT DATA ====================
+
+const orbitPlatforms = [
+  { name: 'Shopify', color: '#96bf48', letter: 'S' },
+  { name: 'Stripe', color: '#635bff', letter: 'St' },
+  { name: 'PayPal', color: '#0070ba', letter: 'PP' },
+  { name: 'Visa', color: '#1a1f71', letter: 'V' },
+  { name: 'Amazon', color: '#ff9900', letter: 'a' },
+  { name: 'Mastercard', color: '#eb001b', letter: 'MC' },
+  { name: 'WooCommerce', color: '#7f54b3', letter: 'W' },
+  { name: 'Wix', color: '#116dff', letter: 'Wx' },
+]
+
+const orbitPositions = [
+  { top: '6%',  left: '50%', sx: 250, sy: 30 },
+  { top: '18%', left: '84%', sx: 420, sy: 90 },
+  { top: '50%', left: '94%', sx: 470, sy: 250 },
+  { top: '82%', left: '84%', sx: 420, sy: 410 },
+  { top: '94%', left: '50%', sx: 250, sy: 470 },
+  { top: '82%', left: '16%', sx: 80, sy: 410 },
+  { top: '50%', left: '6%',  sx: 30, sy: 250 },
+  { top: '18%', left: '16%', sx: 80, sy: 90 },
+]
+
 // ==================== COUNTDOWN HOOK ====================
 
 function useCountdown() {
@@ -215,7 +238,6 @@ export default function Masterclass() {
   const [heroWordIndex, setHeroWordIndex] = useState(0)
   const [activeModule, setActiveModule] = useState(0)
   const [showModal, setShowModal] = useState(false)
-  const [carouselIndex, setCarouselIndex] = useState(0)
   const [scrolled, setScrolled] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
   const countdown = useCountdown()
@@ -262,14 +284,6 @@ export default function Masterclass() {
     const interval = setInterval(() => {
       setHeroWordIndex(prev => (prev + 1) % heroWords.length)
     }, 2500)
-    return () => clearInterval(interval)
-  }, [])
-
-  // Carousel auto-rotation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCarouselIndex(prev => (prev + 1) % 4)
-    }, 5000)
     return () => clearInterval(interval)
   }, [])
 
@@ -353,7 +367,6 @@ export default function Masterclass() {
     setIsSubmitting(true)
 
     try {
-      // 1. Salvar no Brevo (primário)
       const response = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -372,7 +385,6 @@ export default function Masterclass() {
         return
       }
 
-      // 2. Backup no Supabase (não bloqueia o redirect)
       supabase
         .from('masterclass_leads')
         .insert({
@@ -380,19 +392,16 @@ export default function Masterclass() {
           email: formData.email.toLowerCase().trim(),
           whatsapp: formData.whatsapp.replace(/\D/g, '')
         })
-        .then(() => {}) // fire-and-forget
+        .then(() => {})
 
-      // 3. Meta Pixel - track Lead conversion
       if ((window as any).fbq) {
         (window as any).fbq('track', 'Lead', {
           content_name: 'Masterclass Replyna',
         })
       }
 
-      // 4. Salvar email no localStorage para auto-login na área de membros
       localStorage.setItem('masterclass_email', formData.email.toLowerCase().trim())
 
-      // 5. Redirect após Brevo salvar
       window.location.href = '/masterclass/assistir'
     } catch (err) {
       console.error('Submit error:', err)
@@ -432,11 +441,10 @@ export default function Masterclass() {
         </div>
       </header>
 
-      {/* ===== HERO + FORM ===== */}
+      {/* ===== HERO + ORBIT ===== */}
       <section className="mc-hero">
         <div className="mc-hero-inner">
           <div className="mc-hero-text">
-            {/* Social proof badge */}
             <div className="mc-social-badge">
               <div className="mc-social-stars">
                 {[...Array(5)].map((_, i) => (
@@ -464,7 +472,6 @@ export default function Masterclass() {
               QUERO ACESSO GRATUITO
             </button>
 
-            {/* Value props */}
             <div className="mc-value-props">
               {valueProps.map((prop, i) => (
                 <div key={i} className="mc-value-item">
@@ -475,129 +482,116 @@ export default function Masterclass() {
             </div>
           </div>
 
-          {/* Hero Carousel */}
-          <div className="mc-hero-carousel" ref={heroRef}>
-            <div className="mc-carousel-viewport">
-              {/* Slide 0: Dashboard */}
-              <div className={`mc-carousel-slide ${carouselIndex === 0 ? 'mc-slide-active' : ''}`}>
-                <div className="mc-slide-card">
-                  <div className="mc-slide-topbar">
-                    <div className="mc-slide-dots"><span /><span /><span /></div>
-                    <span className="mc-slide-url">shopify.com/admin/payments</span>
-                  </div>
-                  <div className="mc-slide-content">
-                    <div className="mc-slide-metric-row">
-                      <span className="mc-slide-metric-label">Taxa de Chargeback</span>
-                      <span className="mc-slide-metric-badge"><TrendingDown size={12} /> -90%</span>
-                    </div>
-                    <div className="mc-slide-big-number">0.4%</div>
-                    <div className="mc-slide-bars">
-                      <div className="mc-slide-bar-item">
-                        <span>Antes</span>
-                        <div className="mc-slide-bar-track"><div className="mc-slide-bar-fill mc-fill-red" style={{width: '80%'}} /></div>
-                        <span className="mc-color-red">3.2%</span>
-                      </div>
-                      <div className="mc-slide-bar-item">
-                        <span>Depois</span>
-                        <div className="mc-slide-bar-track"><div className="mc-slide-bar-fill mc-fill-green" style={{width: '10%'}} /></div>
-                        <span className="mc-color-green">0.4%</span>
-                      </div>
-                    </div>
-                    <div className="mc-slide-stats-row">
-                      <div><strong>$500K+</strong><span>Faturamento</span></div>
-                      <div><strong>40%</strong><span>Margem</span></div>
-                      <div><strong>0</strong><span>Bloqueios</span></div>
-                    </div>
-                  </div>
-                </div>
+          {/* ===== ORBIT ANIMATION ===== */}
+          <div className="mc-hero-visual" ref={heroRef}>
+            <div className="mc-orbit-container">
+              {/* SVG connecting lines and traveling dots */}
+              <svg className="mc-orbit-svg" viewBox="0 0 500 500" fill="none">
+                {/* Orbital track rings */}
+                <ellipse cx="250" cy="250" rx="218" ry="218" stroke="rgba(30,144,255,0.06)" strokeWidth="1" strokeDasharray="4 8" />
+                <ellipse cx="250" cy="250" rx="155" ry="155" stroke="rgba(32,178,170,0.04)" strokeWidth="1" strokeDasharray="3 6" />
+
+                {/* Connecting lines from center to each platform */}
+                {orbitPositions.map((pos, i) => (
+                  <line key={`line-${i}`} x1="250" y1="250" x2={pos.sx} y2={pos.sy}
+                    stroke={i % 2 === 0 ? 'rgba(30,144,255,0.1)' : 'rgba(32,178,170,0.08)'}
+                    strokeWidth="1" />
+                ))}
+
+                {/* Cross-connections between adjacent platforms */}
+                <line x1={orbitPositions[0].sx} y1={orbitPositions[0].sy} x2={orbitPositions[1].sx} y2={orbitPositions[1].sy} stroke="rgba(30,144,255,0.04)" strokeWidth="1" />
+                <line x1={orbitPositions[2].sx} y1={orbitPositions[2].sy} x2={orbitPositions[3].sx} y2={orbitPositions[3].sy} stroke="rgba(32,178,170,0.04)" strokeWidth="1" />
+                <line x1={orbitPositions[4].sx} y1={orbitPositions[4].sy} x2={orbitPositions[5].sx} y2={orbitPositions[5].sy} stroke="rgba(30,144,255,0.04)" strokeWidth="1" />
+                <line x1={orbitPositions[6].sx} y1={orbitPositions[6].sy} x2={orbitPositions[7].sx} y2={orbitPositions[7].sy} stroke="rgba(32,178,170,0.04)" strokeWidth="1" />
+
+                {/* Path definitions for animated dots */}
+                <defs>
+                  {orbitPositions.map((pos, i) => (
+                    <path key={`fp-${i}`} id={`op${i}`} d={`M250,250 L${pos.sx},${pos.sy}`} />
+                  ))}
+                  <path id="rp1" d={`M${orbitPositions[1].sx},${orbitPositions[1].sy} L250,250`} />
+                  <path id="rp4" d={`M${orbitPositions[4].sx},${orbitPositions[4].sy} L250,250`} />
+                  <path id="rp6" d={`M${orbitPositions[6].sx},${orbitPositions[6].sy} L250,250`} />
+                </defs>
+
+                {/* Forward traveling dots (center → platform) */}
+                <circle r="3" fill="#1E90FF">
+                  <animateMotion dur="5s" repeatCount="indefinite" begin="0s"><mpath href="#op0" /></animateMotion>
+                  <animate attributeName="opacity" dur="5s" repeatCount="indefinite" begin="0s" values="0;0.8;0.8;0" keyTimes="0;0.1;0.85;1" />
+                </circle>
+                <circle r="3" fill="#1E90FF">
+                  <animateMotion dur="5.4s" repeatCount="indefinite" begin="0.7s"><mpath href="#op1" /></animateMotion>
+                  <animate attributeName="opacity" dur="5.4s" repeatCount="indefinite" begin="0.7s" values="0;0.8;0.8;0" keyTimes="0;0.1;0.85;1" />
+                </circle>
+                <circle r="3" fill="#20B2AA">
+                  <animateMotion dur="4.8s" repeatCount="indefinite" begin="1.4s"><mpath href="#op2" /></animateMotion>
+                  <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" begin="1.4s" values="0;0.7;0.7;0" keyTimes="0;0.1;0.85;1" />
+                </circle>
+                <circle r="3" fill="#1E90FF">
+                  <animateMotion dur="5.6s" repeatCount="indefinite" begin="2.1s"><mpath href="#op3" /></animateMotion>
+                  <animate attributeName="opacity" dur="5.6s" repeatCount="indefinite" begin="2.1s" values="0;0.8;0.8;0" keyTimes="0;0.1;0.85;1" />
+                </circle>
+                <circle r="3" fill="#20B2AA">
+                  <animateMotion dur="5.2s" repeatCount="indefinite" begin="2.8s"><mpath href="#op4" /></animateMotion>
+                  <animate attributeName="opacity" dur="5.2s" repeatCount="indefinite" begin="2.8s" values="0;0.7;0.7;0" keyTimes="0;0.1;0.85;1" />
+                </circle>
+                <circle r="3" fill="#1E90FF">
+                  <animateMotion dur="5.8s" repeatCount="indefinite" begin="3.5s"><mpath href="#op5" /></animateMotion>
+                  <animate attributeName="opacity" dur="5.8s" repeatCount="indefinite" begin="3.5s" values="0;0.8;0.8;0" keyTimes="0;0.1;0.85;1" />
+                </circle>
+                <circle r="3" fill="#20B2AA">
+                  <animateMotion dur="4.6s" repeatCount="indefinite" begin="4.2s"><mpath href="#op6" /></animateMotion>
+                  <animate attributeName="opacity" dur="4.6s" repeatCount="indefinite" begin="4.2s" values="0;0.7;0.7;0" keyTimes="0;0.1;0.85;1" />
+                </circle>
+                <circle r="3" fill="#1E90FF">
+                  <animateMotion dur="5.1s" repeatCount="indefinite" begin="4.9s"><mpath href="#op7" /></animateMotion>
+                  <animate attributeName="opacity" dur="5.1s" repeatCount="indefinite" begin="4.9s" values="0;0.8;0.8;0" keyTimes="0;0.1;0.85;1" />
+                </circle>
+
+                {/* Reverse traveling dots (platform → center) */}
+                <circle r="2.5" fill="#20B2AA">
+                  <animateMotion dur="6s" repeatCount="indefinite" begin="2s"><mpath href="#rp1" /></animateMotion>
+                  <animate attributeName="opacity" dur="6s" repeatCount="indefinite" begin="2s" values="0;0.6;0.6;0" keyTimes="0;0.12;0.82;1" />
+                </circle>
+                <circle r="2.5" fill="#1E90FF">
+                  <animateMotion dur="6.5s" repeatCount="indefinite" begin="3.5s"><mpath href="#rp4" /></animateMotion>
+                  <animate attributeName="opacity" dur="6.5s" repeatCount="indefinite" begin="3.5s" values="0;0.6;0.6;0" keyTimes="0;0.12;0.82;1" />
+                </circle>
+                <circle r="2.5" fill="#20B2AA">
+                  <animateMotion dur="5.5s" repeatCount="indefinite" begin="5s"><mpath href="#rp6" /></animateMotion>
+                  <animate attributeName="opacity" dur="5.5s" repeatCount="indefinite" begin="5s" values="0;0.6;0.6;0" keyTimes="0;0.12;0.82;1" />
+                </circle>
+
+                {/* Center glow */}
+                <circle cx="250" cy="250" r="40" fill="url(#centerGlow)" />
+                <defs>
+                  <radialGradient id="centerGlow" cx="0.5" cy="0.5" r="0.5">
+                    <stop offset="0%" stopColor="rgba(30,144,255,0.15)" />
+                    <stop offset="100%" stopColor="rgba(30,144,255,0)" />
+                  </radialGradient>
+                </defs>
+              </svg>
+
+              {/* Central Replyna shield */}
+              <div className="mc-orbit-center">
+                <Shield size={28} />
               </div>
 
-              {/* Slide 1: Protection */}
-              <div className={`mc-carousel-slide ${carouselIndex === 1 ? 'mc-slide-active' : ''}`}>
-                <div className="mc-slide-card mc-slide-protection">
-                  <div className="mc-slide-shield-icon">
-                    <Shield size={40} />
-                  </div>
-                  <h3 className="mc-slide-title">Conta Protegida</h3>
-                  <div className="mc-slide-checklist">
-                    <div className="mc-slide-check"><Check size={16} /> Monitoramento de disputas</div>
-                    <div className="mc-slide-check"><Check size={16} /> Prevenção automatizada</div>
-                    <div className="mc-slide-check"><Check size={16} /> Resposta profissional a CBs</div>
-                    <div className="mc-slide-check"><Check size={16} /> Taxa abaixo de 1%</div>
-                  </div>
-                  <div className="mc-slide-protected-badge">
-                    <Shield size={14} />
-                    <span>500+ contas protegidas</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Slide 2: Modules */}
-              <div className={`mc-carousel-slide ${carouselIndex === 2 ? 'mc-slide-active' : ''}`}>
-                <div className="mc-slide-card mc-slide-modules">
-                  <div className="mc-slide-modules-header">
-                    <BookOpen size={20} />
-                    <span>6 Módulos Práticos</span>
-                    <span className="mc-slide-duration">47min</span>
-                  </div>
-                  <div className="mc-slide-module-list">
-                    <div className="mc-slide-mod"><span className="mc-slide-mod-num">01</span> O que é Chargeback</div>
-                    <div className="mc-slide-mod"><span className="mc-slide-mod-num">02</span> Erros que matam sua conta</div>
-                    <div className="mc-slide-mod mc-slide-mod-highlight"><span className="mc-slide-mod-num">03</span> Método Anti-Chargeback</div>
-                    <div className="mc-slide-mod"><span className="mc-slide-mod-num">04</span> Configurações essenciais</div>
-                    <div className="mc-slide-mod"><span className="mc-slide-mod-num">05</span> Responder e vencer disputas</div>
-                    <div className="mc-slide-mod"><span className="mc-slide-mod-num">06</span> Automação avançada</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Slide 3: Results */}
-              <div className={`mc-carousel-slide ${carouselIndex === 3 ? 'mc-slide-active' : ''}`}>
-                <div className="mc-slide-card mc-slide-results">
-                  <h3 className="mc-slide-title">Resultados Comprovados</h3>
-                  <div className="mc-slide-comparison">
-                    <div className="mc-slide-comp-col mc-comp-before">
-                      <span className="mc-slide-comp-label">ANTES</span>
-                      <div className="mc-slide-comp-item"><span>Taxa CB</span><strong>3.2%</strong></div>
-                      <div className="mc-slide-comp-item"><span>Disputas</span><strong>20+/mês</strong></div>
-                      <div className="mc-slide-comp-item"><span>Risco</span><strong>Alto</strong></div>
-                    </div>
-                    <div className="mc-slide-comp-divider" />
-                    <div className="mc-slide-comp-col mc-comp-after">
-                      <span className="mc-slide-comp-label">DEPOIS</span>
-                      <div className="mc-slide-comp-item"><span>Taxa CB</span><strong>0.4%</strong></div>
-                      <div className="mc-slide-comp-item"><span>Disputas</span><strong>2/mês</strong></div>
-                      <div className="mc-slide-comp-item"><span>Risco</span><strong>Zero</strong></div>
-                    </div>
-                  </div>
-                  <div className="mc-slide-results-footer">
-                    <Star size={14} fill="#facc15" color="#facc15" />
-                    <span>Método aplicado em +500 operações</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Navigation dots */}
-            <div className="mc-carousel-dots">
-              {[0, 1, 2, 3].map(i => (
-                <button
+              {/* Platform items */}
+              {orbitPlatforms.map((platform, i) => (
+                <div
                   key={i}
-                  className={`mc-carousel-dot ${carouselIndex === i ? 'mc-dot-active' : ''}`}
-                  onClick={() => setCarouselIndex(i)}
-                  aria-label={`Slide ${i + 1}`}
-                />
+                  className={`mc-orbit-item mc-oi-${i}`}
+                  style={{ top: orbitPositions[i].top, left: orbitPositions[i].left }}
+                >
+                  <div className="mc-orbit-inner">
+                    <div className="mc-orbit-logo" style={{ background: platform.color }}>
+                      <span>{platform.letter}</span>
+                    </div>
+                    <span className="mc-orbit-label">{platform.name}</span>
+                  </div>
+                </div>
               ))}
-            </div>
-
-            {/* Floating badges (desktop only) */}
-            <div className="mc-carousel-float mc-cf-1">
-              <Shield size={16} />
-              <span>Método Validado</span>
-            </div>
-            <div className="mc-carousel-float mc-cf-2">
-              <Star size={16} fill="#facc15" color="#facc15" />
-              <span>+500 Alunos</span>
             </div>
           </div>
         </div>
@@ -646,7 +640,6 @@ export default function Masterclass() {
         </section>
       )}
 
-      {/* Video placeholder when no URL */}
       {!VIDEO_URL && (
         <section className="mc-section mc-video-section mc-fade-in">
           <div className="mc-section-inner">
@@ -719,7 +712,6 @@ export default function Masterclass() {
             São 6 módulos práticos em 47 minutos de puro conteúdo aplicável.
           </p>
 
-          {/* Tab bar */}
           <div className="mc-tabs-bar">
             {curriculumModules.map((mod, i) => (
               <button
@@ -733,7 +725,6 @@ export default function Masterclass() {
             ))}
           </div>
 
-          {/* Tab content */}
           <div className="mc-tab-content">
             <div className="mc-tab-icon-wrap">{currentModule.icon}</div>
             <div className="mc-tab-detail">
@@ -890,7 +881,6 @@ export default function Masterclass() {
       {/* ===== FINAL CTA ===== */}
       <section className="mc-section mc-final-cta mc-fade-in">
         <div className="mc-section-inner mc-final-inner">
-          {/* Floating icons */}
           <div className="mc-float-icons">
             <PlayCircle size={28} className="mc-float-icon mc-fi-1" />
             <Shield size={24} className="mc-float-icon mc-fi-2" />
@@ -927,7 +917,6 @@ export default function Masterclass() {
               <p className="mc-form-subtitle">Preencha abaixo e assista agora mesmo</p>
             </div>
 
-            {/* Countdown Timer */}
             <div className="mc-countdown">
               <span className="mc-countdown-label">Acesso gratuito expira em:</span>
               <div className="mc-countdown-timer">
@@ -1209,285 +1198,96 @@ const styles = `
   }
   .mc-hero-text { display: flex; flex-direction: column; align-items: center; }
 
-  /* ===== HERO CAROUSEL ===== */
-  .mc-hero-carousel {
+  /* ===== ORBIT ANIMATION ===== */
+  .mc-hero-visual {
     width: 100%;
-    max-width: 500px;
-    margin: 0 auto;
+    max-width: 340px;
+    margin: 32px auto 0;
     position: relative;
   }
-  .mc-carousel-viewport {
-    position: relative;
+  .mc-orbit-container {
     width: 100%;
-    height: 340px;
-    border-radius: 20px;
-    overflow: hidden;
+    aspect-ratio: 1;
+    position: relative;
   }
-  .mc-carousel-slide {
+  .mc-orbit-svg {
     position: absolute;
     inset: 0;
-    opacity: 0;
-    transition: opacity 0.5s ease-in-out;
-    pointer-events: none;
-  }
-  .mc-slide-active { opacity: 1; pointer-events: auto; }
-  .mc-slide-card {
     width: 100%;
     height: 100%;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.3);
-    display: flex;
-    flex-direction: column;
+    z-index: 0;
   }
-  .mc-slide-topbar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    background: rgba(255,255,255,0.04);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .mc-slide-dots { display: flex; gap: 5px; }
-  .mc-slide-dots span { width: 8px; height: 8px; border-radius: 50%; }
-  .mc-slide-dots span:first-child { background: #ef4444; opacity: 0.8; }
-  .mc-slide-dots span:nth-child(2) { background: #facc15; opacity: 0.8; }
-  .mc-slide-dots span:nth-child(3) { background: #4ade80; opacity: 0.8; }
-  .mc-slide-url { font-size: 10px; color: rgba(255,255,255,0.3); font-weight: 500; }
-  .mc-slide-content {
-    flex: 1;
-    padding: 20px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .mc-slide-metric-row { display: flex; align-items: center; justify-content: space-between; }
-  .mc-slide-metric-label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
-  .mc-slide-metric-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
-    background: rgba(74,222,128,0.12);
-    border: 1px solid rgba(74,222,128,0.2);
-    border-radius: 50px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #4ade80;
-  }
-  .mc-slide-big-number {
-    font-size: 38px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #4ade80, #22c55e);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1;
-  }
-  .mc-slide-bars { display: flex; flex-direction: column; gap: 8px; }
-  .mc-slide-bar-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    color: rgba(255,255,255,0.4);
-  }
-  .mc-slide-bar-item > span:first-child { width: 40px; flex-shrink: 0; }
-  .mc-slide-bar-track {
-    flex: 1;
-    height: 6px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  .mc-slide-bar-fill { height: 100%; border-radius: 4px; }
-  .mc-fill-red { background: linear-gradient(90deg, #ef4444, #f87171); }
-  .mc-fill-green { background: linear-gradient(90deg, #22c55e, #4ade80); box-shadow: 0 0 8px rgba(74,222,128,0.3); }
-  .mc-color-red { color: #f87171; font-weight: 700; }
-  .mc-color-green { color: #4ade80; font-weight: 700; }
-  .mc-slide-stats-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    border-top: 1px solid rgba(255,255,255,0.06);
-    padding-top: 12px;
-    margin-top: auto;
-  }
-  .mc-slide-stats-row > div { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-  .mc-slide-stats-row strong {
-    font-size: 14px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #1E90FF, #20B2AA);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .mc-slide-stats-row span {
-    font-size: 9px;
-    color: rgba(255,255,255,0.35);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .mc-slide-protection {
-    align-items: center;
-    justify-content: center;
-    padding: 24px 20px;
-    gap: 14px;
-    text-align: center;
-  }
-  .mc-slide-shield-icon {
+  .mc-orbit-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
     width: 64px;
     height: 64px;
     border-radius: 18px;
-    background: linear-gradient(135deg, rgba(30,144,255,0.15), rgba(32,178,170,0.1));
+    background: linear-gradient(135deg, #1E90FF, #20B2AA);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #1E90FF;
+    color: #fff;
+    box-shadow: 0 0 30px rgba(30,144,255,0.3), 0 0 60px rgba(30,144,255,0.1);
+    animation: centerPulse 3s ease-in-out infinite;
   }
-  .mc-slide-title { font-size: 18px; font-weight: 700; margin: 0; color: rgba(255,255,255,0.95); }
-  .mc-slide-checklist { display: flex; flex-direction: column; gap: 6px; width: 100%; text-align: left; }
-  .mc-slide-check {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: rgba(255,255,255,0.65);
-    padding: 7px 12px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.06);
+  @keyframes centerPulse {
+    0%, 100% { box-shadow: 0 0 30px rgba(30,144,255,0.3), 0 0 60px rgba(30,144,255,0.1); }
+    50% { box-shadow: 0 0 40px rgba(30,144,255,0.45), 0 0 80px rgba(30,144,255,0.15); }
   }
-  .mc-slide-check svg { color: #20B2AA; flex-shrink: 0; }
-  .mc-slide-protected-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    background: rgba(30,144,255,0.1);
-    border: 1px solid rgba(30,144,255,0.2);
-    border-radius: 50px;
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(255,255,255,0.8);
-  }
-  .mc-slide-protected-badge svg { color: #1E90FF; }
-  .mc-slide-modules { padding: 16px; gap: 10px; }
-  .mc-slide-modules-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.9);
-    padding-bottom: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .mc-slide-modules-header svg { color: #1E90FF; }
-  .mc-slide-duration {
-    margin-left: auto;
-    padding: 3px 10px;
-    background: rgba(30,144,255,0.12);
-    border: 1px solid rgba(30,144,255,0.2);
-    border-radius: 50px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #1E90FF;
-  }
-  .mc-slide-module-list { display: flex; flex-direction: column; gap: 3px; flex: 1; }
-  .mc-slide-mod {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    color: rgba(255,255,255,0.5);
-  }
-  .mc-slide-mod-num { font-weight: 800; color: rgba(255,255,255,0.2); font-size: 11px; min-width: 18px; }
-  .mc-slide-mod-highlight {
-    background: rgba(30,144,255,0.08);
-    border: 1px solid rgba(30,144,255,0.2);
-    color: rgba(255,255,255,0.9);
-  }
-  .mc-slide-mod-highlight .mc-slide-mod-num { color: #1E90FF; }
-  .mc-slide-results { padding: 20px 16px; gap: 12px; align-items: center; }
-  .mc-slide-comparison { display: flex; gap: 0; width: 100%; flex: 1; }
-  .mc-slide-comp-col { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 10px; }
-  .mc-slide-comp-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 2px;
-  }
-  .mc-comp-before .mc-slide-comp-label { color: #f87171; }
-  .mc-comp-after .mc-slide-comp-label { color: #4ade80; }
-  .mc-slide-comp-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 10px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 8px;
-    font-size: 12px;
-  }
-  .mc-slide-comp-item span { color: rgba(255,255,255,0.4); }
-  .mc-comp-before .mc-slide-comp-item strong { color: #f87171; font-weight: 700; }
-  .mc-comp-after .mc-slide-comp-item strong { color: #4ade80; font-weight: 700; }
-  .mc-slide-comp-divider { width: 1px; background: rgba(255,255,255,0.08); margin: 10px 0; }
-  .mc-slide-results-footer {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: rgba(255,255,255,0.5);
-    font-weight: 500;
-  }
-  .mc-carousel-dots { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
-  .mc-carousel-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255,255,255,0.15);
-    cursor: pointer;
-    padding: 0;
-    transition: all 0.3s ease;
-  }
-  .mc-dot-active {
-    background: #1E90FF;
-    width: 24px;
-    border-radius: 4px;
-    box-shadow: 0 0 10px rgba(30,144,255,0.4);
-  }
-  @keyframes floatBadge {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
-  .mc-carousel-float {
+  .mc-orbit-item {
     position: absolute;
-    display: none;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background: rgba(14, 29, 53, 0.9);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(255,255,255,0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    animation: floatBadge 4s ease-in-out infinite;
-    white-space: nowrap;
     z-index: 2;
+    transform: translate(-50%, -50%);
   }
-  .mc-carousel-float svg { color: #1E90FF; flex-shrink: 0; }
-  .mc-cf-1 { top: 12%; right: -24px; animation-delay: 0s; }
-  .mc-cf-2 { bottom: 20%; left: -28px; animation-delay: 1s; }
+  .mc-orbit-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .mc-orbit-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    border: 2px solid rgba(255,255,255,0.12);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .mc-orbit-logo:hover {
+    transform: scale(1.12);
+    box-shadow: 0 6px 28px rgba(0,0,0,0.4);
+  }
+  .mc-orbit-label {
+    font-size: 9px;
+    color: rgba(255,255,255,0.45);
+    font-weight: 600;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+  /* Float animation for each orbit item */
+  @keyframes orbitFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+  }
+  .mc-oi-0 .mc-orbit-inner { animation: orbitFloat 4s ease-in-out infinite; animation-delay: 0s; }
+  .mc-oi-1 .mc-orbit-inner { animation: orbitFloat 4.5s ease-in-out infinite; animation-delay: 0.6s; }
+  .mc-oi-2 .mc-orbit-inner { animation: orbitFloat 3.8s ease-in-out infinite; animation-delay: 1.2s; }
+  .mc-oi-3 .mc-orbit-inner { animation: orbitFloat 5s ease-in-out infinite; animation-delay: 0.3s; }
+  .mc-oi-4 .mc-orbit-inner { animation: orbitFloat 4.2s ease-in-out infinite; animation-delay: 1.8s; }
+  .mc-oi-5 .mc-orbit-inner { animation: orbitFloat 3.5s ease-in-out infinite; animation-delay: 0.9s; }
+  .mc-oi-6 .mc-orbit-inner { animation: orbitFloat 4.8s ease-in-out infinite; animation-delay: 1.5s; }
+  .mc-oi-7 .mc-orbit-inner { animation: orbitFloat 4.3s ease-in-out infinite; animation-delay: 2.1s; }
 
   /* ===== MODAL ===== */
   @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -1639,18 +1439,6 @@ const styles = `
   .mc-value-item svg { color: #20B2AA; flex-shrink: 0; }
 
   /* ===== FORM ===== */
-  .mc-form-container {
-    max-width: 480px;
-    margin: 0 auto;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(30,144,255,0.2);
-    border-radius: 24px;
-    padding: 32px 24px;
-    position: relative;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 8px 40px rgba(30,144,255,0.06);
-  }
   .mc-form-header { text-align: center; margin-bottom: 20px; }
   .mc-form-title { font-size: 20px; font-weight: 700; margin: 0 0 6px; }
   .mc-form-subtitle { font-size: 14px; color: rgba(255,255,255,0.5); margin: 0; }
@@ -1779,7 +1567,7 @@ const styles = `
   /* ===== STATS + TRUST BADGES ===== */
   .mc-stats-section {
     padding: 48px 20px;
-    background: #0e1d35;
+    background: linear-gradient(180deg, #0a1628 0%, #0e1d35 50%, #0a1628 100%);
     border-top: 1px solid rgba(255,255,255,0.04);
     border-bottom: 1px solid rgba(255,255,255,0.04);
   }
@@ -1896,6 +1684,26 @@ const styles = `
     text-align: center;
   }
   .mc-text-center { text-align: center; }
+
+  /* Section background fades */
+  .mc-losses {
+    background: linear-gradient(180deg, #0a1628 0%, #0d1a30 50%, #0a1628 100%);
+  }
+  .mc-curriculum {
+    background: linear-gradient(180deg, #0a1628 0%, #0e1d35 50%, #0a1628 100%);
+  }
+  .mc-audience {
+    background: linear-gradient(180deg, #0a1628 0%, #0d1a30 50%, #0a1628 100%);
+  }
+  .mc-instructor {
+    background: linear-gradient(180deg, #0a1628 0%, #0e1d35 50%, #0a1628 100%);
+  }
+  .mc-testimonials {
+    background: linear-gradient(180deg, #0a1628 0%, #0d1a30 50%, #0a1628 100%);
+  }
+  .mc-faq {
+    background: linear-gradient(180deg, #0a1628 0%, #0e1d35 50%, #0a1628 100%);
+  }
 
   /* ===== LOSS CALCULATOR ===== */
   .mc-loss-example {
@@ -2342,7 +2150,7 @@ const styles = `
   .mc-footer {
     padding: 48px 20px 24px;
     border-top: 1px solid rgba(255,255,255,0.06);
-    background: #0e1d35;
+    background: linear-gradient(180deg, #0a1628 0%, #0e1d35 100%);
   }
   .mc-footer-inner {
     max-width: 900px;
@@ -2380,7 +2188,6 @@ const styles = `
     .mc-hero { padding: 64px 24px 48px; }
     .mc-headline { font-size: 38px; }
     .mc-subheadline { font-size: 17px; }
-    .mc-form-container { padding: 36px 32px; }
     .mc-section { padding: 56px 24px; }
     .mc-section-title { font-size: 26px; }
     .mc-audience-grid { grid-template-columns: 1fr 1fr; }
@@ -2389,7 +2196,10 @@ const styles = `
     .mc-loss-item { gap: 20px; }
     .mc-footer-inner { grid-template-columns: 1.5fr 1fr 1fr; }
     .mc-stat-value { font-size: 32px; }
-    .mc-carousel-viewport { height: 380px; }
+    .mc-hero-visual { max-width: 420px; }
+    .mc-orbit-logo { width: 52px; height: 52px; font-size: 16px; }
+    .mc-orbit-center { width: 72px; height: 72px; border-radius: 20px; }
+    .mc-orbit-label { font-size: 10px; }
   }
 
   /* ===== DESKTOP (1024px+) ===== */
@@ -2401,20 +2211,17 @@ const styles = `
     .mc-hero-inner {
       max-width: 1100px;
       display: grid;
-      grid-template-columns: 1fr 460px;
+      grid-template-columns: 1fr 480px;
       gap: 48px;
       align-items: center;
       text-align: left;
     }
     .mc-hero-text { align-items: flex-start; }
-    .mc-hero-carousel { max-width: none; width: 100%; }
-    .mc-carousel-viewport { height: 420px; }
-    .mc-carousel-float { display: flex; }
-    .mc-slide-big-number { font-size: 48px; }
-    .mc-slide-content { padding: 24px 20px; gap: 16px; }
-    .mc-slide-stats-row strong { font-size: 16px; }
-    .mc-slide-check { font-size: 13px; padding: 9px 14px; }
-    .mc-slide-mod { padding: 10px 14px; font-size: 13px; }
+    .mc-hero-visual { max-width: none; width: 100%; margin: 0; }
+    .mc-orbit-logo { width: 56px; height: 56px; font-size: 17px; border-radius: 16px; }
+    .mc-orbit-center { width: 80px; height: 80px; border-radius: 22px; }
+    .mc-orbit-center svg { width: 32px; height: 32px; }
+    .mc-orbit-label { font-size: 10px; }
     .mc-headline { font-size: 44px; }
     .mc-subheadline { font-size: 17px; }
     .mc-value-props { justify-content: flex-start; }
@@ -2450,9 +2257,13 @@ const styles = `
   /* ===== LARGE DESKTOP (1280px+) ===== */
   @media (min-width: 1280px) {
     .mc-hero { padding: 80px 48px; }
-    .mc-hero-inner { max-width: 1200px; grid-template-columns: 1fr 500px; gap: 64px; }
+    .mc-hero-inner { max-width: 1200px; grid-template-columns: 1fr 520px; gap: 64px; }
     .mc-headline { font-size: 50px; }
     .mc-section-inner { max-width: 1200px; }
     .mc-stats-inner { max-width: 1200px; }
+    .mc-orbit-logo { width: 60px; height: 60px; font-size: 18px; }
+    .mc-orbit-center { width: 88px; height: 88px; }
+    .mc-orbit-center svg { width: 36px; height: 36px; }
+    .mc-orbit-label { font-size: 11px; }
   }
 `
