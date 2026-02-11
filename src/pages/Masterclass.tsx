@@ -1955,8 +1955,9 @@ const styles = `
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    padding: 16px 8px;
+    padding: 16px 6px;
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 16px;
@@ -1972,19 +1973,22 @@ const styles = `
     opacity: 0.7;
   }
   .mc-istat-item strong {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 800;
+    white-space: nowrap;
     background: linear-gradient(135deg, #1E90FF, #20B2AA);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   .mc-istat-item span {
-    font-size: 11px;
+    font-size: 10px;
     color: rgba(255,255,255,0.45);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.03em;
     font-weight: 600;
+    text-align: center;
+    line-height: 1.3;
   }
 
   /* ===== TESTIMONIALS ===== */
@@ -2248,7 +2252,8 @@ const styles = `
     .mc-instructor-card { padding: 36px 28px; }
     .mc-instructor-stats { gap: 14px; }
     .mc-istat-item { padding: 20px 12px; }
-    .mc-istat-item strong { font-size: 22px; }
+    .mc-istat-item strong { font-size: 22px; white-space: normal; }
+    .mc-istat-item span { font-size: 11px; letter-spacing: 0.05em; }
     .mc-access-card { padding: 40px 24px; }
     .mc-loss-item { gap: 20px; }
     .mc-loss-example { padding: 24px; }
