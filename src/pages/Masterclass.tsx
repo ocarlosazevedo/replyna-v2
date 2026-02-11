@@ -319,143 +319,144 @@ export default function Masterclass() {
         <img src="/replyna-logo.webp" alt="Replyna" className="mc-logo" />
       </header>
 
-      {/* ===== HERO ===== */}
+      {/* ===== HERO + FORM (2-col on desktop) ===== */}
       <section className="mc-hero">
         <div className="mc-hero-inner">
-          <span className="mc-free-badge">100% gratuito — sem pegadinhas!</span>
+          <div className="mc-hero-text">
+            <span className="mc-free-badge">100% gratuito — sem pegadinhas!</span>
 
-          <h1 className="mc-headline">
-            Método para reduzir até{' '}
-            <span className="mc-highlight">90% do chargeback</span>{' '}
-            e proteger sua conta na Shopify Payments
-          </h1>
+            <h1 className="mc-headline">
+              Método para reduzir até{' '}
+              <span className="mc-highlight">90% do chargeback</span>{' '}
+              e proteger sua conta na Shopify Payments
+            </h1>
 
-          <p className="mc-subheadline">
-            Masterclass completa com metodologia validada para reduzir o chargeback,
-            evitar prejuízos e manter sua estrutura da Shopify Payments ativa por meses e meses.
-          </p>
+            <p className="mc-subheadline">
+              Masterclass completa com metodologia validada para reduzir o chargeback,
+              evitar prejuízos e manter sua estrutura da Shopify Payments ativa por meses e meses.
+            </p>
 
-          <button onClick={scrollToForm} className="mc-hero-cta">
-            <Play size={20} fill="#fff" />
-            QUERO ACESSO
-          </button>
-
-          {/* Value props */}
-          <div className="mc-value-props">
-            {valueProps.map((prop, i) => (
-              <div key={i} className="mc-value-item">
-                <Check size={16} />
-                <span>{prop}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== FORM SECTION ===== */}
-      <section className="mc-form-wrapper" ref={formRef}>
-        <div className="mc-form-container">
-          <div className="mc-form-header">
-            <h2 className="mc-form-title">Garanta seu acesso gratuito</h2>
-            <p className="mc-form-subtitle">Preencha abaixo e assista agora mesmo</p>
-          </div>
-
-          {/* Countdown Timer */}
-          <div className="mc-countdown">
-            <span className="mc-countdown-label">Acesso gratuito expira em:</span>
-            <div className="mc-countdown-timer">
-              <div className="mc-countdown-block">
-                <span className="mc-countdown-value">{String(countdown.hours).padStart(2, '0')}</span>
-                <span className="mc-countdown-unit">horas</span>
-              </div>
-              <span className="mc-countdown-sep">:</span>
-              <div className="mc-countdown-block">
-                <span className="mc-countdown-value">{String(countdown.minutes).padStart(2, '0')}</span>
-                <span className="mc-countdown-unit">min</span>
-              </div>
-              <span className="mc-countdown-sep">:</span>
-              <div className="mc-countdown-block">
-                <span className="mc-countdown-value">{String(countdown.seconds).padStart(2, '0')}</span>
-                <span className="mc-countdown-unit">seg</span>
-              </div>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="mc-form">
-            <div className="mc-field">
-              <label htmlFor="name">Seu nome</label>
-              <input
-                id="name"
-                type="text"
-                placeholder="Ex: João"
-                value={formData.name}
-                onChange={e => {
-                  setFormData(prev => ({ ...prev, name: e.target.value }))
-                  if (errors.name) setErrors(prev => ({ ...prev, name: '' }))
-                }}
-                className={errors.name ? 'mc-input-error' : ''}
-              />
-              {errors.name && <span className="mc-error">{errors.name}</span>}
-            </div>
-
-            <div className="mc-field">
-              <label htmlFor="email">Seu melhor e-mail</label>
-              <input
-                id="email"
-                type="email"
-                placeholder="Ex: joao@email.com"
-                value={formData.email}
-                onChange={e => {
-                  setFormData(prev => ({ ...prev, email: e.target.value }))
-                  if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
-                }}
-                className={errors.email ? 'mc-input-error' : ''}
-              />
-              {errors.email && <span className="mc-error">{errors.email}</span>}
-            </div>
-
-            <div className="mc-field">
-              <label htmlFor="whatsapp">WhatsApp</label>
-              <input
-                id="whatsapp"
-                type="tel"
-                placeholder="(00) 00000-0000"
-                value={formData.whatsapp}
-                onChange={handleWhatsAppChange}
-                className={errors.whatsapp ? 'mc-input-error' : ''}
-              />
-              {errors.whatsapp && <span className="mc-error">{errors.whatsapp}</span>}
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="mc-btn-submit"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 size={20} className="mc-spin" />
-                  Liberando acesso...
-                </>
-              ) : (
-                <>
-                  <Play size={20} fill="#fff" />
-                  QUERO ACESSO
-                </>
-              )}
+            <button onClick={scrollToForm} className="mc-hero-cta">
+              <Play size={20} fill="#fff" />
+              QUERO ACESSO
             </button>
 
-            <div className="mc-privacy-row">
-              <p className="mc-privacy">
-                <Lock size={12} />
-                Seus dados estão seguros
-              </p>
-              <p className="mc-privacy">
-                <Shield size={12} />
-                Não enviamos spam
-              </p>
+            {/* Value props */}
+            <div className="mc-value-props">
+              {valueProps.map((prop, i) => (
+                <div key={i} className="mc-value-item">
+                  <Check size={16} />
+                  <span>{prop}</span>
+                </div>
+              ))}
             </div>
-          </form>
+          </div>
+
+          <div className="mc-hero-form" ref={formRef}>
+            <div className="mc-form-container">
+              <div className="mc-form-header">
+                <h2 className="mc-form-title">Garanta seu acesso gratuito</h2>
+                <p className="mc-form-subtitle">Preencha abaixo e assista agora mesmo</p>
+              </div>
+
+              {/* Countdown Timer */}
+              <div className="mc-countdown">
+                <span className="mc-countdown-label">Acesso gratuito expira em:</span>
+                <div className="mc-countdown-timer">
+                  <div className="mc-countdown-block">
+                    <span className="mc-countdown-value">{String(countdown.hours).padStart(2, '0')}</span>
+                    <span className="mc-countdown-unit">horas</span>
+                  </div>
+                  <span className="mc-countdown-sep">:</span>
+                  <div className="mc-countdown-block">
+                    <span className="mc-countdown-value">{String(countdown.minutes).padStart(2, '0')}</span>
+                    <span className="mc-countdown-unit">min</span>
+                  </div>
+                  <span className="mc-countdown-sep">:</span>
+                  <div className="mc-countdown-block">
+                    <span className="mc-countdown-value">{String(countdown.seconds).padStart(2, '0')}</span>
+                    <span className="mc-countdown-unit">seg</span>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit} className="mc-form">
+                <div className="mc-field">
+                  <label htmlFor="name">Seu nome</label>
+                  <input
+                    id="name"
+                    type="text"
+                    placeholder="Ex: João"
+                    value={formData.name}
+                    onChange={e => {
+                      setFormData(prev => ({ ...prev, name: e.target.value }))
+                      if (errors.name) setErrors(prev => ({ ...prev, name: '' }))
+                    }}
+                    className={errors.name ? 'mc-input-error' : ''}
+                  />
+                  {errors.name && <span className="mc-error">{errors.name}</span>}
+                </div>
+
+                <div className="mc-field">
+                  <label htmlFor="email">Seu melhor e-mail</label>
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="Ex: joao@email.com"
+                    value={formData.email}
+                    onChange={e => {
+                      setFormData(prev => ({ ...prev, email: e.target.value }))
+                      if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
+                    }}
+                    className={errors.email ? 'mc-input-error' : ''}
+                  />
+                  {errors.email && <span className="mc-error">{errors.email}</span>}
+                </div>
+
+                <div className="mc-field">
+                  <label htmlFor="whatsapp">WhatsApp</label>
+                  <input
+                    id="whatsapp"
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    value={formData.whatsapp}
+                    onChange={handleWhatsAppChange}
+                    className={errors.whatsapp ? 'mc-input-error' : ''}
+                  />
+                  {errors.whatsapp && <span className="mc-error">{errors.whatsapp}</span>}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="mc-btn-submit"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={20} className="mc-spin" />
+                      Liberando acesso...
+                    </>
+                  ) : (
+                    <>
+                      <Play size={20} fill="#fff" />
+                      QUERO ACESSO
+                    </>
+                  )}
+                </button>
+
+                <div className="mc-privacy-row">
+                  <p className="mc-privacy">
+                    <Lock size={12} />
+                    Seus dados estão seguros
+                  </p>
+                  <p className="mc-privacy">
+                    <Shield size={12} />
+                    Não enviamos spam
+                  </p>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -704,12 +705,24 @@ const styles = `
 
   /* ===== HERO ===== */
   .mc-hero {
-    padding: 48px 20px 40px;
+    padding: 48px 20px 48px;
     text-align: center;
   }
 
   .mc-hero-inner {
     max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .mc-hero-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .mc-hero-form {
+    width: 100%;
+    max-width: 480px;
     margin: 0 auto;
   }
 
@@ -798,11 +811,7 @@ const styles = `
     flex-shrink: 0;
   }
 
-  /* ===== FORM SECTION ===== */
-  .mc-form-wrapper {
-    padding: 0 20px 48px;
-  }
-
+  /* ===== FORM ===== */
   .mc-form-container {
     max-width: 480px;
     margin: 0 auto;
@@ -1614,23 +1623,39 @@ const styles = `
       height: 32px;
     }
 
+    /* Hero: 2 colunas (texto + form lado a lado) */
     .mc-hero {
-      padding: 80px 48px 56px;
+      padding: 72px 48px;
     }
 
     .mc-hero-inner {
-      max-width: 800px;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: 1fr 440px;
+      gap: 48px;
+      align-items: center;
+      text-align: left;
+    }
+
+    .mc-hero-text {
+      align-items: flex-start;
+    }
+
+    .mc-hero-form {
+      max-width: none;
+      width: 100%;
     }
 
     .mc-headline {
-      font-size: 48px;
+      font-size: 44px;
     }
 
     .mc-subheadline {
-      font-size: 18px;
-      max-width: 640px;
-      margin-left: auto;
-      margin-right: auto;
+      font-size: 17px;
+    }
+
+    .mc-value-props {
+      justify-content: flex-start;
     }
 
     .mc-hero-cta:hover {
@@ -1639,46 +1664,62 @@ const styles = `
       transform: translateY(-1px);
     }
 
-    .mc-form-wrapper {
-      padding: 0 48px 64px;
-    }
-
     .mc-form-container {
-      max-width: 500px;
-      padding: 40px 36px;
+      max-width: none;
+      padding: 36px 32px;
     }
 
+    /* Sections */
     .mc-section {
-      padding: 64px 48px;
+      padding: 72px 48px;
     }
 
     .mc-section-inner {
-      max-width: 900px;
+      max-width: 1100px;
     }
 
     .mc-section-title {
-      font-size: 30px;
+      font-size: 32px;
     }
 
+    /* Loss calculator */
     .mc-loss-example {
-      padding: 32px;
+      padding: 36px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
-    .mc-audience-grid {
+    /* Curriculum: 2 colunas */
+    .mc-modules {
+      display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
-    }
-
-    .mc-audience-card:hover {
-      border-color: rgba(70, 114, 236, 0.2);
     }
 
     .mc-module-card:hover {
       border-color: rgba(70, 114, 236, 0.2);
     }
 
+    /* Audience: 2x2 grid */
+    .mc-audience-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .mc-audience-card:hover {
+      border-color: rgba(70, 114, 236, 0.2);
+    }
+
+    /* Instructor */
     .mc-instructor-card {
-      padding: 32px;
+      padding: 36px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .mc-instructor-img-wrap img {
@@ -1686,8 +1727,17 @@ const styles = `
       height: 72px;
     }
 
+    /* Access card */
+    .mc-access-card {
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 48px 40px;
+    }
+
+    /* Final CTA */
     .mc-final-title {
-      font-size: 32px;
+      font-size: 36px;
     }
 
     .mc-final-btn:hover {
@@ -1730,12 +1780,26 @@ const styles = `
 
   /* ===== LARGE DESKTOP (1280px+) ===== */
   @media (min-width: 1280px) {
+    .mc-hero {
+      padding: 80px 48px;
+    }
+
+    .mc-hero-inner {
+      max-width: 1200px;
+      grid-template-columns: 1fr 480px;
+      gap: 64px;
+    }
+
     .mc-headline {
-      font-size: 54px;
+      font-size: 50px;
     }
 
     .mc-section-inner {
-      max-width: 960px;
+      max-width: 1200px;
+    }
+
+    .mc-modules {
+      gap: 20px;
     }
   }
 `
