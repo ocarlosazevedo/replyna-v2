@@ -597,7 +597,7 @@ export default function Masterclass() {
           <div className="mc-instructor-card">
             <div className="mc-instructor-header">
               <div className="mc-instructor-img-wrap">
-                <img src="/influencers/carlos-azevedo.png" alt="Carlos Azevedo" />
+                <img src="/influencers/carlos-azevedo.jpg" alt="Carlos Azevedo" />
               </div>
               <div>
                 <strong>Carlos Azevedo</strong>
