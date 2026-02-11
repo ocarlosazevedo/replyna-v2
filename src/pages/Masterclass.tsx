@@ -215,6 +215,7 @@ export default function Masterclass() {
   const [heroWordIndex, setHeroWordIndex] = useState(0)
   const [activeModule, setActiveModule] = useState(0)
   const [showModal, setShowModal] = useState(false)
+  const [carouselIndex, setCarouselIndex] = useState(0)
   const heroRef = useRef<HTMLDivElement>(null)
   const countdown = useCountdown()
 
@@ -260,6 +261,14 @@ export default function Masterclass() {
     const interval = setInterval(() => {
       setHeroWordIndex(prev => (prev + 1) % heroWords.length)
     }, 2500)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Carousel auto-rotation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCarouselIndex(prev => (prev + 1) % 4)
+    }, 5000)
     return () => clearInterval(interval)
   }, [])
 
@@ -458,83 +467,129 @@ export default function Masterclass() {
             </div>
           </div>
 
-          {/* Hero Visual Showcase */}
-          <div className="mc-hero-showcase" ref={heroRef}>
-            {/* Dashboard mockup card */}
-            <div className="mc-showcase-card">
-              <div className="mc-showcase-header">
-                <div className="mc-showcase-dots">
-                  <span /><span /><span />
-                </div>
-                <span className="mc-showcase-title-bar">Shopify Payments — Dashboard</span>
-              </div>
-
-              {/* Chargeback rate visual */}
-              <div className="mc-showcase-metric">
-                <div className="mc-showcase-metric-top">
-                  <span className="mc-showcase-label">Taxa de Chargeback</span>
-                  <span className="mc-showcase-badge-good">
-                    <TrendingDown size={12} />
-                    -90%
-                  </span>
-                </div>
-                <div className="mc-showcase-bar-wrap">
-                  <div className="mc-showcase-bar-bg">
-                    <div className="mc-showcase-bar-before" />
-                    <div className="mc-showcase-bar-after" />
+          {/* Hero Carousel */}
+          <div className="mc-hero-carousel" ref={heroRef}>
+            <div className="mc-carousel-viewport">
+              {/* Slide 0: Dashboard */}
+              <div className={`mc-carousel-slide ${carouselIndex === 0 ? 'mc-slide-active' : ''}`}>
+                <div className="mc-slide-card">
+                  <div className="mc-slide-topbar">
+                    <div className="mc-slide-dots"><span /><span /><span /></div>
+                    <span className="mc-slide-url">shopify.com/admin/payments</span>
                   </div>
-                  <div className="mc-showcase-bar-labels">
-                    <span className="mc-showcase-bar-label-bad">3.2% <small>Antes</small></span>
-                    <span className="mc-showcase-bar-label-good">0.4% <small>Depois</small></span>
+                  <div className="mc-slide-content">
+                    <div className="mc-slide-metric-row">
+                      <span className="mc-slide-metric-label">Taxa de Chargeback</span>
+                      <span className="mc-slide-metric-badge"><TrendingDown size={12} /> -90%</span>
+                    </div>
+                    <div className="mc-slide-big-number">0.4%</div>
+                    <div className="mc-slide-bars">
+                      <div className="mc-slide-bar-item">
+                        <span>Antes</span>
+                        <div className="mc-slide-bar-track"><div className="mc-slide-bar-fill mc-fill-red" style={{width: '80%'}} /></div>
+                        <span className="mc-color-red">3.2%</span>
+                      </div>
+                      <div className="mc-slide-bar-item">
+                        <span>Depois</span>
+                        <div className="mc-slide-bar-track"><div className="mc-slide-bar-fill mc-fill-green" style={{width: '10%'}} /></div>
+                        <span className="mc-color-green">0.4%</span>
+                      </div>
+                    </div>
+                    <div className="mc-slide-stats-row">
+                      <div><strong>$500K+</strong><span>Faturamento</span></div>
+                      <div><strong>40%</strong><span>Margem</span></div>
+                      <div><strong>0</strong><span>Bloqueios</span></div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Feature mini cards */}
-              <div className="mc-showcase-features">
-                <div className="mc-showcase-feat">
-                  <Shield size={16} />
-                  <span>Conta protegida</span>
-                </div>
-                <div className="mc-showcase-feat">
-                  <Zap size={16} />
-                  <span>Automação ativa</span>
-                </div>
-                <div className="mc-showcase-feat">
-                  <Check size={16} />
-                  <span>Disputas vencidas</span>
+              {/* Slide 1: Protection */}
+              <div className={`mc-carousel-slide ${carouselIndex === 1 ? 'mc-slide-active' : ''}`}>
+                <div className="mc-slide-card mc-slide-protection">
+                  <div className="mc-slide-shield-icon">
+                    <Shield size={40} />
+                  </div>
+                  <h3 className="mc-slide-title">Conta Protegida</h3>
+                  <div className="mc-slide-checklist">
+                    <div className="mc-slide-check"><Check size={16} /> Monitoramento de disputas</div>
+                    <div className="mc-slide-check"><Check size={16} /> Prevenção automatizada</div>
+                    <div className="mc-slide-check"><Check size={16} /> Resposta profissional a CBs</div>
+                    <div className="mc-slide-check"><Check size={16} /> Taxa abaixo de 1%</div>
+                  </div>
+                  <div className="mc-slide-protected-badge">
+                    <Shield size={14} />
+                    <span>500+ contas protegidas</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Stats row */}
-              <div className="mc-showcase-stats">
-                <div className="mc-showcase-stat">
-                  <strong>$500K+</strong>
-                  <span>Faturamento/mês</span>
+              {/* Slide 2: Modules */}
+              <div className={`mc-carousel-slide ${carouselIndex === 2 ? 'mc-slide-active' : ''}`}>
+                <div className="mc-slide-card mc-slide-modules">
+                  <div className="mc-slide-modules-header">
+                    <BookOpen size={20} />
+                    <span>6 Módulos Práticos</span>
+                    <span className="mc-slide-duration">47min</span>
+                  </div>
+                  <div className="mc-slide-module-list">
+                    <div className="mc-slide-mod"><span className="mc-slide-mod-num">01</span> O que é Chargeback</div>
+                    <div className="mc-slide-mod"><span className="mc-slide-mod-num">02</span> Erros que matam sua conta</div>
+                    <div className="mc-slide-mod mc-slide-mod-highlight"><span className="mc-slide-mod-num">03</span> Método Anti-Chargeback</div>
+                    <div className="mc-slide-mod"><span className="mc-slide-mod-num">04</span> Configurações essenciais</div>
+                    <div className="mc-slide-mod"><span className="mc-slide-mod-num">05</span> Responder e vencer disputas</div>
+                    <div className="mc-slide-mod"><span className="mc-slide-mod-num">06</span> Automação avançada</div>
+                  </div>
                 </div>
-                <div className="mc-showcase-stat">
-                  <strong>0.4%</strong>
-                  <span>Taxa CB</span>
-                </div>
-                <div className="mc-showcase-stat">
-                  <strong>40%</strong>
-                  <span>Margem</span>
+              </div>
+
+              {/* Slide 3: Results */}
+              <div className={`mc-carousel-slide ${carouselIndex === 3 ? 'mc-slide-active' : ''}`}>
+                <div className="mc-slide-card mc-slide-results">
+                  <h3 className="mc-slide-title">Resultados Comprovados</h3>
+                  <div className="mc-slide-comparison">
+                    <div className="mc-slide-comp-col mc-comp-before">
+                      <span className="mc-slide-comp-label">ANTES</span>
+                      <div className="mc-slide-comp-item"><span>Taxa CB</span><strong>3.2%</strong></div>
+                      <div className="mc-slide-comp-item"><span>Disputas</span><strong>20+/mês</strong></div>
+                      <div className="mc-slide-comp-item"><span>Risco</span><strong>Alto</strong></div>
+                    </div>
+                    <div className="mc-slide-comp-divider" />
+                    <div className="mc-slide-comp-col mc-comp-after">
+                      <span className="mc-slide-comp-label">DEPOIS</span>
+                      <div className="mc-slide-comp-item"><span>Taxa CB</span><strong>0.4%</strong></div>
+                      <div className="mc-slide-comp-item"><span>Disputas</span><strong>2/mês</strong></div>
+                      <div className="mc-slide-comp-item"><span>Risco</span><strong>Zero</strong></div>
+                    </div>
+                  </div>
+                  <div className="mc-slide-results-footer">
+                    <Star size={14} fill="#facc15" color="#facc15" />
+                    <span>Método aplicado em +500 operações</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Floating badges around the card */}
-            <div className="mc-showcase-float mc-sf-1">
+            {/* Navigation dots */}
+            <div className="mc-carousel-dots">
+              {[0, 1, 2, 3].map(i => (
+                <button
+                  key={i}
+                  className={`mc-carousel-dot ${carouselIndex === i ? 'mc-dot-active' : ''}`}
+                  onClick={() => setCarouselIndex(i)}
+                  aria-label={`Slide ${i + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Floating badges (desktop only) */}
+            <div className="mc-carousel-float mc-cf-1">
               <Shield size={16} />
               <span>Método Validado</span>
             </div>
-            <div className="mc-showcase-float mc-sf-2">
+            <div className="mc-carousel-float mc-cf-2">
               <Star size={16} fill="#facc15" color="#facc15" />
               <span>+500 Alunos</span>
-            </div>
-            <div className="mc-showcase-float mc-sf-3">
-              <Zap size={16} />
-              <span>47min</span>
             </div>
           </div>
         </div>
@@ -1133,194 +1188,179 @@ const styles = `
     align-items: center;
   }
 
-  /* ===== HERO SHOWCASE ===== */
-  .mc-hero-showcase {
+  /* ===== HERO CAROUSEL ===== */
+  .mc-hero-carousel {
     width: 100%;
     max-width: 500px;
     margin: 0 auto;
     position: relative;
   }
 
-  .mc-showcase-card {
+  .mc-carousel-viewport {
+    position: relative;
+    width: 100%;
+    height: 340px;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .mc-carousel-slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    pointer-events: none;
+  }
+
+  .mc-slide-active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mc-slide-card {
+    width: 100%;
+    height: 100%;
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 20px;
-    padding: 0;
     overflow: hidden;
     box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 80px rgba(70, 114, 236, 0.06);
+    display: flex;
+    flex-direction: column;
   }
 
-  .mc-showcase-header {
+  /* Slide browser chrome bar */
+  .mc-slide-topbar {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 14px 18px;
+    padding: 12px 16px;
     background: rgba(255,255,255,0.04);
     border-bottom: 1px solid rgba(255,255,255,0.06);
   }
 
-  .mc-showcase-dots {
+  .mc-slide-dots {
     display: flex;
-    gap: 6px;
+    gap: 5px;
   }
 
-  .mc-showcase-dots span {
-    width: 10px;
-    height: 10px;
+  .mc-slide-dots span {
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.12);
   }
 
-  .mc-showcase-dots span:first-child { background: #ef4444; opacity: 0.7; }
-  .mc-showcase-dots span:nth-child(2) { background: #facc15; opacity: 0.7; }
-  .mc-showcase-dots span:nth-child(3) { background: #4ade80; opacity: 0.7; }
+  .mc-slide-dots span:first-child { background: #ef4444; opacity: 0.7; }
+  .mc-slide-dots span:nth-child(2) { background: #facc15; opacity: 0.7; }
+  .mc-slide-dots span:nth-child(3) { background: #4ade80; opacity: 0.7; }
 
-  .mc-showcase-title-bar {
-    font-size: 11px;
-    color: rgba(255,255,255,0.35);
+  .mc-slide-url {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
     font-weight: 500;
   }
 
-  .mc-showcase-metric {
-    padding: 24px 20px 20px;
+  /* Slide content area */
+  .mc-slide-content {
+    flex: 1;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
   }
 
-  .mc-showcase-metric-top {
+  .mc-slide-metric-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 14px;
   }
 
-  .mc-showcase-label {
-    font-size: 13px;
+  .mc-slide-metric-label {
+    font-size: 12px;
     font-weight: 600;
-    color: rgba(255,255,255,0.7);
+    color: rgba(255,255,255,0.6);
   }
 
-  .mc-showcase-badge-good {
+  .mc-slide-metric-badge {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 10px;
+    padding: 3px 8px;
     background: rgba(74, 222, 128, 0.12);
     border: 1px solid rgba(74, 222, 128, 0.2);
     border-radius: 50px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #4ade80;
-  }
-
-  .mc-showcase-bar-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .mc-showcase-bar-bg {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .mc-showcase-bar-before {
-    height: 10px;
-    border-radius: 6px;
-    background: linear-gradient(90deg, #ef4444, #f87171);
-    width: 80%;
-    opacity: 0.5;
-  }
-
-  @keyframes barGrow {
-    from { width: 0; }
-    to { width: 10%; }
-  }
-
-  .mc-showcase-bar-after {
-    height: 10px;
-    border-radius: 6px;
-    background: linear-gradient(90deg, #4ade80, #22c55e);
-    width: 10%;
-    animation: barGrow 1.5s ease-out forwards;
-    box-shadow: 0 0 12px rgba(74, 222, 128, 0.3);
-  }
-
-  .mc-showcase-bar-labels {
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .mc-showcase-bar-label-bad {
-    font-size: 13px;
-    font-weight: 700;
-    color: #f87171;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .mc-showcase-bar-label-bad small,
-  .mc-showcase-bar-label-good small {
     font-size: 11px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.35);
-  }
-
-  .mc-showcase-bar-label-good {
-    font-size: 13px;
     font-weight: 700;
     color: #4ade80;
-    display: flex;
-    align-items: center;
-    gap: 6px;
   }
 
-  .mc-showcase-features {
+  .mc-slide-big-number {
+    font-size: 38px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #4ade80, #22c55e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  /* Bar chart in slides */
+  .mc-slide-bars {
     display: flex;
+    flex-direction: column;
     gap: 8px;
-    padding: 0 20px 20px;
-    flex-wrap: wrap;
   }
 
-  .mc-showcase-feat {
+  .mc-slide-bar-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background: rgba(70, 114, 236, 0.08);
-    border: 1px solid rgba(70, 114, 236, 0.15);
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.7);
+    gap: 8px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
   }
 
-  .mc-showcase-feat svg {
-    color: #818cf8;
+  .mc-slide-bar-item > span:first-child {
+    width: 40px;
     flex-shrink: 0;
   }
 
-  .mc-showcase-stats {
+  .mc-slide-bar-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .mc-slide-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  .mc-fill-red { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .mc-fill-green { background: linear-gradient(90deg, #4ade80, #22c55e); box-shadow: 0 0 8px rgba(74,222,128,0.3); }
+
+  .mc-color-red { color: #f87171; font-weight: 700; }
+  .mc-color-green { color: #4ade80; font-weight: 700; }
+
+  /* Stats row in dashboard slide */
+  .mc-slide-stats-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 12px;
+    margin-top: auto;
   }
 
-  .mc-showcase-stat {
+  .mc-slide-stats-row > div {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    padding: 16px 8px;
-    border-right: 1px solid rgba(255,255,255,0.06);
   }
 
-  .mc-showcase-stat:last-child {
-    border-right: none;
-  }
-
-  .mc-showcase-stat strong {
-    font-size: 16px;
+  .mc-slide-stats-row strong {
+    font-size: 14px;
     font-weight: 800;
     background: linear-gradient(135deg, #4672ec, #a78bfa);
     -webkit-background-clip: text;
@@ -1328,20 +1368,253 @@ const styles = `
     background-clip: text;
   }
 
-  .mc-showcase-stat span {
-    font-size: 10px;
-    color: rgba(255,255,255,0.4);
+  .mc-slide-stats-row span {
+    font-size: 9px;
+    color: rgba(255,255,255,0.35);
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
 
-  /* Floating badges */
+  /* Protection slide */
+  .mc-slide-protection {
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+    gap: 14px;
+    text-align: center;
+  }
+
+  .mc-slide-shield-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.2), rgba(139, 92, 246, 0.15));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #818cf8;
+  }
+
+  .mc-slide-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: rgba(255,255,255,0.95);
+  }
+
+  .mc-slide-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    text-align: left;
+  }
+
+  .mc-slide-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+    padding: 7px 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .mc-slide-check svg {
+    color: #4ade80;
+    flex-shrink: 0;
+  }
+
+  .mc-slide-protected-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(70, 114, 236, 0.1);
+    border: 1px solid rgba(70, 114, 236, 0.2);
+    border-radius: 50px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .mc-slide-protected-badge svg {
+    color: #818cf8;
+  }
+
+  /* Modules slide */
+  .mc-slide-modules {
+    padding: 16px;
+    gap: 10px;
+  }
+
+  .mc-slide-modules-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .mc-slide-modules-header svg {
+    color: #818cf8;
+  }
+
+  .mc-slide-duration {
+    margin-left: auto;
+    padding: 3px 10px;
+    background: rgba(70, 114, 236, 0.12);
+    border: 1px solid rgba(70, 114, 236, 0.2);
+    border-radius: 50px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #818cf8;
+  }
+
+  .mc-slide-module-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+  }
+
+  .mc-slide-mod {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+  }
+
+  .mc-slide-mod-num {
+    font-weight: 800;
+    color: rgba(255,255,255,0.2);
+    font-size: 11px;
+    min-width: 18px;
+  }
+
+  .mc-slide-mod-highlight {
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.1), rgba(139, 92, 246, 0.06));
+    border: 1px solid rgba(70, 114, 236, 0.2);
+    color: rgba(255,255,255,0.9);
+  }
+
+  .mc-slide-mod-highlight .mc-slide-mod-num {
+    color: #818cf8;
+  }
+
+  /* Results slide */
+  .mc-slide-results {
+    padding: 20px 16px;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .mc-slide-comparison {
+    display: flex;
+    gap: 0;
+    width: 100%;
+    flex: 1;
+  }
+
+  .mc-slide-comp-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .mc-slide-comp-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 2px;
+  }
+
+  .mc-comp-before .mc-slide-comp-label { color: #f87171; }
+  .mc-comp-after .mc-slide-comp-label { color: #4ade80; }
+
+  .mc-slide-comp-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    font-size: 12px;
+  }
+
+  .mc-slide-comp-item span {
+    color: rgba(255,255,255,0.4);
+  }
+
+  .mc-comp-before .mc-slide-comp-item strong {
+    color: #f87171;
+    font-weight: 700;
+  }
+
+  .mc-comp-after .mc-slide-comp-item strong {
+    color: #4ade80;
+    font-weight: 700;
+  }
+
+  .mc-slide-comp-divider {
+    width: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 10px 0;
+  }
+
+  .mc-slide-results-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    font-weight: 500;
+  }
+
+  /* Carousel dots */
+  .mc-carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .mc-carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.15);
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s ease;
+  }
+
+  .mc-dot-active {
+    background: #4672ec;
+    width: 24px;
+    border-radius: 4px;
+    box-shadow: 0 0 8px rgba(70, 114, 236, 0.4);
+  }
+
+  /* Floating badges around carousel */
   @keyframes floatBadge {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-6px); }
   }
 
-  .mc-showcase-float {
+  .mc-carousel-float {
     position: absolute;
     display: none;
     align-items: center;
@@ -1358,16 +1631,16 @@ const styles = `
     box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     animation: floatBadge 3s ease-in-out infinite;
     white-space: nowrap;
+    z-index: 2;
   }
 
-  .mc-showcase-float svg {
+  .mc-carousel-float svg {
     color: #818cf8;
     flex-shrink: 0;
   }
 
-  .mc-sf-1 { top: 15%; right: -20px; animation-delay: 0s; }
-  .mc-sf-2 { bottom: 30%; left: -24px; animation-delay: 1s; }
-  .mc-sf-3 { bottom: 8%; right: -12px; animation-delay: 0.5s; }
+  .mc-cf-1 { top: 12%; right: -24px; animation-delay: 0s; }
+  .mc-cf-2 { bottom: 20%; left: -28px; animation-delay: 1s; }
 
   /* ===== MODAL ===== */
   @keyframes modalFadeIn {
@@ -2725,6 +2998,10 @@ const styles = `
     .mc-stat-value {
       font-size: 32px;
     }
+
+    .mc-carousel-viewport {
+      height: 380px;
+    }
   }
 
   /* ===== DESKTOP (1024px+) ===== */
@@ -2759,13 +3036,40 @@ const styles = `
       align-items: flex-start;
     }
 
-    .mc-hero-showcase {
+    .mc-hero-carousel {
       max-width: none;
       width: 100%;
     }
 
-    .mc-showcase-float {
+    .mc-carousel-viewport {
+      height: 420px;
+    }
+
+    .mc-carousel-float {
       display: flex;
+    }
+
+    .mc-slide-big-number {
+      font-size: 48px;
+    }
+
+    .mc-slide-content {
+      padding: 24px 20px;
+      gap: 16px;
+    }
+
+    .mc-slide-stats-row strong {
+      font-size: 16px;
+    }
+
+    .mc-slide-check {
+      font-size: 13px;
+      padding: 9px 14px;
+    }
+
+    .mc-slide-mod {
+      padding: 10px 14px;
+      font-size: 13px;
     }
 
     .mc-headline {
