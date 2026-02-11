@@ -582,12 +582,19 @@ export default function Masterclass() {
 
               {/* Central Replyna icon */}
               <div className="mc-orbit-center">
-                <svg viewBox="0 0 100 100" width="34" height="34" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M 70 5 C 68 25, 44 72, 20 95 C 16 72, 48 22, 70 5 Z"
-                    fill="#fff"
+                <div style={{ width: 44, height: 44, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img
+                    src="/replyna-logo.webp"
+                    alt="Replyna"
+                    style={{
+                      height: 44,
+                      width: 'auto',
+                      maxWidth: 'none',
+                      objectFit: 'contain',
+                      filter: 'brightness(0) invert(1)',
+                    }}
                   />
-                </svg>
+                </div>
               </div>
 
               {/* Platform items */}
