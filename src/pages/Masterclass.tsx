@@ -244,7 +244,6 @@ export default function Masterclass() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [showSticky, setShowSticky] = useState(false)
   const [heroWordIndex, setHeroWordIndex] = useState(0)
-  const [activeModule, setActiveModule] = useState(0)
   const [showModal, setShowModal] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
@@ -428,8 +427,6 @@ export default function Masterclass() {
     setShowModal(false)
     document.body.style.overflow = ''
   }
-
-  const currentModule = curriculumModules[activeModule]
 
   // ==================== RENDER ====================
   return (
@@ -717,7 +714,7 @@ export default function Masterclass() {
         </div>
       </section>
 
-      {/* ===== CURRICULUM (TABS) ===== */}
+      {/* ===== CURRICULUM (MODULES GRID) ===== */}
       <section id="conteudo" className="mc-section mc-curriculum mc-fade-in">
         <div className="mc-section-inner">
           <h2 className="mc-section-title">
@@ -729,26 +726,17 @@ export default function Masterclass() {
             São 6 módulos práticos em 47 minutos de puro conteúdo aplicável.
           </p>
 
-          <div className="mc-tabs-bar">
+          <div className="mc-modules-grid">
             {curriculumModules.map((mod, i) => (
-              <button
-                key={i}
-                className={`mc-tab ${activeModule === i ? 'mc-tab-active' : ''}`}
-                onClick={() => setActiveModule(i)}
-              >
-                <span className="mc-tab-num">{mod.number}</span>
-                <span className="mc-tab-title">{mod.title.split(' ').slice(0, 3).join(' ')}</span>
-              </button>
+              <div key={i} className="mc-module-card mc-fade-in">
+                <div className="mc-module-header">
+                  <div className="mc-module-number">{mod.number}</div>
+                  <div className="mc-module-icon">{mod.icon}</div>
+                </div>
+                <h3 className="mc-module-title">{mod.title}</h3>
+                <p className="mc-module-desc">{mod.description}</p>
+              </div>
             ))}
-          </div>
-
-          <div className="mc-tab-content">
-            <div className="mc-tab-icon-wrap">{currentModule.icon}</div>
-            <div className="mc-tab-detail">
-              <span className="mc-tab-module-num">Módulo {currentModule.number}</span>
-              <h3 className="mc-tab-module-title">{currentModule.title}</h3>
-              <p className="mc-tab-module-desc">{currentModule.description}</p>
-            </div>
           </div>
         </div>
       </section>
@@ -1708,6 +1696,8 @@ const styles = `
   }
   .mc-curriculum {
     background: linear-gradient(180deg, #0a1628 0%, #0e1d35 50%, #0a1628 100%);
+    padding-top: 72px;
+    padding-bottom: 72px;
   }
   .mc-audience {
     background: linear-gradient(180deg, #0a1628 0%, #0d1a30 50%, #0a1628 100%);
@@ -1765,81 +1755,82 @@ const styles = `
   }
   .mc-loss-footer strong { color: #f87171; }
 
-  /* ===== CURRICULUM TABS ===== */
-  .mc-tabs-bar {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    margin-bottom: 24px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+  /* ===== CURRICULUM MODULES GRID ===== */
+  .mc-modules-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 40px;
   }
-  .mc-tabs-bar::-webkit-scrollbar { display: none; }
-  .mc-tab {
-    flex-shrink: 0;
+  .mc-module-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 28px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .mc-module-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #1E90FF, #20B2AA);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .mc-module-card:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(30,144,255,0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(30,144,255,0.08);
+  }
+  .mc-module-card:hover::before { opacity: 1; }
+  .mc-module-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 18px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    color: rgba(255,255,255,0.5);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.25s;
-    font-family: inherit;
-    white-space: nowrap;
+    gap: 12px;
+    margin-bottom: 16px;
   }
-  .mc-tab:hover { border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.7); }
-  .mc-tab-active {
-    background: linear-gradient(135deg, rgba(30,144,255,0.1), rgba(32,178,170,0.06));
-    border-color: rgba(30,144,255,0.3);
-    color: #fff;
-  }
-  .mc-tab-num { font-weight: 800; color: #1E90FF; font-size: 12px; }
-  .mc-tab-active .mc-tab-num { color: #20B2AA; }
-  .mc-tab-title { display: none; }
-  .mc-tab-content {
+  .mc-module-number {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1E90FF, #20B2AA);
     display: flex;
-    gap: 20px;
-    align-items: flex-start;
-    padding: 28px;
-    background: linear-gradient(135deg, rgba(30,144,255,0.05), rgba(32,178,170,0.02));
-    border: 1px solid rgba(30,144,255,0.15);
-    border-radius: 20px;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
   }
-  .mc-tab-icon-wrap {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, rgba(30,144,255,0.15), rgba(32,178,170,0.1));
+  .mc-module-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: rgba(30,144,255,0.1);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #1E90FF;
-    flex-shrink: 0;
   }
-  .mc-tab-detail { display: flex; flex-direction: column; gap: 6px; text-align: left; }
-  .mc-tab-module-num {
-    font-size: 12px;
+  .mc-module-title {
+    font-size: 17px;
     font-weight: 700;
-    color: #1E90FF;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-  .mc-tab-module-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0;
-    line-height: 1.3;
     color: rgba(255,255,255,0.95);
+    margin: 0 0 10px;
+    line-height: 1.35;
   }
-  .mc-tab-module-desc { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.55); margin: 4px 0 0; }
+  .mc-module-desc {
+    font-size: 14px;
+    line-height: 1.75;
+    color: rgba(255,255,255,0.5);
+    margin: 0;
+  }
 
   /* ===== INSTANT ACCESS ===== */
   .mc-access-card {
@@ -2209,7 +2200,7 @@ const styles = `
     .mc-section-title { font-size: 26px; }
     .mc-audience-grid { grid-template-columns: 1fr 1fr; }
     .mc-testimonials-grid { grid-template-columns: 1fr 1fr; }
-    .mc-tab-title { display: inline; }
+    .mc-modules-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
     .mc-loss-item { gap: 20px; }
     .mc-footer-inner { grid-template-columns: 1.5fr 1fr 1fr; }
     .mc-stat-value { font-size: 32px; }
@@ -2250,7 +2241,8 @@ const styles = `
     .mc-section-inner { max-width: 1100px; }
     .mc-section-title { font-size: 32px; }
     .mc-loss-example { padding: 36px; max-width: 700px; margin-left: auto; margin-right: auto; }
-    .mc-tabs-bar { justify-content: center; }
+    .mc-modules-grid { gap: 24px; }
+    .mc-module-card { padding: 32px; }
     .mc-tab { padding: 14px 22px; }
     .mc-tab-content { max-width: 700px; margin-left: auto; margin-right: auto; padding: 36px; }
     .mc-tab-module-title { font-size: 20px; }
