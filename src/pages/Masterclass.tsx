@@ -8,6 +8,14 @@ import {
   Shield,
   Check,
   Zap,
+  ShoppingBag,
+  Mail,
+  MailOpen,
+  Send,
+  Cloud,
+  ShieldCheck,
+  Inbox,
+  Globe,
   DollarSign,
   BookOpen,
   Target,
@@ -167,15 +175,15 @@ const faqItems = [
 
 // ==================== ORBIT DATA ====================
 
-const orbitPlatforms = [
-  { name: 'Shopify', color: '#96bf48', letter: 'S' },
-  { name: 'Stripe', color: '#635bff', letter: 'St' },
-  { name: 'PayPal', color: '#0070ba', letter: 'PP' },
-  { name: 'Visa', color: '#1a1f71', letter: 'V' },
-  { name: 'Amazon', color: '#ff9900', letter: 'a' },
-  { name: 'Mastercard', color: '#eb001b', letter: 'MC' },
-  { name: 'WooCommerce', color: '#7f54b3', letter: 'W' },
-  { name: 'Wix', color: '#116dff', letter: 'Wx' },
+const orbitPlatforms: { name: string; color: string; Icon: React.ElementType }[] = [
+  { name: 'Shopify', color: '#96bf48', Icon: ShoppingBag },
+  { name: 'Gmail', color: '#EA4335', Icon: Mail },
+  { name: 'Outlook', color: '#0078D4', Icon: MailOpen },
+  { name: 'Yahoo', color: '#6001D2', Icon: Send },
+  { name: 'iCloud', color: '#3693F3', Icon: Cloud },
+  { name: 'ProtonMail', color: '#6D4AFF', Icon: ShieldCheck },
+  { name: 'Zoho Mail', color: '#C8202B', Icon: Inbox },
+  { name: 'AOL', color: '#31459B', Icon: Globe },
 ]
 
 const orbitPositions = [
@@ -572,9 +580,9 @@ export default function Masterclass() {
                 </defs>
               </svg>
 
-              {/* Central Replyna shield */}
+              {/* Central Replyna logo */}
               <div className="mc-orbit-center">
-                <Shield size={28} />
+                <img src="/replyna-logo.webp" alt="Replyna" style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'contain' }} />
               </div>
 
               {/* Platform items */}
@@ -586,7 +594,7 @@ export default function Masterclass() {
                 >
                   <div className="mc-orbit-inner">
                     <div className="mc-orbit-logo" style={{ background: platform.color }}>
-                      <span>{platform.letter}</span>
+                      <platform.Icon size={22} />
                     </div>
                     <span className="mc-orbit-label">{platform.name}</span>
                   </div>
