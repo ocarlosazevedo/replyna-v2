@@ -22,7 +22,9 @@ import {
   Clock,
   CreditCard,
   Calendar,
-  PlayCircle
+  PlayCircle,
+  X,
+  TrendingDown
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -212,7 +214,8 @@ export default function Masterclass() {
   const [showSticky, setShowSticky] = useState(false)
   const [heroWordIndex, setHeroWordIndex] = useState(0)
   const [activeModule, setActiveModule] = useState(0)
-  const formRef = useRef<HTMLDivElement>(null)
+  const [showModal, setShowModal] = useState(false)
+  const heroRef = useRef<HTMLDivElement>(null)
   const countdown = useCountdown()
 
   // Meta Pixel
@@ -260,14 +263,14 @@ export default function Masterclass() {
     return () => clearInterval(interval)
   }, [])
 
-  // Sticky CTA: show when form scrolls out of view
+  // Sticky CTA: show when hero scrolls out of view
   useEffect(() => {
-    if (!formRef.current) return
+    if (!heroRef.current) return
     const observer = new IntersectionObserver(
       ([entry]) => setShowSticky(!entry.isIntersecting),
       { threshold: 0 }
     )
-    observer.observe(formRef.current)
+    observer.observe(heroRef.current)
     return () => observer.disconnect()
   }, [])
 
@@ -382,8 +385,14 @@ export default function Masterclass() {
     }
   }
 
-  const scrollToForm = () => {
-    formRef.current?.scrollIntoView({ behavior: 'smooth' })
+  const openModal = () => {
+    setShowModal(true)
+    document.body.style.overflow = 'hidden'
+  }
+
+  const closeModal = () => {
+    setShowModal(false)
+    document.body.style.overflow = ''
   }
 
   const currentModule = curriculumModules[activeModule]
@@ -401,7 +410,7 @@ export default function Masterclass() {
             <a href="#conteudo" className="mc-nav-link">Conteúdo</a>
             <a href="#instrutor" className="mc-nav-link">Instrutor</a>
             <a href="#faq" className="mc-nav-link">FAQ</a>
-            <button onClick={scrollToForm} className="mc-nav-cta">Acesso Gratuito</button>
+            <button onClick={openModal} className="mc-nav-cta">Acesso Gratuito</button>
           </nav>
         </div>
       </header>
@@ -433,7 +442,7 @@ export default function Masterclass() {
               chargebacks e evitar o bloqueio da sua conta.
             </p>
 
-            <button onClick={scrollToForm} className="mc-hero-cta">
+            <button onClick={openModal} className="mc-hero-cta">
               <Play size={20} fill="#fff" />
               QUERO ACESSO GRATUITO
             </button>
@@ -449,109 +458,83 @@ export default function Masterclass() {
             </div>
           </div>
 
-          <div className="mc-hero-form" ref={formRef}>
-            <div className="mc-form-container">
-              <div className="mc-form-header">
-                <h2 className="mc-form-title">Garanta seu acesso gratuito</h2>
-                <p className="mc-form-subtitle">Preencha abaixo e assista agora mesmo</p>
+          {/* Hero Visual Showcase */}
+          <div className="mc-hero-showcase" ref={heroRef}>
+            {/* Dashboard mockup card */}
+            <div className="mc-showcase-card">
+              <div className="mc-showcase-header">
+                <div className="mc-showcase-dots">
+                  <span /><span /><span />
+                </div>
+                <span className="mc-showcase-title-bar">Shopify Payments — Dashboard</span>
               </div>
 
-              {/* Countdown Timer */}
-              <div className="mc-countdown">
-                <span className="mc-countdown-label">Acesso gratuito expira em:</span>
-                <div className="mc-countdown-timer">
-                  <div className="mc-countdown-block">
-                    <span className="mc-countdown-value">{String(countdown.hours).padStart(2, '0')}</span>
-                    <span className="mc-countdown-unit">horas</span>
+              {/* Chargeback rate visual */}
+              <div className="mc-showcase-metric">
+                <div className="mc-showcase-metric-top">
+                  <span className="mc-showcase-label">Taxa de Chargeback</span>
+                  <span className="mc-showcase-badge-good">
+                    <TrendingDown size={12} />
+                    -90%
+                  </span>
+                </div>
+                <div className="mc-showcase-bar-wrap">
+                  <div className="mc-showcase-bar-bg">
+                    <div className="mc-showcase-bar-before" />
+                    <div className="mc-showcase-bar-after" />
                   </div>
-                  <span className="mc-countdown-sep">:</span>
-                  <div className="mc-countdown-block">
-                    <span className="mc-countdown-value">{String(countdown.minutes).padStart(2, '0')}</span>
-                    <span className="mc-countdown-unit">min</span>
-                  </div>
-                  <span className="mc-countdown-sep">:</span>
-                  <div className="mc-countdown-block">
-                    <span className="mc-countdown-value">{String(countdown.seconds).padStart(2, '0')}</span>
-                    <span className="mc-countdown-unit">seg</span>
+                  <div className="mc-showcase-bar-labels">
+                    <span className="mc-showcase-bar-label-bad">3.2% <small>Antes</small></span>
+                    <span className="mc-showcase-bar-label-good">0.4% <small>Depois</small></span>
                   </div>
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="mc-form">
-                <div className="mc-field">
-                  <label htmlFor="name">Seu nome</label>
-                  <input
-                    id="name"
-                    type="text"
-                    placeholder="Ex: João"
-                    value={formData.name}
-                    onChange={e => {
-                      setFormData(prev => ({ ...prev, name: e.target.value }))
-                      if (errors.name) setErrors(prev => ({ ...prev, name: '' }))
-                    }}
-                    className={errors.name ? 'mc-input-error' : ''}
-                  />
-                  {errors.name && <span className="mc-error">{errors.name}</span>}
+              {/* Feature mini cards */}
+              <div className="mc-showcase-features">
+                <div className="mc-showcase-feat">
+                  <Shield size={16} />
+                  <span>Conta protegida</span>
                 </div>
-
-                <div className="mc-field">
-                  <label htmlFor="email">Seu melhor e-mail</label>
-                  <input
-                    id="email"
-                    type="email"
-                    placeholder="Ex: joao@email.com"
-                    value={formData.email}
-                    onChange={e => {
-                      setFormData(prev => ({ ...prev, email: e.target.value }))
-                      if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
-                    }}
-                    className={errors.email ? 'mc-input-error' : ''}
-                  />
-                  {errors.email && <span className="mc-error">{errors.email}</span>}
+                <div className="mc-showcase-feat">
+                  <Zap size={16} />
+                  <span>Automação ativa</span>
                 </div>
-
-                <div className="mc-field">
-                  <label htmlFor="whatsapp">WhatsApp</label>
-                  <input
-                    id="whatsapp"
-                    type="tel"
-                    placeholder="(00) 00000-0000"
-                    value={formData.whatsapp}
-                    onChange={handleWhatsAppChange}
-                    className={errors.whatsapp ? 'mc-input-error' : ''}
-                  />
-                  {errors.whatsapp && <span className="mc-error">{errors.whatsapp}</span>}
+                <div className="mc-showcase-feat">
+                  <Check size={16} />
+                  <span>Disputas vencidas</span>
                 </div>
+              </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="mc-btn-submit"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 size={20} className="mc-spin" />
-                      Liberando acesso...
-                    </>
-                  ) : (
-                    <>
-                      <Play size={20} fill="#fff" />
-                      QUERO ACESSO GRATUITO
-                    </>
-                  )}
-                </button>
-
-                <div className="mc-privacy-row">
-                  <p className="mc-privacy">
-                    <Lock size={12} />
-                    Seus dados estão seguros
-                  </p>
-                  <p className="mc-privacy">
-                    <Shield size={12} />
-                    Não enviamos spam
-                  </p>
+              {/* Stats row */}
+              <div className="mc-showcase-stats">
+                <div className="mc-showcase-stat">
+                  <strong>$500K+</strong>
+                  <span>Faturamento/mês</span>
                 </div>
-              </form>
+                <div className="mc-showcase-stat">
+                  <strong>0.4%</strong>
+                  <span>Taxa CB</span>
+                </div>
+                <div className="mc-showcase-stat">
+                  <strong>40%</strong>
+                  <span>Margem</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Floating badges around the card */}
+            <div className="mc-showcase-float mc-sf-1">
+              <Shield size={16} />
+              <span>Método Validado</span>
+            </div>
+            <div className="mc-showcase-float mc-sf-2">
+              <Star size={16} fill="#facc15" color="#facc15" />
+              <span>+500 Alunos</span>
+            </div>
+            <div className="mc-showcase-float mc-sf-3">
+              <Zap size={16} />
+              <span>47min</span>
             </div>
           </div>
         </div>
@@ -607,7 +590,7 @@ export default function Masterclass() {
             <h2 className="mc-section-title">
               Veja um trecho da <span className="mc-highlight">masterclass</span>
             </h2>
-            <div className="mc-video-placeholder" onClick={scrollToForm}>
+            <div className="mc-video-placeholder" onClick={openModal}>
               <PlayCircle size={64} />
               <span>Cadastre-se para assistir a masterclass completa</span>
             </div>
@@ -712,7 +695,7 @@ export default function Masterclass() {
               Sem espera, sem e-mail de confirmação. Você assiste a masterclass completa na hora,
               no seu ritmo, quantas vezes quiser. O acesso é vitalício.
             </p>
-            <button onClick={scrollToForm} className="mc-access-btn">
+            <button onClick={openModal} className="mc-access-btn">
               <Play size={18} fill="#fff" />
               QUERO ACESSO AGORA
             </button>
@@ -861,16 +844,129 @@ export default function Masterclass() {
             centenas de operações na Shopify Payments. Acesso gratuito expira em{' '}
             <strong>{String(countdown.hours).padStart(2, '0')}h {String(countdown.minutes).padStart(2, '0')}m</strong>.
           </p>
-          <button onClick={scrollToForm} className="mc-final-btn">
+          <button onClick={openModal} className="mc-final-btn">
             <Play size={20} fill="#fff" />
             QUERO ACESSO GRATUITO
           </button>
         </div>
       </section>
 
+      {/* ===== MODAL POPUP ===== */}
+      {showModal && (
+        <div className="mc-modal-overlay" onClick={closeModal}>
+          <div className="mc-modal" onClick={e => e.stopPropagation()}>
+            <button className="mc-modal-close" onClick={closeModal}>
+              <X size={20} />
+            </button>
+
+            <div className="mc-form-header">
+              <h2 className="mc-form-title">Garanta seu acesso gratuito</h2>
+              <p className="mc-form-subtitle">Preencha abaixo e assista agora mesmo</p>
+            </div>
+
+            {/* Countdown Timer */}
+            <div className="mc-countdown">
+              <span className="mc-countdown-label">Acesso gratuito expira em:</span>
+              <div className="mc-countdown-timer">
+                <div className="mc-countdown-block">
+                  <span className="mc-countdown-value">{String(countdown.hours).padStart(2, '0')}</span>
+                  <span className="mc-countdown-unit">horas</span>
+                </div>
+                <span className="mc-countdown-sep">:</span>
+                <div className="mc-countdown-block">
+                  <span className="mc-countdown-value">{String(countdown.minutes).padStart(2, '0')}</span>
+                  <span className="mc-countdown-unit">min</span>
+                </div>
+                <span className="mc-countdown-sep">:</span>
+                <div className="mc-countdown-block">
+                  <span className="mc-countdown-value">{String(countdown.seconds).padStart(2, '0')}</span>
+                  <span className="mc-countdown-unit">seg</span>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="mc-form">
+              <div className="mc-field">
+                <label htmlFor="modal-name">Seu nome</label>
+                <input
+                  id="modal-name"
+                  type="text"
+                  placeholder="Ex: João"
+                  value={formData.name}
+                  onChange={e => {
+                    setFormData(prev => ({ ...prev, name: e.target.value }))
+                    if (errors.name) setErrors(prev => ({ ...prev, name: '' }))
+                  }}
+                  className={errors.name ? 'mc-input-error' : ''}
+                />
+                {errors.name && <span className="mc-error">{errors.name}</span>}
+              </div>
+
+              <div className="mc-field">
+                <label htmlFor="modal-email">Seu melhor e-mail</label>
+                <input
+                  id="modal-email"
+                  type="email"
+                  placeholder="Ex: joao@email.com"
+                  value={formData.email}
+                  onChange={e => {
+                    setFormData(prev => ({ ...prev, email: e.target.value }))
+                    if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
+                  }}
+                  className={errors.email ? 'mc-input-error' : ''}
+                />
+                {errors.email && <span className="mc-error">{errors.email}</span>}
+              </div>
+
+              <div className="mc-field">
+                <label htmlFor="modal-whatsapp">WhatsApp</label>
+                <input
+                  id="modal-whatsapp"
+                  type="tel"
+                  placeholder="(00) 00000-0000"
+                  value={formData.whatsapp}
+                  onChange={handleWhatsAppChange}
+                  className={errors.whatsapp ? 'mc-input-error' : ''}
+                />
+                {errors.whatsapp && <span className="mc-error">{errors.whatsapp}</span>}
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="mc-btn-submit"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={20} className="mc-spin" />
+                    Liberando acesso...
+                  </>
+                ) : (
+                  <>
+                    <Play size={20} fill="#fff" />
+                    QUERO ACESSO GRATUITO
+                  </>
+                )}
+              </button>
+
+              <div className="mc-privacy-row">
+                <p className="mc-privacy">
+                  <Lock size={12} />
+                  Seus dados estão seguros
+                </p>
+                <p className="mc-privacy">
+                  <Shield size={12} />
+                  Não enviamos spam
+                </p>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ===== STICKY CTA (mobile) ===== */}
       <div className={`mc-sticky-cta ${showSticky ? 'mc-sticky-visible' : ''}`}>
-        <button onClick={scrollToForm} className="mc-sticky-btn">
+        <button onClick={openModal} className="mc-sticky-btn">
           <Play size={16} fill="#fff" />
           QUERO ACESSO GRATUITO
         </button>
@@ -1037,10 +1133,301 @@ const styles = `
     align-items: center;
   }
 
-  .mc-hero-form {
+  /* ===== HERO SHOWCASE ===== */
+  .mc-hero-showcase {
     width: 100%;
-    max-width: 480px;
+    max-width: 500px;
     margin: 0 auto;
+    position: relative;
+  }
+
+  .mc-showcase-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 80px rgba(70, 114, 236, 0.06);
+  }
+
+  .mc-showcase-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .mc-showcase-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .mc-showcase-dots span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+  }
+
+  .mc-showcase-dots span:first-child { background: #ef4444; opacity: 0.7; }
+  .mc-showcase-dots span:nth-child(2) { background: #facc15; opacity: 0.7; }
+  .mc-showcase-dots span:nth-child(3) { background: #4ade80; opacity: 0.7; }
+
+  .mc-showcase-title-bar {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    font-weight: 500;
+  }
+
+  .mc-showcase-metric {
+    padding: 24px 20px 20px;
+  }
+
+  .mc-showcase-metric-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .mc-showcase-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .mc-showcase-badge-good {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: rgba(74, 222, 128, 0.12);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4ade80;
+  }
+
+  .mc-showcase-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mc-showcase-bar-bg {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .mc-showcase-bar-before {
+    height: 10px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #ef4444, #f87171);
+    width: 80%;
+    opacity: 0.5;
+  }
+
+  @keyframes barGrow {
+    from { width: 0; }
+    to { width: 10%; }
+  }
+
+  .mc-showcase-bar-after {
+    height: 10px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+    width: 10%;
+    animation: barGrow 1.5s ease-out forwards;
+    box-shadow: 0 0 12px rgba(74, 222, 128, 0.3);
+  }
+
+  .mc-showcase-bar-labels {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .mc-showcase-bar-label-bad {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f87171;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mc-showcase-bar-label-bad small,
+  .mc-showcase-bar-label-good small {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.35);
+  }
+
+  .mc-showcase-bar-label-good {
+    font-size: 13px;
+    font-weight: 700;
+    color: #4ade80;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mc-showcase-features {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px 20px;
+    flex-wrap: wrap;
+  }
+
+  .mc-showcase-feat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: rgba(70, 114, 236, 0.08);
+    border: 1px solid rgba(70, 114, 236, 0.15);
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .mc-showcase-feat svg {
+    color: #818cf8;
+    flex-shrink: 0;
+  }
+
+  .mc-showcase-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .mc-showcase-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 16px 8px;
+    border-right: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .mc-showcase-stat:last-child {
+    border-right: none;
+  }
+
+  .mc-showcase-stat strong {
+    font-size: 16px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #4672ec, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .mc-showcase-stat span {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Floating badges */
+  @keyframes floatBadge {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .mc-showcase-float {
+    position: absolute;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: rgba(10, 10, 20, 0.85);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    animation: floatBadge 3s ease-in-out infinite;
+    white-space: nowrap;
+  }
+
+  .mc-showcase-float svg {
+    color: #818cf8;
+    flex-shrink: 0;
+  }
+
+  .mc-sf-1 { top: 15%; right: -20px; animation-delay: 0s; }
+  .mc-sf-2 { bottom: 30%; left: -24px; animation-delay: 1s; }
+  .mc-sf-3 { bottom: 8%; right: -12px; animation-delay: 0.5s; }
+
+  /* ===== MODAL ===== */
+  @keyframes modalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(24px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .mc-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: modalFadeIn 0.25s ease;
+  }
+
+  .mc-modal {
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #0e0e18;
+    border: 1px solid rgba(70, 114, 236, 0.2);
+    border-radius: 24px;
+    padding: 32px 24px;
+    position: relative;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 120px rgba(70, 114, 236, 0.08);
+    animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .mc-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .mc-modal-close:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
   }
 
   /* Social proof badge */
@@ -2362,7 +2749,7 @@ const styles = `
     .mc-hero-inner {
       max-width: 1100px;
       display: grid;
-      grid-template-columns: 1fr 440px;
+      grid-template-columns: 1fr 460px;
       gap: 48px;
       align-items: center;
       text-align: left;
@@ -2372,9 +2759,13 @@ const styles = `
       align-items: flex-start;
     }
 
-    .mc-hero-form {
+    .mc-hero-showcase {
       max-width: none;
       width: 100%;
+    }
+
+    .mc-showcase-float {
+      display: flex;
     }
 
     .mc-headline {
@@ -2393,11 +2784,6 @@ const styles = `
       background: linear-gradient(135deg, #3b5fd9 0%, #4a3dc0 100%);
       box-shadow: 0 8px 28px rgba(70, 114, 236, 0.35);
       transform: translateY(-1px);
-    }
-
-    .mc-form-container {
-      max-width: none;
-      padding: 36px 32px;
     }
 
     /* Stats */
@@ -2565,7 +2951,7 @@ const styles = `
 
     .mc-hero-inner {
       max-width: 1200px;
-      grid-template-columns: 1fr 480px;
+      grid-template-columns: 1fr 500px;
       gap: 64px;
     }
 
