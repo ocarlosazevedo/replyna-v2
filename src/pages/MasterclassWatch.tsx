@@ -633,9 +633,9 @@ const styles = `
     margin: 0 0 20px;
   }
 
-  /* CTA section */
+  /* CTA section (hidden on mobile, shown on desktop) */
   .mcw-sidebar-cta {
-    display: flex;
+    display: none;
     flex-direction: column;
     align-items: center;
     gap: 10px;
@@ -766,9 +766,13 @@ const styles = `
       min-width: 0;
     }
 
-    /* Hide mobile CTA on desktop (sidebar has it) */
+    /* Swap CTAs: hide mobile, show sidebar */
     .mcw-mobile-cta {
       display: none;
+    }
+
+    .mcw-sidebar-cta {
+      display: flex;
     }
 
     .mcw-cta-btn:hover {
