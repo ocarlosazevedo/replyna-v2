@@ -209,42 +209,6 @@ export default function MasterclassWatch() {
 
       {/* Área de membros */}
       <div className="mcw-members">
-        {/* Sidebar / Info */}
-        <aside className="mcw-sidebar">
-          <div className="mcw-sidebar-badge">
-            <Play size={14} />
-            <span>Masterclass</span>
-          </div>
-
-          <h2 className="mcw-sidebar-title">
-            Como Reduzir 90% dos Chargebacks e Proteger sua Conta
-          </h2>
-
-          <div className="mcw-sidebar-instructor">
-            <img src="/influencers/carlos-azevedo.webp" alt="Carlos Azevedo" className="mcw-sidebar-avatar" />
-            <div>
-              <strong>Carlos Azevedo</strong>
-              <span>Especialista Anti-Chargeback</span>
-            </div>
-          </div>
-
-          <p className="mcw-sidebar-desc">
-            {userName ? `Olá, ${userName}! ` : ''}Assista à masterclass completa e descubra o método que já ajudou
-            mais de 1.000 empreendedores a protegerem suas operações.
-          </p>
-
-          {/* CTA */}
-          <div className="mcw-sidebar-cta">
-            <a href="https://app.replyna.me/register" className="mcw-cta-btn">
-              Quero testar a Replyna
-              <ChevronRight size={18} />
-            </a>
-            <p className="mcw-cta-coupon">
-              Cupom <strong>MASTERCLASS20</strong> = 20% off
-            </p>
-          </div>
-        </aside>
-
         {/* Video Player */}
         <main className="mcw-main">
           <div className="mcw-video-wrapper">
@@ -269,6 +233,43 @@ export default function MasterclassWatch() {
             </p>
           </div>
         </main>
+
+        {/* Sidebar / Info */}
+        <aside className="mcw-sidebar">
+          <div className="mcw-sidebar-badge">
+            <Play size={14} />
+            <span>Masterclass</span>
+          </div>
+
+          <h2 className="mcw-sidebar-title">
+            Como Reduzir 90% dos Chargebacks e Proteger sua Conta
+          </h2>
+
+          <div className="mcw-sidebar-instructor">
+            <img src="/influencers/carlos-azevedo.jpg" alt="Carlos Azevedo" className="mcw-sidebar-avatar" />
+            <div>
+              <strong>Carlos Azevedo</strong>
+              <span>Empresário & Especialista em E-commerce Global</span>
+            </div>
+          </div>
+
+          <p className="mcw-sidebar-desc">
+            {userName ? `Olá, ${userName}! ` : ''}Empresário com mais de 6 anos no mercado de e-commerce global.
+            Pioneiro em dropshipping global, Google Ads e Shopify Payments.
+            Compartilho as estratégias que uso para faturar +$500K/mês com margem de até 40%.
+          </p>
+
+          {/* CTA */}
+          <div className="mcw-sidebar-cta">
+            <a href="https://app.replyna.me/register" className="mcw-cta-btn">
+              Quero testar a Replyna
+              <ChevronRight size={18} />
+            </a>
+            <p className="mcw-cta-coupon">
+              Cupom <strong>MASTERCLASS20</strong> = 20% off
+            </p>
+          </div>
+        </aside>
       </div>
 
       <footer className="mcw-footer">
@@ -303,7 +304,7 @@ const styles = `
 
   .mcw-spinner {
     animation: mcw-spin 1s linear infinite;
-    color: #818cf8;
+    color: #1E90FF;
   }
 
   @keyframes mcw-spin {
@@ -438,9 +439,9 @@ const styles = `
   }
 
   .mcw-login-field input:focus {
-    border-color: rgba(70, 114, 236, 0.5);
+    border-color: rgba(30,144,255,0.5);
     background: rgba(255,255,255,0.07);
-    box-shadow: 0 0 0 3px rgba(70, 114, 236, 0.1);
+    box-shadow: 0 0 0 3px rgba(30,144,255,0.1);
   }
 
   .mcw-login-field input::placeholder {
@@ -467,7 +468,7 @@ const styles = `
   .mcw-login-btn {
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, #4672ec 0%, #5b4dd6 100%);
+    background: #1E90FF;
     border: none;
     border-radius: 14px;
     color: #fff;
@@ -479,7 +480,7 @@ const styles = `
     gap: 8px;
     cursor: pointer;
     transition: all 0.25s;
-    box-shadow: 0 4px 20px rgba(70, 114, 236, 0.25);
+    box-shadow: 0 4px 20px rgba(30,144,255,0.25);
     letter-spacing: 0.02em;
     font-family: inherit;
   }
@@ -506,7 +507,7 @@ const styles = `
   }
 
   .mcw-login-info a {
-    color: #818cf8;
+    color: #1E90FF;
     text-decoration: none;
     font-weight: 600;
   }
@@ -573,9 +574,9 @@ const styles = `
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: linear-gradient(135deg, rgba(70, 114, 236, 0.15), rgba(139, 92, 246, 0.15));
-    border: 1px solid rgba(70, 114, 236, 0.3);
-    color: #a5b4fc;
+    background: linear-gradient(135deg, rgba(30,144,255,0.15), rgba(32,178,170,0.1));
+    border: 1px solid rgba(30,144,255,0.3);
+    color: #1E90FF;
     padding: 6px 14px;
     border-radius: 50px;
     font-size: 12px;
@@ -607,7 +608,7 @@ const styles = `
     height: 44px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(70, 114, 236, 0.3);
+    border: 2px solid rgba(30,144,255,0.3);
   }
 
   .mcw-sidebar-instructor > div {
@@ -622,7 +623,7 @@ const styles = `
 
   .mcw-sidebar-instructor span {
     font-size: 12px;
-    color: #818cf8;
+    color: #1E90FF;
   }
 
   .mcw-sidebar-desc {
@@ -649,14 +650,14 @@ const styles = `
     gap: 8px;
     width: 100%;
     padding: 16px 24px;
-    background: linear-gradient(135deg, #4672ec 0%, #5b4dd6 100%);
+    background: #1E90FF;
     border-radius: 14px;
     color: #fff;
     font-size: 15px;
     font-weight: 700;
     text-decoration: none;
     transition: all 0.25s;
-    box-shadow: 0 4px 20px rgba(70, 114, 236, 0.25);
+    box-shadow: 0 4px 20px rgba(30,144,255,0.25);
     letter-spacing: 0.02em;
     text-align: center;
   }
@@ -737,8 +738,8 @@ const styles = `
     }
 
     .mcw-login-btn:hover:not(:disabled) {
-      background: linear-gradient(135deg, #3b5fd9 0%, #3451c4 100%);
-      box-shadow: 0 8px 24px rgba(70, 114, 236, 0.3);
+      background: #0C7CD5;
+      box-shadow: 0 8px 24px rgba(30,144,255,0.3);
     }
 
     .mcw-login-field input:hover {
@@ -747,7 +748,7 @@ const styles = `
 
     /* Members area: side-by-side layout */
     .mcw-members {
-      flex-direction: row-reverse;
+      flex-direction: row;
       align-items: flex-start;
       gap: 32px;
       padding: 32px 40px 64px;
@@ -771,7 +772,8 @@ const styles = `
     }
 
     .mcw-cta-btn:hover {
-      box-shadow: 0 8px 24px rgba(70, 114, 236, 0.3);
+      background: #0C7CD5;
+      box-shadow: 0 8px 24px rgba(30,144,255,0.3);
       transform: translateY(-1px);
     }
   }
