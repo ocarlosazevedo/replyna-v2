@@ -10,6 +10,43 @@ export default function MasterclassWatch() {
   const [loginError, setLoginError] = useState('')
   const [initialLoading, setInitialLoading] = useState(true)
 
+  // Meta Pixel
+  useEffect(() => {
+    const w = window as Record<string, any>
+    if (w.fbq) return
+
+    const q: any[][] = []
+    const fbq: any = function (...args: any[]) {
+      if (fbq.callMethod) {
+        fbq.callMethod(...args)
+      } else {
+        q.push(args)
+      }
+    }
+    fbq.push = fbq
+    fbq.loaded = true
+    fbq.version = '2.0'
+    fbq.queue = q
+    w.fbq = fbq
+    if (!w._fbq) w._fbq = fbq
+
+    const script = document.createElement('script')
+    script.async = true
+    script.src = 'https://connect.facebook.net/en_US/fbevents.js'
+    document.head.appendChild(script)
+
+    w.fbq('init', '1587401225738187')
+    w.fbq('track', 'PageView')
+    w.fbq('track', 'Lead', {
+      content_name: 'leadisca',
+      content_category: 'Masterclass',
+    })
+
+    return () => {
+      document.head.removeChild(script)
+    }
+  }, [])
+
   useEffect(() => {
     window.scrollTo(0, 0)
 
