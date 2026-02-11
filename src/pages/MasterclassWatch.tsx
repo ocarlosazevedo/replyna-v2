@@ -287,7 +287,7 @@ const styles = `
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    background: #050508;
+    background: #0a1628;
     color: #fff;
     font-family: "Inter", -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
