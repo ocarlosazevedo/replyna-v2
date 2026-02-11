@@ -2,40 +2,92 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Play,
   AlertCircle,
-
   ChevronDown,
   Loader2,
   Lock,
-
-  Users,
-  TrendingDown,
-  Clock,
-
-  Star,
-  Shield
+  Shield,
+  Check,
+  Zap,
+  DollarSign,
+  BookOpen,
+  Target,
+  ShoppingCart,
+  BarChart3,
+  MessageSquare,
+  FileText,
+  Settings,
+  Award
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 // ==================== DATA ====================
 
-const testimonials = [
+const valueProps = [
+  '100% gratuito',
+  'Método validado',
+  'Conteúdo atualizado 2026',
+  'Acesso vitalício'
+]
+
+const curriculumModules = [
   {
-    name: 'Rafael Mendes',
-    role: 'Loja de Eletrônicos',
-    text: 'Reduzi minha taxa de chargeback de 4.2% para 0.5% em menos de 45 dias. A masterclass abriu meus olhos para erros que eu nem sabia que cometia.',
-    result: '4.2% → 0.5%'
+    number: '01',
+    title: 'O que é Chargeback e por que ele acontece',
+    description: 'Entenda de vez o mecanismo por trás das disputas e por que sua loja é alvo.',
+    icon: <BookOpen size={20} />
   },
   {
-    name: 'Amanda Costa',
-    role: 'E-commerce de Moda',
-    text: 'Minha conta no Shopify Payments estava prestes a ser bloqueada. Depois de aplicar o método, não tive mais nenhuma disputa em 3 meses.',
-    result: '0 disputas em 3 meses'
+    number: '02',
+    title: 'Os erros que estão matando sua conta na Payments',
+    description: 'Os 5 erros mais comuns que aumentam sua taxa de chargeback sem você perceber.',
+    icon: <AlertCircle size={20} />
   },
   {
-    name: 'Lucas Ferreira',
-    role: 'Dropshipping',
-    text: 'O conteúdo sobre a regra dos 2 minutos vale a masterclass inteira. Simples de aplicar e resultado imediato no meu atendimento.',
-    result: 'Resultado imediato'
+    number: '03',
+    title: 'O Método Anti-Chargeback completo',
+    description: 'Passo a passo do método validado para reduzir até 90% dos chargebacks.',
+    icon: <Shield size={20} />
+  },
+  {
+    number: '04',
+    title: 'Configurações essenciais da Shopify Payments',
+    description: 'O que configurar hoje para proteger sua conta e evitar bloqueios.',
+    icon: <Settings size={20} />
+  },
+  {
+    number: '05',
+    title: 'Como responder disputas e vencer',
+    description: 'Templates e estratégias para montar evidências e reverter chargebacks.',
+    icon: <FileText size={20} />
+  },
+  {
+    number: '06',
+    title: 'Automação e prevenção avançada',
+    description: 'Como automatizar a proteção e manter sua taxa abaixo de 1% no piloto automático.',
+    icon: <Zap size={20} />
+  }
+]
+
+const audienceItems = [
+  {
+    icon: <ShoppingCart size={22} />,
+    title: 'Donos de e-commerce',
+    description: 'Que vendem pela Shopify e processam pagamentos com Shopify Payments.'
+  },
+  {
+    icon: <BarChart3 size={22} />,
+    title: 'Operações de dropshipping',
+    description: 'Que precisam manter a taxa de chargeback baixa para não perder a conta.'
+  },
+  {
+    icon: <MessageSquare size={22} />,
+    title: 'Quem já sofreu bloqueio',
+    description: 'Que teve conta bloqueada ou recebeu aviso da Shopify sobre taxa de disputas.'
+  },
+  {
+    icon: <Target size={22} />,
+    title: 'Quem quer escalar com segurança',
+    description: 'Que quer faturar mais sem o medo constante de perder a estrutura de pagamentos.'
   }
 ]
 
@@ -50,15 +102,15 @@ const faqItems = [
   },
   {
     question: 'Funciona para qualquer tipo de loja?',
-    answer: 'Sim. O método funciona para e-commerce, dropshipping, infoprodutos e qualquer operação que processa pagamentos online. Os princípios anti-chargeback são universais.'
+    answer: 'Sim. O método funciona para e-commerce, dropshipping, infoprodutos e qualquer operação que processa pagamentos online pela Shopify Payments.'
   },
   {
-    question: 'Vou receber spam depois de me cadastrar?',
-    answer: 'Não. Enviamos apenas conteúdo relevante sobre proteção contra chargebacks. Você pode cancelar a qualquer momento com um clique.'
+    question: 'Recebo o acesso na hora?',
+    answer: 'Sim! Após o cadastro você é redirecionado imediatamente para a área de membros onde pode assistir a masterclass completa.'
   },
   {
     question: 'Preciso ter experiência técnica?',
-    answer: 'Não. O conteúdo foi pensado para donos de negócio, não desenvolvedores. Tudo é explicado de forma simples e prática.'
+    answer: 'Não. O conteúdo foi pensado para donos de negócio, não desenvolvedores. Tudo é explicado de forma simples e prática, com exemplos reais.'
   }
 ]
 
@@ -116,7 +168,6 @@ export default function Masterclass() {
     const w = window as Record<string, any>
     if (w.fbq) return
 
-    // Inline pixel bootstrap (avoids TS issues with the official snippet)
     const q: any[][] = []
     const fbq: any = function (...args: any[]) {
       if (fbq.callMethod) {
@@ -258,7 +309,7 @@ export default function Masterclass() {
     formRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  // ==================== PÁGINA DE CAPTURA ====================
+  // ==================== RENDER ====================
   return (
     <div className="mc-page">
       <style>{styles}</style>
@@ -268,25 +319,46 @@ export default function Masterclass() {
         <img src="/replyna-logo.webp" alt="Replyna" className="mc-logo" />
       </header>
 
-      {/* Main Layout */}
-      <div className="mc-layout">
-
-        {/* ===== HERO TEXT ===== */}
-        <div className="mc-hero-text">
-          <div className="mc-badge">
-            <Play size={14} />
-            <span>Masterclass Gratuita</span>
-          </div>
+      {/* ===== HERO ===== */}
+      <section className="mc-hero">
+        <div className="mc-hero-inner">
+          <span className="mc-free-badge">100% gratuito — sem pegadinhas!</span>
 
           <h1 className="mc-headline">
-            Como Reduzir{' '}
-            <span className="mc-highlight">90% dos Chargebacks</span>{' '}
-            e Proteger sua Conta
+            Método para reduzir até{' '}
+            <span className="mc-highlight">90% do chargeback</span>{' '}
+            e proteger sua conta na Shopify Payments
           </h1>
 
           <p className="mc-subheadline">
-            O método usado por operações de 7 dígitos
+            Masterclass completa com metodologia validada para reduzir o chargeback,
+            evitar prejuízos e manter sua estrutura da Shopify Payments ativa por meses e meses.
           </p>
+
+          <button onClick={scrollToForm} className="mc-hero-cta">
+            <Play size={20} fill="#fff" />
+            QUERO ACESSO
+          </button>
+
+          {/* Value props */}
+          <div className="mc-value-props">
+            {valueProps.map((prop, i) => (
+              <div key={i} className="mc-value-item">
+                <Check size={16} />
+                <span>{prop}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== FORM SECTION ===== */}
+      <section className="mc-form-wrapper" ref={formRef}>
+        <div className="mc-form-container">
+          <div className="mc-form-header">
+            <h2 className="mc-form-title">Garanta seu acesso gratuito</h2>
+            <p className="mc-form-subtitle">Preencha abaixo e assista agora mesmo</p>
+          </div>
 
           {/* Countdown Timer */}
           <div className="mc-countdown">
@@ -307,15 +379,6 @@ export default function Masterclass() {
                 <span className="mc-countdown-unit">seg</span>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* ===== FORM SECTION ===== */}
-        <div className="mc-form-section" ref={formRef}>
-          {/* Social proof counter */}
-          <div className="mc-form-social">
-            <div className="mc-live-dot" />
-            <span><strong>2.347</strong> pessoas já se inscreveram</span>
           </div>
 
           <form onSubmit={handleSubmit} className="mc-form">
@@ -377,7 +440,7 @@ export default function Masterclass() {
               ) : (
                 <>
                   <Play size={20} fill="#fff" />
-                  QUERO ASSISTIR AGORA
+                  QUERO ACESSO
                 </>
               )}
             </button>
@@ -394,31 +457,125 @@ export default function Masterclass() {
             </div>
           </form>
         </div>
+      </section>
 
-        {/* ===== PAIN POINTS ===== */}
-        <div className="mc-pain-section">
-          <h2 className="mc-section-title">Se isso parece com a sua realidade...</h2>
-          <div className="mc-pain-list">
-            {[
-              { icon: <TrendingDown size={20} />, text: 'Taxa de chargeback acima de 1%' },
-              { icon: <Lock size={20} />, text: 'Medo de ter a conta bloqueada' },
-              { icon: <Clock size={20} />, text: 'Horas perdidas respondendo contestações' },
-              { icon: <AlertCircle size={20} />, text: 'Dinheiro escorrendo com disputas' }
-            ].map((item, i) => (
-              <div key={i} className="mc-pain-item">
-                <span className="mc-pain-icon">{item.icon}</span>
-                <span>{item.text}</span>
+      {/* ===== LOSS CALCULATOR ===== */}
+      <section className="mc-section mc-losses">
+        <div className="mc-section-inner">
+          <h2 className="mc-section-title">
+            Você já fez os cálculos de quanto{' '}
+            <span className="mc-highlight-red">tem perdido</span>{' '}
+            com bloqueios na Payments e chargebacks?
+          </h2>
+
+          <p className="mc-section-text">
+            A maioria dos lojistas só percebe o tamanho do prejuízo quando já é tarde demais.
+            Chargebacks não são apenas o valor da venda perdida — são taxas extras, multas
+            acumulativas e o risco real de perder sua conta na Shopify Payments.
+          </p>
+
+          <div className="mc-loss-example">
+            <div className="mc-loss-header">
+              <DollarSign size={20} />
+              <span>Exemplo real: operação de R$100.000/mês</span>
+            </div>
+            <div className="mc-loss-grid">
+              <div className="mc-loss-item">
+                <span className="mc-loss-label">Chargebacks (taxa média de 2%)</span>
+                <span className="mc-loss-value mc-loss-red">-R$ 2.000/mês</span>
+              </div>
+              <div className="mc-loss-item">
+                <span className="mc-loss-label">Taxas por disputa (~R$85 cada)</span>
+                <span className="mc-loss-value mc-loss-red">-R$ 1.700/mês</span>
+              </div>
+              <div className="mc-loss-item">
+                <span className="mc-loss-label">Produtos enviados sem reembolso</span>
+                <span className="mc-loss-value mc-loss-red">-R$ 2.000/mês</span>
+              </div>
+              <div className="mc-loss-item mc-loss-total">
+                <span className="mc-loss-label">Prejuízo estimado por ano</span>
+                <span className="mc-loss-value mc-loss-red-big">-R$ 68.400/ano</span>
+              </div>
+            </div>
+            <p className="mc-loss-footer">
+              E isso sem contar o maior risco: o <strong>bloqueio definitivo</strong> da sua conta
+              na Shopify Payments, que pode parar toda sua operação de uma hora pra outra.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== CURRICULUM ===== */}
+      <section className="mc-section mc-curriculum">
+        <div className="mc-section-inner">
+          <h2 className="mc-section-title">
+            Veja todo conteúdo da masterclass que vai{' '}
+            <span className="mc-highlight">mudar o destino</span>{' '}
+            da sua operação (ainda hoje)
+          </h2>
+
+          <div className="mc-modules">
+            {curriculumModules.map((mod, i) => (
+              <div key={i} className="mc-module-card">
+                <div className="mc-module-number">{mod.number}</div>
+                <div className="mc-module-icon">{mod.icon}</div>
+                <div className="mc-module-content">
+                  <strong>{mod.title}</strong>
+                  <span>{mod.description}</span>
+                </div>
               </div>
             ))}
           </div>
-          <p className="mc-pain-cta">
-            ...então essa masterclass foi <strong>feita para você</strong>.
-          </p>
         </div>
+      </section>
 
-        {/* ===== INSTRUCTOR (expanded) ===== */}
-        <div className="mc-instructor-wrap">
-          <h2 className="mc-section-title">Quem vai ensinar você</h2>
+      {/* ===== INSTANT ACCESS ===== */}
+      <section className="mc-section mc-access">
+        <div className="mc-section-inner">
+          <div className="mc-access-card">
+            <div className="mc-access-icon">
+              <Zap size={28} />
+            </div>
+            <h2 className="mc-section-title">Acesso gratuito e imediato</h2>
+            <p className="mc-section-text">
+              Assim que você se cadastrar, será redirecionado automaticamente para a área de membros.
+              Sem espera, sem e-mail de confirmação. Você assiste a masterclass completa na hora,
+              no seu ritmo, quantas vezes quiser. O acesso é vitalício.
+            </p>
+            <button onClick={scrollToForm} className="mc-access-btn">
+              <Play size={18} fill="#fff" />
+              QUERO ACESSO AGORA
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== TARGET AUDIENCE ===== */}
+      <section className="mc-section mc-audience">
+        <div className="mc-section-inner">
+          <h2 className="mc-section-title">Pra quem é essa aula?</h2>
+          <p className="mc-section-text mc-text-center">
+            Se você se encaixa em pelo menos um dos perfis abaixo,
+            essa masterclass foi feita para você.
+          </p>
+
+          <div className="mc-audience-grid">
+            {audienceItems.map((item, i) => (
+              <div key={i} className="mc-audience-card">
+                <div className="mc-audience-icon">{item.icon}</div>
+                <strong>{item.title}</strong>
+                <span>{item.description}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== INSTRUCTOR ===== */}
+      <section className="mc-section mc-instructor">
+        <div className="mc-section-inner">
+          <h2 className="mc-section-title">Quem será o seu mentor nessa aula?</h2>
+
           <div className="mc-instructor-card">
             <div className="mc-instructor-header">
               <div className="mc-instructor-img-wrap">
@@ -426,94 +583,38 @@ export default function Masterclass() {
               </div>
               <div>
                 <strong>Carlos Azevedo</strong>
-                <span>Especialista Anti-Chargeback</span>
+                <span>Empresário & Especialista em E-commerce Global</span>
               </div>
             </div>
+
             <p className="mc-instructor-bio">
-              Com mais de <strong>7 anos de experiência</strong> em proteção de operações digitais,
-              Carlos já ajudou <strong>+1.000 empreendedores</strong> a reduzirem drasticamente suas
-              taxas de chargeback. Responsável por proteger operações que faturam milhões por mês.
+              Empresário com mais de <strong>6 anos no mercado de e-commerce global</strong>.
+              Pioneiro em dropshipping global, Google Ads e Shopify Payments.
+              Hoje compartilho as estratégias que uso para faturar{' '}
+              <strong>+$500K/mês com margem de até 40%</strong>.
             </p>
+
             <div className="mc-instructor-stats">
               <div className="mc-stat-item">
-                <strong>1.000+</strong>
-                <span>Alunos</span>
+                <strong>$500K+</strong>
+                <span>Faturamento/mês</span>
               </div>
               <div className="mc-stat-item">
-                <strong>7+ anos</strong>
-                <span>Experiência</span>
+                <strong>6+ anos</strong>
+                <span>No mercado</span>
               </div>
               <div className="mc-stat-item">
-                <strong>90%</strong>
-                <span>Redução média</span>
+                <strong>40%</strong>
+                <span>Margem</span>
               </div>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* ===== BENEFITS ===== */}
-        <div className="mc-benefits">
-          <h2 className="mc-section-title">O que você vai aprender</h2>
-
-          <div className="mc-benefit-list">
-            <div className="mc-benefit-card">
-              <div className="mc-benefit-icon">
-                <TrendingDown size={22} />
-              </div>
-              <strong>Os 7 pilares anti-chargeback</strong>
-              <span>Método completo para proteger sua operação de ponta a ponta</span>
-            </div>
-
-            <div className="mc-benefit-card">
-              <div className="mc-benefit-icon">
-                <Users size={22} />
-              </div>
-              <strong>Por que 71% dos chargebacks não são fraude</strong>
-              <span>Entenda a real causa e elimine os problemas na raiz</span>
-            </div>
-
-            <div className="mc-benefit-card">
-              <div className="mc-benefit-icon">
-                <Clock size={22} />
-              </div>
-              <strong>A regra dos 2 minutos</strong>
-              <span>O segredo que transforma seu atendimento e evita disputas</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ===== TESTIMONIALS ===== */}
-        <div className="mc-testimonials">
-          <h2 className="mc-section-title">O que dizem nossos alunos</h2>
-          <div className="mc-testimonial-list">
-            {testimonials.map((t, i) => (
-              <div key={i} className="mc-testimonial-card">
-                <span className="mc-testimonial-quote">"</span>
-                <div className="mc-testimonial-top">
-                  <div className="mc-testimonial-stars">
-                    {Array.from({ length: 5 }, (_, j) => (
-                      <Star key={j} size={14} fill="#fbbf24" color="#fbbf24" />
-                    ))}
-                  </div>
-                  <span className="mc-testimonial-result">{t.result}</span>
-                </div>
-                <p className="mc-testimonial-text">{t.text}</p>
-                <div className="mc-testimonial-author">
-                  <div className="mc-testimonial-avatar">
-                    {t.name.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div>
-                    <strong>{t.name}</strong>
-                    <span>{t.role}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ===== FAQ ===== */}
-        <div className="mc-faq">
+      {/* ===== FAQ ===== */}
+      <section className="mc-section mc-faq">
+        <div className="mc-section-inner">
           <h2 className="mc-section-title">Perguntas frequentes</h2>
           <div className="mc-faq-list">
             {faqItems.map((item, i) => (
@@ -536,20 +637,38 @@ export default function Masterclass() {
             ))}
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* ===== FINAL CTA ===== */}
+      <section className="mc-section mc-final-cta">
+        <div className="mc-section-inner">
+          <Award size={40} className="mc-final-icon" />
+          <h2 className="mc-final-title">
+            Não deixe o chargeback destruir sua operação
+          </h2>
+          <p className="mc-final-text">
+            Assista a masterclass gratuita e aprenda o método que já protegeu
+            centenas de operações na Shopify Payments.
+          </p>
+          <button onClick={scrollToForm} className="mc-final-btn">
+            <Play size={20} fill="#fff" />
+            QUERO ACESSO GRATUITO
+          </button>
+        </div>
+      </section>
 
       {/* ===== STICKY CTA (mobile) ===== */}
       <div className={`mc-sticky-cta ${showSticky ? 'mc-sticky-visible' : ''}`}>
         <button onClick={scrollToForm} className="mc-sticky-btn">
           <Play size={16} fill="#fff" />
-          QUERO ASSISTIR AGORA
+          QUERO ACESSO
         </button>
       </div>
 
       {/* Footer */}
       <footer className="mc-footer">
         <img src="/replyna-logo.webp" alt="Replyna" />
-        <span>© {new Date().getFullYear()} Replyna</span>
+        <span>&copy; {new Date().getFullYear()} Replyna</span>
       </footer>
     </div>
   )
@@ -574,6 +693,7 @@ const styles = `
     padding: 20px;
     display: flex;
     justify-content: center;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
   }
 
   .mc-logo {
@@ -582,44 +702,36 @@ const styles = `
     opacity: 0.9;
   }
 
-  /* ===== LAYOUT (Mobile default: flex column) ===== */
-  .mc-layout {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    max-width: 440px;
-    margin: 0 auto;
-    padding: 0 20px 32px;
-  }
-
-  /* ===== HERO TEXT ===== */
-  .mc-hero-text {
+  /* ===== HERO ===== */
+  .mc-hero {
+    padding: 48px 20px 40px;
     text-align: center;
-    margin-bottom: 24px;
-    width: 100%;
   }
 
-  .mc-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    background: linear-gradient(135deg, rgba(70, 114, 236, 0.15), rgba(139, 92, 246, 0.15));
-    border: 1px solid rgba(70, 114, 236, 0.3);
-    color: #a5b4fc;
-    padding: 8px 16px;
+  .mc-hero-inner {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .mc-free-badge {
+    display: inline-block;
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.25);
+    color: #4ade80;
+    padding: 8px 20px;
     border-radius: 50px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
-    margin-bottom: 20px;
-    letter-spacing: 0.02em;
+    margin-bottom: 24px;
+    letter-spacing: 0.01em;
   }
 
   .mc-headline {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 800;
     line-height: 1.2;
-    margin: 0 0 10px;
-    letter-spacing: -0.02em;
+    margin: 0 0 16px;
+    letter-spacing: -0.025em;
   }
 
   .mc-highlight {
@@ -629,26 +741,109 @@ const styles = `
     background-clip: text;
   }
 
+  .mc-highlight-red {
+    color: #f87171;
+  }
+
   .mc-subheadline {
     font-size: 16px;
     color: rgba(255,255,255,0.6);
-    margin: 0 0 20px;
+    margin: 0 0 28px;
+    line-height: 1.7;
   }
 
-  /* ===== COUNTDOWN ===== */
+  .mc-hero-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px 40px;
+    background: linear-gradient(135deg, #4672ec 0%, #5b4dd6 100%);
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 4px 24px rgba(70, 114, 236, 0.3);
+    letter-spacing: 0.04em;
+    font-family: inherit;
+    margin-bottom: 28px;
+  }
+
+  .mc-hero-cta:active {
+    transform: scale(0.97);
+  }
+
+  /* Value Props */
+  .mc-value-props {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px 20px;
+  }
+
+  .mc-value-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    font-weight: 500;
+  }
+
+  .mc-value-item svg {
+    color: #4ade80;
+    flex-shrink: 0;
+  }
+
+  /* ===== FORM SECTION ===== */
+  .mc-form-wrapper {
+    padding: 0 20px 48px;
+  }
+
+  .mc-form-container {
+    max-width: 480px;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 24px;
+    padding: 32px 24px;
+  }
+
+  .mc-form-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .mc-form-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+
+  .mc-form-subtitle {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    margin: 0;
+  }
+
+  /* Countdown */
   .mc-countdown {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    padding: 20px;
+    padding: 16px;
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 16px;
+    border-radius: 14px;
+    margin-bottom: 20px;
   }
 
   .mc-countdown-label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: rgba(255,255,255,0.5);
     text-transform: uppercase;
@@ -658,22 +853,22 @@ const styles = `
   .mc-countdown-timer {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
 
   .mc-countdown-block {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 56px;
-    padding: 10px 0;
+    min-width: 52px;
+    padding: 8px 0;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
+    border-radius: 10px;
   }
 
   .mc-countdown-value {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     background: linear-gradient(180deg, #fff 30%, rgba(255,255,255,0.6));
@@ -688,54 +883,17 @@ const styles = `
     color: rgba(255,255,255,0.35);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin-top: 4px;
+    margin-top: 3px;
   }
 
   .mc-countdown-sep {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     color: rgba(255,255,255,0.2);
     margin-bottom: 14px;
   }
 
-  /* ===== FORM SECTION ===== */
-  .mc-form-section {
-    width: 100%;
-    margin-bottom: 28px;
-  }
-
-  .mc-form-social {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 18px;
-    font-size: 13px;
-    color: rgba(255,255,255,0.55);
-    padding: 10px 16px;
-    background: rgba(34, 197, 94, 0.06);
-    border: 1px solid rgba(34, 197, 94, 0.12);
-    border-radius: 10px;
-  }
-
-  .mc-form-social strong {
-    color: #4ade80;
-  }
-
-  .mc-live-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #22c55e;
-    animation: pulse-dot 2s ease-in-out infinite;
-    flex-shrink: 0;
-  }
-
-  @keyframes pulse-dot {
-    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
-    50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-  }
-
+  /* Form */
   .mc-form {
     width: 100%;
     display: flex;
@@ -766,6 +924,7 @@ const styles = `
     font-size: 16px;
     transition: all 0.2s;
     box-sizing: border-box;
+    font-family: inherit;
   }
 
   .mc-field input::placeholder {
@@ -806,6 +965,7 @@ const styles = `
     margin-top: 4px;
     box-shadow: 0 4px 20px rgba(70, 114, 236, 0.25);
     letter-spacing: 0.02em;
+    font-family: inherit;
   }
 
   .mc-btn-submit:active {
@@ -840,71 +1000,266 @@ const styles = `
     margin: 0;
   }
 
-  /* ===== PAIN POINTS ===== */
-  .mc-pain-section {
-    width: 100%;
-    padding: 28px 0;
+  /* ===== SECTIONS (shared) ===== */
+  .mc-section {
+    padding: 48px 20px;
     border-top: 1px solid rgba(255,255,255,0.06);
   }
 
-  .mc-pain-subtitle {
+  .mc-section-inner {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .mc-section-title {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 16px;
     text-align: center;
-    font-size: 14px;
-    color: rgba(255,255,255,0.45);
-    margin: 0 0 18px;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
   }
 
-  .mc-pain-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-
-  .mc-pain-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 18px 20px;
-    background: rgba(248, 113, 113, 0.06);
-    border: 1px solid rgba(248, 113, 113, 0.15);
-    border-radius: 14px;
+  .mc-section-text {
     font-size: 15px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.9);
-    text-align: left;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.6);
+    margin: 0 0 24px;
+    text-align: center;
   }
 
-  .mc-pain-icon {
+  .mc-text-center {
+    text-align: center;
+  }
+
+  /* ===== LOSS CALCULATOR ===== */
+  .mc-loss-example {
+    background: rgba(248, 113, 113, 0.04);
+    border: 1px solid rgba(248, 113, 113, 0.15);
+    border-radius: 20px;
+    padding: 24px;
+    margin-top: 8px;
+  }
+
+  .mc-loss-header {
     display: flex;
     align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: rgba(248, 113, 113, 0.12);
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .mc-loss-header svg {
     color: #f87171;
   }
 
-  .mc-pain-cta {
-    text-align: center;
-    font-size: 16px;
+  .mc-loss-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .mc-loss-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mc-loss-label {
+    font-size: 14px;
     color: rgba(255,255,255,0.6);
-    margin: 0;
-    min-height: 20px;
   }
 
-  .mc-pain-cta strong {
-    color: #a78bfa;
+  .mc-loss-value {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
   }
 
-  /* ===== INSTRUCTOR (expanded) ===== */
-  .mc-instructor-wrap {
-    width: 100%;
+  .mc-loss-red {
+    color: #f87171;
+  }
+
+  .mc-loss-total {
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    margin-top: 4px;
+  }
+
+  .mc-loss-red-big {
+    color: #ef4444;
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+  .mc-loss-footer {
+    font-size: 13px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.5);
+    margin: 20px 0 0;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .mc-loss-footer strong {
+    color: #f87171;
+  }
+
+  /* ===== CURRICULUM ===== */
+  .mc-modules {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .mc-module-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .mc-module-number {
+    font-size: 13px;
+    font-weight: 800;
+    color: #818cf8;
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(129, 140, 248, 0.1);
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .mc-module-icon {
+    display: none;
+  }
+
+  .mc-module-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mc-module-content strong {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.95);
+  }
+
+  .mc-module-content span {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.5;
+  }
+
+  /* ===== INSTANT ACCESS ===== */
+  .mc-access-card {
+    text-align: center;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.06), rgba(139, 92, 246, 0.04));
+    border: 1px solid rgba(70, 114, 236, 0.15);
+    border-radius: 24px;
+    padding: 40px 24px;
+  }
+
+  .mc-access-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.2), rgba(139, 92, 246, 0.15));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #818cf8;
+    margin: 0 auto 20px;
+  }
+
+  .mc-access-card .mc-section-title {
+    margin-bottom: 12px;
+  }
+
+  .mc-access-card .mc-section-text {
     margin-bottom: 28px;
   }
 
+  .mc-access-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 32px;
+    background: linear-gradient(135deg, #4672ec 0%, #5b4dd6 100%);
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 4px 20px rgba(70, 114, 236, 0.25);
+    letter-spacing: 0.03em;
+    font-family: inherit;
+  }
+
+  .mc-access-btn:active {
+    transform: scale(0.97);
+  }
+
+  /* ===== TARGET AUDIENCE ===== */
+  .mc-audience-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .mc-audience-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    text-align: left;
+  }
+
+  .mc-audience-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.15), rgba(139, 92, 246, 0.1));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #818cf8;
+    margin-bottom: 4px;
+  }
+
+  .mc-audience-card strong {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.95);
+  }
+
+  .mc-audience-card span {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.5;
+  }
+
+  /* ===== INSTRUCTOR ===== */
   .mc-instructor-card {
     background: linear-gradient(135deg, rgba(70, 114, 236, 0.06), rgba(139, 92, 246, 0.04));
     border: 1px solid rgba(70, 114, 236, 0.15);
@@ -974,7 +1329,7 @@ const styles = `
   }
 
   .mc-instructor-bio {
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1.7;
     color: rgba(255,255,255,0.6);
     margin: 0 0 20px;
@@ -1003,7 +1358,7 @@ const styles = `
   }
 
   .mc-stat-item strong {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 800;
     background: linear-gradient(135deg, #4672ec, #a78bfa);
     -webkit-background-clip: text;
@@ -1018,180 +1373,7 @@ const styles = `
     letter-spacing: 0.04em;
   }
 
-  /* ===== BENEFITS ===== */
-  .mc-benefits {
-    width: 100%;
-    padding: 28px 0;
-    border-top: 1px solid rgba(255,255,255,0.06);
-  }
-
-  .mc-section-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0 0 24px;
-    text-align: center;
-    color: rgba(255,255,255,0.95);
-  }
-
-  .mc-benefit-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .mc-benefit-card {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 20px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 16px;
-    text-align: left;
-    transition: border-color 0.2s;
-  }
-
-  .mc-benefit-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, rgba(70, 114, 236, 0.2), rgba(139, 92, 246, 0.15));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: #818cf8;
-    margin-bottom: 4px;
-  }
-
-  .mc-benefit-card strong {
-    display: block;
-    font-size: 15px;
-    font-weight: 600;
-    color: rgba(255,255,255,0.95);
-  }
-
-  .mc-benefit-card span {
-    font-size: 13px;
-    color: rgba(255,255,255,0.45);
-    line-height: 1.5;
-  }
-
-  /* ===== TESTIMONIALS ===== */
-  .mc-testimonials {
-    width: 100%;
-    padding: 28px 0;
-    border-top: 1px solid rgba(255,255,255,0.06);
-  }
-
-  .mc-testimonial-list {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .mc-testimonial-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 18px;
-    padding: 22px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.2s;
-  }
-
-  .mc-testimonial-quote {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 64px;
-    font-weight: 800;
-    line-height: 1;
-    background: linear-gradient(135deg, rgba(70, 114, 236, 0.15), rgba(139, 92, 246, 0.08));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    pointer-events: none;
-    font-family: Georgia, serif;
-  }
-
-  .mc-testimonial-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-  }
-
-  .mc-testimonial-stars {
-    display: flex;
-    gap: 2px;
-  }
-
-  .mc-testimonial-result {
-    font-size: 11px;
-    font-weight: 700;
-    color: #4ade80;
-    background: rgba(34, 197, 94, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.15);
-    padding: 4px 10px;
-    border-radius: 50px;
-    letter-spacing: 0.02em;
-  }
-
-  .mc-testimonial-text {
-    font-size: 14px;
-    line-height: 1.7;
-    color: rgba(255,255,255,0.7);
-    margin: 0 0 16px;
-    position: relative;
-  }
-
-  .mc-testimonial-author {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-  }
-
-  .mc-testimonial-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #4672ec, #8b5cf6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 700;
-    color: #fff;
-    flex-shrink: 0;
-    letter-spacing: -0.02em;
-  }
-
-  .mc-testimonial-author > div {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .mc-testimonial-author strong {
-    font-size: 14px;
-    font-weight: 600;
-    color: rgba(255,255,255,0.9);
-  }
-
-  .mc-testimonial-author span {
-    font-size: 12px;
-    color: rgba(255,255,255,0.4);
-  }
-
   /* ===== FAQ ===== */
-  .mc-faq {
-    width: 100%;
-    padding: 28px 0 8px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-  }
-
   .mc-faq-list {
     display: flex;
     flex-direction: column;
@@ -1250,6 +1432,56 @@ const styles = `
     color: rgba(255,255,255,0.55);
   }
 
+  /* ===== FINAL CTA ===== */
+  .mc-final-cta {
+    text-align: center;
+    background: linear-gradient(180deg, rgba(70, 114, 236, 0.06) 0%, transparent 100%);
+  }
+
+  .mc-final-icon {
+    color: #818cf8;
+    margin-bottom: 16px;
+  }
+
+  .mc-final-title {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+  }
+
+  .mc-final-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.55);
+    margin: 0 0 28px;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .mc-final-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 40px;
+    background: linear-gradient(135deg, #4672ec 0%, #5b4dd6 100%);
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 4px 24px rgba(70, 114, 236, 0.3);
+    letter-spacing: 0.04em;
+    font-family: inherit;
+  }
+
+  .mc-final-btn:active {
+    transform: scale(0.97);
+  }
+
   /* ===== STICKY CTA (mobile) ===== */
   .mc-sticky-cta {
     position: fixed;
@@ -1287,6 +1519,7 @@ const styles = `
     cursor: pointer;
     box-shadow: 0 4px 20px rgba(70, 114, 236, 0.3);
     letter-spacing: 0.02em;
+    font-family: inherit;
   }
 
   .mc-sticky-btn:active {
@@ -1314,122 +1547,134 @@ const styles = `
     color: rgba(255,255,255,0.3);
   }
 
-  /* ===== TABLET (768px - 1023px) ===== */
+  /* ===== TABLET (768px) ===== */
   @media (min-width: 768px) {
-    .mc-layout {
-      max-width: 560px;
-      padding: 0 24px 48px;
+    .mc-hero {
+      padding: 64px 24px 48px;
     }
 
     .mc-headline {
-      font-size: 36px;
+      font-size: 38px;
     }
 
     .mc-subheadline {
-      font-size: 18px;
+      font-size: 17px;
     }
 
-    .mc-countdown-value {
-      font-size: 32px;
+    .mc-form-container {
+      padding: 36px 32px;
     }
 
-    .mc-benefit-list {
-      gap: 20px;
+    .mc-section {
+      padding: 56px 24px;
     }
 
-    .mc-benefit-item strong {
-      font-size: 15px;
+    .mc-section-title {
+      font-size: 26px;
     }
 
-    .mc-benefit-item span {
-      font-size: 14px;
-    }
-
-    .mc-testimonial-list {
-      display: grid;
+    .mc-audience-grid {
       grid-template-columns: 1fr 1fr;
+    }
+
+    .mc-modules {
       gap: 14px;
     }
 
-    .mc-testimonial-card:last-child {
-      grid-column: 1 / -1;
+    .mc-module-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(129, 140, 248, 0.1);
+      color: #818cf8;
+      flex-shrink: 0;
     }
 
+    .mc-loss-item {
+      gap: 20px;
+    }
+
+    .mc-faq-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
   }
 
   /* ===== DESKTOP (1024px+) ===== */
   @media (min-width: 1024px) {
     .mc-header {
-      padding: 32px 48px;
-      justify-content: center;
+      padding: 24px 48px;
     }
 
     .mc-logo {
       height: 32px;
     }
 
-    /* Grid layout: 2 columns */
-    .mc-layout {
-      display: grid;
-      grid-template-columns: 1fr 400px;
-      grid-template-areas:
-        "hero         form"
-        "pain         pain"
-        "instructor   instructor"
-        "benefits     benefits"
-        "testimonials testimonials"
-        "faq          faq";
-      gap: 0 60px;
-      max-width: 1100px;
-      padding: 0 48px 64px;
-      align-items: start;
+    .mc-hero {
+      padding: 80px 48px 56px;
     }
 
-    .mc-hero-text {
-      grid-area: hero;
-      text-align: center;
-      margin-bottom: 28px;
+    .mc-hero-inner {
+      max-width: 800px;
     }
 
     .mc-headline {
-      font-size: 46px;
-      line-height: 1.15;
+      font-size: 48px;
     }
 
     .mc-subheadline {
       font-size: 18px;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
-    .mc-countdown {
-      align-items: center;
+    .mc-hero-cta:hover {
+      background: linear-gradient(135deg, #3b5fd9 0%, #4a3dc0 100%);
+      box-shadow: 0 8px 28px rgba(70, 114, 236, 0.35);
+      transform: translateY(-1px);
     }
 
-    /* Form card in sidebar */
-    .mc-form-section {
-      grid-area: form;
-      position: sticky;
-      top: 32px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 28px;
-      margin-bottom: 0;
+    .mc-form-wrapper {
+      padding: 0 48px 64px;
     }
 
-    .mc-pain-section {
-      grid-area: pain;
-      padding-top: 40px;
+    .mc-form-container {
+      max-width: 500px;
+      padding: 40px 36px;
     }
 
-    .mc-pain-list {
-      display: grid;
+    .mc-section {
+      padding: 64px 48px;
+    }
+
+    .mc-section-inner {
+      max-width: 900px;
+    }
+
+    .mc-section-title {
+      font-size: 30px;
+    }
+
+    .mc-loss-example {
+      padding: 32px;
+    }
+
+    .mc-audience-grid {
       grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      gap: 16px;
     }
 
-    .mc-instructor-wrap {
-      grid-area: instructor;
-      margin-bottom: 0;
+    .mc-audience-card:hover {
+      border-color: rgba(70, 114, 236, 0.2);
+    }
+
+    .mc-module-card:hover {
+      border-color: rgba(70, 114, 236, 0.2);
     }
 
     .mc-instructor-card {
@@ -1441,61 +1686,22 @@ const styles = `
       height: 72px;
     }
 
-    .mc-benefits {
-      grid-area: benefits;
+    .mc-final-title {
+      font-size: 32px;
     }
 
-    .mc-benefit-list {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 16px;
+    .mc-final-btn:hover {
+      background: linear-gradient(135deg, #3b5fd9 0%, #4a3dc0 100%);
+      box-shadow: 0 8px 28px rgba(70, 114, 236, 0.35);
+      transform: translateY(-1px);
     }
 
-    .mc-benefit-card:hover {
-      border-color: rgba(70, 114, 236, 0.2);
+    .mc-access-btn:hover {
+      background: linear-gradient(135deg, #3b5fd9 0%, #4a3dc0 100%);
+      box-shadow: 0 8px 24px rgba(70, 114, 236, 0.3);
+      transform: translateY(-1px);
     }
 
-    .mc-testimonials {
-      grid-area: testimonials;
-      padding-top: 40px;
-    }
-
-    .mc-testimonial-list {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 16px;
-    }
-
-    .mc-testimonial-card:last-child {
-      grid-column: auto;
-    }
-
-    .mc-faq {
-      grid-area: faq;
-    }
-
-    .mc-faq-list {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .mc-section-title {
-      text-align: center;
-      font-size: 20px;
-    }
-
-    /* Hide sticky CTA on desktop */
-    .mc-sticky-cta {
-      display: none;
-    }
-
-    .mc-footer {
-      padding: 32px 48px;
-      padding-bottom: 32px;
-    }
-
-    /* Hover states (desktop) */
     .mc-btn-submit:hover:not(:disabled) {
       background: linear-gradient(135deg, #3b5fd9 0%, #3451c4 100%);
       box-shadow: 0 8px 24px rgba(70, 114, 236, 0.3);
@@ -1509,26 +1715,27 @@ const styles = `
       border-color: rgba(255,255,255,0.2);
     }
 
-    .mc-testimonial-card:hover {
-      border-color: rgba(70, 114, 236, 0.2);
-    }
-
     .mc-faq-item:hover .mc-faq-arrow {
       color: rgba(255,255,255,0.5);
     }
 
+    .mc-sticky-cta {
+      display: none;
+    }
+
+    .mc-footer {
+      padding: 32px 48px;
+    }
   }
 
   /* ===== LARGE DESKTOP (1280px+) ===== */
   @media (min-width: 1280px) {
-    .mc-layout {
-      grid-template-columns: 1fr 440px;
-      gap: 0 80px;
-      max-width: 1200px;
+    .mc-headline {
+      font-size: 54px;
     }
 
-    .mc-headline {
-      font-size: 52px;
+    .mc-section-inner {
+      max-width: 960px;
     }
   }
 `
