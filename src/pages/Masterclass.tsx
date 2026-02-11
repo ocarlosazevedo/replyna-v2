@@ -582,19 +582,16 @@ export default function Masterclass() {
 
               {/* Central Replyna icon */}
               <div className="mc-orbit-center">
-                <div style={{ width: 44, height: 44, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img
-                    src="/replyna-logo.webp"
-                    alt="Replyna"
-                    style={{
-                      height: 44,
-                      width: 'auto',
-                      maxWidth: 'none',
-                      objectFit: 'contain',
-                      filter: 'brightness(0) invert(1)',
-                    }}
-                  />
-                </div>
+                <img
+                  src="/Logo Replyna.png"
+                  alt="Replyna"
+                  style={{
+                    width: 38,
+                    height: 38,
+                    objectFit: 'contain',
+                    filter: 'brightness(0) invert(1)',
+                  }}
+                />
               </div>
 
               {/* Platform items */}
