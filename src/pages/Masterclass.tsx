@@ -211,6 +211,23 @@ export default function Masterclass() {
     return () => observer.disconnect()
   }, [])
 
+  // Scroll fade-in animation
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('mc-visible')
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+    )
+    document.querySelectorAll('.mc-fade-in').forEach(el => observer.observe(el))
+    return () => observer.disconnect()
+  }, [])
+
   const formatWhatsApp = (value: string) => {
     const numbers = value.replace(/\D/g, '')
     if (numbers.length <= 2) return numbers
@@ -461,7 +478,7 @@ export default function Masterclass() {
       </section>
 
       {/* ===== LOSS CALCULATOR ===== */}
-      <section className="mc-section mc-losses">
+      <section className="mc-section mc-losses mc-fade-in">
         <div className="mc-section-inner">
           <h2 className="mc-section-title">
             Você já fez os cálculos de quanto{' '}
@@ -507,7 +524,7 @@ export default function Masterclass() {
       </section>
 
       {/* ===== CURRICULUM ===== */}
-      <section className="mc-section mc-curriculum">
+      <section className="mc-section mc-curriculum mc-fade-in">
         <div className="mc-section-inner">
           <h2 className="mc-section-title">
             Veja todo conteúdo da masterclass que vai{' '}
@@ -531,7 +548,7 @@ export default function Masterclass() {
       </section>
 
       {/* ===== INSTANT ACCESS ===== */}
-      <section className="mc-section mc-access">
+      <section className="mc-section mc-access mc-fade-in">
         <div className="mc-section-inner">
           <div className="mc-access-card">
             <div className="mc-access-icon">
@@ -552,7 +569,7 @@ export default function Masterclass() {
       </section>
 
       {/* ===== TARGET AUDIENCE ===== */}
-      <section className="mc-section mc-audience">
+      <section className="mc-section mc-audience mc-fade-in">
         <div className="mc-section-inner">
           <h2 className="mc-section-title">Pra quem é essa aula?</h2>
           <p className="mc-section-text mc-text-center">
@@ -573,7 +590,7 @@ export default function Masterclass() {
       </section>
 
       {/* ===== INSTRUCTOR ===== */}
-      <section className="mc-section mc-instructor">
+      <section className="mc-section mc-instructor mc-fade-in">
         <div className="mc-section-inner">
           <h2 className="mc-section-title">Quem será o seu mentor nessa aula?</h2>
 
@@ -614,7 +631,7 @@ export default function Masterclass() {
       </section>
 
       {/* ===== FAQ ===== */}
-      <section className="mc-section mc-faq">
+      <section className="mc-section mc-faq mc-fade-in">
         <div className="mc-section-inner">
           <h2 className="mc-section-title">Perguntas frequentes</h2>
           <div className="mc-faq-list">
@@ -641,7 +658,7 @@ export default function Masterclass() {
       </section>
 
       {/* ===== FINAL CTA ===== */}
-      <section className="mc-section mc-final-cta">
+      <section className="mc-section mc-final-cta mc-fade-in">
         <div className="mc-section-inner">
           <Award size={40} className="mc-final-icon" />
           <h2 className="mc-final-title">
@@ -687,6 +704,19 @@ const styles = `
     color: #fff;
     font-family: "Inter", -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ===== SCROLL FADE-IN ===== */
+  .mc-fade-in {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .mc-fade-in.mc-visible {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   /* ===== HEADER ===== */
@@ -694,7 +724,10 @@ const styles = `
     padding: 20px;
     display: flex;
     justify-content: center;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent) 1;
+    position: relative;
+    z-index: 10;
   }
 
   .mc-logo {
@@ -707,11 +740,40 @@ const styles = `
   .mc-hero {
     padding: 48px 20px 48px;
     text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mc-hero::before {
+    content: '';
+    position: absolute;
+    top: -120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(70, 114, 236, 0.12) 0%, rgba(139, 92, 246, 0.06) 40%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .mc-hero::after {
+    content: '';
+    position: absolute;
+    top: 60px;
+    right: -200px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
   }
 
   .mc-hero-inner {
     max-width: 720px;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
   }
 
   .mc-hero-text {
@@ -726,9 +788,23 @@ const styles = `
     margin: 0 auto;
   }
 
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
   .mc-free-badge {
     display: inline-block;
-    background: rgba(74, 222, 128, 0.1);
+    background: linear-gradient(
+      110deg,
+      rgba(74, 222, 128, 0.1) 0%,
+      rgba(74, 222, 128, 0.1) 40%,
+      rgba(74, 222, 128, 0.25) 50%,
+      rgba(74, 222, 128, 0.1) 60%,
+      rgba(74, 222, 128, 0.1) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
     border: 1px solid rgba(74, 222, 128, 0.25);
     color: #4ade80;
     padding: 8px 20px;
@@ -747,8 +823,15 @@ const styles = `
     letter-spacing: -0.025em;
   }
 
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
   .mc-highlight {
-    background: linear-gradient(135deg, #4672ec, #8b5cf6);
+    background: linear-gradient(135deg, #4672ec, #8b5cf6, #6366f1, #4672ec);
+    background-size: 300% 300%;
+    animation: gradientShift 4s ease infinite;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -765,6 +848,11 @@ const styles = `
     line-height: 1.7;
   }
 
+  @keyframes ctaPulse {
+    0%, 100% { box-shadow: 0 4px 24px rgba(70, 114, 236, 0.3); }
+    50% { box-shadow: 0 4px 40px rgba(70, 114, 236, 0.5), 0 0 60px rgba(139, 92, 246, 0.15); }
+  }
+
   .mc-hero-cta {
     display: inline-flex;
     align-items: center;
@@ -779,14 +867,16 @@ const styles = `
     font-weight: 700;
     cursor: pointer;
     transition: all 0.25s;
-    box-shadow: 0 4px 24px rgba(70, 114, 236, 0.3);
+    animation: ctaPulse 2.5s ease-in-out infinite;
     letter-spacing: 0.04em;
     font-family: inherit;
     margin-bottom: 28px;
+    position: relative;
   }
 
   .mc-hero-cta:active {
     transform: scale(0.97);
+    animation: none;
   }
 
   /* Value Props */
@@ -816,9 +906,13 @@ const styles = `
     max-width: 480px;
     margin: 0 auto;
     background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(70, 114, 236, 0.2);
     border-radius: 24px;
     padding: 32px 24px;
+    position: relative;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 40px rgba(70, 114, 236, 0.08), 0 0 80px rgba(139, 92, 246, 0.04);
   }
 
   .mc-form-header {
@@ -851,12 +945,30 @@ const styles = `
     margin-bottom: 20px;
   }
 
+  @keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
   .mc-countdown-label {
     font-size: 11px;
     font-weight: 600;
     color: rgba(255,255,255,0.5);
     text-transform: uppercase;
     letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mc-countdown-label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+    animation: livePulse 1.5s ease-in-out infinite;
   }
 
   .mc-countdown-timer {
@@ -972,7 +1084,7 @@ const styles = `
     cursor: pointer;
     transition: all 0.25s;
     margin-top: 4px;
-    box-shadow: 0 4px 20px rgba(70, 114, 236, 0.25);
+    animation: ctaPulse 2.5s ease-in-out infinite;
     letter-spacing: 0.02em;
     font-family: inherit;
   }
@@ -1012,7 +1124,9 @@ const styles = `
   /* ===== SECTIONS (shared) ===== */
   .mc-section {
     padding: 48px 20px;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    border-top: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent) 1;
+    position: relative;
   }
 
   .mc-section-inner {
@@ -1048,6 +1162,7 @@ const styles = `
     border-radius: 20px;
     padding: 24px;
     margin-top: 8px;
+    box-shadow: 0 8px 40px rgba(248, 113, 113, 0.06), inset 0 1px 0 rgba(248, 113, 113, 0.08);
   }
 
   .mc-loss-header {
@@ -1104,6 +1219,7 @@ const styles = `
     color: #ef4444;
     font-size: 20px;
     font-weight: 800;
+    text-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
   }
 
   .mc-loss-footer {
@@ -1132,10 +1248,12 @@ const styles = `
     align-items: flex-start;
     gap: 16px;
     padding: 20px;
-    background: rgba(255,255,255,0.03);
+    background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(70, 114, 236, 0.02) 100%);
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 16px;
-    transition: border-color 0.2s;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
 
   .mc-module-number {
@@ -1238,10 +1356,13 @@ const styles = `
     flex-direction: column;
     gap: 8px;
     padding: 20px;
-    background: rgba(255,255,255,0.03);
+    background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(70, 114, 236, 0.02) 100%);
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 16px;
     text-align: left;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
 
   .mc-audience-icon {
@@ -1362,8 +1483,9 @@ const styles = `
     gap: 4px;
     padding: 14px 8px;
     background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid rgba(70, 114, 236, 0.1);
     border-radius: 12px;
+    transition: all 0.3s ease;
   }
 
   .mc-stat-item strong {
@@ -1444,7 +1566,20 @@ const styles = `
   /* ===== FINAL CTA ===== */
   .mc-final-cta {
     text-align: center;
-    background: linear-gradient(180deg, rgba(70, 114, 236, 0.06) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(70, 114, 236, 0.08) 0%, rgba(139, 92, 246, 0.03) 50%, transparent 100%);
+    overflow: hidden;
+  }
+
+  .mc-final-cta::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 300px;
+    background: radial-gradient(ellipse, rgba(70, 114, 236, 0.1) 0%, transparent 70%);
+    pointer-events: none;
   }
 
   .mc-final-icon {
@@ -1482,9 +1617,11 @@ const styles = `
     font-weight: 700;
     cursor: pointer;
     transition: all 0.25s;
-    box-shadow: 0 4px 24px rgba(70, 114, 236, 0.3);
+    animation: ctaPulse 2.5s ease-in-out infinite;
     letter-spacing: 0.04em;
     font-family: inherit;
+    position: relative;
+    z-index: 1;
   }
 
   .mc-final-btn:active {
@@ -1539,7 +1676,8 @@ const styles = `
   .mc-footer {
     padding: 24px 20px;
     padding-bottom: calc(24px + 60px);
-    border-top: 1px solid rgba(255,255,255,0.06);
+    border-top: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent) 1;
     display: flex;
     flex-direction: column;
     align-items: center;
