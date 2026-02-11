@@ -31,6 +31,7 @@ import {
   CreditCard,
   Calendar,
   PlayCircle,
+  TrendingUp,
   X
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
