@@ -52,7 +52,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify({
         email: cleanEmail,
         attributes: {
-          FIRSTNAME: cleanName
+          FIRSTNAME: cleanName,
+          LASTNAME: '',
+          NOME: cleanName
         },
         updateEnabled: true
       })
@@ -78,7 +80,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           },
           body: JSON.stringify({
             attributes: {
-              FIRSTNAME: cleanName
+              FIRSTNAME: cleanName,
+              LASTNAME: '',
+              NOME: cleanName
             }
           })
         })
