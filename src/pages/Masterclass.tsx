@@ -16,11 +16,34 @@ import {
   MessageSquare,
   FileText,
   Settings,
-  Award
+  Award,
+  Star,
+  Users,
+  Clock,
+  CreditCard,
+  Calendar,
+  PlayCircle
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
-// ==================== DATA ====================
+// ==================== CONSTANTS ====================
+
+const VIDEO_URL = '' // Placeholder — substituir pela URL real do video
+
+const heroWords = ['chargebacks', 'disputas', 'bloqueios', 'prejuízos']
+
+const statsData = [
+  { value: '+500', label: 'Alunos', icon: <Users size={22} /> },
+  { value: '47min', label: 'Conteúdo completo', icon: <Clock size={22} /> },
+  { value: '100%', label: 'Gratuito', icon: <Zap size={22} /> }
+]
+
+const trustBadges = [
+  { icon: <Shield size={16} />, label: 'Método Validado' },
+  { icon: <Lock size={16} />, label: 'Acesso Vitalício' },
+  { icon: <CreditCard size={16} />, label: 'Sem Cartão' },
+  { icon: <Calendar size={16} />, label: 'Conteúdo 2026' }
+]
 
 const valueProps = [
   '100% gratuito',
@@ -33,38 +56,38 @@ const curriculumModules = [
   {
     number: '01',
     title: 'O que é Chargeback e por que ele acontece',
-    description: 'Entenda de vez o mecanismo por trás das disputas e por que sua loja é alvo.',
-    icon: <BookOpen size={20} />
+    description: 'Entenda de vez o mecanismo por trás das disputas e por que sua loja é alvo. Você vai aprender a identificar os principais gatilhos que levam clientes a abrir chargebacks.',
+    icon: <BookOpen size={24} />
   },
   {
     number: '02',
     title: 'Os erros que estão matando sua conta na Payments',
-    description: 'Os 5 erros mais comuns que aumentam sua taxa de chargeback sem você perceber.',
-    icon: <AlertCircle size={20} />
+    description: 'Os 5 erros mais comuns que aumentam sua taxa de chargeback sem você perceber. Descubra o que está sabotando sua operação e como corrigir imediatamente.',
+    icon: <AlertCircle size={24} />
   },
   {
     number: '03',
     title: 'O Método Anti-Chargeback completo',
-    description: 'Passo a passo do método validado para reduzir até 90% dos chargebacks.',
-    icon: <Shield size={20} />
+    description: 'Passo a passo do método validado para reduzir até 90% dos chargebacks. A estratégia exata usada por operações que faturam $500K+/mês.',
+    icon: <Shield size={24} />
   },
   {
     number: '04',
     title: 'Configurações essenciais da Shopify Payments',
-    description: 'O que configurar hoje para proteger sua conta e evitar bloqueios.',
-    icon: <Settings size={20} />
+    description: 'O que configurar hoje para proteger sua conta e evitar bloqueios. Checklist completo das configurações que 90% dos lojistas ignoram.',
+    icon: <Settings size={24} />
   },
   {
     number: '05',
     title: 'Como responder disputas e vencer',
-    description: 'Templates e estratégias para montar evidências e reverter chargebacks.',
-    icon: <FileText size={20} />
+    description: 'Templates e estratégias para montar evidências e reverter chargebacks. Aumente sua taxa de vitória em disputas com documentação profissional.',
+    icon: <FileText size={24} />
   },
   {
     number: '06',
     title: 'Automação e prevenção avançada',
-    description: 'Como automatizar a proteção e manter sua taxa abaixo de 1% no piloto automático.',
-    icon: <Zap size={20} />
+    description: 'Como automatizar a proteção e manter sua taxa abaixo de 1% no piloto automático. Ferramentas e workflows para escalar sem medo.',
+    icon: <Zap size={24} />
   }
 ]
 
@@ -88,6 +111,33 @@ const audienceItems = [
     icon: <Target size={22} />,
     title: 'Quem quer escalar com segurança',
     description: 'Que quer faturar mais sem o medo constante de perder a estrutura de pagamentos.'
+  }
+]
+
+const testimonials = [
+  {
+    name: 'Rafael M.',
+    role: 'Dropshipping — $120K/mês',
+    text: 'Minha taxa de chargeback caiu de 3.2% para 0.4% em menos de 30 dias. Salvou minha conta na Shopify Payments.',
+    stars: 5
+  },
+  {
+    name: 'Juliana S.',
+    role: 'E-commerce próprio',
+    text: 'Conteúdo direto ao ponto. Implementei as configurações do módulo 4 e já vi resultado na primeira semana.',
+    stars: 5
+  },
+  {
+    name: 'Pedro L.',
+    role: 'Dropshipping Global',
+    text: 'Já tinha perdido 2 contas antes de assistir essa masterclass. Agora minha operação roda há 8 meses sem problemas.',
+    stars: 5
+  },
+  {
+    name: 'Mariana C.',
+    role: 'Loja Shopify — Moda',
+    text: 'O método de resposta a disputas é ouro. Comecei a vencer 70% dos chargebacks que antes eram perda total.',
+    stars: 5
   }
 ]
 
@@ -160,6 +210,8 @@ export default function Masterclass() {
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [showSticky, setShowSticky] = useState(false)
+  const [heroWordIndex, setHeroWordIndex] = useState(0)
+  const [activeModule, setActiveModule] = useState(0)
   const formRef = useRef<HTMLDivElement>(null)
   const countdown = useCountdown()
 
@@ -198,6 +250,14 @@ export default function Masterclass() {
 
   useEffect(() => {
     window.scrollTo(0, 0)
+  }, [])
+
+  // Rotating hero words
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroWordIndex(prev => (prev + 1) % heroWords.length)
+    }, 2500)
+    return () => clearInterval(interval)
   }, [])
 
   // Sticky CTA: show when form scrolls out of view
@@ -326,36 +386,56 @@ export default function Masterclass() {
     formRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  const currentModule = curriculumModules[activeModule]
+
   // ==================== RENDER ====================
   return (
     <div className="mc-page">
       <style>{styles}</style>
 
-      {/* Header */}
+      {/* ===== HEADER ===== */}
       <header className="mc-header">
-        <img src="/replyna-logo.webp" alt="Replyna" className="mc-logo" />
+        <div className="mc-header-inner">
+          <img src="/replyna-logo.webp" alt="Replyna" className="mc-logo" />
+          <nav className="mc-nav">
+            <a href="#conteudo" className="mc-nav-link">Conteúdo</a>
+            <a href="#instrutor" className="mc-nav-link">Instrutor</a>
+            <a href="#faq" className="mc-nav-link">FAQ</a>
+            <button onClick={scrollToForm} className="mc-nav-cta">Acesso Gratuito</button>
+          </nav>
+        </div>
       </header>
 
-      {/* ===== HERO + FORM (2-col on desktop) ===== */}
+      {/* ===== HERO + FORM ===== */}
       <section className="mc-hero">
         <div className="mc-hero-inner">
           <div className="mc-hero-text">
-            <span className="mc-free-badge">100% gratuito — sem pegadinhas!</span>
+            {/* Social proof badge */}
+            <div className="mc-social-badge">
+              <div className="mc-social-stars">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} size={12} fill="#facc15" color="#facc15" />
+                ))}
+              </div>
+              <span>+500 alunos já assistiram</span>
+            </div>
 
             <h1 className="mc-headline">
-              Método para reduzir até{' '}
-              <span className="mc-highlight">90% do chargeback</span>{' '}
-              e proteger sua conta na Shopify Payments
+              Pare de perder dinheiro com{' '}
+              <span className="mc-rotating-word" key={heroWordIndex}>
+                {heroWords[heroWordIndex]}
+              </span>
+              {' '}e proteja sua conta na Shopify Payments
             </h1>
 
             <p className="mc-subheadline">
-              Masterclass completa com metodologia validada para reduzir o chargeback,
-              evitar prejuízos e manter sua estrutura da Shopify Payments ativa por meses e meses.
+              Masterclass gratuita de 47 minutos com o método validado para reduzir até 90% dos
+              chargebacks e evitar o bloqueio da sua conta.
             </p>
 
             <button onClick={scrollToForm} className="mc-hero-cta">
               <Play size={20} fill="#fff" />
-              QUERO ACESSO
+              QUERO ACESSO GRATUITO
             </button>
 
             {/* Value props */}
@@ -456,7 +536,7 @@ export default function Masterclass() {
                   ) : (
                     <>
                       <Play size={20} fill="#fff" />
-                      QUERO ACESSO
+                      QUERO ACESSO GRATUITO
                     </>
                   )}
                 </button>
@@ -476,6 +556,64 @@ export default function Masterclass() {
           </div>
         </div>
       </section>
+
+      {/* ===== STATS + TRUST BADGES ===== */}
+      <section className="mc-stats-section mc-fade-in">
+        <div className="mc-stats-inner">
+          <div className="mc-stats-grid">
+            {statsData.map((stat, i) => (
+              <div key={i} className="mc-stat-card">
+                <div className="mc-stat-icon">{stat.icon}</div>
+                <span className="mc-stat-value">{stat.value}</span>
+                <span className="mc-stat-label">{stat.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mc-trust-row">
+            {trustBadges.map((badge, i) => (
+              <div key={i} className="mc-trust-badge">
+                {badge.icon}
+                <span>{badge.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== VIDEO EMBED ===== */}
+      {VIDEO_URL && (
+        <section className="mc-section mc-video-section mc-fade-in">
+          <div className="mc-section-inner">
+            <h2 className="mc-section-title">
+              Veja um trecho da <span className="mc-highlight">masterclass</span>
+            </h2>
+            <div className="mc-video-wrap">
+              <iframe
+                src={VIDEO_URL}
+                title="Trecho da Masterclass"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Video placeholder when no URL */}
+      {!VIDEO_URL && (
+        <section className="mc-section mc-video-section mc-fade-in">
+          <div className="mc-section-inner">
+            <h2 className="mc-section-title">
+              Veja um trecho da <span className="mc-highlight">masterclass</span>
+            </h2>
+            <div className="mc-video-placeholder" onClick={scrollToForm}>
+              <PlayCircle size={64} />
+              <span>Cadastre-se para assistir a masterclass completa</span>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ===== LOSS CALCULATOR ===== */}
       <section className="mc-section mc-losses mc-fade-in">
@@ -523,26 +661,40 @@ export default function Masterclass() {
         </div>
       </section>
 
-      {/* ===== CURRICULUM ===== */}
-      <section className="mc-section mc-curriculum mc-fade-in">
+      {/* ===== CURRICULUM (TABS) ===== */}
+      <section id="conteudo" className="mc-section mc-curriculum mc-fade-in">
         <div className="mc-section-inner">
           <h2 className="mc-section-title">
             Veja todo conteúdo da masterclass que vai{' '}
             <span className="mc-highlight">mudar o destino</span>{' '}
-            da sua operação (ainda hoje)
+            da sua operação
           </h2>
+          <p className="mc-section-text">
+            São 6 módulos práticos em 47 minutos de puro conteúdo aplicável.
+          </p>
 
-          <div className="mc-modules">
+          {/* Tab bar */}
+          <div className="mc-tabs-bar">
             {curriculumModules.map((mod, i) => (
-              <div key={i} className="mc-module-card">
-                <div className="mc-module-number">{mod.number}</div>
-                <div className="mc-module-icon">{mod.icon}</div>
-                <div className="mc-module-content">
-                  <strong>{mod.title}</strong>
-                  <span>{mod.description}</span>
-                </div>
-              </div>
+              <button
+                key={i}
+                className={`mc-tab ${activeModule === i ? 'mc-tab-active' : ''}`}
+                onClick={() => setActiveModule(i)}
+              >
+                <span className="mc-tab-num">{mod.number}</span>
+                <span className="mc-tab-title">{mod.title.split(' ').slice(0, 3).join(' ')}</span>
+              </button>
             ))}
+          </div>
+
+          {/* Tab content */}
+          <div className="mc-tab-content">
+            <div className="mc-tab-icon-wrap">{currentModule.icon}</div>
+            <div className="mc-tab-detail">
+              <span className="mc-tab-module-num">Módulo {currentModule.number}</span>
+              <h3 className="mc-tab-module-title">{currentModule.title}</h3>
+              <p className="mc-tab-module-desc">{currentModule.description}</p>
+            </div>
           </div>
         </div>
       </section>
@@ -590,18 +742,21 @@ export default function Masterclass() {
       </section>
 
       {/* ===== INSTRUCTOR ===== */}
-      <section className="mc-section mc-instructor mc-fade-in">
+      <section id="instrutor" className="mc-section mc-instructor mc-fade-in">
         <div className="mc-section-inner">
           <h2 className="mc-section-title">Quem será o seu mentor nessa aula?</h2>
 
           <div className="mc-instructor-card">
-            <div className="mc-instructor-header">
+            <div className="mc-instructor-top">
               <div className="mc-instructor-img-wrap">
                 <img src="/influencers/carlos-azevedo.jpg" alt="Carlos Azevedo" />
               </div>
-              <div>
+              <div className="mc-instructor-info">
                 <strong>Carlos Azevedo</strong>
-                <span>Empresário & Especialista em E-commerce Global</span>
+                <span className="mc-instructor-role">Empresário & Especialista em E-commerce Global</span>
+                <p className="mc-instructor-quote">
+                  "Minha missão é mostrar que é possível escalar sem medo de perder tudo da noite pro dia."
+                </p>
               </div>
             </div>
 
@@ -613,15 +768,15 @@ export default function Masterclass() {
             </p>
 
             <div className="mc-instructor-stats">
-              <div className="mc-stat-item">
+              <div className="mc-istat-item">
                 <strong>$500K+</strong>
                 <span>Faturamento/mês</span>
               </div>
-              <div className="mc-stat-item">
+              <div className="mc-istat-item">
                 <strong>6+ anos</strong>
                 <span>No mercado</span>
               </div>
-              <div className="mc-stat-item">
+              <div className="mc-istat-item">
                 <strong>40%</strong>
                 <span>Margem</span>
               </div>
@@ -630,8 +785,37 @@ export default function Masterclass() {
         </div>
       </section>
 
+      {/* ===== SOCIAL PROOF / TESTIMONIALS ===== */}
+      <section className="mc-section mc-testimonials mc-fade-in">
+        <div className="mc-section-inner">
+          <h2 className="mc-section-title">
+            O que os alunos <span className="mc-highlight">dizem</span>
+          </h2>
+          <p className="mc-section-text">
+            Resultados reais de quem já aplicou o método da masterclass.
+          </p>
+
+          <div className="mc-testimonials-grid">
+            {testimonials.map((t, i) => (
+              <div key={i} className="mc-testimonial-card">
+                <div className="mc-testimonial-stars">
+                  {[...Array(t.stars)].map((_, j) => (
+                    <Star key={j} size={14} fill="#facc15" color="#facc15" />
+                  ))}
+                </div>
+                <p className="mc-testimonial-text">"{t.text}"</p>
+                <div className="mc-testimonial-author">
+                  <strong>{t.name}</strong>
+                  <span>{t.role}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ===== FAQ ===== */}
-      <section className="mc-section mc-faq mc-fade-in">
+      <section id="faq" className="mc-section mc-faq mc-fade-in">
         <div className="mc-section-inner">
           <h2 className="mc-section-title">Perguntas frequentes</h2>
           <div className="mc-faq-list">
@@ -659,14 +843,23 @@ export default function Masterclass() {
 
       {/* ===== FINAL CTA ===== */}
       <section className="mc-section mc-final-cta mc-fade-in">
-        <div className="mc-section-inner">
-          <Award size={40} className="mc-final-icon" />
+        <div className="mc-section-inner mc-final-inner">
+          {/* Floating icons */}
+          <div className="mc-float-icons">
+            <PlayCircle size={28} className="mc-float-icon mc-fi-1" />
+            <Shield size={24} className="mc-float-icon mc-fi-2" />
+            <Zap size={26} className="mc-float-icon mc-fi-3" />
+            <Award size={22} className="mc-float-icon mc-fi-4" />
+          </div>
+
+          <Award size={44} className="mc-final-icon" />
           <h2 className="mc-final-title">
             Não deixe o chargeback destruir sua operação
           </h2>
           <p className="mc-final-text">
             Assista a masterclass gratuita e aprenda o método que já protegeu
-            centenas de operações na Shopify Payments.
+            centenas de operações na Shopify Payments. Acesso gratuito expira em{' '}
+            <strong>{String(countdown.hours).padStart(2, '0')}h {String(countdown.minutes).padStart(2, '0')}m</strong>.
           </p>
           <button onClick={scrollToForm} className="mc-final-btn">
             <Play size={20} fill="#fff" />
@@ -679,14 +872,31 @@ export default function Masterclass() {
       <div className={`mc-sticky-cta ${showSticky ? 'mc-sticky-visible' : ''}`}>
         <button onClick={scrollToForm} className="mc-sticky-btn">
           <Play size={16} fill="#fff" />
-          QUERO ACESSO
+          QUERO ACESSO GRATUITO
         </button>
       </div>
 
-      {/* Footer */}
+      {/* ===== FOOTER ===== */}
       <footer className="mc-footer">
-        <img src="/replyna-logo.webp" alt="Replyna" />
-        <span>&copy; {new Date().getFullYear()} Replyna</span>
+        <div className="mc-footer-inner">
+          <div className="mc-footer-col mc-footer-brand">
+            <img src="/replyna-logo.webp" alt="Replyna" />
+            <p>Proteja sua operação na Shopify Payments com o método anti-chargeback mais completo do mercado.</p>
+          </div>
+          <div className="mc-footer-col">
+            <strong>Masterclass</strong>
+            <a href="#conteudo">Conteúdo</a>
+            <a href="#instrutor">Instrutor</a>
+            <a href="#faq">Perguntas frequentes</a>
+          </div>
+          <div className="mc-footer-col">
+            <strong>Contato</strong>
+            <a href="mailto:support@replyna.com">support@replyna.com</a>
+          </div>
+        </div>
+        <div className="mc-footer-bottom">
+          <span>&copy; {new Date().getFullYear()} Replyna. Todos os direitos reservados.</span>
+        </div>
       </footer>
     </div>
   )
@@ -721,19 +931,64 @@ const styles = `
 
   /* ===== HEADER ===== */
   .mc-header {
-    padding: 20px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(5, 5, 8, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .mc-header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
     display: flex;
-    justify-content: center;
-    border-bottom: 1px solid transparent;
-    border-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent) 1;
-    position: relative;
-    z-index: 10;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .mc-logo {
-    height: 28px;
+    height: 26px;
     width: auto;
     opacity: 0.9;
+  }
+
+  .mc-nav {
+    display: none;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .mc-nav-link {
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .mc-nav-link:hover {
+    color: #fff;
+  }
+
+  .mc-nav-cta {
+    padding: 10px 22px;
+    background: linear-gradient(135deg, #4672ec 0%, #5b4dd6 100%);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .mc-nav-cta:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 
   /* ===== HERO ===== */
@@ -788,31 +1043,45 @@ const styles = `
     margin: 0 auto;
   }
 
-  @keyframes shimmer {
-    0% { background-position: -200% center; }
-    100% { background-position: 200% center; }
+  /* Social proof badge */
+  .mc-social-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(250, 204, 21, 0.08);
+    border: 1px solid rgba(250, 204, 21, 0.2);
+    padding: 8px 18px;
+    border-radius: 50px;
+    margin-bottom: 24px;
   }
 
-  .mc-free-badge {
-    display: inline-block;
-    background: linear-gradient(
-      110deg,
-      rgba(74, 222, 128, 0.1) 0%,
-      rgba(74, 222, 128, 0.1) 40%,
-      rgba(74, 222, 128, 0.25) 50%,
-      rgba(74, 222, 128, 0.1) 60%,
-      rgba(74, 222, 128, 0.1) 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 3s ease-in-out infinite;
-    border: 1px solid rgba(74, 222, 128, 0.25);
-    color: #4ade80;
-    padding: 8px 20px;
-    border-radius: 50px;
-    font-size: 14px;
+  .mc-social-stars {
+    display: flex;
+    gap: 2px;
+  }
+
+  .mc-social-badge span {
+    font-size: 13px;
     font-weight: 600;
-    margin-bottom: 24px;
-    letter-spacing: 0.01em;
+    color: rgba(255,255,255,0.8);
+  }
+
+  /* Rotating word animation */
+  @keyframes wordFadeIn {
+    0% { opacity: 0; transform: translateY(8px); }
+    15% { opacity: 1; transform: translateY(0); }
+    85% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-8px); }
+  }
+
+  .mc-rotating-word {
+    display: inline-block;
+    background: linear-gradient(135deg, #f87171, #ef4444, #dc2626);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: wordFadeIn 2.5s ease-in-out;
+    font-weight: 800;
   }
 
   .mc-headline {
@@ -885,6 +1154,7 @@ const styles = `
     flex-wrap: wrap;
     justify-content: center;
     gap: 12px 20px;
+    margin-bottom: 32px;
   }
 
   .mc-value-item {
@@ -1121,11 +1391,151 @@ const styles = `
     margin: 0;
   }
 
+  /* ===== STATS + TRUST BADGES ===== */
+  .mc-stats-section {
+    padding: 48px 20px;
+    background: #0a0a14;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .mc-stats-inner {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .mc-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .mc-stat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    text-align: center;
+  }
+
+  .mc-stat-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.15), rgba(139, 92, 246, 0.1));
+    color: #818cf8;
+  }
+
+  .mc-stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff, rgba(255,255,255,0.8));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .mc-stat-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .mc-trust-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .mc-trust-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 50px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    font-weight: 500;
+  }
+
+  .mc-trust-badge svg {
+    color: #4ade80;
+    flex-shrink: 0;
+  }
+
+  /* ===== VIDEO SECTION ===== */
+  .mc-video-section .mc-section-inner {
+    max-width: 800px;
+  }
+
+  .mc-video-wrap {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%;
+    border-radius: 20px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(70, 114, 236, 0.2);
+    box-shadow: 0 8px 40px rgba(70, 114, 236, 0.08);
+  }
+
+  .mc-video-wrap iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .mc-video-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 64px 24px;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.06), rgba(139, 92, 246, 0.04));
+    border: 1px solid rgba(70, 114, 236, 0.2);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 8px 40px rgba(70, 114, 236, 0.08);
+  }
+
+  .mc-video-placeholder:hover {
+    border-color: rgba(70, 114, 236, 0.35);
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.1), rgba(139, 92, 246, 0.06));
+  }
+
+  .mc-video-placeholder svg {
+    color: #818cf8;
+    opacity: 0.7;
+  }
+
+  .mc-video-placeholder span {
+    font-size: 15px;
+    color: rgba(255,255,255,0.5);
+    font-weight: 500;
+  }
+
   /* ===== SECTIONS (shared) ===== */
   .mc-section {
     padding: 48px 20px;
-    border-top: 1px solid transparent;
-    border-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent) 1;
+    border-top: 1px solid rgba(255,255,255,0.04);
     position: relative;
   }
 
@@ -1235,61 +1645,116 @@ const styles = `
     color: #f87171;
   }
 
-  /* ===== CURRICULUM ===== */
-  .mc-modules {
+  /* ===== CURRICULUM TABS ===== */
+  .mc-tabs-bar {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 8px;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 24px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
-  .mc-module-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    padding: 20px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(70, 114, 236, 0.02) 100%);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 16px;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-  }
-
-  .mc-module-number {
-    font-size: 13px;
-    font-weight: 800;
-    color: #818cf8;
-    min-width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(129, 140, 248, 0.1);
-    border-radius: 8px;
-    flex-shrink: 0;
-  }
-
-  .mc-module-icon {
+  .mc-tabs-bar::-webkit-scrollbar {
     display: none;
   }
 
-  .mc-module-content {
+  .mc-tab {
+    flex-shrink: 0;
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s;
+    font-family: inherit;
+    white-space: nowrap;
   }
 
-  .mc-module-content strong {
-    font-size: 15px;
-    font-weight: 600;
+  .mc-tab:hover {
+    border-color: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.7);
+  }
+
+  .mc-tab-active {
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.12), rgba(139, 92, 246, 0.08));
+    border-color: rgba(70, 114, 236, 0.3);
+    color: #fff;
+  }
+
+  .mc-tab-num {
+    font-weight: 800;
+    color: #818cf8;
+    font-size: 12px;
+  }
+
+  .mc-tab-active .mc-tab-num {
+    color: #a78bfa;
+  }
+
+  .mc-tab-title {
+    display: none;
+  }
+
+  .mc-tab-content {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    padding: 28px;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.06), rgba(139, 92, 246, 0.03));
+    border: 1px solid rgba(70, 114, 236, 0.15);
+    border-radius: 20px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .mc-tab-icon-wrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(70, 114, 236, 0.2), rgba(139, 92, 246, 0.15));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #818cf8;
+    flex-shrink: 0;
+  }
+
+  .mc-tab-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: left;
+  }
+
+  .mc-tab-module-num {
+    font-size: 12px;
+    font-weight: 700;
+    color: #818cf8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .mc-tab-module-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.3;
     color: rgba(255,255,255,0.95);
   }
 
-  .mc-module-content span {
-    font-size: 13px;
-    color: rgba(255,255,255,0.45);
-    line-height: 1.5;
+  .mc-tab-module-desc {
+    font-size: 14px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.55);
+    margin: 4px 0 0;
   }
 
   /* ===== INSTANT ACCESS ===== */
@@ -1393,8 +1858,8 @@ const styles = `
   .mc-instructor-card {
     background: linear-gradient(135deg, rgba(70, 114, 236, 0.06), rgba(139, 92, 246, 0.04));
     border: 1px solid rgba(70, 114, 236, 0.15);
-    border-radius: 20px;
-    padding: 24px;
+    border-radius: 24px;
+    padding: 32px 24px;
     position: relative;
     overflow: hidden;
   }
@@ -1410,11 +1875,11 @@ const styles = `
     opacity: 0.7;
   }
 
-  .mc-instructor-header {
+  .mc-instructor-top {
     display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: 20px;
+    align-items: flex-start;
+    margin-bottom: 20px;
   }
 
   .mc-instructor-img-wrap {
@@ -1434,35 +1899,44 @@ const styles = `
   .mc-instructor-img-wrap img {
     position: relative;
     z-index: 1;
-    width: 64px;
-    height: 64px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     object-fit: cover;
     border: 3px solid #0a0a0f;
   }
 
-  .mc-instructor-header > div {
+  .mc-instructor-info {
     display: flex;
     flex-direction: column;
+    gap: 4px;
     text-align: left;
   }
 
-  .mc-instructor-header strong {
-    font-size: 17px;
-    font-weight: 700;
+  .mc-instructor-info strong {
+    font-size: 20px;
+    font-weight: 800;
   }
 
-  .mc-instructor-header span {
+  .mc-instructor-role {
     font-size: 13px;
     color: #818cf8;
     font-weight: 500;
+  }
+
+  .mc-instructor-quote {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    font-style: italic;
+    margin: 8px 0 0;
+    line-height: 1.5;
   }
 
   .mc-instructor-bio {
     font-size: 15px;
     line-height: 1.7;
     color: rgba(255,255,255,0.6);
-    margin: 0 0 20px;
+    margin: 0 0 24px;
     text-align: left;
   }
 
@@ -1476,20 +1950,19 @@ const styles = `
     gap: 12px;
   }
 
-  .mc-stat-item {
+  .mc-istat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    padding: 14px 8px;
+    padding: 16px 8px;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(70, 114, 236, 0.1);
-    border-radius: 12px;
-    transition: all 0.3s ease;
+    border-radius: 14px;
   }
 
-  .mc-stat-item strong {
-    font-size: 18px;
+  .mc-istat-item strong {
+    font-size: 20px;
     font-weight: 800;
     background: linear-gradient(135deg, #4672ec, #a78bfa);
     -webkit-background-clip: text;
@@ -1497,11 +1970,58 @@ const styles = `
     background-clip: text;
   }
 
-  .mc-stat-item span {
+  .mc-istat-item span {
     font-size: 11px;
     color: rgba(255,255,255,0.45);
     text-transform: uppercase;
     letter-spacing: 0.04em;
+  }
+
+  /* ===== TESTIMONIALS ===== */
+  .mc-testimonials-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .mc-testimonial-card {
+    padding: 24px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 18px;
+    text-align: left;
+    transition: all 0.3s ease;
+  }
+
+  .mc-testimonial-stars {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 12px;
+  }
+
+  .mc-testimonial-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.7);
+    margin: 0 0 16px;
+    font-style: italic;
+  }
+
+  .mc-testimonial-author {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .mc-testimonial-author strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+  }
+
+  .mc-testimonial-author span {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
   }
 
   /* ===== FAQ ===== */
@@ -1509,6 +2029,8 @@ const styles = `
     display: flex;
     flex-direction: column;
     gap: 10px;
+    max-width: 700px;
+    margin: 0 auto;
   }
 
   .mc-faq-item {
@@ -1566,25 +2088,42 @@ const styles = `
   /* ===== FINAL CTA ===== */
   .mc-final-cta {
     text-align: center;
-    background: linear-gradient(180deg, rgba(70, 114, 236, 0.08) 0%, rgba(139, 92, 246, 0.03) 50%, transparent 100%);
+    background: linear-gradient(180deg, rgba(70, 114, 236, 0.1) 0%, rgba(139, 92, 246, 0.06) 40%, rgba(70, 114, 236, 0.03) 100%);
     overflow: hidden;
   }
 
-  .mc-final-cta::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 500px;
-    height: 300px;
-    background: radial-gradient(ellipse, rgba(70, 114, 236, 0.1) 0%, transparent 70%);
-    pointer-events: none;
+  .mc-final-inner {
+    position: relative;
   }
+
+  .mc-float-icons {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  @keyframes floatIcon {
+    0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.15; }
+    50% { transform: translateY(-12px) rotate(5deg); opacity: 0.25; }
+  }
+
+  .mc-float-icon {
+    position: absolute;
+    color: #818cf8;
+    animation: floatIcon 4s ease-in-out infinite;
+  }
+
+  .mc-fi-1 { top: 10%; left: 8%; animation-delay: 0s; }
+  .mc-fi-2 { top: 20%; right: 10%; animation-delay: 1s; }
+  .mc-fi-3 { bottom: 25%; left: 12%; animation-delay: 2s; }
+  .mc-fi-4 { bottom: 15%; right: 8%; animation-delay: 0.5s; }
 
   .mc-final-icon {
     color: #818cf8;
     margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
   }
 
   .mc-final-title {
@@ -1592,6 +2131,8 @@ const styles = `
     font-weight: 800;
     margin: 0 0 12px;
     letter-spacing: -0.02em;
+    position: relative;
+    z-index: 1;
   }
 
   .mc-final-text {
@@ -1602,6 +2143,12 @@ const styles = `
     max-width: 520px;
     margin-left: auto;
     margin-right: auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .mc-final-text strong {
+    color: #f87171;
   }
 
   .mc-final-btn {
@@ -1674,24 +2221,72 @@ const styles = `
 
   /* ===== FOOTER ===== */
   .mc-footer {
-    padding: 24px 20px;
-    padding-bottom: calc(24px + 60px);
-    border-top: 1px solid transparent;
-    border-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent) 1;
+    padding: 48px 20px 24px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: #0a0a14;
+  }
+
+  .mc-footer-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .mc-footer-brand img {
+    height: 24px;
+    opacity: 0.6;
+    margin-bottom: 12px;
+  }
+
+  .mc-footer-brand p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.35);
+    line-height: 1.6;
+    margin: 0;
+    max-width: 280px;
+  }
+
+  .mc-footer-col {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
 
-  .mc-footer img {
-    height: 20px;
-    opacity: 0.4;
+  .mc-footer-col strong {
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
   }
 
-  .mc-footer span {
+  .mc-footer-col a {
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .mc-footer-col a:hover {
+    color: rgba(255,255,255,0.7);
+  }
+
+  .mc-footer-bottom {
+    max-width: 900px;
+    margin: 0 auto;
+    padding-top: 20px;
+    padding-bottom: calc(60px);
+    text-align: center;
+  }
+
+  .mc-footer-bottom span {
     font-size: 12px;
-    color: rgba(255,255,255,0.3);
+    color: rgba(255,255,255,0.25);
   }
 
   /* ===== TABLET (768px) ===== */
@@ -1724,41 +2319,39 @@ const styles = `
       grid-template-columns: 1fr 1fr;
     }
 
-    .mc-modules {
-      gap: 14px;
+    .mc-testimonials-grid {
+      grid-template-columns: 1fr 1fr;
     }
 
-    .mc-module-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: rgba(129, 140, 248, 0.1);
-      color: #818cf8;
-      flex-shrink: 0;
+    .mc-tab-title {
+      display: inline;
     }
 
     .mc-loss-item {
       gap: 20px;
     }
 
-    .mc-faq-list {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+    .mc-footer-inner {
+      grid-template-columns: 1.5fr 1fr 1fr;
+    }
+
+    .mc-stat-value {
+      font-size: 32px;
     }
   }
 
   /* ===== DESKTOP (1024px+) ===== */
   @media (min-width: 1024px) {
     .mc-header {
-      padding: 24px 48px;
+      padding: 16px 48px;
     }
 
     .mc-logo {
-      height: 32px;
+      height: 30px;
+    }
+
+    .mc-nav {
+      display: flex;
     }
 
     /* Hero: 2 colunas (texto + form lado a lado) */
@@ -1807,6 +2400,19 @@ const styles = `
       padding: 36px 32px;
     }
 
+    /* Stats */
+    .mc-stats-section {
+      padding: 56px 48px;
+    }
+
+    .mc-stats-inner {
+      max-width: 1100px;
+    }
+
+    .mc-stat-value {
+      font-size: 36px;
+    }
+
     /* Sections */
     .mc-section {
       padding: 72px 48px;
@@ -1828,15 +2434,24 @@ const styles = `
       margin-right: auto;
     }
 
-    /* Curriculum: 2 colunas */
-    .mc-modules {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
+    /* Curriculum tabs */
+    .mc-tabs-bar {
+      justify-content: center;
     }
 
-    .mc-module-card:hover {
-      border-color: rgba(70, 114, 236, 0.2);
+    .mc-tab {
+      padding: 14px 22px;
+    }
+
+    .mc-tab-content {
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 36px;
+    }
+
+    .mc-tab-module-title {
+      font-size: 20px;
     }
 
     /* Audience: 2x2 grid */
@@ -1854,15 +2469,27 @@ const styles = `
 
     /* Instructor */
     .mc-instructor-card {
-      padding: 36px;
+      padding: 40px;
       max-width: 700px;
       margin-left: auto;
       margin-right: auto;
     }
 
     .mc-instructor-img-wrap img {
-      width: 72px;
-      height: 72px;
+      width: 96px;
+      height: 96px;
+    }
+
+    .mc-instructor-info strong {
+      font-size: 24px;
+    }
+
+    .mc-instructor-role {
+      font-size: 14px;
+    }
+
+    .mc-instructor-quote {
+      font-size: 14px;
     }
 
     /* Access card */
@@ -1871,6 +2498,20 @@ const styles = `
       margin-left: auto;
       margin-right: auto;
       padding: 48px 40px;
+    }
+
+    /* Testimonials */
+    .mc-testimonials-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .mc-testimonial-card:hover {
+      border-color: rgba(70, 114, 236, 0.2);
+      background: rgba(255,255,255,0.05);
     }
 
     /* Final CTA */
@@ -1912,7 +2553,7 @@ const styles = `
     }
 
     .mc-footer {
-      padding: 32px 48px;
+      padding: 56px 48px 24px;
     }
   }
 
@@ -1936,8 +2577,8 @@ const styles = `
       max-width: 1200px;
     }
 
-    .mc-modules {
-      gap: 20px;
+    .mc-stats-inner {
+      max-width: 1200px;
     }
   }
 `
