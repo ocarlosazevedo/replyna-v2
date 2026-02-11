@@ -121,33 +121,6 @@ const audienceItems = [
   }
 ]
 
-const testimonials = [
-  {
-    name: 'Rafael M.',
-    role: 'Dropshipping — $120K/mês',
-    text: 'Minha taxa de chargeback caiu de 3.2% para 0.4% em menos de 30 dias. Salvou minha conta na Shopify Payments.',
-    stars: 5
-  },
-  {
-    name: 'Juliana S.',
-    role: 'E-commerce próprio',
-    text: 'Conteúdo direto ao ponto. Implementei as configurações do módulo 4 e já vi resultado na primeira semana.',
-    stars: 5
-  },
-  {
-    name: 'Pedro L.',
-    role: 'Dropshipping Global',
-    text: 'Já tinha perdido 2 contas antes de assistir essa masterclass. Agora minha operação roda há 8 meses sem problemas.',
-    stars: 5
-  },
-  {
-    name: 'Mariana C.',
-    role: 'Loja Shopify — Moda',
-    text: 'O método de resposta a disputas é ouro. Comecei a vencer 70% dos chargebacks que antes eram perda total.',
-    stars: 5
-  }
-]
-
 const faqItems = [
   {
     question: 'A masterclass é realmente gratuita?',
@@ -788,35 +761,6 @@ export default function Masterclass() {
                 <span>Margem</span>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== SOCIAL PROOF / TESTIMONIALS ===== */}
-      <section className="mc-section mc-testimonials mc-fade-in">
-        <div className="mc-section-inner">
-          <h2 className="mc-section-title">
-            O que os alunos <span className="mc-highlight">dizem</span>
-          </h2>
-          <p className="mc-section-text">
-            Resultados reais de quem já aplicou o método da masterclass.
-          </p>
-
-          <div className="mc-testimonials-grid">
-            {testimonials.map((t, i) => (
-              <div key={i} className="mc-testimonial-card">
-                <div className="mc-testimonial-stars">
-                  {[...Array(t.stars)].map((_, j) => (
-                    <Star key={j} size={14} fill="#facc15" color="#facc15" />
-                  ))}
-                </div>
-                <p className="mc-testimonial-text">"{t.text}"</p>
-                <div className="mc-testimonial-author">
-                  <strong>{t.name}</strong>
-                  <span>{t.role}</span>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
