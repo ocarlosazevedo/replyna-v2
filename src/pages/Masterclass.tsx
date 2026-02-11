@@ -712,9 +712,13 @@ export default function Masterclass() {
           <div className="mc-audience-grid">
             {audienceItems.map((item, i) => (
               <div key={i} className="mc-audience-card">
-                <div className="mc-audience-icon">{item.icon}</div>
-                <strong>{item.title}</strong>
-                <span>{item.description}</span>
+                <div className="mc-audience-left">
+                  <div className="mc-audience-icon">{item.icon}</div>
+                </div>
+                <div className="mc-audience-right">
+                  <h3 className="mc-audience-title">{item.title}</h3>
+                  <p className="mc-audience-desc">{item.description}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -1783,31 +1787,68 @@ const styles = `
   .mc-access-btn:active { transform: scale(0.97); }
 
   /* ===== TARGET AUDIENCE ===== */
-  .mc-audience-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 8px; }
+  .mc-audience-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 36px;
+  }
   .mc-audience-card {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 20px;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 28px;
     background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.06);
     border-radius: 16px;
     text-align: left;
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
   }
+  .mc-audience-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #1E90FF, #20B2AA);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .mc-audience-card:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(30,144,255,0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(30,144,255,0.08);
+  }
+  .mc-audience-card:hover::before { opacity: 1; }
+  .mc-audience-left { flex-shrink: 0; }
   .mc-audience-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, rgba(30,144,255,0.15), rgba(32,178,170,0.1));
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(30,144,255,0.15), rgba(32,178,170,0.08));
     display: flex;
     align-items: center;
     justify-content: center;
     color: #1E90FF;
-    margin-bottom: 4px;
   }
-  .mc-audience-card strong { font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.95); }
-  .mc-audience-card span { font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.5; }
+  .mc-audience-right { display: flex; flex-direction: column; gap: 6px; }
+  .mc-audience-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.95);
+    margin: 0;
+    line-height: 1.3;
+  }
+  .mc-audience-desc {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.7;
+    margin: 0;
+  }
 
   /* ===== INSTRUCTOR ===== */
   .mc-instructor-card {
@@ -2155,8 +2196,8 @@ const styles = `
     .mc-tab { padding: 14px 22px; }
     .mc-tab-content { max-width: 700px; margin-left: auto; margin-right: auto; padding: 36px; }
     .mc-tab-module-title { font-size: 20px; }
-    .mc-audience-grid { grid-template-columns: 1fr 1fr; gap: 20px; max-width: 800px; margin-left: auto; margin-right: auto; }
-    .mc-audience-card:hover { border-color: rgba(30,144,255,0.2); transform: translateY(-2px); }
+    .mc-audience-grid { grid-template-columns: 1fr 1fr; gap: 24px; max-width: 900px; margin-left: auto; margin-right: auto; }
+    .mc-audience-card { padding: 32px; }
     .mc-instructor-card { padding: 40px; max-width: 700px; margin-left: auto; margin-right: auto; }
     .mc-instructor-img-wrap img { width: 96px; height: 96px; }
     .mc-instructor-info strong { font-size: 24px; }
