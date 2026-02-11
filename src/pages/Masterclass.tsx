@@ -1125,6 +1125,7 @@ const styles = `
 
   /* ===== ORBIT ANIMATION ===== */
   .mc-hero-visual {
+    display: none;
     width: 100%;
     max-width: 340px;
     margin: 32px auto 0;
@@ -1330,11 +1331,12 @@ const styles = `
     justify-content: center;
     gap: 10px;
     padding: 18px 40px;
+    width: 100%;
     background: #1E90FF;
     border: none;
     border-radius: 14px;
     color: #fff;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.25s ease-in-out;
@@ -1343,6 +1345,7 @@ const styles = `
     font-family: inherit;
     margin-bottom: 28px;
     position: relative;
+    box-sizing: border-box;
   }
   .mc-hero-cta:hover { background: #0C7CD5; transform: scale(1.03); }
   .mc-hero-cta:active { transform: scale(0.97); animation: none; }
@@ -1500,15 +1503,15 @@ const styles = `
   .mc-stats-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    gap: 10px;
     margin-bottom: 32px;
   }
   .mc-stat-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 24px 12px;
+    gap: 6px;
+    padding: 20px 8px;
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 16px;
@@ -1516,8 +1519,8 @@ const styles = `
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
   .mc-stat-icon {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1526,7 +1529,7 @@ const styles = `
     color: #1E90FF;
   }
   .mc-stat-value {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 800;
     background: linear-gradient(135deg, #fff, rgba(255,255,255,0.8));
     -webkit-background-clip: text;
@@ -1540,12 +1543,12 @@ const styles = `
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
-  .mc-trust-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+  .mc-trust-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
   .mc-trust-badge {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 16px;
+    padding: 8px 12px;
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 50px;
@@ -1637,7 +1640,7 @@ const styles = `
     background: rgba(248,113,113,0.04);
     border: 1px solid rgba(248,113,113,0.15);
     border-radius: 20px;
-    padding: 24px;
+    padding: 20px;
     margin-top: 8px;
     box-shadow: 0 8px 40px rgba(248,113,113,0.04);
   }
@@ -1686,7 +1689,7 @@ const styles = `
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 16px;
-    padding: 28px;
+    padding: 22px;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
@@ -1758,7 +1761,7 @@ const styles = `
     background: linear-gradient(135deg, rgba(30,144,255,0.05), rgba(32,178,170,0.03));
     border: 1px solid rgba(30,144,255,0.15);
     border-radius: 24px;
-    padding: 40px 24px;
+    padding: 32px 20px;
   }
   .mc-access-icon {
     width: 60px;
@@ -1803,8 +1806,8 @@ const styles = `
   .mc-audience-card {
     display: flex;
     align-items: flex-start;
-    gap: 18px;
-    padding: 28px;
+    gap: 16px;
+    padding: 22px;
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 16px;
@@ -1862,7 +1865,7 @@ const styles = `
     background: linear-gradient(135deg, rgba(30,144,255,0.04), rgba(32,178,170,0.02));
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 24px;
-    padding: 36px 28px;
+    padding: 28px 20px;
     position: relative;
     overflow: hidden;
     text-align: center;
@@ -1946,14 +1949,14 @@ const styles = `
   .mc-instructor-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
+    gap: 10px;
   }
   .mc-istat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 20px 12px;
+    gap: 4px;
+    padding: 16px 8px;
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 16px;
@@ -1969,7 +1972,7 @@ const styles = `
     opacity: 0.7;
   }
   .mc-istat-item strong {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 800;
     background: linear-gradient(135deg, #1E90FF, #20B2AA);
     -webkit-background-clip: text;
@@ -2035,11 +2038,11 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 24px;
-    gap: 16px;
+    padding: 18px 20px;
+    gap: 12px;
   }
   .mc-faq-question span {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: rgba(255,255,255,0.9);
   }
@@ -2057,7 +2060,7 @@ const styles = `
   .mc-faq-answer-inner { overflow: hidden; }
   .mc-faq-answer-open { grid-template-rows: 1fr; }
   .mc-faq-answer {
-    padding: 0 24px 20px;
+    padding: 0 20px 18px;
     margin: 0;
     font-size: 14px;
     line-height: 1.75;
@@ -2112,7 +2115,7 @@ const styles = `
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 18px 40px;
+    padding: 18px 32px;
     background: #1E90FF;
     border: none;
     border-radius: 14px;
@@ -2234,15 +2237,33 @@ const styles = `
     .mc-hero { padding: 64px 24px 48px; }
     .mc-headline { font-size: 38px; }
     .mc-subheadline { font-size: 17px; }
+    .mc-hero-cta { width: auto; font-size: 17px; }
     .mc-section { padding: 56px 24px; }
     .mc-section-title { font-size: 26px; }
     .mc-audience-grid { grid-template-columns: 1fr 1fr; }
     .mc-testimonials-grid { grid-template-columns: 1fr 1fr; }
     .mc-modules-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+    .mc-module-card { padding: 28px; }
+    .mc-audience-card { padding: 28px; gap: 18px; }
+    .mc-instructor-card { padding: 36px 28px; }
+    .mc-instructor-stats { gap: 14px; }
+    .mc-istat-item { padding: 20px 12px; }
+    .mc-istat-item strong { font-size: 22px; }
+    .mc-access-card { padding: 40px 24px; }
     .mc-loss-item { gap: 20px; }
+    .mc-loss-example { padding: 24px; }
+    .mc-faq-question { padding: 20px 24px; gap: 16px; }
+    .mc-faq-question span { font-size: 15px; }
+    .mc-faq-answer { padding: 0 24px 20px; }
+    .mc-trust-row { gap: 12px; }
+    .mc-trust-badge { padding: 8px 16px; }
+    .mc-final-btn { padding: 18px 40px; }
     .mc-footer-logo { height: 48px; }
+    .mc-stats-grid { gap: 16px; }
+    .mc-stat-card { padding: 24px 12px; gap: 8px; }
+    .mc-stat-icon { width: 44px; height: 44px; }
     .mc-stat-value { font-size: 32px; }
-    .mc-hero-visual { max-width: 420px; }
+    .mc-hero-visual { display: block; max-width: 420px; }
     .mc-orbit-logo { width: 52px; height: 52px; font-size: 16px; }
     .mc-orbit-center { width: 72px; height: 72px; border-radius: 20px; }
     .mc-orbit-label { font-size: 10px; }
