@@ -795,7 +795,9 @@ export default function Masterclass() {
                   />
                 </div>
                 <div className={`mc-faq-answer-wrap ${openFaq === i ? 'mc-faq-answer-open' : ''}`}>
-                  <p className="mc-faq-answer">{item.answer}</p>
+                  <div className="mc-faq-answer-inner">
+                    <p className="mc-faq-answer">{item.answer}</p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -2010,49 +2012,60 @@ const styles = `
   .mc-faq-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 14px;
     max-width: 700px;
     margin: 0 auto;
   }
   .mc-faq-item {
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
     overflow: hidden;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
   }
   .mc-faq-item:hover {
-    border-color: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.12);
     background: rgba(255,255,255,0.04);
   }
   .mc-faq-open {
-    border-color: rgba(30,144,255,0.3) !important;
-    background: linear-gradient(135deg, rgba(30,144,255,0.05), rgba(32,178,170,0.02)) !important;
+    border-color: rgba(30,144,255,0.25) !important;
+    background: linear-gradient(135deg, rgba(30,144,255,0.06), rgba(32,178,170,0.02)) !important;
+    box-shadow: 0 4px 24px rgba(30,144,255,0.06);
   }
   .mc-faq-question {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 20px;
-    gap: 12px;
+    padding: 20px 24px;
+    gap: 16px;
   }
-  .mc-faq-question span { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); }
-  .mc-faq-arrow { flex-shrink: 0; color: rgba(255,255,255,0.3); transition: all 0.25s ease; }
+  .mc-faq-question span {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+  }
+  .mc-faq-arrow {
+    flex-shrink: 0;
+    color: rgba(255,255,255,0.3);
+    transition: all 0.3s ease;
+  }
   .mc-faq-arrow-open { transform: rotate(180deg); color: #1E90FF; }
   .mc-faq-answer-wrap {
     display: grid;
     grid-template-rows: 0fr;
     transition: grid-template-rows 0.35s ease-out;
   }
-  .mc-faq-answer-wrap > p { overflow: hidden; }
+  .mc-faq-answer-inner { overflow: hidden; }
   .mc-faq-answer-open { grid-template-rows: 1fr; }
   .mc-faq-answer {
-    padding: 0 20px 18px;
+    padding: 0 24px 20px;
     margin: 0;
     font-size: 14px;
-    line-height: 1.7;
+    line-height: 1.75;
     color: rgba(255,255,255,0.55);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 16px;
   }
 
   /* ===== FINAL CTA ===== */
