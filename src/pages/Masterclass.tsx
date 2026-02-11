@@ -582,9 +582,9 @@ export default function Masterclass() {
 
               {/* Central Replyna icon */}
               <div className="mc-orbit-center">
-                <svg viewBox="0 0 100 100" width="34" height="34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg viewBox="0 0 100 100" width="34" height="34" xmlns="http://www.w3.org/2000/svg">
                   <path
-                    d="M68 5 C62 20, 42 70, 20 95 C18 85, 38 35, 68 5 Z"
+                    d="M 70 5 C 68 25, 44 72, 20 95 C 16 72, 48 22, 70 5 Z"
                     fill="#fff"
                   />
                 </svg>
