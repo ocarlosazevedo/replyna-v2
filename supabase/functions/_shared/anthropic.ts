@@ -1701,26 +1701,65 @@ REGRAS CRÍTICAS:
     result.confidence = Math.max(0, Math.min(1, result.confidence || 0.5));
 
     // CRÍTICO: Validar idioma usando detecção direta do texto
-    // Isso corrige casos onde o Claude erra a detecção de idioma
-    const textToAnalyze = `${emailSubject || ''} ${emailBody || ''}`.trim();
-    let detectedLanguage = detectLanguageFromText(textToAnalyze);
+    // PRIORIDADE: body > raw body > subject > country code
+    // O body é o que o CLIENTE escreveu. O subject pode ser auto-gerado pela loja (ex: "(Sem assunto)", "Re: Pedido #1234")
+    let detectedLanguage: string | null = null;
 
-    // FALLBACK 1: Se não detectou idioma do texto limpo, tentar do body RAW
-    // Isso captura casos onde cleanEmailBody retornou placeholder mas o body original tem texto do cliente
-    if (!detectedLanguage && rawEmailBody) {
+    // PASSO 1: Tentar detectar do BODY primeiro (prioridade máxima - é o texto do cliente)
+    if (emailBody && emailBody.length > 5 && !emailBody.startsWith('[FORMULÁRIO')) {
+      detectedLanguage = detectLanguageFromText(emailBody);
+      if (detectedLanguage) {
+        console.log(`[classifyEmail] Language detected from BODY: "${detectedLanguage}"`);
+      }
+    }
+
+    // PASSO 2: Se body não deu resultado, tentar body RAW (antes da limpeza)
+    if (!detectedLanguage && rawEmailBody && rawEmailBody.length > 10) {
       detectedLanguage = detectLanguageFromText(rawEmailBody);
       if (detectedLanguage) {
         console.log(`[classifyEmail] Language detected from RAW body: "${detectedLanguage}"`);
       }
     }
 
-    // FALLBACK 2: Se ainda não detectou, tentar extrair country code do email
-    // Country code é um sinal forte (ex: "Country Code: GB" → inglês)
+    // PASSO 3: Se body não deu resultado, tentar subject (mas ignorar subjects auto-gerados)
+    if (!detectedLanguage && emailSubject) {
+      // Limpar subjects auto-gerados pela loja que contaminam a detecção
+      const cleanSubject = (emailSubject || '')
+        .replace(/^\s*re:\s*/i, '')
+        .replace(/^\s*fwd?:\s*/i, '')
+        .replace(/^\s*enc:\s*/i, '')
+        .replace(/\(sem assunto\)/i, '')
+        .replace(/\(no subject\)/i, '')
+        .replace(/\(sans objet\)/i, '')
+        .replace(/\(kein betreff\)/i, '')
+        .replace(/\(sin asunto\)/i, '')
+        .replace(/pedido\s*#?\d+/i, '') // Remove "Pedido #1234"
+        .replace(/order\s*#?\d+/i, '')  // Remove "Order #1234"
+        .trim();
+      if (cleanSubject.length > 3) {
+        detectedLanguage = detectLanguageFromText(cleanSubject);
+        if (detectedLanguage) {
+          console.log(`[classifyEmail] Language detected from SUBJECT: "${detectedLanguage}"`);
+        }
+      }
+    }
+
+    // PASSO 4: Se ainda não detectou, tentar extrair country code do email
     if (!detectedLanguage) {
       const countryCode = extractCountryCodeFromEmail(rawEmailBody || emailBody || '');
       if (countryCode && countryToLanguage[countryCode]) {
         detectedLanguage = countryToLanguage[countryCode];
         console.log(`[classifyEmail] Language inferred from country code ${countryCode}: "${detectedLanguage}"`);
+      }
+    }
+
+    // PASSO 5: Se BODY detectou um idioma diferente do SUBJECT, confiar no BODY
+    // Exemplo: subject = "Re: Pedido #1234" (PT) mas body = "Where is my order?" (EN) → usar EN
+    if (detectedLanguage && emailBody && emailBody.length > 20) {
+      const bodyLang = detectLanguageFromText(emailBody);
+      if (bodyLang && bodyLang !== detectedLanguage) {
+        console.log(`[classifyEmail] Body language (${bodyLang}) differs from detected (${detectedLanguage}), trusting body`);
+        detectedLanguage = bodyLang;
       }
     }
 
@@ -1743,9 +1782,10 @@ REGRAS CRÍTICAS:
 
     // CRÍTICO: Detectar casos que devem ir para suporte humano
     // MAS NUNCA sobrescrever classificação de spam!
-    const isCancellationRequest = detectCancellationRequest(textToAnalyze);
-    const isFrustratedCustomer = detectFrustratedCustomer(textToAnalyze);
-    const hasProductProblem = detectProductProblem(textToAnalyze);
+    const fullTextToAnalyze = `${emailSubject || ''} ${emailBody || ''}`.trim();
+    const isCancellationRequest = detectCancellationRequest(fullTextToAnalyze);
+    const isFrustratedCustomer = detectFrustratedCustomer(fullTextToAnalyze);
+    const hasProductProblem = detectProductProblem(fullTextToAnalyze);
 
     // PROTEÇÃO: Se é spam (por AI ou por padrão), NUNCA mudar a categoria
     if (result.category !== 'spam') {
@@ -1779,14 +1819,17 @@ REGRAS CRÍTICAS:
     return result;
   } catch {
     // Fallback se não conseguir fazer parse
-    // Tentar detectar idioma e categoria do texto mesmo no fallback
-    const textToAnalyze = `${emailSubject || ''} ${emailBody || ''}`.trim();
-    let detectedLanguage = detectLanguageFromText(textToAnalyze);
-    // Fallback: tentar do body raw
+    // Priorizar body sobre subject (body = texto do cliente, subject pode ser auto-gerado)
+    let detectedLanguage: string | null = null;
+    if (emailBody && emailBody.length > 5 && !emailBody.startsWith('[FORMULÁRIO')) {
+      detectedLanguage = detectLanguageFromText(emailBody);
+    }
     if (!detectedLanguage && rawEmailBody) {
       detectedLanguage = detectLanguageFromText(rawEmailBody);
     }
-    // Fallback: tentar do country code
+    if (!detectedLanguage && emailSubject) {
+      detectedLanguage = detectLanguageFromText(emailSubject);
+    }
     if (!detectedLanguage) {
       const cc = extractCountryCodeFromEmail(rawEmailBody || emailBody || '');
       if (cc && countryToLanguage[cc]) detectedLanguage = countryToLanguage[cc];
@@ -1805,9 +1848,10 @@ REGRAS CRÍTICAS:
       };
     }
 
-    const isCancellationRequest = detectCancellationRequest(textToAnalyze);
-    const isFrustratedCustomer = detectFrustratedCustomer(textToAnalyze);
-    const hasProductProblem = detectProductProblem(textToAnalyze);
+    const fullTextToAnalyze = `${emailSubject || ''} ${emailBody || ''}`.trim();
+    const isCancellationRequest = detectCancellationRequest(fullTextToAnalyze);
+    const isFrustratedCustomer = detectFrustratedCustomer(fullTextToAnalyze);
+    const hasProductProblem = detectProductProblem(fullTextToAnalyze);
 
     // Determinar categoria baseado nas detecções
     let fallbackCategory: 'suporte_humano' | 'troca_devolucao_reembolso' | 'duvidas_gerais' = 'duvidas_gerais';
@@ -3520,8 +3564,42 @@ ${urgencyNote}`;
     200
   );
 
+  const dataReqResponse = cleanAIResponse(stripMarkdown(response.content[0]?.text || ''));
+
+  // VALIDAÇÃO PÓS-GERAÇÃO: Detectar se a resposta está no idioma errado
+  if (language && language !== 'pt' && language !== 'pt-BR') {
+    const responseStart = dataReqResponse.substring(0, 100).toLowerCase();
+    const portugueseGreetings = /^(olá|oi[!,\s]|bom dia|boa tarde|boa noite|prezad[oa]|car[oa]\s|recebi seu contato|obrigad[oa])/i;
+    if (portugueseGreetings.test(responseStart)) {
+      console.warn(`[generateDataRequestMessage] LANGUAGE MISMATCH: Expected "${language}" but response in Portuguese`);
+      try {
+        const retryLangNames: Record<string, string> = { en: 'English', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian', nl: 'Dutch', cs: 'Czech', pl: 'Polish' };
+        const langStr = retryLangNames[language] || language;
+        const retryResponse = await callClaude(
+          systemPrompt,
+          [{
+            role: 'user',
+            content: `CRITICAL: Write ONLY in ${langStr}. The customer speaks ${langStr}, NOT Portuguese.\n\nSUBJECT: ${emailSubject || '(no subject)'}\n\n${emailBody}\n\nAsk for the order number or purchase email. Respond ENTIRELY in ${langStr}.`,
+          }],
+          200
+        );
+        const retryText = cleanAIResponse(stripMarkdown(retryResponse.content[0]?.text || ''));
+        if (retryText && retryText.length > 10) {
+          console.log(`[generateDataRequestMessage] Language retry successful`);
+          return {
+            response: retryText,
+            tokens_input: response.usage.input_tokens + retryResponse.usage.input_tokens,
+            tokens_output: response.usage.output_tokens + retryResponse.usage.output_tokens,
+          };
+        }
+      } catch (retryErr) {
+        console.error(`[generateDataRequestMessage] Language retry failed:`, retryErr);
+      }
+    }
+  }
+
   return {
-    response: cleanAIResponse(stripMarkdown(response.content[0]?.text || '')),
+    response: dataReqResponse,
     tokens_input: response.usage.input_tokens,
     tokens_output: response.usage.output_tokens,
   };
@@ -3649,8 +3727,38 @@ LANGUAGE: ${languageInstruction}`;
     150
   );
 
+  const fallbackResponse = cleanAIResponse(stripMarkdown(response.content[0]?.text || ''));
+
+  // VALIDAÇÃO PÓS-GERAÇÃO: Detectar se a resposta está no idioma errado
+  if (language && language !== 'pt' && language !== 'pt-BR') {
+    const responseStart = fallbackResponse.substring(0, 100).toLowerCase();
+    const portugueseGreetings = /^(olá|oi[!,\s]|bom dia|boa tarde|boa noite|prezad[oa]|car[oa]\s|recebi seu contato|obrigad[oa])/i;
+    if (portugueseGreetings.test(responseStart)) {
+      console.warn(`[generateHumanFallbackMessage] LANGUAGE MISMATCH: Expected "${language}" but response in Portuguese`);
+      try {
+        const retryLangNames: Record<string, string> = { en: 'English', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian', nl: 'Dutch', cs: 'Czech', pl: 'Polish' };
+        const langStr = retryLangNames[language] || language;
+        const retryResponse = await callClaude(
+          systemPrompt,
+          [{ role: 'user', content: `CRITICAL: Write ONLY in ${langStr}. NOT Portuguese. Ask the customer to contact ${shopContext.support_email}. Respond ENTIRELY in ${langStr}.` }],
+          150
+        );
+        const retryText = cleanAIResponse(stripMarkdown(retryResponse.content[0]?.text || ''));
+        if (retryText && retryText.length > 10) {
+          return {
+            response: retryText,
+            tokens_input: response.usage.input_tokens + retryResponse.usage.input_tokens,
+            tokens_output: response.usage.output_tokens + retryResponse.usage.output_tokens,
+          };
+        }
+      } catch (retryErr) {
+        console.error(`[generateHumanFallbackMessage] Language retry failed:`, retryErr);
+      }
+    }
+  }
+
   return {
-    response: cleanAIResponse(stripMarkdown(response.content[0]?.text || '')),
+    response: fallbackResponse,
     tokens_input: response.usage.input_tokens,
     tokens_output: response.usage.output_tokens,
   };
