@@ -305,7 +305,11 @@ Deno.serve(async (req) => {
         category,
         conversationHistory.slice(0, -1),
         shopifyData,
-        conversation.language || 'pt-BR'
+        conversation.language || 'pt-BR',
+        0, // retentionContactCount
+        [], // additionalOrders
+        [], // emailImages
+        'calm' // sentiment - não temos classification no reprocess
       );
 
       // Se a IA detectou que é terceiro contato de cancelamento, encaminhar para humano

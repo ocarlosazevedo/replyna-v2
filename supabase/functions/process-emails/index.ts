@@ -1368,7 +1368,8 @@ async function processMessageInternal(
       classification.language,
       retentionContactCount,
       [], // additionalOrders
-      cachedImages || [] // imagens do email para análise visual
+      cachedImages || [], // imagens do email para análise visual
+      classification.sentiment || 'calm'
     );
 
     // Se a IA detectou que é terceiro contato de cancelamento, encaminhar para humano

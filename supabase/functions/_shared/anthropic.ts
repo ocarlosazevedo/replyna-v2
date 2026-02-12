@@ -52,6 +52,7 @@ export interface ClassificationResult {
   language: string;
   order_id_found: string | null;
   summary: string;
+  sentiment?: 'calm' | 'frustrated' | 'angry' | 'legal_threat';
 }
 
 export interface ResponseGenerationResult {
@@ -590,6 +591,50 @@ function detectFrustratedCustomer(text: string): boolean {
   for (const pattern of frustrationPatterns) {
     if (pattern.test(lowerText)) {
       console.log(`[detectFrustration] Frustrated customer detected by pattern: ${pattern}`);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Detecta se há ameaça LEGAL no texto (advogado, processo, PROCON, chargeback)
+ * Separado de frustração - ameaça legal SEMPRE escala para humano
+ */
+function detectLegalThreat(text: string): boolean {
+  if (!text || text.trim().length < 3) return false;
+
+  const legalPatterns = [
+    // Português
+    /\b(advogado|processo|justiça|tribunal)\b/i,
+    /\b(reclame\s*aqui|procon|consumidor\.gov)\b/i,
+    /\b(vou\s+(processar|denunciar))\b/i,
+    /\b(ação\s+judicial|medida\s+judicial|juizado)\b/i,
+
+    // Inglês
+    /\b(lawyer|attorney|lawsuit|court|legal\s+action)\b/i,
+    /\b(bbb|better\s+business|consumer\s+protection)\b/i,
+    /\b(file\s+a\s+(complaint|lawsuit|claim))\b/i,
+
+    // Disputa financeira (sempre grave)
+    /\b(chargeback|dispute)\b/i,
+    /\b(paypal\s+(claim|case|dispute))\b/i,
+    /\b(credit\s+card\s+(company|dispute)|bank\s+dispute)\b/i,
+
+    // Espanhol
+    /\b(abogado|demanda|denuncia|tribunal)\b/i,
+
+    // Alemão
+    /\b(anwalt|rechtsanwalt|gericht|klage)\b/i,
+
+    // Francês
+    /\b(avocat|procès|tribunal|plainte)\b/i,
+  ];
+
+  for (const pattern of legalPatterns) {
+    if (pattern.test(text)) {
+      console.log(`[detectLegalThreat] Legal threat detected by pattern: ${pattern}`);
       return true;
     }
   }
@@ -1285,6 +1330,17 @@ Your task is to analyze the email and return a JSON with:
 3. language: EXACT language of the customer's email (VERY IMPORTANT - detect correctly!)
 4. order_id_found: order number if mentioned (e.g., #12345, 12345), or null
 5. summary: 1-line summary of what the customer wants
+6. sentiment: customer emotional state - one of: "calm", "frustrated", "angry", "legal_threat"
+   - "calm": neutral, polite, or friendly tone
+   - "frustrated": unhappy but not threatening (e.g., "absurdo", "ridiculous", "terrible service")
+   - "angry": very upset, using strong/rude language or curse words
+   - "legal_threat": mentions lawyer, lawsuit, court, PROCON, BBB, chargeback, dispute
+
+CONDITIONAL INTENTS (IMPORTANT):
+- If the customer asks a question AND mentions cancellation conditionally (e.g., "Is this brand X? If not, I want to cancel"):
+  → Classify as "duvidas_gerais" (primary intent is the QUESTION)
+  → The cancellation is conditional on the answer, NOT an immediate request
+  → Set high confidence (0.9+) to indicate this is clearly a question, not a cancellation
 
 LANGUAGE DETECTION (CRITICAL - HIGHEST PRIORITY):
 - Detect language ONLY from the section marked "MENSAGEM ATUAL DO CLIENTE"
@@ -1700,6 +1756,12 @@ REGRAS CRÍTICAS:
     // Validar confidence
     result.confidence = Math.max(0, Math.min(1, result.confidence || 0.5));
 
+    // Validar sentiment (novo campo, com fallback para 'calm')
+    const validSentiments = ['calm', 'frustrated', 'angry', 'legal_threat'];
+    result.sentiment = validSentiments.includes(result.sentiment as string)
+      ? result.sentiment as ClassificationResult['sentiment']
+      : 'calm';
+
     // CRÍTICO: Validar idioma usando detecção direta do texto
     // PRIORIDADE: body > raw body > subject > country code
     // O body é o que o CLIENTE escreveu. O subject pode ser auto-gerado pela loja (ex: "(Sem assunto)", "Re: Pedido #1234")
@@ -1780,44 +1842,63 @@ REGRAS CRÍTICAS:
       result.confidence = 0.98;
     }
 
-    // CRÍTICO: Detectar casos que devem ir para suporte humano
-    // MAS NUNCA sobrescrever classificação de spam!
+    // SAFETY NET: Overrides baseados em regex - SÓ intervém quando necessário
+    // Regex é safety net, NÃO override constante. Quando Claude está confiante (>= 0.85), confiar nele.
     const fullTextToAnalyze = `${emailSubject || ''} ${emailBody || ''}`.trim();
     const isCancellationRequest = detectCancellationRequest(fullTextToAnalyze);
     const isFrustratedCustomer = detectFrustratedCustomer(fullTextToAnalyze);
     const hasProductProblem = detectProductProblem(fullTextToAnalyze);
+    const isLegalThreat = detectLegalThreat(fullTextToAnalyze);
 
     // PROTEÇÃO: Se é spam (por AI ou por padrão), NUNCA mudar a categoria
     if (result.category !== 'spam') {
-    // PRIORIDADE 1: Cliente muito irritado/frustrado → suporte humano direto
-    if (isFrustratedCustomer) {
-      console.log(`[classifyEmail] Category override to suporte_humano: frustrated customer detected`);
+
+    // PRIORIDADE 1: Ameaça legal → SEMPRE suporte_humano (independente de confiança)
+    // Ameaças legais são graves demais para a IA lidar sozinha
+    if (isLegalThreat) {
+      if (result.category !== 'suporte_humano') {
+        console.log(`[classifyEmail] Legal threat detected → suporte_humano (was "${result.category}")`);
+        result.category = 'suporte_humano';
+      }
+      result.sentiment = 'legal_threat';
+      result.confidence = 0.99;
+    }
+    // PRIORIDADE 2: Produto defeituoso/danificado → suporte_humano (só se Claude incerto)
+    // Se Claude está confiante na categoria dele, confiar (pode ser duvidas_gerais sobre produto)
+    else if (hasProductProblem && result.category !== 'suporte_humano' && result.confidence < 0.85) {
+      console.log(`[classifyEmail] Low-confidence (${result.confidence}) + product problem → suporte_humano`);
       result.category = 'suporte_humano';
       result.confidence = 0.95;
     }
-    // PRIORIDADE 2: Problema com produto (defeituoso, danificado, errado) → suporte humano direto
-    else if (hasProductProblem) {
-      console.log(`[classifyEmail] Category override to suporte_humano: product problem detected (broken/damaged/wrong)`);
-      result.category = 'suporte_humano';
-      result.confidence = 0.95;
-    }
-    // PRIORIDADE 3: Edição de pedido (alteração de endereço, tamanho, etc.) → suporte humano direto
+    // PRIORIDADE 3: Edição de pedido → suporte_humano (sempre, IA não pode alterar pedidos)
     else if (result.category === 'edicao_pedido') {
-      console.log(`[classifyEmail] Category override to suporte_humano: order edit requires human support`);
+      console.log(`[classifyEmail] Order edit → suporte_humano`);
       result.category = 'suporte_humano';
       result.confidence = 0.95;
     }
-    // PRIORIDADE 4: Cancelamento/devolução → SEMPRE vai para retenção (mesmo se Claude disse suporte_humano)
-    // Se chegou aqui, NÃO é frustração nem defeito (esses já foram capturados acima)
-    // O fluxo de retenção tenta manter o cliente, e após 3 tentativas encaminha para humano
-    else if (isCancellationRequest && result.category !== 'troca_devolucao_reembolso') {
-      console.log(`[classifyEmail] Category override to retention: Claude said "${result.category}", but text contains cancellation/refund keywords`);
+    // PRIORIDADE 4: Cancelamento → retenção (só se Claude incerto)
+    // Se Claude diz "duvidas_gerais" com confiança alta e regex acha "cancel" → confiar no Claude
+    // (ex: "É DeWALT? Se não, cancelo" → Claude entende que é pergunta condicional)
+    else if (isCancellationRequest &&
+             result.category !== 'troca_devolucao_reembolso' &&
+             result.confidence < 0.85) {
+      console.log(`[classifyEmail] Low-confidence (${result.confidence}) + cancellation keywords → retention`);
       result.category = 'troca_devolucao_reembolso';
-      result.confidence = 0.95;
+      result.confidence = 0.90;
     }
+
+    // SENTIMENTO: Frustração SEM ameaça legal NÃO muda a categoria
+    // O sentiment será passado para generateResponse para ajustar o tom da resposta
+    if (isFrustratedCustomer && !isLegalThreat) {
+      if (!result.sentiment || result.sentiment === 'calm') {
+        result.sentiment = 'frustrated';
+      }
+      console.log(`[classifyEmail] Frustrated customer, sentiment="${result.sentiment}" (category unchanged: "${result.category}")`);
+    }
+
     } // Fim do guard: result.category !== 'spam'
 
-    console.log(`[classifyEmail] Final language: ${result.language}, category: ${result.category}`);
+    console.log(`[classifyEmail] Final: lang=${result.language}, cat=${result.category}, sentiment=${result.sentiment}, conf=${result.confidence}`);
     return result;
   } catch {
     // Fallback se não conseguir fazer parse
@@ -1854,13 +1935,23 @@ REGRAS CRÍTICAS:
     const isCancellationRequest = detectCancellationRequest(fullTextToAnalyze);
     const isFrustratedCustomer = detectFrustratedCustomer(fullTextToAnalyze);
     const hasProductProblem = detectProductProblem(fullTextToAnalyze);
+    const isLegalThreat = detectLegalThreat(fullTextToAnalyze);
 
-    // Determinar categoria baseado nas detecções
+    // Determinar categoria e sentiment baseado nas detecções
     let fallbackCategory: 'suporte_humano' | 'troca_devolucao_reembolso' | 'duvidas_gerais' = 'duvidas_gerais';
-    if (isFrustratedCustomer || hasProductProblem) {
+    let fallbackSentiment: ClassificationResult['sentiment'] = 'calm';
+
+    if (isLegalThreat) {
+      fallbackCategory = 'suporte_humano';
+      fallbackSentiment = 'legal_threat';
+    } else if (hasProductProblem) {
       fallbackCategory = 'suporte_humano';
     } else if (isCancellationRequest) {
       fallbackCategory = 'troca_devolucao_reembolso';
+    }
+
+    if (isFrustratedCustomer && !isLegalThreat) {
+      fallbackSentiment = 'frustrated';
     }
 
     return {
@@ -1869,6 +1960,7 @@ REGRAS CRÍTICAS:
       language: detectedLanguage,
       order_id_found: null,
       summary: 'Could not classify the email',
+      sentiment: fallbackSentiment,
     };
   }
 }
@@ -1925,7 +2017,8 @@ export async function generateResponse(
     media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
     data: string;
     filename?: string;
-  }> = []
+  }> = [],
+  sentiment: string = 'calm',
 ): Promise<ResponseGenerationResult> {
   // Mapear tom de voz para instruções - MAIS HUMANO E NATURAL
   const toneInstructions: Record<string, string> = {
@@ -2465,7 +2558,14 @@ Use the EQUIVALENT terms in ${detectedLangName} (e.g., "Shipping status", "Track
 ═══════════════════════════════════════════════════════════════════════` : ''}
 
 CATEGORIA DO EMAIL: ${category}
-
+${sentiment === 'angry' || sentiment === 'frustrated' ? `
+SENTIMENTO DO CLIENTE: ${sentiment === 'angry' ? 'MUITO IRRITADO' : 'FRUSTRADO'}
+- Comece com empatia GENUÍNA - reconheça a frustração do cliente PRIMEIRO
+- Use frases como "Entendo sua frustração", "Lamento muito por essa situação", "I completely understand your frustration"
+- Seja mais atencioso e cuidadoso na resposta
+- NÃO seja defensivo - mostre que se importa de verdade
+- Depois da empatia, prossiga normalmente com a resposta para a categoria do email
+- NÃO mencione que "detectamos frustração" - isso é interno. Apenas seja empático naturalmente.` : ''}
 REGRA CRÍTICA - IDENTIDADE (NUNCA VIOLAR - PRIORIDADE MÁXIMA):
 - NUNCA diga que você é uma IA, assistente virtual, robô, automação, bot ou atendimento automatizado
 - NUNCA mencione "inteligência artificial", "sistema automático", "sou um programa" ou termos similares

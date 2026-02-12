@@ -723,7 +723,11 @@ async function processMessage(
       classification.category,
       conversationHistory,
       shopifyData,
-      classification.language
+      classification.language,
+      0, // retentionContactCount
+      [], // additionalOrders
+      [], // emailImages
+      classification.sentiment || 'calm'
     );
 
     // Se a IA detectou que é terceiro contato de cancelamento, encaminhar para humano

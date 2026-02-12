@@ -915,7 +915,9 @@ async function processMessage(
       fulfillment_status: order.fulfillment_status,
       items: order.items || [],
       customer_name: order.customer_name,
-    }))
+    })),
+    [], // emailImages
+    classification.sentiment || 'calm',
   );
 
   await logProcessingEvent({
