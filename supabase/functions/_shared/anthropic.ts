@@ -2252,51 +2252,80 @@ function detectHallucinations(
     }
   }
 
-  // 4. Detectar frases proibidas que revelam IA ou são robóticas (TODOS OS IDIOMAS)
-  const escapedName = shopContext.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const bannedPhrases = [
-    // Assinaturas formais proibidas
-    /atenciosamente/i,
-    /sincerely/i,
-    /best regards/i,
-    /kind regards/i,
-    /mit freundlichen grüßen/i,
-    /cordialmente/i,
-    /cordialement/i,
-    /cordiali saluti/i,
-    /con cordiales saludos/i,
-    /s pozdravem/i,
-    /z poważaniem/i,
-    // Assinatura com nome da loja (proibido)
-    new RegExp(`suporte\\s+${escapedName}`, 'i'),
-    new RegExp(`equipe\\s+${escapedName}`, 'i'),
-    new RegExp(`team\\s+${escapedName}`, 'i'),
-    new RegExp(`l'équipe\\s+(?:de\\s+)?${escapedName}`, 'i'),
-    new RegExp(`equipo\\s+${escapedName}`, 'i'),
-    // Frases robóticas / IA
-    /assistente\s+virtual/i,
-    /virtual\s+assistant/i,
-    /n'h[ée]sitez\s+pas/i,
-    /don'?t\s+hesitate/i,
-    /no\s+dude\s+en/i,
-    /nicht\s+z[öo]gern/i,
-    /non\s+esit[ai]/i,
-    // Promessas falsas de verificar com equipes
-    /(?:vou|vais|je\s+vais|i\s+will|i'?ll|voy\s+a|ich\s+werde)\s+(?:contacter|contatar|contact|verificar|v[ée]rifier|check\s+with|consultar|consult)\s+(?:notre|nossa|our|nuestra|unser).{0,20}(?:[ée]quipe|equipa|team|equipo)/i,
-    // Promessas falsas de follow-up
-    /(?:vous\s+tenir\s+inform|keep\s+you\s+(?:informed|updated|posted)|te\s+manteré\s+informad|vi\s+terrò\s+aggiorna|mantê-lo\s+informad)/i,
-    // "Merci de votre patience" e variantes
-    /(?:merci\s+(?:de|pour)\s+votre\s+patience|thank\s+you\s+for\s+your\s+patience|gracias\s+por\s+su\s+paciencia|obrigad[oa]\s+pela\s+(?:sua\s+)?paci[eê]ncia)/i,
-  ];
+  // 4. DETECÇÃO ESTRUTURAL: Fechamentos formais (qualquer idioma)
+  // Em vez de listar cada frase, detecta o PADRÃO: despedida formal antes da assinatura
+  const formalClosings = /(?:atenciosamente|sinceramente|sincerely|best\s+regards|kind\s+regards|warm\s+regards|yours\s+(?:truly|faithfully|sincerely)|mit\s+freundlichen\s+grüßen|cordialmente|cordialement|cordiali\s+saluti|con\s+cordiales?\s+saludos|s\s+pozdravem|z\s+poważaniem|distinti\s+saluti|salutations?\s+distinguées?)/i;
+  if (formalClosings.test(responseText)) {
+    const match = responseText.match(formalClosings);
+    problems.push(`FORMAL_CLOSING: "${match?.[0]}"`);
+  }
 
-  for (const pattern of bannedPhrases) {
+  // 5. DETECÇÃO ESTRUTURAL: Assinaturas com nome da loja
+  const escapedName = shopContext.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const storeSignatures = [
+    new RegExp(`(?:suporte|equipe|team|l'équipe|equipo|support)\\s+(?:de\\s+|do\\s+)?${escapedName}`, 'i'),
+  ];
+  for (const pattern of storeSignatures) {
     if (pattern.test(responseText)) {
-      const match = responseText.match(pattern);
-      problems.push(`BANNED_PHRASE: "${match?.[0]}"`);
+      problems.push(`STORE_SIGNATURE: "${responseText.match(pattern)?.[0]}"`);
     }
   }
 
-  // 5. Detectar informação contraditória com dados do pedido (ex: "ainda não pagou" quando status é "Paid")
+  // 6. DETECÇÃO ESTRUTURAL: Frases robóticas / IA
+  const roboticPhrases = /(?:assistente\s+virtual|virtual\s+assistant|n'h[ée]sitez\s+pas|don'?t\s+hesitate|no\s+dude\s+en|nicht\s+z[öo]gern|non\s+esit[ai])/i;
+  if (roboticPhrases.test(responseText)) {
+    const match = responseText.match(roboticPhrases);
+    problems.push(`ROBOTIC_PHRASE: "${match?.[0]}"`);
+  }
+
+  // 7. DETECÇÃO ESTRUTURAL: Promessas de ação futura (primeira pessoa + verbo de ação externa)
+  // Lógica: detecta QUALQUER promessa de fazer algo que a IA não pode executar
+  // Organizado por idioma, cada um cobre TODOS os verbos de ação externa
+  const futureActionPromises = [
+    // PT: "vou/irei + verbo de ação que implica fazer algo fora do chat"
+    /(?:vou|irei|vais)\s+(?:verificar|investigar|analisar|averiguar|checar|contatar|consultar|processar|cancelar|resolver|agilizar|encaminhar|solicitar|providenciar|entrar\s+em\s+contato)/i,
+    // PT: "entrarei em contato com X" (forma conjugada direta)
+    /entrarei\s+em\s+contato/i,
+    // EN: "I will/I'll + action verb"
+    /(?:i\s+will|i'?ll)\s+(?:check|investigate|verify|contact|reach\s+out|process|cancel|resolve|speed\s+up|forward|request|look\s+into|get\s+(?:back|in\s+touch))/i,
+    // FR: "je vais + action verb"
+    /(?:je\s+vais)\s+(?:v[ée]rifier|investiguer|contacter|traiter|annuler|r[ée]soudre|examiner|transmettre|acc[ée]l[ée]rer)/i,
+    // DE: "ich werde + action verb"
+    /(?:ich\s+werde)\s+(?:überprüfen|untersuchen|kontaktieren|bearbeiten|stornieren|lösen|weiterleiten|beschleunigen)/i,
+    // ES: "voy a + action verb"
+    /(?:voy\s+a)\s+(?:verificar|investigar|contactar|procesar|cancelar|resolver|agilizar|reenviar)/i,
+    // IT: "vado a/farò + action verb"
+    /(?:(?:vado\s+a|far[òo])\s+(?:verificare|investigare|contattare|processare|cancellare|risolvere|inoltrare))/i,
+  ];
+  for (const pattern of futureActionPromises) {
+    if (pattern.test(responseText)) {
+      const match = responseText.match(pattern);
+      problems.push(`FALSE_PROMISE: "${match?.[0]}"`);
+      break; // Uma promessa é suficiente para flaggar
+    }
+  }
+
+  // 8. DETECÇÃO ESTRUTURAL: "aguarde/espere enquanto eu faço X"
+  if (/(?:aguarde|espere|wait|attendez|warten|aspett).{0,30}(?:enquanto|while|pendant|während|mentre)/i.test(responseText)) {
+    const match = responseText.match(/(?:aguarde|espere|wait|attendez|warten|aspett).{0,30}(?:enquanto|while|pendant|während|mentre)/i);
+    problems.push(`WAIT_PROMISE: "${match?.[0]}"`);
+  }
+
+  // 9. DETECÇÃO ESTRUTURAL: Promessas de follow-up / manter informado
+  const followUpPromises = /(?:(?:vous|te|lo|la|vi)\s+(?:tenir|manter|mantener|tenere).{0,10}(?:inform|aggiorna|atualiz)|keep\s+you\s+(?:informed|updated|posted)|(?:darei|lhe\s+darei).{0,15}(?:atualiza[çc][ãa]o|retorno|update)|i'?ll\s+(?:give|provide|send)\s+(?:you\s+)?(?:an?\s+)?update)/i;
+  if (followUpPromises.test(responseText)) {
+    const match = responseText.match(followUpPromises);
+    problems.push(`FOLLOWUP_PROMISE: "${match?.[0]}"`);
+  }
+
+  // 10. DETECÇÃO ESTRUTURAL: Agradecimentos por paciência/compreensão (frase vazia)
+  const emptyGratitude = /(?:(?:obrigad[oa]|agrade[çc]o|merci|thank\s+you|gracias|danke|grazie)\s+(?:pela|por|de|pour|for|für|per|a?\s*sua)\s+(?:paci[eê]ncia|compreens[ãa]o|patience|understanding|compreh?ension|paciencia|geduld|pazienza|comprensione))/i;
+  if (emptyGratitude.test(responseText)) {
+    const match = responseText.match(emptyGratitude);
+    problems.push(`EMPTY_GRATITUDE: "${match?.[0]}"`);
+  }
+
+  // 11. Detectar informação contraditória com dados do pedido
   if (/(?:ainda não pagou|hasn't paid|not yet paid|n'a pas encore payé)/i.test(text)) {
     problems.push(`CONTRADICTION: claims customer hasn't paid`);
   }
