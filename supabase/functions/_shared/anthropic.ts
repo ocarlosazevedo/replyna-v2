@@ -76,58 +76,12 @@ function detectLanguageFromText(text: string): string | null {
   const words = lowerText.split(/\s+/);
   const firstWords = words.slice(0, 10).join(' '); // Primeiras 10 palavras
 
-  // INGLÊS - Padrões muito claros
-  const englishPatterns = [
-    // Saudações
-    /^hi\b/i, /^hello\b/i, /^hey\b/i, /^dear\b/i, /^good morning/i, /^good afternoon/i, /^good evening/i,
-    /^greetings?\b/i, // "Greeting" ou "Greetings"
-    // Pronomes e verbos comuns no início
-    /^i\s+(would|want|need|have|am|was|received|ordered|bought|paid|can't|cannot|didn't|don't)/i,
-    /^my\s+(order|package|item|product|glasses|purchase)/i,
-    /^please\b/i, /^thank you/i, /^thanks\b/i,
-    // Perguntas - no início
-    /^where\s+is/i, /^when\s+will/i, /^can\s+(you|i)/i, /^could\s+you/i, /^how\s+(do|can|long)/i,
-    /^what\s+(is|are|about)/i, /^why\s+(is|did|has)/i,
-    // Perguntas - em qualquer posição (muito comum)
-    /\bcan\s+i\b/i, /\bcould\s+i\b/i, /\bmay\s+i\b/i,
-    /\bdo\s+you\b/i, /\bare\s+you\b/i, /\bis\s+(it|this|that|there)\b/i,
-    // Frases comuns de e-commerce
-    /refund/i, /tracking/i, /delivery/i, /shipping/i, /arrived/i, /received/i,
-    /order\s*#?\d+/i, /cancel/i, /return/i, /exchange/i,
-    // Perguntas sobre pessoas/contato
-    /\b(owner|manager|supervisor|someone)\b/i,
-    /\b(speak|talk|chat)\s+(with|to)\b/i,
-    // Palavras exclusivamente inglesas (não existem em português/espanhol)
-    /\b(the|with|store|shop)\b/i,
-    /\b(just|have|has|had|been|would|could|should|still|waiting|want|need)\b/i,
-    // Palavras comuns em inglês - ADICIONADO para melhor detecção
-    /\bsorry\b/i, // "Sorry" - muito comum em inglês
-    /\bkeep\s+(it|me|going|coming)/i, // "keep it", "keep me", "keep going", "keep coming"
-    /\b(coming|going|waiting|looking|getting|making|taking)\b/i, // Gerunds comuns
-    /\badvise\b/i, // "please advise" - comum em emails
-    /\bregards\b/i, // "Regards", "Best regards" - assinatura comum
-    /\b(it's|that's|there's|here's|what's|who's|how's)\b/i, // Contrações com 's
-    /\b(don't|doesn't|didn't|won't|wouldn't|can't|couldn't|isn't|aren't|wasn't|weren't|haven't|hasn't|hadn't)\b/i, // Contrações negativas
-    /\b(i'm|you're|we're|they're|he's|she's)\b/i, // Contrações de pronome + verbo
-    /\b(let me|let us|let's)\b/i, // "let me know", "let's"
-    /\bplease\s+(advise|confirm|let|send|check|update)/i, // Frases comuns com "please"
-    /\b(any|some)\s+(news|update|information|help)\b/i, // "any news", "some help"
-    /\bby\s+(the|end|next)\s+(of|week|month|day)/i, // "by the end of", "by next week"
-    /\b(end\s+of\s+(the\s+)?(week|month|day))\b/i, // "end of the week"
-    /\b(as\s+soon\s+as|asap)\b/i, // "as soon as possible", "ASAP"
-    /\bpaypal\b/i, // PayPal - comum em e-commerce
-  ];
-
-  // Verificar padrões de inglês
-  for (const pattern of englishPatterns) {
-    if (pattern.test(lowerText) || pattern.test(firstWords)) {
-      console.log(`[detectLanguage] English detected by pattern: ${pattern}`);
-      return 'en';
-    }
-  }
-
   // ============================================================================
   // ETAPA 1: Verificar palavras ÚNICAS de cada idioma (não ambíguas)
+  // Verificar ANTES do inglês porque palavras inglesas como "store", "shop",
+  // "the" aparecem frequentemente em emails de outros idiomas (citações,
+  // nomes de loja, endereços de email), mas palavras como "objednávka" (CZ),
+  // "bestellung" (DE), "zboží" (CZ) são exclusivas de seus idiomas.
   // ============================================================================
 
   // ESPANHOL - Palavras ÚNICAS (não existem em português)
@@ -215,8 +169,229 @@ function detectLanguageFromText(text: string): string | null {
     }
   }
 
+  // TCHECO (Czech) - Palavras ÚNICAS
+  const czechUniquePatterns = [
+    /^dobrý den\b/i, /^ahoj\b/i, /^zdravím\b/i,
+    /\b(objednávka|objednávce|objednávku|objednávky)\b/i, // order
+    /\b(zboží|zboží)\b/i, // goods
+    /\b(prosím|děkuji|děkuju)\b/i, // please, thank you
+    /\b(reklamace|vrácení|výměna)\b/i, // complaint, return, exchange
+    /\b(dorazilo|dorazil|dorazila|dorazily)\b/i, // arrived
+    /\b(potřebuji|potřebuju|chci|chtěl|chtěla)\b/i, // I need, I want
+    /\b(můžete|nemůžu|nemůžete)\b/i, // can you, I can't
+    /\b(jak|kde|kdy|proč|kolik)\b/i, // how, where, when, why, how much
+    /\b(jiné|jiný|špatné|špatný|správné)\b/i, // different, wrong, correct
+    /\b(zásilka|zásilku|balík|balíček)\b/i, // shipment, package
+    /\b(peníze|peněz|zpět)\b/i, // money, back
+    /\b(postupovat|postup)\b/i, // proceed, procedure
+    /\b(dobrý|dobré|potvrzena|potvrzení)\b/i, // good, confirmed
+  ];
+
+  for (const pattern of czechUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Czech detected by UNIQUE word: ${pattern}`);
+      return 'cs';
+    }
+  }
+
+  // HOLANDÊS (Dutch) - Palavras ÚNICAS (sem "hallo" pois conflita com DE)
+  const dutchUniquePatterns = [
+    /^goedemorgen\b/i, /^goedemiddag\b/i, /^goedenavond\b/i, /^geachte\b/i,
+    /\b(bestelling|bezorging|terugbetaling|retourneren)\b/i,
+    /\b(bedankt|alstublieft|ontvangen)\b/i,
+    /\b(verkeerd|artikel|pakket)\b/i,
+  ];
+
+  for (const pattern of dutchUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Dutch detected by UNIQUE word: ${pattern}`);
+      return 'nl';
+    }
+  }
+
+  // POLONÊS (Polish) - Palavras ÚNICAS
+  const polishUniquePatterns = [
+    /^dzień dobry\b/i, /^cześć\b/i, /^witam\b/i,
+    /\b(zamówienie|zamówienia|przesyłka|przesyłki)\b/i,
+    /\b(dziękuję|proszę|potrzebuję)\b/i,
+    /\b(zwrot|reklamacja|wymiana)\b/i,
+  ];
+
+  for (const pattern of polishUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Polish detected by UNIQUE word: ${pattern}`);
+      return 'pl';
+    }
+  }
+
+  // RUSSO (Russian) - Palavras ÚNICAS (Cyrillic)
+  const russianUniquePatterns = [
+    /^здравствуйте\b/i, /^привет\b/i, /^добрый день\b/i,
+    /\b(заказ|заказа|доставка|возврат)\b/i,
+    /\b(спасибо|пожалуйста|получил|получила)\b/i,
+    /\b(товар|посылка|деньги)\b/i,
+  ];
+
+  for (const pattern of russianUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Russian detected by UNIQUE word: ${pattern}`);
+      return 'ru';
+    }
+  }
+
+  // TURCO (Turkish) - Palavras ÚNICAS
+  const turkishUniquePatterns = [
+    /^merhaba\b/i, /^iyi günler\b/i, /^selam\b/i,
+    /\b(sipariş|siparişim|teslimat|iade)\b/i,
+    /\b(teşekkür|lütfen|aldım|gönderdim)\b/i,
+  ];
+
+  for (const pattern of turkishUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Turkish detected by UNIQUE word: ${pattern}`);
+      return 'tr';
+    }
+  }
+
+  // SUECO (Swedish) - Palavras ÚNICAS
+  const swedishUniquePatterns = [
+    /^hej\b/i, /^god morgon\b/i, /^god kväll\b/i,
+    /\b(beställning|leverans|återbetalning|retur)\b/i,
+    /\b(tack|vänligen|mottog|mottaget)\b/i,
+  ];
+
+  for (const pattern of swedishUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Swedish detected by UNIQUE word: ${pattern}`);
+      return 'sv';
+    }
+  }
+
+  // DINAMARQUÊS (Danish) - Palavras ÚNICAS
+  const danishUniquePatterns = [
+    /^goddag\b/i, /^god morgen\b/i,
+    /\b(bestilling|levering|refusion|returnering)\b/i,
+    /\b(tak|venligst|modtaget|modtog)\b/i,
+  ];
+
+  for (const pattern of danishUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Danish detected by UNIQUE word: ${pattern}`);
+      return 'da';
+    }
+  }
+
+  // NORUEGUÊS (Norwegian) - Palavras ÚNICAS
+  const norwegianUniquePatterns = [
+    /^hei\b/i, /^god dag\b/i, /^god morgen\b/i,
+    /\b(bestilling|levering|refusjon|retur)\b/i,
+    /\b(takk|vennligst|mottatt|mottok)\b/i,
+  ];
+
+  for (const pattern of norwegianUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Norwegian detected by UNIQUE word: ${pattern}`);
+      return 'no';
+    }
+  }
+
+  // FINLANDÊS (Finnish) - Palavras ÚNICAS
+  const finnishUniquePatterns = [
+    /^hei\b/i, /^moi\b/i, /^terve\b/i, /^hyvää päivää\b/i,
+    /\b(tilaus|tilauksen|toimitus|palautus)\b/i,
+    /\b(kiitos|ole hyvä|sain|tilasin)\b/i,
+  ];
+
+  for (const pattern of finnishUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Finnish detected by UNIQUE word: ${pattern}`);
+      return 'fi';
+    }
+  }
+
+  // ROMENO (Romanian) - Palavras ÚNICAS (sem "salut" pois conflita com FR)
+  const romanianUniquePatterns = [
+    /^bună ziua\b/i, /^bună\b/i,
+    /\b(comandă|comanda|livrare|rambursare)\b/i,
+    /\b(mulțumesc|vă rog|primit|trimis)\b/i,
+  ];
+
+  for (const pattern of romanianUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Romanian detected by UNIQUE word: ${pattern}`);
+      return 'ro';
+    }
+  }
+
+  // HÚNGARO (Hungarian) - Palavras ÚNICAS
+  const hungarianUniquePatterns = [
+    /^jó napot\b/i, /^szia\b/i, /^üdvözlöm\b/i,
+    /\b(rendelés|szállítás|visszatérítés|csomag)\b/i,
+    /\b(köszönöm|kérem|kaptam|rendeltem)\b/i,
+  ];
+
+  for (const pattern of hungarianUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Hungarian detected by UNIQUE word: ${pattern}`);
+      return 'hu';
+    }
+  }
+
   // ============================================================================
-  // ETAPA 2: Verificar palavras AMBÍGUAS (APENAS para PT/ES)
+  // ETAPA 2: INGLÊS - Verificar DEPOIS de todos os idiomas não-ingleses
+  // Palavras inglesas como "store", "shop", "the" podem aparecer em emails
+  // de outros idiomas (texto citado, nomes de loja, endereços de email).
+  // Se chegou aqui, nenhuma palavra única de outro idioma foi encontrada.
+  // ============================================================================
+  const englishPatterns = [
+    // Saudações
+    /^hi\b/i, /^hello\b/i, /^hey\b/i, /^dear\b/i, /^good morning/i, /^good afternoon/i, /^good evening/i,
+    /^greetings?\b/i,
+    // Pronomes e verbos comuns no início
+    /^i\s+(would|want|need|have|am|was|received|ordered|bought|paid|can't|cannot|didn't|don't)/i,
+    /^my\s+(order|package|item|product|glasses|purchase)/i,
+    /^please\b/i, /^thank you/i, /^thanks\b/i,
+    // Perguntas - no início
+    /^where\s+is/i, /^when\s+will/i, /^can\s+(you|i)/i, /^could\s+you/i, /^how\s+(do|can|long)/i,
+    /^what\s+(is|are|about)/i, /^why\s+(is|did|has)/i,
+    // Perguntas - em qualquer posição
+    /\bcan\s+i\b/i, /\bcould\s+i\b/i, /\bmay\s+i\b/i,
+    /\bdo\s+you\b/i, /\bare\s+you\b/i, /\bis\s+(it|this|that|there)\b/i,
+    // Frases comuns de e-commerce
+    /refund/i, /tracking/i, /delivery/i, /shipping/i, /arrived/i, /received/i,
+    /order\s*#?\d+/i, /cancel/i, /return/i, /exchange/i,
+    // Perguntas sobre pessoas/contato
+    /\b(owner|manager|supervisor|someone)\b/i,
+    /\b(speak|talk|chat)\s+(with|to)\b/i,
+    // Palavras exclusivamente inglesas
+    /\b(the|with|store|shop)\b/i,
+    /\b(just|have|has|had|been|would|could|should|still|waiting|want|need)\b/i,
+    /\bsorry\b/i,
+    /\bkeep\s+(it|me|going|coming)/i,
+    /\b(coming|going|waiting|looking|getting|making|taking)\b/i,
+    /\badvise\b/i,
+    /\bregards\b/i,
+    /\b(it's|that's|there's|here's|what's|who's|how's)\b/i,
+    /\b(don't|doesn't|didn't|won't|wouldn't|can't|couldn't|isn't|aren't|wasn't|weren't|haven't|hasn't|hadn't)\b/i,
+    /\b(i'm|you're|we're|they're|he's|she's)\b/i,
+    /\b(let me|let us|let's)\b/i,
+    /\bplease\s+(advise|confirm|let|send|check|update)/i,
+    /\b(any|some)\s+(news|update|information|help)\b/i,
+    /\bby\s+(the|end|next)\s+(of|week|month|day)/i,
+    /\b(end\s+of\s+(the\s+)?(week|month|day))\b/i,
+    /\b(as\s+soon\s+as|asap)\b/i,
+    /\bpaypal\b/i,
+  ];
+
+  for (const pattern of englishPatterns) {
+    if (pattern.test(lowerText) || pattern.test(firstWords)) {
+      console.log(`[detectLanguage] English detected by pattern: ${pattern}`);
+      return 'en';
+    }
+  }
+
+  // ============================================================================
+  // ETAPA 3: Verificar palavras AMBÍGUAS (APENAS para PT/ES)
   // Outros idiomas já foram verificados acima
   // ============================================================================
 
@@ -577,6 +752,24 @@ export function isSpamByPattern(subject: string, body: string): boolean {
     // === COMPLIMENTING STORE DESIGN (opener for cold outreach) ===
     /\b(i\s+like|love)\s+how\s+(clean|nice|great|beautiful)\s+your\s+(product\s+page|store|shop|website)\s+looks/i,
     /\bI\s+was\s+checking\s+out\s+your\s+store/i,
+
+    // === COMMISSION / AFFILIATE / BUSINESS PROPOSALS ===
+    /\bnegociar\s+(uma\s+)?comiss(ã|a)o/i,
+    /\bnegotiate\s+(a\s+)?commission/i,
+    /\bcomiss(ã|a)o\s+de\s+\d+\s*%/i,
+    /\bcommission\s+(of\s+)?\d+\s*%/i,
+    /\b(programa|program)\s+de\s+(afiliados?|affiliat)/i,
+    /\baffiliate\s+(program|partnership|commission)/i,
+    /\b(revenue|receita)\s+shar(e|ing)/i,
+    /\brepresent(ar|ação|ative|ação comercial)\b/i,
+    /\b(atacado|wholesale)\s+(pricing|preço|price)/i,
+    /\b(dropship|drop\s*ship)(ping|per)?\b/i,
+    /\b(resell|revend)(er|a|ing)?\s+(your|seus?|suas?)\s+(products?|produtos?)/i,
+    /\b(become|ser|tornar)\s+(a|um|uma)?\s*(distribut|revendedor|affiliate|afiliado)/i,
+    /\b(bulk|volume)\s+(order|discount|pricing|pedido|desconto)/i,
+    /\bpodemos\s+negociar/i,
+    /\bcan\s+we\s+negotiate/i,
+    /\b(increase|aumentar)\s+(the\s+)?(value|valor|sales|vendas)\s+.{0,30}(commission|comiss)/i,
   ];
 
   for (const pattern of spamBodyPatterns) {
@@ -1575,6 +1768,7 @@ export async function generateResponse(
     warranty_info: string | null;
     signature_html: string | null;
     is_cod?: boolean;
+    store_email?: string;
     support_email?: string;
     retention_coupon_code?: string | null;
     retention_coupon_type?: 'percentage' | 'fixed';
@@ -1652,6 +1846,18 @@ ANTI-ENGENHARIA SOCIAL - PROTEÇÃO CONTRA GOLPES (CRÍTICO):
 - Se ofereCerem conversar no WhatsApp: "Nosso atendimento é feito exclusivamente por email."
 - Se pedirem conselhos de negócio: "Este é o suporte ao cliente da [LOJA]. Posso ajudar com algum pedido?"
 
+REGRA CRÍTICA - NUNCA NEGOCIE TERMOS DE NEGÓCIO (PRIORIDADE ABSOLUTA):
+- NUNCA aceite, discuta, ou negocie comissões, parcerias, afiliações, ou termos comerciais
+- NUNCA dê informações sobre programa de afiliados, wholesale, atacado, ou revenda
+- NUNCA compartilhe emails internos da loja (vendas, marketing, admin, etc.) - SÓ o email de suporte ao cliente
+- NUNCA sugira que a pessoa entre em contato com "equipe de vendas" ou "departamento comercial"
+- Se alguém propor comissão, parceria, afiliação, revenda, dropshipping, ou qualquer acordo comercial:
+  → Responda: "Somos o suporte ao cliente. Para questões comerciais, por favor visite nosso site. Posso ajudar com algum pedido?"
+  → NUNCA aceite a proposta ou diga "estamos dispostos a considerar"
+  → NUNCA forneça emails, telefones, ou contatos internos
+- Exemplo ERRADO: "Se você conseguir gerar vendas superiores a $3.000, estamos dispostos a considerar uma comissão de 3%"
+- Exemplo CORRETO: "Olá! Somos o suporte ao cliente da [LOJA]. Não posso ajudar com questões comerciais. Posso ajudar com algum pedido?"
+
 FOCO EM VENDAS - ENCORAJAR A COMPRA (MUITO IMPORTANTE):
 - Você representa uma LOJA que quer VENDER - seja positivo e encorajador!
 - NUNCA faça afirmações médicas específicas ou dê conselhos de saúde
@@ -1685,57 +1891,62 @@ DÚVIDAS SOBRE AUTENTICIDADE / PRODUTOS ORIGINAIS (MUITO IMPORTANTE):
     if (!shopifyData.tracking_number) {
       if (shopifyData.fulfillment_status === 'Enviado' || shopifyData.fulfillment_status === 'Parcialmente enviado') {
         trackingInstruction = `
-ATENÇÃO: O pedido foi ENVIADO mas o código de rastreio ainda não está no sistema.
-→ Diga ao cliente que o pedido foi enviado e está a caminho
-→ Informe que o código de rastreio será enviado assim que estiver disponível
-→ NUNCA peça ao cliente para fornecer o tracking - é responsabilidade da loja`;
+NOTE: Order was SHIPPED but tracking code is not yet in the system.
+→ Tell the customer the order has been shipped and is on the way
+→ Inform that the tracking code will be sent as soon as available
+→ NEVER ask the customer to provide tracking - it's the store's responsibility
+(⚠️ RESPOND in the customer's language: ${language}, NOT in Portuguese!)`;
       } else {
         trackingInstruction = `
-ATENÇÃO: O pedido ainda está AGUARDANDO ENVIO.
-→ Informe ao cliente que o pedido está sendo preparado
-→ Diga que assim que for enviado, ele receberá o código de rastreio
-→ NUNCA peça ao cliente para fornecer o tracking`;
+NOTE: Order is still AWAITING SHIPMENT.
+→ Tell the customer the order is being prepared
+→ Say that once shipped, they will receive the tracking code
+→ NEVER ask the customer to provide tracking
+(⚠️ RESPOND in the customer's language: ${language}, NOT in Portuguese!)`;
       }
     }
 
     shopifyContext = `
-DADOS DO PEDIDO DO CLIENTE:
-- Número do pedido: ${shopifyData.order_number}
-- Data: ${shopifyData.order_date || 'N/A'}
-- Valor total: ${shopifyData.order_total || 'N/A'}
-- Status de envio: ${shopifyData.fulfillment_status || 'N/A'}
-- Status do pagamento: ${shopifyData.order_status || 'N/A'}
-- Código de rastreio: ${shopifyData.tracking_number || 'Ainda não disponível'}
-- Link de rastreio: ${shopifyData.tracking_url || 'N/A'}
-- Itens: ${shopifyData.items.map((i) => `${i.name} (x${i.quantity})`).join(', ') || 'N/A'}
-- Nome do cliente: ${shopifyData.customer_name || 'N/A'}${trackingInstruction}`;
+CUSTOMER ORDER DATA / DADOS DO PEDIDO DO CLIENTE:
+(⚠️ These labels are in Portuguese for internal use. RESPOND in the customer's language: ${language})
+- Order number / Número do pedido: ${shopifyData.order_number}
+- Date / Data: ${shopifyData.order_date || 'N/A'}
+- Total / Valor total: ${shopifyData.order_total || 'N/A'}
+- Shipping status / Status de envio: ${shopifyData.fulfillment_status || 'N/A'}
+- Payment status / Status do pagamento: ${shopifyData.order_status || 'N/A'}
+- Tracking code / Código de rastreio: ${shopifyData.tracking_number || 'Not yet available / Ainda não disponível'}
+- Tracking link / Link de rastreio: ${shopifyData.tracking_url || 'N/A'}
+- Items / Itens: ${shopifyData.items.map((i) => `${i.name} (x${i.quantity})`).join(', ') || 'N/A'}
+- Customer name / Nome do cliente: ${shopifyData.customer_name || 'N/A'}${trackingInstruction}`;
 
     // Se houver pedidos adicionais, incluir no contexto
     if (additionalOrders.length > 0) {
-      shopifyContext += `\n\nPEDIDOS ADICIONAIS DO CLIENTE (responda sobre TODOS se relevante):`;
+      shopifyContext += `\n\nADDITIONAL CUSTOMER ORDERS (respond about ALL if relevant):`;
       for (const order of additionalOrders) {
         if (order.order_number) {
           shopifyContext += `\n
---- Pedido #${order.order_number} ---
-- Data: ${order.order_date || 'N/A'}
-- Valor total: ${order.order_total || 'N/A'}
-- Status de envio: ${order.fulfillment_status || 'N/A'}
-- Status do pagamento: ${order.order_status || 'N/A'}
-- Código de rastreio: ${order.tracking_number || 'Ainda não disponível'}
-- Link de rastreio: ${order.tracking_url || 'N/A'}
-- Itens: ${order.items.map((i) => `${i.name} (x${i.quantity})`).join(', ') || 'N/A'}`;
+--- Order #${order.order_number} ---
+- Date / Data: ${order.order_date || 'N/A'}
+- Total / Valor: ${order.order_total || 'N/A'}
+- Shipping status / Status de envio: ${order.fulfillment_status || 'N/A'}
+- Payment status / Status do pagamento: ${order.order_status || 'N/A'}
+- Tracking code / Rastreio: ${order.tracking_number || 'Not yet available'}
+- Tracking link: ${order.tracking_url || 'N/A'}
+- Items / Itens: ${order.items.map((i) => `${i.name} (x${i.quantity})`).join(', ') || 'N/A'}`;
         }
       }
       shopifyContext += `\n
-IMPORTANTE: O cliente mencionou MÚLTIPLOS pedidos. Forneça informações sobre TODOS os pedidos relevantes na sua resposta.`;
+IMPORTANT: Customer mentioned MULTIPLE orders. Provide info about ALL relevant orders in your response.`;
     }
   }
 
   // Montar informações da loja
+  const mainStoreEmail = shopContext.store_email || shopContext.support_email || '';
   let storeInfo = `
 INFORMAÇÕES DA LOJA:
 - Nome: ${shopContext.name}
-- Seu nome (atendente): ${shopContext.attendant_name}`;
+- Seu nome (atendente): ${shopContext.attendant_name}
+- Email principal da loja (o email que o cliente está usando para falar conosco): ${mainStoreEmail}`;
 
   // ================================================================================
   // DESCRIÇÃO DA LOJA E INSTRUÇÕES PERSONALIZADAS
@@ -1953,16 +2164,25 @@ ${codPreDelivery ? 'MODE / MODO: COD PRE-DELIVERY (cliente NÃO pagou - retenç�
 ${retentionContactCount === 1 ? `
 ***** FIRST CONTACT (COUNTER = 1) / PRIMEIRO CONTATO *****
 ${codPreDelivery ? `
+⛔⛔⛔ BLOQUEIO ABSOLUTO - LEIA COM ATENÇÃO ⛔⛔⛔
+Este é o CONTATO 1 de uma loja COD PRÉ-ENTREGA.
+O cliente NÃO PAGOU NADA. Não há email de suporte para fornecer agora.
+Você NÃO TEM PERMISSÃO para mencionar QUALQUER email nesta resposta.
+Mesmo que o cliente tenha recusado o pacote, recebido produto errado, ou esteja frustrado:
+→ O argumento "ZERO RISCO" é sua ÚNICA ferramenta agora.
+→ Próximo email com suporte disponível: APENAS no contato ${forwardThreshold}.
+
 COD PRE-DELIVERY SCRIPT (ZERO RISK STRATEGY):
 YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
 1. Reassure the customer they have ZERO financial risk / Tranquilize que tem ZERO risco
 2. Emphasize they haven't paid anything yet / Enfatize que não pagou nada
 3. Say "When you receive it, if you don't like it, just refuse the delivery - no cost!" / "Se não gostar, recuse na entrega!"
-4. Highlight they can SEE and TOUCH the product before paying / Pode ver e tocar antes de pagar
-5. Mark order with SPECIAL PREFERENCE / Marque com PREFERÊNCIA ESPECIAL
-6. DO NOT mention support email / NÃO mencionar email de suporte
-7. DO NOT mention refund (there was no payment!) / NÃO mencionar reembolso (não houve pagamento!)
-8. DO NOT say "I will escalate" or "I will process" / NÃO dizer "vou encaminhar"
+4. If customer ALREADY refused: say "We can resend it! You still have zero risk - refuse again if needed!" / "Podemos reenviar! Zero risco!"
+5. Highlight they can SEE and TOUCH the product before paying / Pode ver e tocar antes de pagar
+6. Mark order with SPECIAL PREFERENCE / Marque com PREFERÊNCIA ESPECIAL
+7. ⛔ DO NOT mention ANY email address / NÃO mencionar NENHUM email
+8. ⛔ DO NOT mention refund (there was no payment!) / NÃO mencionar reembolso
+9. ⛔ DO NOT say "I will escalate" or "contact support" / NÃO dizer "vou encaminhar" ou "contate suporte"
 
 EXAMPLE RESPONSE (adapt to customer's language):
 "Hello! I understand your concern and want to help!
@@ -1986,23 +2206,30 @@ I will mark your order with SPECIAL PREFERENCE in our system.
 Can you tell me what specifically worries you? I really want to help!"
 `}
 
-FORBIDDEN PHRASES:
+FORBIDDEN PHRASES (if ANY of these appear in your response, you FAILED):
 - "Let me escalate this"
 - "I will forward to our team"
 - "Please contact support"
+- "Please contact us at"
+- "contact our team at"
+- Any email address (e.g. urgent@..., support@..., rai.santos...)
 ${codPreDelivery ? '- "I will process your refund" (NO PAYMENT WAS MADE!)' : '- "I will process your refund"'}
+- "I will cancel your order"
+- "I can proceed with the cancellation"
 ` : ''}
 
 ${retentionContactCount === 2 ? `
 ***** SECOND CONTACT (COUNTER = 2) / SEGUNDO CONTATO *****
 ${codPreDelivery ? `
+⛔ BLOQUEIO: Contato 2 de ${forwardThreshold}. AINDA não forneça email de suporte!
+
 COD PRE-DELIVERY SCRIPT (ZERO RISK + BENEFIT):
 YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
 1. Reinforce ZERO RISK - "you haven't paid anything!" / Reforce ZERO RISCO
 2. Emphasize "just try it when it arrives, refuse if you don't like it" / "Experimente, recuse se não gostar"
 3. Offer a BENEFIT or DISCOUNT${shopContext.retention_coupon_code ? `: USE COUPON ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} OFF` : `${shopContext.retention_coupon_value}% OFF`})` : ''}` : ' (mention you are looking for coupons)'}
 4. Say the product is WORTH trying risk-free / Diga que vale a pena experimentar sem risco
-5. DO NOT mention support email / NÃO mencionar email de suporte
+5. ⛔ DO NOT mention ANY email address / NÃO mencionar NENHUM email
 
 EXAMPLE RESPONSE:
 "Hello! I checked and everything is PERFECT with your order!
@@ -2026,7 +2253,7 @@ Can I count on your trust a little longer?"
 
 ${codPreDelivery && retentionContactCount === 3 ? `
 ***** THIRD CONTACT (COUNTER = 3) - COD PRE-DELIVERY EXTRA CONTACT *****
-This is the EXTRA contact for COD pre-delivery. ONE MORE chance before escalation.
+⛔ BLOQUEIO: Contato 3 de ${forwardThreshold}. ÚLTIMO contato de retenção antes de escalar!
 
 COD PRE-DELIVERY SCRIPT (FINAL APPEAL):
 YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
@@ -2035,8 +2262,8 @@ YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
 3. Offer the BEST possible deal (coupon + any additional benefit)
 ${shopContext.retention_coupon_code ? `4. OFFER COUPON AGAIN: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} OFF` : `${shopContext.retention_coupon_value}% OFF`})` : ''}` : '4. Mention you are working to get a special discount'}
 5. Ask if there is ANY specific concern you can address / Pergunte se há algo específico
-6. DO NOT mention support email yet / NÃO mencionar email de suporte
-7. DO NOT add [FORWARD_TO_HUMAN]
+6. ⛔ DO NOT mention ANY email address yet / NÃO mencionar NENHUM email
+7. ⛔ DO NOT add [FORWARD_TO_HUMAN]
 
 EXAMPLE RESPONSE:
 "Hello! I really don't want you to miss out on this!
@@ -2085,6 +2312,14 @@ ${humanStyleInstructions}
 ${codInstructions}
 ${storeInfo}
 ${shopifyContext}
+${language !== 'pt' && language !== 'pt-BR' ? `
+═══════════════════════════════════════════════════════════════════════
+⚠️ LANGUAGE REMINDER: The data above is in Portuguese for internal use ONLY.
+Your response to the customer MUST be ENTIRELY in ${detectedLangName} (${language}).
+DO NOT translate Portuguese labels/instructions to the customer.
+DO NOT write "Status de envio", "Código de rastreio", etc. in your response.
+Use the EQUIVALENT terms in ${detectedLangName} (e.g., "Shipping status", "Tracking code").
+═══════════════════════════════════════════════════════════════════════` : ''}
 
 CATEGORIA DO EMAIL: ${category}
 
@@ -2217,16 +2452,23 @@ ${shopContext.attendant_name}"
 
 NUNCA INVENTAR INFORMAÇÕES DE CONTATO (REGRA CRÍTICA - PRIORIDADE MÁXIMA):
 - NUNCA invente números de telefone - se não foi fornecido, NÃO EXISTE
-- NUNCA invente endereços de email - use APENAS o email de suporte fornecido: ${shopContext.support_email}
+- NUNCA invente endereços de email - use APENAS os emails fornecidos abaixo
 - NUNCA invente nomes de pessoas - use APENAS seu nome: ${shopContext.attendant_name}
 - NUNCA invente endereços físicos, WhatsApp, redes sociais ou qualquer outro contato
 - NUNCA use números de exemplo como "01 23 45 67 89", "(11) 9999-9999", "+33 1 23 45 67 89"
 - NUNCA crie emails alternativos como "sophie@loja.com", "suporte2@loja.com", etc.
-- Se o cliente pedir telefone e não existe: "No momento, nosso atendimento é feito por email: ${shopContext.support_email}"
-- Se o cliente pedir outro canal: "Por favor, entre em contato pelo email ${shopContext.support_email}"
-- O ÚNICO email válido para contato é: ${shopContext.support_email}
 - O ÚNICO nome que você pode usar é: ${shopContext.attendant_name}
 - Se você não tem uma informação, NÃO INVENTE - diga que o atendimento é por email
+
+REGRA DE EMAILS DA LOJA (MUITO IMPORTANTE):
+- EMAIL PRINCIPAL DA LOJA: ${mainStoreEmail}
+  → Este é o email que o cliente está usando para falar conosco AGORA
+  → Se o cliente perguntar "este é o email correto?", "qual o email de contato?", "como entro em contato?" → CONFIRME que ${mainStoreEmail} é o email principal
+  → Se o cliente pedir telefone e não existe: "No momento, nosso atendimento é feito por email: ${mainStoreEmail}"
+  → Se o cliente pedir outro canal: "Por favor, entre em contato pelo email ${mainStoreEmail}"
+- EMAIL DE ESCALAÇÃO HUMANA: ${shopContext.support_email}
+  → Use este email APENAS para casos que precisam de atendimento humano (cancelamentos, reembolsos, produto errado, etc.)
+  → NUNCA forneça este email para perguntas gerais de contato
 
 NUNCA INVENTAR ENDEREÇOS DE DEVOLUÇÃO (REGRA CRÍTICA):
 - NUNCA invente endereços para devolução de produtos
@@ -2344,6 +2586,77 @@ REGRA CRÍTICA - RECONHEÇA QUANDO O CLIENTE DIZ QUE O PROBLEMA FOI RESOLVIDO:
 - NÃO peça mais informações do pedido se o cliente já disse que está resolvido
 - NÃO continue o atendimento anterior se o cliente confirmou que não precisa mais de ajuda
 
+REGRA CRÍTICA - PACOTE PERDIDO/RASTREIO NÃO FUNCIONA (PRIORIDADE MÁXIMA):
+⚠️ Se o cliente diz que o RASTREIO NÃO FUNCIONA ou a TRANSPORTADORA NÃO ENCONTRA o pacote:
+
+SINAIS DE PACOTE PERDIDO/RASTREIO INVÁLIDO (todos os idiomas):
+- Português: "rastreio não funciona", "não consigo rastrear", "transportadora não encontra", "GOFO não encontra", "telefone não atribuído", "não conseguem localizar"
+- Inglês: "tracking doesn't work", "can't track", "carrier can't find", "tracking not found", "phone not assigned", "cannot locate"
+- Alemão: "Sendungsverfolgung funktioniert nicht", "kann nicht verfolgen", "Spediteur kann nicht finden"
+- Espanhol: "rastreo no funciona", "no puedo rastrear", "transportista no encuentra"
+- Francês: "suivi ne fonctionne pas", "ne peut pas suivre", "transporteur ne trouve pas"
+- Italiano: "tracciamento non funziona", "non riesco a tracciare", "corriere non trova"
+
+✅ O QUE FAZER IMEDIATAMENTE (1ª RESPOSTA):
+1. RECONHEÇA o problema: "Entendo que o rastreio não está funcionando e a transportadora não consegue localizar o pacote"
+2. NÃO repita o mesmo número de rastreio que já não funciona
+3. OFEREÇA SOLUÇÃO IMEDIATA:
+   - Se passou do prazo de entrega → [FORWARD_TO_HUMAN] + email de suporte para reenvio ou reembolso
+   - Se ainda no prazo → Investigue com transportadora e dê retorno em 24h
+4. Adicione [FORWARD_TO_HUMAN] no início da resposta
+5. Forneça o email de suporte: ${shopContext.support_email}
+
+❌ O QUE NUNCA FAZER (LOOP PROIBIDO):
+- NUNCA envie o mesmo número de rastreio novamente se o cliente já disse que não funciona
+- NUNCA peça "confirme o endereço" se o cliente já enviou screenshots mostrando o problema
+- NUNCA peça "detalhes do pedido" se o cliente já forneceu tudo
+- NUNCA diga "use este link de rastreio" se o cliente já tentou e não funcionou
+- NUNCA repita a mesma resposta genérica mais de 2 vezes
+
+✅ EXEMPLO DE RESPOSTA CORRETA (PACOTE PERDIDO):
+"[FORWARD_TO_HUMAN] Olá [Nome],
+
+Entendo completamente sua frustração. Vejo que o rastreio YT2603100700967263 não está funcionando e a transportadora não consegue localizar o pacote.
+
+Como o prazo de entrega já foi excedido e o rastreio não está ativo, vou solicitar a análise imediata deste caso. Por favor, entre em contato através do email ${shopContext.support_email} para que possamos providenciar o reenvio do produto ou o reembolso total.
+
+Nossa equipe irá priorizar seu caso e responder em até 24 horas.
+
+Lamento muito pelo transtorno.
+
+Atenciosamente,
+${shopContext.attendant_name}"
+
+REGRA CRÍTICA - DETECTAR CONVERSAS EM LOOP (PRIORIDADE MÁXIMA):
+⚠️ Se você está respondendo a MESMA pergunta pela 3ª VEZ sem progresso:
+
+SINAIS DE LOOP:
+- Cliente repete a mesma reclamação 3+ vezes
+- Você já enviou o rastreio 2+ vezes mas cliente diz que não funciona
+- Cliente enviou screenshots mas você continua pedindo confirmação
+- Cliente está claramente frustrado ("já te disse isso", "acabei de enviar", "isso não funciona")
+
+✅ AÇÃO IMEDIATA (3ª RESPOSTA SEM PROGRESSO):
+1. PARE de repetir a mesma informação
+2. RECONHEÇA a frustração: "Peço desculpas pela repetição"
+3. MUDE A ABORDAGEM: ofereça solução diferente
+4. Se não há solução imediata → [FORWARD_TO_HUMAN] + email de suporte
+5. NÃO peça mais informações que o cliente já forneceu
+
+✅ EXEMPLO DE RESPOSTA PARA SAIR DO LOOP:
+"[FORWARD_TO_HUMAN] Olá [Nome],
+
+Peço desculpas por continuar solicitando informações que você já forneceu. Entendo sua frustração.
+
+Como o problema persiste e o rastreio não está funcionando, vou encaminhar seu caso diretamente para nossa equipe especializada. Por favor, entre em contato através do email ${shopContext.support_email} para que possamos resolver isso com urgência.
+
+Eles terão acesso completo ao seu caso e poderão tomar as providências necessárias imediatamente.
+
+Mais uma vez, minhas desculpas pelo inconveniente.
+
+Atenciosamente,
+${shopContext.attendant_name}"
+
 10. REGRA CRÍTICA - NUNCA USE PLACEHOLDERS NA RESPOSTA (EM NENHUM IDIOMA):
     - NUNCA use textos entre colchetes [ ] em NENHUM idioma
     - Exemplos de placeholders PROIBIDOS (em qualquer idioma):
@@ -2366,6 +2679,23 @@ REGRA CRÍTICA - RECONHEÇA QUANDO O CLIENTE DIZ QUE O PROBLEMA FOI RESOLVIDO:
     - NÃO inclua notas ou observações para você mesmo
     - Comece DIRETAMENTE com a saudação ao cliente (ex: "Olá [Nome]!")
     - A resposta deve parecer escrita por um humano, não por uma IA
+
+REGRA CRÍTICA - NUNCA PEÇA DADOS QUE VOCÊ JÁ TEM (PRIORIDADE MÁXIMA):
+- Se você tem DADOS DO PEDIDO DO CLIENTE acima, USE-OS diretamente na resposta
+- NUNCA peça ao cliente o número do pedido se ele já aparece nos DADOS DO PEDIDO
+- NUNCA peça ao cliente o tracking se ele já aparece nos DADOS DO PEDIDO
+- NUNCA diga "por favor, me forneça o número do pedido (#X) e o tracking (Y)" - isso é ABSURDO, você já tem esses dados!
+- Se você TEM os dados, RESPONDA com eles. Se NÃO tem, aí sim pode perguntar apenas o que falta
+- Exemplo ERRADO: "Para ajudá-la, me forneça o número do pedido (#16560) e o tracking (TRF123)" ← Você JÁ TEM esses dados!
+- Exemplo CORRETO: "Encontrei seu pedido #16560! O rastreio é TRF123 e o status atual é: Enviado."
+
+REGRA CRÍTICA - ALFÂNDEGA, FATURAS E DOCUMENTOS:
+- Se o cliente pede FATURA, INVOICE, NOTA FISCAL, ou documentos para ALFÂNDEGA/CUSTOMS:
+  → Você NÃO pode gerar esses documentos
+  → [FORWARD_TO_HUMAN] Diga que vai encaminhar para a equipe que pode fornecer a documentação necessária
+  → Inclua o email de suporte: ${shopContext.support_email || 'nossa equipe'}
+  → Exemplo: "Entendo que você precisa da fatura para liberar na alfândega. Vou encaminhar seu caso para nossa equipe que poderá fornecer a documentação necessária."
+  → NUNCA peça mais detalhes sobre a alfândega ao cliente - ele já disse o que precisa
 
 COMPORTAMENTO INTELIGENTE (REGRA CRÍTICA - SEGUIR SEMPRE):
 - RESPONDA APENAS ao que foi perguntado - NADA MAIS
@@ -2429,15 +2759,22 @@ FORMULÁRIO DE CONTATO VAZIO OU SEM MENSAGEM:
 
 === POLÍTICA DE CANCELAMENTO/REEMBOLSO ===
 
-IMPORTANTE: O email de atendimento é: ${shopContext.support_email}
+${retentionContactCount < forwardThreshold ? `
+⛔⛔⛔ ATENÇÃO: O email de suporte NÃO DEVE ser fornecido neste momento! ⛔⛔⛔
+O CONTADOR DE RETENÇÃO (${retentionContactCount}) é MENOR que o limite (${forwardThreshold}).
+Você NÃO tem permissão para mencionar NENHUM email de suporte/atendimento.
+${codPreDelivery ? 'MODO COD PRÉ-ENTREGA: O cliente NÃO pagou nada! Use argumento ZERO RISCO!' : ''}
+` : `IMPORTANTE: O email de atendimento é: ${shopContext.support_email}`}
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║  VERIFICAÇÃO OBRIGATÓRIA #1: CONTADOR DE RETENÇÃO (VERIFICAR PRIMEIRO!)      ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 CONTADOR ATUAL: ${retentionContactCount}
+LIMITE PARA FORNECER EMAIL: ${forwardThreshold}
 
-SE O CONTADOR >= 1, VOCÊ DEVE SEGUIR O FLUXO DE RETENÇÃO (PRIORIDADE 3).
+SE O CONTADOR >= 1 E CONTADOR < ${forwardThreshold}, VOCÊ DEVE SEGUIR O FLUXO DE RETENÇÃO (PRIORIDADE 3).
+⛔ NÃO forneça NENHUM email de suporte ou atendimento enquanto contador < ${forwardThreshold}!
 
 Isso significa que o cliente JÁ pediu cancelamento/reembolso antes e você DEVE:
 - Contador = 1 → ${codPreDelivery ? 'Mostrar que tem ZERO RISCO (COD: não pagou nada!)' : 'Fazer cliente se sentir especial'} (NÃO dê email de suporte!)
@@ -2449,12 +2786,23 @@ ${codPreDelivery ? `- Contador = 3 → COD: Último apelo zero risco + desconto 
 1. AMEAÇA LEGAL: cliente menciona "procon", "advogado", "processo", "justiça", "tribunal"
 2. PRODUTO JÁ DEVOLVIDO: cliente diz que JÁ ENVIOU o produto de volta (não que QUER devolver)
    Frases que indicam produto JÁ devolvido: "já devolvi", "enviei de volta", "vocês receberam"
+${codPreDelivery ? `
+⚠️⚠️⚠️ REGRA ESPECIAL COD PRÉ-ENTREGA - NÃO BYPASSE A RETENÇÃO! ⚠️⚠️⚠️
+Para COD pré-entrega, estas situações NÃO SÃO exceções (DEVEM passar pela retenção):
+- Cliente RECUSOU o pacote na entrega/coleta → Use retenção! (não pagou nada, zero risco)
+- Cliente diz que recebeu produto errado/diferente → Use retenção! (pode devolver sem custo)
+- Cliente diz que o pacote parece errado/tamanho errado → Use retenção! (não pagou, sem risco)
+- Cliente insatisfeito/frustrado → Use retenção!
+- QUALQUER situação que não seja ameaça legal ou produto JÁ devolvido → Use retenção!
+O argumento principal: "Você NÃO pagou nada! Se não gostar, recuse/devolva sem custo algum!"
+` : ''}
 
 Se NENHUMA dessas exceções se aplicar e CONTADOR >= 1:
 → VÁ DIRETO PARA PRIORIDADE 3 (fluxo de retenção)
 → NÃO forneça email de suporte
 → NÃO mencione reembolso
 → SIGA o script de retenção baseado no contador
+${retentionContactCount < forwardThreshold ? `→ ⛔ LEMBRETE: Contador ${retentionContactCount} < Limite ${forwardThreshold} = NÃO FORNEÇA EMAIL!` : ''}
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║  VERIFICAÇÃO #2: STATUS DO PEDIDO (Pedido em trânsito)                       ║
@@ -2502,9 +2850,16 @@ NÃO são exceções (DEVEM passar pela retenção):
 - Produto com defeito simples (use retenção, tente resolver)
 - Atraso na entrega (use retenção, tranquilize o cliente)
 - Cliente dizendo "quero meu dinheiro de volta" (use retenção se contador < ${forwardThreshold})
+${codPreDelivery ? `- Cliente RECUSOU pacote na entrega/coleta (use retenção - não pagou nada!)
+- Cliente diz que recebeu produto errado/diferente (use retenção COD - pode recusar/devolver sem custo!)
+- Cliente reclama do tamanho/embalagem/aparência do pacote (use retenção - zero risco!)
+- Pacote não tinha rótulo/marca esperada (use retenção - não pagou nada!)` : ''}
 
 QUANDO FOR EXCEÇÃO GRAVE (ameaça legal, produto já devolvido, dano físico):
-- Forneça o email: ${shopContext.support_email}
+${codPreDelivery ? `⚠️ COD PRÉ-ENTREGA: Exceções graves são MUITO RARAS porque o cliente NÃO PAGOU.
+Produto errado, recusa de pacote, insatisfação = NÃO são exceções graves para COD pré-entrega!
+APENAS use exceção grave para: ameaça legal explícita, produto já devolvido, ou dano físico real.
+` : ''}- Forneça o email: ${shopContext.support_email}
 - Peça para O CLIENTE entrar em contato
 - SEMPRE adicione [FORWARD_TO_HUMAN] no início
 - Exemplo: "[FORWARD_TO_HUMAN] Entendo sua situação. Entre em contato: ${shopContext.support_email}"
@@ -2807,7 +3162,7 @@ ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.s
   // Adicionar email atual com instrução de idioma FINAL (mais peso)
   // A instrução de idioma no final do prompt tem maior influência na resposta
   const languageReminderFinal = language !== 'pt' && language !== 'pt-BR'
-    ? `\n\n=== CRITICAL LANGUAGE REMINDER ===\nThe customer wrote in ${langName[language] || language}. You MUST respond ENTIRELY in ${langName[language] || language}. DO NOT respond in Portuguese even if the conversation history is in Portuguese. The conversation history may be in a different language - IGNORE IT for language purposes. Write your ENTIRE response in ${langName[language] || language}.`
+    ? `\n\n⚠️⚠️⚠️ CRITICAL LANGUAGE REMINDER ⚠️⚠️⚠️\nThe customer wrote in ${langName[language] || language}. You MUST respond ENTIRELY in ${langName[language] || language}.\n⛔ DO NOT respond in Portuguese!\n⛔ DO NOT use Portuguese words like "pedido", "rastreio", "enviado", "atenciosamente"!\n⛔ The system prompt and order data are in Portuguese for INTERNAL USE ONLY.\n⛔ Translate ALL information to ${langName[language] || language} before writing your response.\nEVERY SINGLE WORD of your response must be in ${langName[language] || language}.`
     : '';
 
   // Instrução sobre imagens se houver (COM PROTEÇÕES DE SEGURANÇA)
@@ -2973,7 +3328,7 @@ export async function generateDataRequestMessage(
 
   // Lembrete final de idioma para não-português
   const languageReminderFinal = language !== 'pt' && language !== 'pt-BR'
-    ? `\n\n=== RESPOND IN ${detectedLangName.toUpperCase()} ONLY ===`
+    ? `\n\n⚠️ RESPOND ENTIRELY IN ${detectedLangName.toUpperCase()} ONLY. DO NOT use Portuguese.`
     : '';
 
   let urgencyNote = '';
@@ -3002,12 +3357,15 @@ ANALISE A MENSAGEM DO CLIENTE PRIMEIRO:
 - Se o cliente menciona detalhes do pedido (produto, data, valor) mas não tem número → peça apenas o número do pedido
 - Se o cliente não forneceu nada → peça email ou número do pedido
 
-REGRA CRÍTICA - NUNCA PEÇA TRACKING AO CLIENTE:
+REGRA CRÍTICA - NUNCA PEÇA TRACKING AO CLIENTE (PRIORIDADE ABSOLUTA):
 - O código de rastreio (tracking) é responsabilidade da LOJA, não do cliente
-- NUNCA peça ao cliente para fornecer tracking number, tracking code, código de rastreio
+- NUNCA peça ao cliente para fornecer: tracking number, tracking code, código de rastreio, número de rastreamento, link de rastreamento
+- NUNCA use frases como "Could you provide the tracking number?", "Você poderia me fornecer o código de rastreio?"
 - NUNCA peça ao cliente para fornecer link de rastreamento
-- Se o cliente reclama que tracking não funciona → diga que você vai verificar o status
-- Peça APENAS: número do pedido, email de compra, ou confirmação de compra
+- Se o cliente reclama que tracking não funciona → diga que VOCÊ vai verificar o status internamente
+- Peça APENAS: número do pedido (order number) ou email de compra
+- Exemplo ERRADO: "Você poderia me fornecer novamente o número de rastreamento ou o número do pedido?"
+- Exemplo CORRETO: "Poderia me informar o número do seu pedido para que eu possa verificar o status?"
 
 REGRAS IMPORTANTES:
 1. NÃO use markdown (nada de **, ##, *, etc.)
@@ -3017,7 +3375,8 @@ REGRAS IMPORTANTES:
 5. NUNCA peça email se o cliente já disse que é o mesmo
 6. Use linguagem natural: "Oi!", "Olá!", "Hey!" - não "Prezado cliente"
 7. Varie o início - não comece sempre com "Obrigado por entrar em contato"
-8. NUNCA peça tracking/rastreio ao cliente - isso é responsabilidade da loja
+8. NUNCA peça tracking/rastreio/tracking number ao cliente - APENAS número do pedido ou email
+9. Se o assunto do email já indica que é sobre rastreio/entrega, diga que vai verificar o status e peça APENAS o número do pedido
 ${urgencyNote}`;
 
   const response = await callClaude(
@@ -3025,7 +3384,7 @@ ${urgencyNote}`;
     [
       {
         role: 'user',
-        content: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}\n\nGere uma resposta pedindo os dados do pedido.${languageReminderFinal}`,
+        content: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}\n\nGere uma resposta pedindo APENAS o número do pedido (order number) ou email de compra. LEMBRETE: NUNCA peça tracking number, código de rastreio, ou link de rastreamento - peça SOMENTE order number ou email.${languageReminderFinal}`,
       },
     ],
     200
@@ -3114,7 +3473,7 @@ export async function generateHumanFallbackMessage(
 
   // Lembrete final de idioma para não-português
   const languageReminderFinal = language !== 'pt' && language !== 'pt-BR'
-    ? `\n\n=== RESPOND IN ${detectedLangName.toUpperCase()} ONLY ===`
+    ? `\n\n⚠️ RESPOND ENTIRELY IN ${detectedLangName.toUpperCase()} ONLY. DO NOT use Portuguese.`
     : '';
 
   // Gerar mensagem padrão

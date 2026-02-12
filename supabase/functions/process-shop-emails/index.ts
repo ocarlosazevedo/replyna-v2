@@ -715,6 +715,7 @@ async function processMessage(
         warranty_info: shop.warranty_info,
         signature_html: shop.signature_html,
         is_cod: shop.is_cod,
+        store_email: shop.imap_user || shop.support_email,
       },
       message.subject || '',
       cleanBody,

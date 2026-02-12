@@ -231,36 +231,62 @@ Deno.serve(async (req) => {
         conversation.language || 'pt-BR'
       );
       finalStatus = 'pending_human';
-    } else if (!shopifyData && needsOrderData && conversation.data_request_count < MAX_DATA_REQUESTS) {
-      responseResult = await generateDataRequestMessage(
-        {
-          name: shop.name,
-          attendant_name: shop.attendant_name,
-          tone_of_voice: shop.tone_of_voice,
-        },
-        message.subject || '',
-        cleanBody,
-        conversation.data_request_count + 1,
-        conversation.language || 'pt-BR'
-      );
+    } else if (!shopifyData && needsOrderData) {
+      // CORREÇÃO: Verificar se já temos número de pedido antes de pedir ao cliente
+      const knownOrderNumber = conversation.shopify_order_id
+        || extractOrderNumber(message.subject || '')
+        || extractOrderNumber(cleanBody)
+        || extractOrderNumber(message.body_text || '');
 
-      await updateConversation(conversation.id, {
-        data_request_count: conversation.data_request_count + 1,
-      });
-    } else if (!shopifyData && needsOrderData && conversation.data_request_count >= MAX_DATA_REQUESTS) {
-      responseResult = await generateHumanFallbackMessage(
-        {
-          name: shop.name,
-          attendant_name: shop.attendant_name,
-          support_email: shop.support_email,
-          tone_of_voice: shop.tone_of_voice,
-          fallback_message_template: shop.fallback_message_template,
-        },
-        null,
-        conversation.language || 'pt-BR'
-      );
-      finalStatus = 'pending_human';
-    } else {
+      if (knownOrderNumber) {
+        // Temos número de pedido mas Shopify não retornou dados - criar contexto mínimo
+        shopifyData = {
+          order_number: knownOrderNumber.startsWith('#') ? knownOrderNumber : `#${knownOrderNumber}`,
+          order_date: '',
+          order_status: '',
+          order_total: '',
+          tracking_number: null,
+          tracking_url: null,
+          fulfillment_status: null,
+          items: [],
+          customer_name: conversation.customer_name || message.from_name || null,
+        };
+        console.log(`[reprocess] Order number ${knownOrderNumber} found but Shopify data unavailable, using minimal context`);
+      } else if (conversation.data_request_count < MAX_DATA_REQUESTS) {
+        responseResult = await generateDataRequestMessage(
+          {
+            name: shop.name,
+            attendant_name: shop.attendant_name,
+            tone_of_voice: shop.tone_of_voice,
+          },
+          message.subject || '',
+          cleanBody,
+          conversation.data_request_count + 1,
+          conversation.language || 'pt-BR'
+        );
+
+        await updateConversation(conversation.id, {
+          data_request_count: conversation.data_request_count + 1,
+        });
+      } else {
+        responseResult = await generateHumanFallbackMessage(
+          {
+            name: shop.name,
+            attendant_name: shop.attendant_name,
+            support_email: shop.support_email,
+            tone_of_voice: shop.tone_of_voice,
+            fallback_message_template: shop.fallback_message_template,
+          },
+          null,
+          conversation.language || 'pt-BR'
+        );
+        finalStatus = 'pending_human';
+      }
+    }
+
+    // Se shopifyData foi preenchido (real ou mínimo) e responseResult não foi setado, gerar resposta
+    // @ts-ignore - responseResult pode não estar inicializado se caiu nos branches de shopifyData
+    if (!responseResult) {
       responseResult = await generateResponse(
         {
           name: shop.name,
@@ -272,6 +298,7 @@ Deno.serve(async (req) => {
           warranty_info: null,
           signature_html: shop.signature_html,
           is_cod: shop.is_cod,
+          store_email: shop.imap_user || shop.support_email,
         },
         message.subject || '',
         cleanBody,

@@ -570,16 +570,18 @@ export function extractAllOrderNumbers(text: string): string[] {
 
   // Padrões comuns de número de pedido
   const patterns = [
-    // Formatos explícitos com palavra-chave
-    /order\s*(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
-    /pedido\s*(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    // Formatos explícitos com palavra-chave (inclui "Order Number:", "Order No:", etc.)
+    /order\s*(?:number|num|no\.?)?\s*(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /pedido\s*(?:número|numero|nº|num|no\.?)?\s*(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
     /número\s*(?:do\s*)?(?:pedido\s*)?(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
     /nº\s*(?:#|:|\s|é|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
-    /commande\s*(?:#|:|\s|est|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
-    /bestellung\s*(?:#|:|\s|ist|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
-    /bestelling\s*(?:#|:|\s|is|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
-    /ordine\s*(?:#|:|\s|è|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /commande\s*(?:numéro|n°|nº|num|no\.?)?\s*(?:#|:|\s|est|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /bestellung\s*(?:nummer|nr\.?)?\s*(?:#|:|\s|ist|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /bestelling\s*(?:nummer|nr\.?)?\s*(?:#|:|\s|is|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /ordine\s*(?:numero|n°|nr\.?)?\s*(?:#|:|\s|è|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
     /ordernummer\s*(?:#|:|\s|is|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /objednávka\s*(?:číslo|č\.?)?\s*(?:#|:|\s|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
+    /zamówienie\s*(?:numer|nr\.?)?\s*(?:#|:|\s|=)\s*#?([A-Z]*\d+[A-Z]*\d*)/gi,
     // Formato com #
     /#\s*([A-Z]*\d+[A-Z]*\d*)/gi,
   ];

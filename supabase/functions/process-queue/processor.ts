@@ -297,6 +297,19 @@ async function processMessage(
     return false;
   }
 
+  // Skip Shopify system notifications (chargeback, dispute, order alerts, etc.)
+  // Estes são emails administrativos do Shopify, NÃO mensagens de clientes.
+  // Marcamos como 'replied' SEM enviar resposta para que a próxima mensagem real do cliente seja processada.
+  if (isShopifySystemNotification(messageBody)) {
+    console.log(`[Processor] Message ${message.id} is a Shopify system notification (chargeback/dispute/alert), skipping`);
+    await updateMessage(message.id, {
+      status: 'replied',
+      error_message: 'Skipped - Shopify system notification (not a customer message)',
+      processed_at: new Date().toISOString(),
+    });
+    return false; // false = não conta como 'processing', não envia resposta
+  }
+
   // Check if there's a recent reply to this conversation (prevent duplicate responses)
   // Reduced from 30 min to 3 min - 30 min was too aggressive and caused legitimate follow-up messages to be skipped
   const recentReplyCheck = await getConversationHistory(conversation.id, 5);
@@ -722,7 +735,52 @@ async function processMessage(
   }
 
   // 11. Fluxo de solicitação de dados (se não tiver número do pedido)
-  if (needsOrderData && !shopifyData && conversation.data_request_count < MAX_DATA_REQUESTS) {
+  // CORREÇÃO: Se já temos número de pedido (da conversa, do subject, ou do body),
+  // NÃO pedir dados ao cliente. Criar contexto mínimo para a IA responder.
+  const knownOrderNumber = conversation.shopify_order_id
+    || extractOrderNumber(message.subject || '')
+    || extractOrderNumber(cleanBody)
+    || extractOrderNumber(message.body_text || '');
+
+  // Se temos número de pedido mas Shopify não retornou dados, criar contexto mínimo
+  // para que a IA responda com o que temos (NUNCA pedir tracking ao cliente)
+  if (needsOrderData && !shopifyData && knownOrderNumber) {
+    shopifyData = {
+      order_number: knownOrderNumber.startsWith('#') ? knownOrderNumber : `#${knownOrderNumber}`,
+      order_date: '',
+      order_status: '',
+      order_total: '',
+      tracking_number: null,
+      tracking_url: null,
+      fulfillment_status: null,
+      items: [],
+      customer_name: conversation.customer_name || message.from_name || null,
+    };
+
+    console.log(`[Processor] Order number ${knownOrderNumber} found but Shopify data unavailable, using minimal context`);
+
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'shopify_data_unavailable_with_order',
+      event_data: {
+        order_number: knownOrderNumber,
+        reason: 'shopify_lookup_failed_or_circuit_open',
+        action: 'proceeding_with_minimal_context',
+      },
+    });
+
+    // Salvar order number na conversa se ainda não tiver
+    if (!conversation.shopify_order_id) {
+      await updateConversation(conversation.id, {
+        shopify_order_id: knownOrderNumber,
+      });
+    }
+  }
+
+  // Só pedir dados ao cliente se NÃO temos número de pedido de NENHUMA fonte
+  if (needsOrderData && !shopifyData && !knownOrderNumber && conversation.data_request_count < MAX_DATA_REQUESTS) {
     // generateDataRequestMessage: (shopContext, emailSubject, emailBody, attemptNumber, language)
     const dataRequestResult = await generateDataRequestMessage(
       {
@@ -756,7 +814,7 @@ async function processMessage(
   // 12. Escalate para humano se MAX_DATA_REQUESTS excedido ou categoria suporte_humano
   if (
     classification.category === 'suporte_humano' ||
-    (needsOrderData && !shopifyData && conversation.data_request_count >= MAX_DATA_REQUESTS)
+    (needsOrderData && !shopifyData && !knownOrderNumber && conversation.data_request_count >= MAX_DATA_REQUESTS)
   ) {
     // generateHumanFallbackMessage: (shopContext, customerName, language)
     const humanFallbackResult = await generateHumanFallbackMessage(
@@ -822,6 +880,7 @@ async function processMessage(
       warranty_info: shop.warranty_info,
       signature_html: shop.signature_html,
       is_cod: shop.is_cod,
+      store_email: shop.imap_user || shop.support_email,
       support_email: shop.support_email,
       retention_coupon_code: shop.retention_coupon_code,
       retention_coupon_type: shop.retention_coupon_type,
@@ -1061,14 +1120,91 @@ function isAcknowledgmentMessage(body: string, subject: string): boolean {
   const cleanBody = (body || '').toLowerCase().trim();
   const cleanSubject = (subject || '').toLowerCase().trim();
 
-  const acknowledgmentPatterns = [
+  // Remover assinaturas comuns do final (nome do cliente, traços, etc.)
+  const bodyWithoutSignature = cleanBody
+    .replace(/[\r\n]+-+\s*$/g, '') // Remove "---" no final
+    .replace(/[\r\n]+[a-záàãéêíóôúç\s]{2,30}[\r\n]*$/gi, '') // Remove nome curto no final
+    .trim();
+
+  // Padrões exatos (mensagem inteira é agradecimento)
+  const exactPatterns = [
     /^(ok|okay|obrigad[oa]|thanks?|thank you|gracias|grazie|merci|danke)\s*[!.]*$/,
     /^(entendido|perfeito|perfect|perfetto|excelente|excellent)\s*[!.]*$/,
     /^(recebido|received|reçu|ricevuto)\s*[!.]*$/,
   ];
 
-  for (const pattern of acknowledgmentPatterns) {
-    if (pattern.test(cleanBody) || pattern.test(cleanSubject)) {
+  // Padrões de agradecimento com complemento (mensagem curta, < 100 chars)
+  const shortAckPatterns = [
+    /^obrigad[oa]\s+(pelo|pela|por|pelo retorno|pela resposta|pela ajuda|por responder)/,
+    /^thanks?\s+(for|for getting back|for your|for the)/,
+    /^thank you\s+(for|so much|very much|for getting back|for your|for the)/,
+    /^gracias\s+(por|por responder|por la|por su)/,
+    /^merci\s+(pour|beaucoup|de)/,
+    /^danke\s+(für|schön|sehr)/,
+    /^(muito obrigad[oa]|thanks a lot|many thanks|muchísimas gracias)/,
+    /^(valeu|vlw|thx|tks|ty)\b/,
+  ];
+
+  for (const pattern of exactPatterns) {
+    if (pattern.test(cleanBody) || pattern.test(cleanSubject) ||
+        pattern.test(bodyWithoutSignature)) {
+      return true;
+    }
+  }
+
+  // Para padrões curtos, só considerar se a mensagem é realmente curta (< 100 chars)
+  if (bodyWithoutSignature.length < 100) {
+    for (const pattern of shortAckPatterns) {
+      if (pattern.test(bodyWithoutSignature)) {
+        console.log(`[isAcknowledgment] Detected short ack: "${bodyWithoutSignature.substring(0, 50)}"`);
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Verifica se a mensagem é uma notificação de sistema do Shopify (NÃO é uma mensagem de cliente)
+ * Ex: chargebacks, disputas, alertas de pedido, notificações administrativas
+ */
+function isShopifySystemNotification(body: string): boolean {
+  if (!body) return false;
+  const lower = body.toLowerCase();
+
+  // Padrões de notificações de chargeback/disputa do Shopify
+  const shopifyNotificationPatterns = [
+    // Chargebacks e disputas (PT e EN)
+    'abriu um estorno',
+    'opened a chargeback',
+    'filed a chargeback',
+    'new order inquiry',
+    'nova consulta de pedido',
+    'dispute_evidences',
+    'o banco devolveu',
+    'the bank returned',
+    'charged a fee for the chargeback',
+    'taxa de estorno',
+    'enviar resposta ao banco',
+    'send response to bank',
+    'coletamos evidências',
+    'we collected evidence',
+    // Alertas de risco/fraude do Shopify
+    'order risk analysis',
+    'análise de risco do pedido',
+    'high risk order',
+    'pedido de alto risco',
+    // Notificações de pagamento do Shopify
+    'payment was voided',
+    'pagamento foi cancelado',
+    'payout has been sent',
+    'pagamento foi enviado',
+  ];
+
+  for (const pattern of shopifyNotificationPatterns) {
+    if (lower.includes(pattern)) {
+      console.log(`[isShopifySystemNotification] Matched pattern: "${pattern}"`);
       return true;
     }
   }

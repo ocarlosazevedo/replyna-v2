@@ -238,6 +238,12 @@ function isAcknowledgmentMessage(body: string, subject: string): boolean {
     .replace(/^(atenciosamente|att|abraços?|regards)[,.\s]*.*/gim, '')
     .trim();
 
+  // Remover assinaturas/nomes curtos do final (ex: "Wendy-", "- João", "Maria")
+  const bodyWithoutSignature = cleanBody
+    .replace(/[\r\n]+-+\s*$/g, '')
+    .replace(/[\r\n]+[a-záàãéêíóôúç\s.\-]{2,30}[\r\n]*$/gi, '')
+    .trim();
+
   // Se o corpo ficar muito curto após remover saudações, provavelmente é só agradecimento
   if (bodyWithoutGreetings.length < 20) {
     // Padrões de mensagens que são apenas agradecimento/confirmação
@@ -254,6 +260,71 @@ function isAcknowledgmentMessage(body: string, subject: string): boolean {
       if (pattern.test(cleanBody) || pattern.test(bodyWithoutGreetings)) {
         return true;
       }
+    }
+  }
+
+  // Padrões de agradecimento com complemento (mensagem curta, < 100 chars)
+  const textToCheck = bodyWithoutSignature.length < cleanBody.length ? bodyWithoutSignature : cleanBody;
+  if (textToCheck.length < 100) {
+    const shortAckPatterns = [
+      /^obrigad[oa]\s+(pelo|pela|por|pelo retorno|pela resposta|pela ajuda|por responder)/i,
+      /^thanks?\s+(for|for getting back|for your|for the)/i,
+      /^thank you\s+(for|so much|very much|for getting back|for your|for the)/i,
+      /^gracias\s+(por|por responder|por la|por su)/i,
+      /^merci\s+(pour|beaucoup|de)/i,
+      /^danke\s+(für|schön|sehr)/i,
+      /^(muito obrigad[oa]|thanks a lot|many thanks|muchísimas gracias)/i,
+      /^(valeu|vlw|thx|tks|ty)\b/i,
+    ];
+
+    for (const pattern of shortAckPatterns) {
+      if (pattern.test(textToCheck) || pattern.test(cleanBody)) {
+        console.log(`[isAcknowledgment] Detected short ack: "${textToCheck.substring(0, 50)}"`);
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Verifica se a mensagem é uma notificação de sistema do Shopify (NÃO é uma mensagem de cliente)
+ * Ex: chargebacks, disputas, alertas de pedido, notificações administrativas
+ */
+function isShopifySystemNotification(body: string): boolean {
+  if (!body) return false;
+  const lower = body.toLowerCase();
+
+  const shopifyNotificationPatterns = [
+    'abriu um estorno',
+    'opened a chargeback',
+    'filed a chargeback',
+    'new order inquiry',
+    'nova consulta de pedido',
+    'dispute_evidences',
+    'o banco devolveu',
+    'the bank returned',
+    'charged a fee for the chargeback',
+    'taxa de estorno',
+    'enviar resposta ao banco',
+    'send response to bank',
+    'coletamos evidências',
+    'we collected evidence',
+    'order risk analysis',
+    'análise de risco do pedido',
+    'high risk order',
+    'pedido de alto risco',
+    'payment was voided',
+    'pagamento foi cancelado',
+    'payout has been sent',
+    'pagamento foi enviado',
+  ];
+
+  for (const pattern of shopifyNotificationPatterns) {
+    if (lower.includes(pattern)) {
+      console.log(`[isShopifySystemNotification] Matched pattern: "${pattern}"`);
+      return true;
     }
   }
 
@@ -940,6 +1011,19 @@ async function processMessageInternal(
     return 'skipped';
   }
 
+  // 1.05 Detectar notificações de sistema do Shopify (chargeback, disputa, alertas admin)
+  // NÃO são mensagens de cliente - ignorar sem enviar resposta
+  const originalBodyText = message.body_text || message.body_html || '';
+  if (isShopifySystemNotification(originalBodyText)) {
+    console.log(`[Shop ${shop.name}] Msg ${message.id} is Shopify system notification, skipping`);
+    await updateMessage(message.id, {
+      status: 'replied',
+      error_message: 'Skipped - Shopify system notification (not a customer message)',
+      processed_at: new Date().toISOString(),
+    });
+    return 'skipped';
+  }
+
   // 1.1 PRÉ-CLASSIFICAÇÃO: Detectar spam por padrões ANTES de gastar créditos
   if (isSpamByPattern(message.subject || '', cleanBody)) {
     console.log(`[Shop ${shop.name}] Msg ${message.id} detectada como spam por padrão (pré-AI)`);
@@ -1175,37 +1259,72 @@ async function processMessageInternal(
     );
     finalStatus = 'pending_human';
     await forwardToHuman(shop, message, emailCredentials);
-  } else if (!shopifyData && needsOrderData && conversation.data_request_count < MAX_DATA_REQUESTS) {
-    responseResult = await generateDataRequestMessage(
-      {
-        name: shop.name,
-        attendant_name: shop.attendant_name,
-        tone_of_voice: shop.tone_of_voice,
-      },
-      message.subject || '',
-      cleanBody,
-      conversation.data_request_count + 1,
-      classification.language
-    );
+  } else if (!shopifyData && needsOrderData) {
+    // CORREÇÃO: Verificar se já temos número de pedido antes de pedir ao cliente
+    const knownOrderNumber = conversation.shopify_order_id
+      || extractOrderNumber(message.subject || '')
+      || extractOrderNumber(cleanBody)
+      || extractOrderNumber(message.body_text || '');
 
-    await updateConversation(conversation.id, {
-      data_request_count: conversation.data_request_count + 1,
-    });
-  } else if (!shopifyData && needsOrderData && conversation.data_request_count >= MAX_DATA_REQUESTS) {
-    responseResult = await generateHumanFallbackMessage(
-      {
-        name: shop.name,
-        attendant_name: shop.attendant_name,
-        support_email: shop.support_email,
-        tone_of_voice: shop.tone_of_voice,
-        fallback_message_template: shop.fallback_message_template,
-      },
-      null,
-      classification.language
-    );
-    finalStatus = 'pending_human';
-    await forwardToHuman(shop, message, emailCredentials);
-  } else {
+    if (knownOrderNumber) {
+      // Temos número de pedido mas Shopify não retornou dados - criar contexto mínimo
+      // para que a IA responda com o que temos (NUNCA pedir tracking ao cliente)
+      shopifyData = {
+        order_number: knownOrderNumber.startsWith('#') ? knownOrderNumber : `#${knownOrderNumber}`,
+        order_date: '',
+        order_status: '',
+        order_total: '',
+        tracking_number: null,
+        tracking_url: null,
+        fulfillment_status: null,
+        items: [],
+        customer_name: conversation.customer_name || message.from_name || null,
+      };
+      console.log(`[process-emails] Order number ${knownOrderNumber} found but Shopify data unavailable, using minimal context`);
+
+      if (!conversation.shopify_order_id) {
+        await updateConversation(conversation.id, {
+          shopify_order_id: knownOrderNumber,
+        });
+      }
+      // NÃO set responseResult - vai cair no else abaixo para generateResponse
+    } else if (conversation.data_request_count < MAX_DATA_REQUESTS) {
+      // Sem número de pedido - pedir APENAS número do pedido (nunca tracking)
+      responseResult = await generateDataRequestMessage(
+        {
+          name: shop.name,
+          attendant_name: shop.attendant_name,
+          tone_of_voice: shop.tone_of_voice,
+        },
+        message.subject || '',
+        cleanBody,
+        conversation.data_request_count + 1,
+        classification.language
+      );
+
+      await updateConversation(conversation.id, {
+        data_request_count: conversation.data_request_count + 1,
+      });
+    } else {
+      // MAX_DATA_REQUESTS excedido sem número de pedido - escalar para humano
+      responseResult = await generateHumanFallbackMessage(
+        {
+          name: shop.name,
+          attendant_name: shop.attendant_name,
+          support_email: shop.support_email,
+          tone_of_voice: shop.tone_of_voice,
+          fallback_message_template: shop.fallback_message_template,
+        },
+        null,
+        classification.language
+      );
+      finalStatus = 'pending_human';
+      await forwardToHuman(shop, message, emailCredentials);
+    }
+  }
+
+  // @ts-ignore - responseResult pode não estar inicializado se caiu nos branches de shopifyData
+  if (!responseResult) {
     // Buscar imagens do cache se disponíveis
     const cachedEntry = message.message_id ? emailImagesCache.get(message.message_id) : undefined;
     const cachedImages = cachedEntry?.images;
@@ -1234,6 +1353,7 @@ async function processMessageInternal(
         warranty_info: shop.warranty_info,
         signature_html: shop.signature_html,
         is_cod: shop.is_cod,
+        store_email: shop.imap_user || shop.support_email,
         support_email: shop.support_email,
         retention_coupon_code: shop.retention_coupon_code,
         retention_coupon_type: shop.retention_coupon_type,

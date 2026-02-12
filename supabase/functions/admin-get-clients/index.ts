@@ -80,12 +80,29 @@ serve(async (req) => {
       current_period_end: string;
     }> = {};
 
+    // Priorizar subscription ativa sobre cancelada
+    // Usuários podem ter múltiplas subscriptions (ex: cancelou e reativou)
+    const statusPriority: Record<string, number> = {
+      'active': 0,
+      'trialing': 1,
+      'past_due': 2,
+      'unpaid': 3,
+      'canceled': 4,
+    };
+
     (subscriptionsResult.data || []).forEach((sub) => {
-      subscriptionsByUser[sub.user_id] = {
-        stripe_subscription_id: sub.stripe_subscription_id,
-        status: sub.status,
-        current_period_end: sub.current_period_end,
-      };
+      const existing = subscriptionsByUser[sub.user_id];
+      const existingPriority = existing ? (statusPriority[existing.status] ?? 99) : 99;
+      const newPriority = statusPriority[sub.status] ?? 99;
+
+      // Só sobrescrever se a nova subscription tem status de maior prioridade
+      if (newPriority < existingPriority) {
+        subscriptionsByUser[sub.user_id] = {
+          stripe_subscription_id: sub.stripe_subscription_id,
+          status: sub.status,
+          current_period_end: sub.current_period_end,
+        };
+      }
     });
 
     // Combinar dados
