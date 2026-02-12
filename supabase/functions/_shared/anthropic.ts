@@ -3607,6 +3607,49 @@ Eles irão analisar seu caso e entrar em contato.
 
 ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.signature_html}` : ''}`;
 
+  // DETECÇÃO PROGRAMÁTICA DE LOOP (antes de montar mensagens)
+  // Se a IA pediu a mesma coisa 2+ vezes, forçar escalação para humano
+  let loopDetected = false;
+  let loopWarning = '';
+  if (conversationHistory.length >= 4) {
+    // Contar quantas respostas do assistente pedem informações
+    const assistantResponses = conversationHistory
+      .filter(m => m.role === 'assistant' && m.content)
+      .map(m => m.content.toLowerCase());
+
+    // Padrões de pedidos repetitivos de informação
+    const infoRequestPatterns = [
+      /(?:fornir|provide|fournir|bereitstellen|proporcionar).{0,30}(?:numero|number|numéro|nummer|número)/i,
+      /(?:potr|could|pourr|könn|podr).{0,20}(?:fornir|provide|fournir|geben|proporcionar)/i,
+      /(?:email|e-mail).{0,20}(?:utilizzat|used|utilisé|verwendet|utilizado)/i,
+      /(?:numero.{0,10}ordine|order.{0,10}number|numéro.{0,10}commande|bestellnummer|número.{0,10}pedido)/i,
+    ];
+
+    let repeatedInfoRequests = 0;
+    for (const resp of assistantResponses) {
+      for (const pattern of infoRequestPatterns) {
+        if (pattern.test(resp)) {
+          repeatedInfoRequests++;
+          break;
+        }
+      }
+    }
+
+    if (repeatedInfoRequests >= 2) {
+      loopDetected = true;
+      loopWarning = `
+⚠️⚠️⚠️ ALERTA DE LOOP DETECTADO AUTOMATICAMENTE ⚠️⚠️⚠️
+O sistema detectou que você JÁ PEDIU informações ao cliente ${repeatedInfoRequests} vezes nesta conversa.
+O cliente já tentou responder ${conversationHistory.filter(m => m.role === 'customer').length} vezes.
+
+AÇÃO OBRIGATÓRIA: NÃO peça MAIS informações. Use [FORWARD_TO_HUMAN] e encaminhe para ${shopContext.support_email}.
+Diga ao cliente que vai encaminhar para a equipe resolver diretamente.
+NÃO repita o mesmo pedido de número do pedido/email/dados.
+⚠️⚠️⚠️ FIM DO ALERTA ⚠️⚠️⚠️`;
+      console.warn(`[generateResponse] LOOP DETECTED: ${repeatedInfoRequests} repeated info requests in conversation history`);
+    }
+  }
+
   // Montar histórico
   const messages: ClaudeMessage[] = [];
 
@@ -3689,7 +3732,7 @@ Se a imagem mostrar algo grave (produto claramente errado, danificado, etc.):
     // Adicionar texto primeiro
     contentParts.push({
       type: 'text',
-      text: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}${imageContextInstruction}${languageReminderFinal}`,
+      text: `${loopWarning}ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}${imageContextInstruction}${languageReminderFinal}`,
     });
 
     // Adicionar imagens
@@ -3714,7 +3757,7 @@ Se a imagem mostrar algo grave (produto claramente errado, danificado, etc.):
     // Mensagem apenas com texto
     messages.push({
       role: 'user',
-      content: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}${languageReminderFinal}`,
+      content: `${loopWarning}ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}${languageReminderFinal}`,
     });
   }
 
