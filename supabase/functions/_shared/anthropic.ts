@@ -1968,51 +1968,135 @@ REGRAS CRÍTICAS:
 }
 
 /**
+ * Extrai informações estruturadas do campo store_description.
+ * Detecta se o dono da loja forneceu dados como endereço de devolução,
+ * telefone, link de rastreio, etc. Retorna um objeto com os dados encontrados.
+ */
+interface StoreProvidedInfo {
+  hasReturnAddress: boolean;
+  returnAddress: string | null;
+  hasPhone: boolean;
+  phone: string | null;
+  hasCustomTrackingUrl: boolean;
+  customTrackingUrl: string | null;
+}
+
+function extractStoreProvidedInfo(storeDescription: string | null): StoreProvidedInfo {
+  const result: StoreProvidedInfo = {
+    hasReturnAddress: false,
+    returnAddress: null,
+    hasPhone: false,
+    phone: null,
+    hasCustomTrackingUrl: false,
+    customTrackingUrl: null,
+  };
+
+  if (!storeDescription) return result;
+
+  const text = storeDescription;
+
+  // Detectar endereço de devolução
+  const returnAddressPatterns = [
+    /(?:endere[çc]o\s+(?:de\s+)?devolu[çc][ãa]o|return\s+address|adresse\s+(?:de\s+)?retour|indirizzo\s+(?:di\s+)?reso|dirección\s+(?:de\s+)?devolución|rücksendeadresse)\s*[:=]\s*(.+?)(?:\n|$)/i,
+    /(?:devolu[çc][õo]es?\s*(?:para|em|no)\s*[:=]?\s*)(.+?)(?:\n|$)/i,
+    /(?:enviar\s+devolu[çc][õo]es?\s+para|send\s+returns?\s+to|retourner\s+[àa])\s*[:=]?\s*(.+?)(?:\n|$)/i,
+  ];
+
+  for (const pattern of returnAddressPatterns) {
+    const match = text.match(pattern);
+    if (match?.[1]?.trim()) {
+      result.hasReturnAddress = true;
+      result.returnAddress = match[1].trim();
+      console.log(`[extractStoreProvidedInfo] Return address found: "${result.returnAddress}"`);
+      break;
+    }
+  }
+
+  // Detectar telefone/WhatsApp
+  const phonePatterns = [
+    /(?:telefone|phone|whatsapp|tel|fone)\s*[:=]\s*(.+?)(?:\n|$)/i,
+  ];
+
+  for (const pattern of phonePatterns) {
+    const match = text.match(pattern);
+    if (match?.[1]?.trim()) {
+      result.hasPhone = true;
+      result.phone = match[1].trim();
+      console.log(`[extractStoreProvidedInfo] Phone found: "${result.phone}"`);
+      break;
+    }
+  }
+
+  // Detectar link de rastreio personalizado
+  const trackingPatterns = [
+    /(?:link\s+(?:de\s+)?rastreio|tracking\s+(?:link|url)|rastreamento\s+(?:link|url)|lien\s+(?:de\s+)?suivi)\s*[:=]\s*(https?:\/\/[^\s\n]+)/i,
+    /(?:rastrear?\s+(?:em|no|at|on))\s*[:=]?\s*(https?:\/\/[^\s\n]+)/i,
+  ];
+
+  for (const pattern of trackingPatterns) {
+    const match = text.match(pattern);
+    if (match?.[1]?.trim()) {
+      result.hasCustomTrackingUrl = true;
+      result.customTrackingUrl = match[1].trim();
+      console.log(`[extractStoreProvidedInfo] Custom tracking URL found: "${result.customTrackingUrl}"`);
+      break;
+    }
+  }
+
+  return result;
+}
+
+/**
  * Detecta alucinações na resposta gerada pela IA.
  * Verifica se a IA inventou endereços, telefones, funcionalidades ou frases proibidas.
  * Retorna lista de problemas encontrados (vazia = sem alucinações).
  */
 function detectHallucinations(
   responseText: string,
-  shopContext: { attendant_name: string; name: string; support_email?: string; store_email?: string }
+  shopContext: { attendant_name: string; name: string; support_email?: string; store_email?: string },
+  storeProvidedInfo?: StoreProvidedInfo
 ): string[] {
   const problems: string[] = [];
   const text = responseText.toLowerCase();
 
-  // 1. Detectar endereços físicos inventados (rua/avenida + número, ou padrões de CEP)
-  const addressPatterns = [
-    /\d{1,5}\s+(?:rue|rua|avenida|avenue|av\.|street|st\.|road|rd\.|boulevard|blvd|calle|straße|strasse|via)\s+[a-záàâãéèêíïóôõöúçñüß]+/i,
-    /(?:rue|rua|avenida|avenue|street|road|boulevard|calle|straße|strasse|via)\s+(?:des?\s+|du\s+|de\s+la\s+|da\s+|do\s+|degli?\s+)?[a-záàâãéèêíïóôõöúçñüß]+\s*,?\s*\d{1,5}/i,
-    /\b\d{5}[-\s]?\d{3}\b/, // CEP brasileiro
-    /\b\d{5}\s+[A-Z][a-z]+/, // CEP francês/europeu + cidade
-    /\b(?:paris|prague|praga|lisboa|madrid|berlin|roma|london|new york|são paulo)\b.*\d{4,5}/i,
-    /\d{4,5}\s+(?:paris|prague|praga|lisboa|madrid|berlin|roma|london|são paulo)/i,
-  ];
+  // 1. Detectar endereços físicos inventados (SKIP se o dono da loja forneceu endereço de devolução)
+  if (!storeProvidedInfo?.hasReturnAddress) {
+    const addressPatterns = [
+      /\d{1,5}\s+(?:rue|rua|avenida|avenue|av\.|street|st\.|road|rd\.|boulevard|blvd|calle|straße|strasse|via)\s+[a-záàâãéèêíïóôõöúçñüß]+/i,
+      /(?:rue|rua|avenida|avenue|street|road|boulevard|calle|straße|strasse|via)\s+(?:des?\s+|du\s+|de\s+la\s+|da\s+|do\s+|degli?\s+)?[a-záàâãéèêíïóôõöúçñüß]+\s*,?\s*\d{1,5}/i,
+      /\b\d{5}[-\s]?\d{3}\b/, // CEP brasileiro
+      /\b\d{5}\s+[A-Z][a-z]+/, // CEP francês/europeu + cidade
+      /\b(?:paris|prague|praga|lisboa|madrid|berlin|roma|london|new york|são paulo)\b.*\d{4,5}/i,
+      /\d{4,5}\s+(?:paris|prague|praga|lisboa|madrid|berlin|roma|london|são paulo)/i,
+    ];
 
-  for (const pattern of addressPatterns) {
-    if (pattern.test(responseText)) {
-      const match = responseText.match(pattern);
-      problems.push(`ADDRESS_HALLUCINATION: "${match?.[0]}"`);
-      break;
+    for (const pattern of addressPatterns) {
+      if (pattern.test(responseText)) {
+        const match = responseText.match(pattern);
+        problems.push(`ADDRESS_HALLUCINATION: "${match?.[0]}"`);
+        break;
+      }
     }
   }
 
-  // 2. Detectar números de telefone inventados
-  const phonePatterns = [
-    /(?:\+\d{1,3}\s?)?\(?\d{2,4}\)?\s?\d{3,5}[-.\s]?\d{3,5}/,
-    /\b\d{2}\s\d{2}\s\d{2}\s\d{2}\s\d{2}\b/, // formato francês
-    /\b\d{4,5}[-.\s]\d{4,5}\b/, // formato genérico
-  ];
+  // 2. Detectar números de telefone inventados (SKIP se o dono da loja forneceu telefone)
+  if (!storeProvidedInfo?.hasPhone) {
+    const phonePatterns = [
+      /(?:\+\d{1,3}\s?)?\(?\d{2,4}\)?\s?\d{3,5}[-.\s]?\d{3,5}/,
+      /\b\d{2}\s\d{2}\s\d{2}\s\d{2}\s\d{2}\b/, // formato francês
+      /\b\d{4,5}[-.\s]\d{4,5}\b/, // formato genérico
+    ];
 
-  // Excluir números de pedido e rastreio do check de telefone
-  const textWithoutOrderNumbers = responseText.replace(/#\d+/g, '').replace(/(?:order|pedido|tracking|rastreio)\s*(?:#|nº|n°)?\s*\d+/gi, '');
-  for (const pattern of phonePatterns) {
-    if (pattern.test(textWithoutOrderNumbers)) {
-      const match = textWithoutOrderNumbers.match(pattern);
-      // Verificar se não é um número de pedido ou CEP mencionado nos dados
-      if (match && match[0].length >= 8) {
-        problems.push(`PHONE_HALLUCINATION: "${match[0]}"`);
-        break;
+    // Excluir números de pedido e rastreio do check de telefone
+    const textWithoutOrderNumbers = responseText.replace(/#\d+/g, '').replace(/(?:order|pedido|tracking|rastreio)\s*(?:#|nº|n°)?\s*\d+/gi, '');
+    for (const pattern of phonePatterns) {
+      if (pattern.test(textWithoutOrderNumbers)) {
+        const match = textWithoutOrderNumbers.match(pattern);
+        // Verificar se não é um número de pedido ou CEP mencionado nos dados
+        if (match && match[0].length >= 8) {
+          problems.push(`PHONE_HALLUCINATION: "${match[0]}"`);
+          break;
+        }
       }
     }
   }
@@ -2272,6 +2356,9 @@ CUSTOMER ORDER DATA / DADOS DO PEDIDO DO CLIENTE:
 IMPORTANT: Customer mentioned MULTIPLE orders. Provide info about ALL relevant orders in your response.`;
     }
   }
+
+  // Extrair informações estruturadas do store_description
+  const storeProvidedInfo = extractStoreProvidedInfo(shopContext.store_description || null);
 
   // Montar informações da loja
   const mainStoreEmail = shopContext.store_email || shopContext.support_email || '';
@@ -2650,12 +2737,15 @@ O QUE VOCÊ TEM (pode usar):
 ✅ Email de escalação: ${shopContext.support_email}
 ✅ Dados do pedido (se fornecidos abaixo em "DADOS DO PEDIDO DO CLIENTE")
 ✅ Informações da loja: descrição, prazo de entrega, garantia (se fornecidos)
+${storeProvidedInfo.hasReturnAddress ? `✅ Endereço de devolução da loja: ${storeProvidedInfo.returnAddress} (fornecido pelo dono da loja - USE quando o cliente perguntar sobre devolução)` : ''}
+${storeProvidedInfo.hasPhone ? `✅ Telefone/WhatsApp da loja: ${storeProvidedInfo.phone} (fornecido pelo dono da loja - USE quando o cliente perguntar)` : ''}
+${storeProvidedInfo.hasCustomTrackingUrl ? `✅ Link de rastreio personalizado: ${storeProvidedInfo.customTrackingUrl} (USE este link em vez do tracking_url do Shopify quando o cliente perguntar sobre rastreio)` : ''}
 
 O QUE VOCÊ NÃO TEM (NUNCA invente):
-❌ Endereço de devolução → Diga: "Para obter o endereço de devolução, entre em contato pelo ${shopContext.support_email}"
-❌ Endereço físico da loja → Diga: "Nosso atendimento é feito por email: ${mainStoreEmail}"
-❌ Números de telefone → NÃO EXISTEM. Diga: "Nosso atendimento é feito por email"
-❌ WhatsApp, redes sociais → NÃO EXISTEM
+${storeProvidedInfo.hasReturnAddress ? '' : `❌ Endereço de devolução → Diga: "Para obter o endereço de devolução, entre em contato pelo ${shopContext.support_email}"`}
+❌ Endereço físico da loja (a menos que fornecido nas instruções da loja acima)
+${storeProvidedInfo.hasPhone ? '' : `❌ Números de telefone → NÃO EXISTEM. Diga: "Nosso atendimento é feito por email"`}
+${storeProvidedInfo.hasPhone ? '' : '❌ WhatsApp, redes sociais → NÃO EXISTEM'}
 ❌ Nomes de outras pessoas/departamentos → Só existe VOCÊ: ${shopContext.attendant_name}
 ❌ Capacidade de cancelar, reembolsar, alterar pedidos → Você só RESPONDE, não executa ações no sistema
 ❌ Capacidade de verificar com equipes internas, processar solicitações → Diga que o cliente deve entrar em contato por email
@@ -2815,11 +2905,11 @@ Nossa equipe irá processar sua solicitação com urgência.
 ${shopContext.attendant_name}"
 
 NUNCA INVENTAR INFORMAÇÕES DE CONTATO (REGRA CRÍTICA - PRIORIDADE MÁXIMA):
-- NUNCA invente números de telefone - se não foi fornecido, NÃO EXISTE
-- NUNCA invente endereços de email - use APENAS os emails fornecidos abaixo
+- NUNCA invente endereços de email - use APENAS os emails fornecidos neste prompt
 - NUNCA invente nomes de pessoas - use APENAS seu nome: ${shopContext.attendant_name}
-- NUNCA invente endereços físicos, WhatsApp, redes sociais ou qualquer outro contato
-- NUNCA use números de exemplo como "01 23 45 67 89", "(11) 9999-9999", "+33 1 23 45 67 89"
+${storeProvidedInfo.hasPhone ? `- TELEFONE DA LOJA: ${storeProvidedInfo.phone} (fornecido pelo dono da loja - PODE usar)` : `- NUNCA invente números de telefone - se não foi fornecido, NÃO EXISTE
+- NUNCA invente WhatsApp, redes sociais ou qualquer outro contato
+- NUNCA use números de exemplo como "01 23 45 67 89", "(11) 9999-9999", "+33 1 23 45 67 89"`}
 - NUNCA crie emails alternativos como "sophie@loja.com", "suporte2@loja.com", etc.
 - O ÚNICO nome que você pode usar é: ${shopContext.attendant_name}
 - Se você não tem uma informação, NÃO INVENTE - diga que o atendimento é por email
@@ -2828,19 +2918,22 @@ REGRA DE EMAILS DA LOJA (MUITO IMPORTANTE):
 - EMAIL PRINCIPAL DA LOJA: ${mainStoreEmail}
   → Este é o email que o cliente está usando para falar conosco AGORA
   → Se o cliente perguntar "este é o email correto?", "qual o email de contato?", "como entro em contato?" → CONFIRME que ${mainStoreEmail} é o email principal
-  → Se o cliente pedir telefone e não existe: "No momento, nosso atendimento é feito por email: ${mainStoreEmail}"
+${storeProvidedInfo.hasPhone ? `  → Se o cliente pedir telefone: forneça ${storeProvidedInfo.phone}` : `  → Se o cliente pedir telefone e não existe: "No momento, nosso atendimento é feito por email: ${mainStoreEmail}"`}
   → Se o cliente pedir outro canal: "Por favor, entre em contato pelo email ${mainStoreEmail}"
 - EMAIL DE ESCALAÇÃO HUMANA: ${shopContext.support_email}
   → Use este email APENAS para casos que precisam de atendimento humano (cancelamentos, reembolsos, produto errado, etc.)
   → NUNCA forneça este email para perguntas gerais de contato
 
-NUNCA INVENTAR ENDEREÇOS DE DEVOLUÇÃO (REGRA CRÍTICA):
+${storeProvidedInfo.hasReturnAddress ? `ENDEREÇO DE DEVOLUÇÃO DA LOJA (FORNECIDO PELO DONO - USE QUANDO NECESSÁRIO):
+- Endereço de devolução: ${storeProvidedInfo.returnAddress}
+- Quando o cliente perguntar onde devolver um produto, forneça este endereço
+- Use este endereço EXATAMENTE como fornecido - NÃO modifique, NÃO invente complementos` : `NUNCA INVENTAR ENDEREÇOS DE DEVOLUÇÃO (REGRA CRÍTICA):
 - NUNCA invente endereços para devolução de produtos
 - NUNCA crie endereços fictícios como "123 Return Street", "Rua das Devoluções", etc.
 - NUNCA forneça endereços genéricos como "Anytown, US 12345" ou similares
 - Se o cliente perguntar onde devolver um produto: "Para obter o endereço de devolução, entre em contato pelo email ${shopContext.support_email}"
 - Você NÃO TEM acesso ao endereço de devolução da loja - NUNCA invente um
-- Quando o cliente precisar devolver algo, SEMPRE direcione para o email de suporte
+- Quando o cliente precisar devolver algo, SEMPRE direcione para o email de suporte`}
 
 CASOS DE PRODUTO ERRADO/DEFEITUOSO/DANIFICADO (REGRA ESPECIAL):
 - Se o cliente recebeu PRODUTO ERRADO, DEFEITUOSO ou DANIFICADO:
@@ -3617,7 +3710,7 @@ Se a imagem mostrar algo grave (produto claramente errado, danificado, etc.):
   let cleanedResponse = cleanAIResponse(stripMarkdown(responseText));
 
   // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 1: Detectar alucinações (endereços, telefones, ações falsas)
-  const hallucinations = detectHallucinations(cleanedResponse, shopContext);
+  const hallucinations = detectHallucinations(cleanedResponse, shopContext, storeProvidedInfo);
   if (hallucinations.length > 0) {
     console.warn(`[generateResponse] HALLUCINATION DETECTED: ${hallucinations.join(', ')}. Regenerating...`);
     try {
@@ -3640,7 +3733,7 @@ Rewrite your response following these rules. Be helpful but ONLY use information
       const retryClean = cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim()));
 
       // Verificar se o retry também tem alucinações
-      const retryHallucinations = detectHallucinations(retryClean, shopContext);
+      const retryHallucinations = detectHallucinations(retryClean, shopContext, storeProvidedInfo);
       if (retryHallucinations.length === 0 && retryClean && retryClean.length > 10) {
         console.log(`[generateResponse] Hallucination fix successful`);
         cleanedResponse = retryClean;
