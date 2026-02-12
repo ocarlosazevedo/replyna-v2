@@ -25,7 +25,6 @@ import {
   FileText,
   Settings,
   Award,
-  Star,
   Users,
   Clock,
   CreditCard,
