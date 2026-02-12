@@ -2117,18 +2117,41 @@ function detectHallucinations(
     }
   }
 
-  // 4. Detectar frases proibidas que revelam IA ou são robóticas
+  // 4. Detectar frases proibidas que revelam IA ou são robóticas (TODOS OS IDIOMAS)
   const escapedName = shopContext.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const bannedPhrases = [
+    // Assinaturas formais proibidas
     /atenciosamente/i,
     /sincerely/i,
     /best regards/i,
+    /kind regards/i,
     /mit freundlichen grüßen/i,
     /cordialmente/i,
+    /cordialement/i,
+    /cordiali saluti/i,
+    /con cordiales saludos/i,
+    /s pozdravem/i,
+    /z poważaniem/i,
+    // Assinatura com nome da loja (proibido)
     new RegExp(`suporte\\s+${escapedName}`, 'i'),
     new RegExp(`equipe\\s+${escapedName}`, 'i'),
+    new RegExp(`team\\s+${escapedName}`, 'i'),
+    new RegExp(`l'équipe\\s+(?:de\\s+)?${escapedName}`, 'i'),
+    new RegExp(`equipo\\s+${escapedName}`, 'i'),
+    // Frases robóticas / IA
     /assistente\s+virtual/i,
     /virtual\s+assistant/i,
+    /n'h[ée]sitez\s+pas/i,
+    /don'?t\s+hesitate/i,
+    /no\s+dude\s+en/i,
+    /nicht\s+z[öo]gern/i,
+    /non\s+esit[ai]/i,
+    // Promessas falsas de verificar com equipes
+    /(?:vou|vais|je\s+vais|i\s+will|i'?ll|voy\s+a|ich\s+werde)\s+(?:contacter|contatar|contact|verificar|v[ée]rifier|check\s+with|consultar|consult)\s+(?:notre|nossa|our|nuestra|unser).{0,20}(?:[ée]quipe|equipa|team|equipo)/i,
+    // Promessas falsas de follow-up
+    /(?:vous\s+tenir\s+inform|keep\s+you\s+(?:informed|updated|posted)|te\s+manteré\s+informad|vi\s+terrò\s+aggiorna|mantê-lo\s+informad)/i,
+    // "Merci de votre patience" e variantes
+    /(?:merci\s+(?:de|pour)\s+votre\s+patience|thank\s+you\s+for\s+your\s+patience|gracias\s+por\s+su\s+paciencia|obrigad[oa]\s+pela\s+(?:sua\s+)?paci[eê]ncia)/i,
   ];
 
   for (const pattern of bannedPhrases) {
@@ -3722,11 +3745,15 @@ ${hallucinations.map(h => `- ${h}`).join('\n')}
 STRICT RULES FOR YOUR NEW RESPONSE:
 1. NEVER invent addresses, phone numbers, or physical locations
 2. NEVER say you "marked", "processed", "updated", or "cancelled" anything - you CANNOT do these actions
-3. NEVER use "Atenciosamente", "Sincerely", "Best regards" - just sign with your name
-4. If the customer needs a return address, say: "Para obter o endereço de devolução, entre em contato pelo ${shopContext.support_email || 'nosso email de suporte'}"
-5. If the customer needs something you can't do, direct them to: ${shopContext.support_email || 'nosso email de suporte'}
+3. NEVER use formal sign-offs: "Atenciosamente", "Sincerely", "Best regards", "Kind regards", "Cordialement", "Cordiali saluti", "Mit freundlichen Grüßen", "Cordialmente" - just sign with your name
+4. NEVER promise to "contact our team", "check with logistics", "keep you updated", "follow up" - you CANNOT do these things
+5. NEVER use "n'hésitez pas", "don't hesitate", "no dude en", "não hesite"
+6. NEVER use "merci de votre patience", "thank you for your patience", "obrigado pela paciência"
+7. USE the order data provided in the prompt - do NOT ask the customer to wait while you "check"
+8. If the customer needs a return address, say: "Para obter o endereço de devolução, entre em contato pelo ${shopContext.support_email || 'nosso email de suporte'}"
+9. If the customer needs something you can't do, direct them to: ${shopContext.support_email || 'nosso email de suporte'}
 
-Rewrite your response following these rules. Be helpful but ONLY use information you actually have.`,
+Rewrite your response following these rules. Be helpful, direct, and ONLY use information you actually have.`,
       }];
       const retryResponse = await callClaude(systemPrompt, hallucinationFixMessages, MAX_TOKENS);
       const retryText = retryResponse.content[0]?.text || '';
@@ -3751,8 +3778,11 @@ Rewrite your response following these rules. Be helpful but ONLY use information
           .replace(/atenciosamente,?\s*/gi, '')
           .replace(/sincerely,?\s*/gi, '')
           .replace(/best regards,?\s*/gi, '')
+          .replace(/kind regards,?\s*/gi, '')
           .replace(/mit freundlichen grüßen,?\s*/gi, '')
           .replace(/cordialmente,?\s*/gi, '')
+          .replace(/cordialement,?\s*/gi, '')
+          .replace(/cordiali saluti,?\s*/gi, '')
           .trim();
         response.usage.input_tokens += retryResponse.usage.input_tokens;
         response.usage.output_tokens += retryResponse.usage.output_tokens;
@@ -3764,8 +3794,11 @@ Rewrite your response following these rules. Be helpful but ONLY use information
         .replace(/atenciosamente,?\s*/gi, '')
         .replace(/sincerely,?\s*/gi, '')
         .replace(/best regards,?\s*/gi, '')
+        .replace(/kind regards,?\s*/gi, '')
         .replace(/mit freundlichen grüßen,?\s*/gi, '')
         .replace(/cordialmente,?\s*/gi, '')
+        .replace(/cordialement,?\s*/gi, '')
+        .replace(/cordiali saluti,?\s*/gi, '')
         .trim();
     }
   }
