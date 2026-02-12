@@ -463,7 +463,8 @@ async function processMessage(
   const classification = await classifyEmail(
     message.subject || '',
     cleanBody,
-    conversationHistory.slice(0, -1) // Excluir a mensagem atual
+    conversationHistory.slice(0, -1), // Excluir a mensagem atual
+    message.body_text || '', // rawEmailBody para fallback de idioma (country code, etc.)
   );
 
   // 8. Reservar crédito atomicamente (verifica E reserva em uma única transação)

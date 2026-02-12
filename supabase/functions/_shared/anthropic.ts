@@ -66,6 +66,49 @@ const MODEL = 'claude-3-haiku-20240307'; // Haiku 3.0 (modelo atualizado)
 const MAX_TOKENS = 800; // Aumentado para evitar truncar links de rastreio
 
 /**
+ * Mapeia country code (ISO 3166-1) para idioma provável
+ * Usado como fallback quando a detecção por texto falha
+ */
+const countryToLanguage: Record<string, string> = {
+  US: 'en', GB: 'en', AU: 'en', CA: 'en', NZ: 'en', IE: 'en', ZA: 'en',
+  IN: 'en', SG: 'en', PH: 'en', MY: 'en', HK: 'en',
+  BR: 'pt', PT: 'pt', AO: 'pt', MZ: 'pt',
+  ES: 'es', MX: 'es', AR: 'es', CO: 'es', CL: 'es', PE: 'es',
+  VE: 'es', EC: 'es', UY: 'es', PY: 'es', BO: 'es', CR: 'es',
+  PA: 'es', DO: 'es', GT: 'es', HN: 'es', SV: 'es', NI: 'es', CU: 'es',
+  DE: 'de', AT: 'de', CH: 'de',
+  FR: 'fr', BE: 'fr', LU: 'fr', MC: 'fr', SN: 'fr', CI: 'fr',
+  IT: 'it', SM: 'it',
+  NL: 'nl',
+  CZ: 'cs', SK: 'cs',
+  PL: 'pl',
+  RU: 'ru', BY: 'ru', KZ: 'ru',
+  TR: 'tr',
+  SE: 'sv',
+  DK: 'da',
+  NO: 'no',
+  FI: 'fi',
+  RO: 'ro',
+  HU: 'hu',
+  JP: 'ja',
+  KR: 'ko',
+  CN: 'zh', TW: 'zh',
+};
+
+/**
+ * Extrai o country code de um email de formulário de contato do Shopify
+ * Retorna o código do país (ex: "GB", "US") ou null se não encontrar
+ */
+function extractCountryCodeFromEmail(text: string): string | null {
+  if (!text) return null;
+  const match = text.match(/Country\s*(?:Code)?\s*:\s*\n?\s*([A-Z]{2})\b/i);
+  if (match && match[1]) {
+    return match[1].toUpperCase();
+  }
+  return null;
+}
+
+/**
  * Detecta o idioma diretamente do texto usando padrões linguísticos
  * Retorna o código do idioma ou null se não conseguir detectar com confiança
  */
@@ -1222,7 +1265,8 @@ async function callClaude(
 export async function classifyEmail(
   emailSubject: string,
   emailBody: string,
-  conversationHistory: Array<{ role: 'customer' | 'assistant'; content: string }>
+  conversationHistory: Array<{ role: 'customer' | 'assistant'; content: string }>,
+  rawEmailBody?: string,
 ): Promise<ClassificationResult> {
   const systemPrompt = `You are an email classifier for e-commerce customer support.
 
@@ -1659,7 +1703,26 @@ REGRAS CRÍTICAS:
     // CRÍTICO: Validar idioma usando detecção direta do texto
     // Isso corrige casos onde o Claude erra a detecção de idioma
     const textToAnalyze = `${emailSubject || ''} ${emailBody || ''}`.trim();
-    const detectedLanguage = detectLanguageFromText(textToAnalyze);
+    let detectedLanguage = detectLanguageFromText(textToAnalyze);
+
+    // FALLBACK 1: Se não detectou idioma do texto limpo, tentar do body RAW
+    // Isso captura casos onde cleanEmailBody retornou placeholder mas o body original tem texto do cliente
+    if (!detectedLanguage && rawEmailBody) {
+      detectedLanguage = detectLanguageFromText(rawEmailBody);
+      if (detectedLanguage) {
+        console.log(`[classifyEmail] Language detected from RAW body: "${detectedLanguage}"`);
+      }
+    }
+
+    // FALLBACK 2: Se ainda não detectou, tentar extrair country code do email
+    // Country code é um sinal forte (ex: "Country Code: GB" → inglês)
+    if (!detectedLanguage) {
+      const countryCode = extractCountryCodeFromEmail(rawEmailBody || emailBody || '');
+      if (countryCode && countryToLanguage[countryCode]) {
+        detectedLanguage = countryToLanguage[countryCode];
+        console.log(`[classifyEmail] Language inferred from country code ${countryCode}: "${detectedLanguage}"`);
+      }
+    }
 
     if (detectedLanguage) {
       // Se detectamos um idioma com confiança, usar ele
@@ -1718,7 +1781,17 @@ REGRAS CRÍTICAS:
     // Fallback se não conseguir fazer parse
     // Tentar detectar idioma e categoria do texto mesmo no fallback
     const textToAnalyze = `${emailSubject || ''} ${emailBody || ''}`.trim();
-    const detectedLanguage = detectLanguageFromText(textToAnalyze) || 'en';
+    let detectedLanguage = detectLanguageFromText(textToAnalyze);
+    // Fallback: tentar do body raw
+    if (!detectedLanguage && rawEmailBody) {
+      detectedLanguage = detectLanguageFromText(rawEmailBody);
+    }
+    // Fallback: tentar do country code
+    if (!detectedLanguage) {
+      const cc = extractCountryCodeFromEmail(rawEmailBody || emailBody || '');
+      if (cc && countryToLanguage[cc]) detectedLanguage = countryToLanguage[cc];
+    }
+    detectedLanguage = detectedLanguage || 'en';
 
     // Verificar spam por padrões no fallback também
     const isPatternSpam = isSpamByPattern(emailSubject, emailBody);
@@ -3277,6 +3350,39 @@ Se a imagem mostrar algo grave (produto claramente errado, danificado, etc.):
 
   // Aplicar limpeza de pensamentos internos e formatação
   const cleanedResponse = cleanAIResponse(stripMarkdown(responseText));
+
+  // VALIDAÇÃO PÓS-GERAÇÃO: Detectar se a resposta está no idioma errado
+  // Se o idioma esperado NÃO é português mas a resposta começa com saudações em português → ERRO
+  if (language && language !== 'pt' && language !== 'pt-BR') {
+    const responseStart = cleanedResponse.substring(0, 100).toLowerCase();
+    const portugueseGreetings = /^(olá|oi[!,\s]|bom dia|boa tarde|boa noite|prezad[oa]|car[oa]\s|recebi seu contato|obrigad[oa])/i;
+    if (portugueseGreetings.test(responseStart)) {
+      console.warn(`[generateResponse] LANGUAGE MISMATCH: Expected "${language}" but response starts with Portuguese. Response: "${cleanedResponse.substring(0, 80)}"`);
+      // Tentar regenerar com instrução mais forte
+      try {
+        const retryLangName: Record<string, string> = { en: 'English', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian', nl: 'Dutch', cs: 'Czech', pl: 'Polish', sv: 'Swedish', da: 'Danish', no: 'Norwegian', fi: 'Finnish', ro: 'Romanian', hu: 'Hungarian', tr: 'Turkish', ru: 'Russian', pt: 'Portuguese' };
+        const langNameStr = retryLangName[language] || language;
+        const retryMessages = [...messages, {
+          role: 'user' as const,
+          content: `CRITICAL ERROR: Your previous response was in Portuguese, but the customer speaks ${langNameStr}. Rewrite your ENTIRE response in ${langNameStr}. Do NOT use any Portuguese words.`,
+        }];
+        const retryResponse = await callClaude(systemPrompt, retryMessages, MAX_TOKENS);
+        const retryText = retryResponse.content[0]?.text || '';
+        const retryClean = cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim()));
+        if (retryClean && retryClean.length > 10) {
+          console.log(`[generateResponse] Language retry successful, response now in ${language}`);
+          return {
+            response: retryClean,
+            tokens_input: response.usage.input_tokens + retryResponse.usage.input_tokens,
+            tokens_output: response.usage.output_tokens + retryResponse.usage.output_tokens,
+            forward_to_human: forwardToHuman,
+          };
+        }
+      } catch (retryErr) {
+        console.error(`[generateResponse] Language retry failed:`, retryErr);
+      }
+    }
+  }
 
   return {
     response: cleanedResponse,

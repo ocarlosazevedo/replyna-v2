@@ -1322,10 +1322,10 @@ export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
   // Também: "You received a new message from your online store's contact form."
   const shopifyFormPattern = /(?:Nova mensagem de cliente|New customer message|New message from customer|received a new message from.*(?:contact form|online store)|new message from your online store)/i;
   if (shopifyFormPattern.test(body)) {
-    // Tentar extrair o campo Comment/Comentário/Message
+    // Tentar extrair o campo Comment/Comentário/Message/Body/Corpo
     const commentPatterns = [
-      /(?:Comment|Comentário|Message|Mensagem):\s*\n?\s*(.+?)(?:\n\n|\n(?:Country|Name|Email|Phone|--|$))/is,
-      /(?:Comment|Comentário|Message|Mensagem):\s*\n?\s*(.+)$/is,
+      /(?:Comment|Comentário|Message|Mensagem|Body|Corpo):\s*\n?\s*(.+?)(?:\n\n|\n(?:Country|Name|Email|Phone|--|$))/is,
+      /(?:Comment|Comentário|Message|Mensagem|Body|Corpo):\s*\n?\s*(.+)$/is,
     ];
 
     for (const pattern of commentPatterns) {

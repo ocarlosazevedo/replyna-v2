@@ -1148,7 +1148,8 @@ async function processMessageInternal(
   const classification = await classifyEmail(
     message.subject || '',
     cleanBody,
-    conversationHistory.slice(0, -1)
+    conversationHistory.slice(0, -1),
+    message.body_text || '', // rawEmailBody para fallback de idioma
   );
 
   await updateMessage(message.id, {
