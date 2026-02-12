@@ -1308,7 +1308,7 @@ const styles = `
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  .mc-highlight-red { color: #f87171; }
+  .mc-highlight-red { color: #f59e0b; }
   .mc-subheadline {
     font-size: 16px;
     color: rgba(255,255,255,0.6);
@@ -1649,18 +1649,18 @@ const styles = `
     padding-bottom: 16px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
   }
-  .mc-loss-header svg { color: #f87171; }
+  .mc-loss-header svg { color: #f59e0b; }
   .mc-loss-grid { display: flex; flex-direction: column; gap: 14px; }
   .mc-loss-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   .mc-loss-label { font-size: 14px; color: rgba(255,255,255,0.6); }
   .mc-loss-value { font-size: 14px; font-weight: 700; white-space: nowrap; }
-  .mc-loss-red { color: #f87171; }
+  .mc-loss-red { color: #f59e0b; }
   .mc-loss-total { padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; }
   .mc-loss-red-big {
-    color: #ef4444;
+    color: #f59e0b;
     font-size: 20px;
     font-weight: 800;
-    text-shadow: 0 0 20px rgba(239,68,68,0.3);
+    text-shadow: 0 0 20px rgba(245,158,11,0.3);
   }
   .mc-loss-footer {
     font-size: 13px;
