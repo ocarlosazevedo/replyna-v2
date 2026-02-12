@@ -1807,9 +1807,11 @@ REGRAS CRÍTICAS:
       result.category = 'suporte_humano';
       result.confidence = 0.95;
     }
-    // PRIORIDADE 4: Apenas cancelamento/devolução (sem problema de produto) → fluxo de retenção
-    else if (isCancellationRequest && result.category !== 'troca_devolucao_reembolso' && result.category !== 'suporte_humano') {
-      console.log(`[classifyEmail] Category override: Claude said "${result.category}", but text contains cancellation/refund keywords`);
+    // PRIORIDADE 4: Cancelamento/devolução → SEMPRE vai para retenção (mesmo se Claude disse suporte_humano)
+    // Se chegou aqui, NÃO é frustração nem defeito (esses já foram capturados acima)
+    // O fluxo de retenção tenta manter o cliente, e após 3 tentativas encaminha para humano
+    else if (isCancellationRequest && result.category !== 'troca_devolucao_reembolso') {
+      console.log(`[classifyEmail] Category override to retention: Claude said "${result.category}", but text contains cancellation/refund keywords`);
       result.category = 'troca_devolucao_reembolso';
       result.confidence = 0.95;
     }
