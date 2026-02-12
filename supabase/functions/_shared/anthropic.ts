@@ -2047,6 +2047,141 @@ function extractStoreProvidedInfo(storeDescription: string | null): StoreProvide
 }
 
 /**
+ * Resultado da detecção de loop multi-estratégia.
+ */
+interface LoopDetectionResult {
+  detected: boolean;
+  strategy: 'regex' | 'similarity' | 'exchange_count' | null;
+  details: string;
+  assistantCount: number;
+  similarityScore: number;
+  regexMatchCount: number;
+}
+
+/**
+ * Detecta loops em conversas usando 3 estratégias complementares:
+ * 1. Exchange Count (≥4 respostas da IA) — safety net absoluto
+ * 2. Regex Patterns (≥2 respostas pedem a mesma info) — detecção específica
+ * 3. Jaccard Similarity (≥2 pares > 0.5) — detecção language-agnostic
+ */
+function detectConversationLoop(
+  conversationHistory: Array<{ role: 'customer' | 'assistant'; content: string }>,
+  conversationStatus?: string,
+): LoopDetectionResult {
+  const assistantResponses = conversationHistory
+    .filter(m => m.role === 'assistant' && m.content && m.content.trim() !== '')
+    .map(m => m.content.toLowerCase());
+
+  const assistantCount = assistantResponses.length;
+
+  const noLoop: LoopDetectionResult = {
+    detected: false,
+    strategy: null,
+    details: `No loop (${assistantCount} assistant msgs)`,
+    assistantCount,
+    similarityScore: 0,
+    regexMatchCount: 0,
+  };
+
+  // === ESTRATÉGIA 1: Exchange Count Safety Net (O(1), mais barato) ===
+  // 4+ respostas da IA = loop. E-commerce normal resolve em 1-2 trocas.
+  // SKIP se conversa já é pending_human (evita re-escalação infinita)
+  if (assistantCount >= 4 && conversationStatus !== 'pending_human') {
+    return {
+      detected: true,
+      strategy: 'exchange_count',
+      details: `${assistantCount} assistant responses (threshold: 4)`,
+      assistantCount,
+      similarityScore: 0,
+      regexMatchCount: 0,
+    };
+  }
+
+  // Com 0 ou 1 resposta, impossível ter loop
+  if (assistantCount < 2) return noLoop;
+
+  // === ESTRATÉGIA 2: Regex Patterns (O(n×p), detecção específica) ===
+  const infoRequestPatterns = [
+    // "fornecer/provide/fournir/enviar + numero/order/pedido"
+    /(?:fornec|provide|fournir|fourniss|bereitstel|proporcionar|fornir|inviar|enviar|send).{0,40}(?:numero|number|numéro|nummer|número|pedido|order|commande|bestell|ordine)/i,
+    // "poderia/could/pourriez + fornecer/provide/enviar"
+    /(?:poder|could|pourr|könn|podr|potr).{0,30}(?:fornec|provide|fournir|geben|proporcionar|fornir|enviar|send|inviar)/i,
+    // "email + usado/used/utilisé"
+    /(?:email|e-mail).{0,30}(?:utilizzat|used|utilisé|verwendet|utilizado|usado|usad)/i,
+    // "número do pedido / order number / numéro de commande"
+    /(?:numero.{0,20}ordine|order.{0,20}number|numéro.{0,20}commande|bestellnummer|número.{0,20}pedido|numer.{0,20}zamówienia|číslo.{0,20}objednávky)/i,
+    // "qual é o número / what is the number"
+    /(?:qual.{0,10}(?:número|pedido)|what.{0,10}(?:number|order)|quel.{0,10}(?:numéro|commande)|welche.{0,10}(?:nummer|bestell))/i,
+    // "não encontramos/localizamos + pedido/order"
+    /(?:não (?:encontr|localiz|consegu)|(?:could|couldn).{0,5}(?:not|n't) (?:find|locate)|n.avons pas (?:trouvé|pu)|nicht gefunden|no (?:encontr|localiz|pudimos)).{0,40}(?:pedido|order|commande|bestell|ordine)/i,
+  ];
+
+  let regexMatchCount = 0;
+  for (const resp of assistantResponses) {
+    for (const pattern of infoRequestPatterns) {
+      if (pattern.test(resp)) {
+        regexMatchCount++;
+        break;
+      }
+    }
+  }
+
+  if (regexMatchCount >= 2) {
+    return {
+      detected: true,
+      strategy: 'regex',
+      details: `${regexMatchCount} responses match info-request patterns`,
+      assistantCount,
+      similarityScore: 0,
+      regexMatchCount,
+    };
+  }
+
+  // === ESTRATÉGIA 3: Jaccard Similarity (O(n²×w), language-agnostic) ===
+  const tokenize = (text: string): Set<string> => {
+    return new Set(
+      text.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(w => w.length > 3)
+    );
+  };
+
+  const jaccardSimilarity = (a: Set<string>, b: Set<string>): number => {
+    if (a.size === 0 && b.size === 0) return 0;
+    let intersection = 0;
+    const [smaller, larger] = a.size <= b.size ? [a, b] : [b, a];
+    for (const word of smaller) {
+      if (larger.has(word)) intersection++;
+    }
+    const union = a.size + b.size - intersection;
+    return union === 0 ? 0 : intersection / union;
+  };
+
+  const tokenized = assistantResponses.map(tokenize);
+  let highSimPairs = 0;
+  let maxSim = 0;
+
+  for (let i = 0; i < tokenized.length; i++) {
+    for (let j = i + 1; j < tokenized.length; j++) {
+      const sim = jaccardSimilarity(tokenized[i], tokenized[j]);
+      if (sim > maxSim) maxSim = sim;
+      if (sim > 0.5) highSimPairs++;
+    }
+  }
+
+  if (highSimPairs >= 2) {
+    return {
+      detected: true,
+      strategy: 'similarity',
+      details: `${highSimPairs} response pairs with Jaccard > 0.5 (max: ${maxSim.toFixed(3)})`,
+      assistantCount,
+      similarityScore: maxSim,
+      regexMatchCount,
+    };
+  }
+
+  return { ...noLoop, similarityScore: maxSim, regexMatchCount };
+}
+
+/**
  * Detecta alucinações na resposta gerada pela IA.
  * Verifica se a IA inventou endereços, telefones, funcionalidades ou frases proibidas.
  * Retorna lista de problemas encontrados (vazia = sem alucinações).
@@ -2223,6 +2358,7 @@ export async function generateResponse(
     filename?: string;
   }> = [],
   sentiment: string = 'calm',
+  conversationStatus?: string,
 ): Promise<ResponseGenerationResult> {
   // Mapear tom de voz para instruções - MAIS HUMANO E NATURAL
   const toneInstructions: Record<string, string> = {
@@ -3607,47 +3743,27 @@ Eles irão analisar seu caso e entrar em contato.
 
 ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.signature_html}` : ''}`;
 
-  // DETECÇÃO PROGRAMÁTICA DE LOOP (antes de montar mensagens)
-  // Se a IA pediu a mesma coisa 2+ vezes, forçar escalação para humano
-  let loopDetected = false;
+  // DETECÇÃO PROGRAMÁTICA DE LOOP (multi-estratégia, antes de montar mensagens)
+  const loopResult = detectConversationLoop(conversationHistory, conversationStatus);
   let loopWarning = '';
-  if (conversationHistory.length >= 4) {
-    // Contar quantas respostas do assistente pedem informações
-    const assistantResponses = conversationHistory
-      .filter(m => m.role === 'assistant' && m.content)
-      .map(m => m.content.toLowerCase());
 
-    // Padrões de pedidos repetitivos de informação
-    const infoRequestPatterns = [
-      /(?:fornir|provide|fournir|bereitstellen|proporcionar).{0,30}(?:numero|number|numéro|nummer|número)/i,
-      /(?:potr|could|pourr|könn|podr).{0,20}(?:fornir|provide|fournir|geben|proporcionar)/i,
-      /(?:email|e-mail).{0,20}(?:utilizzat|used|utilisé|verwendet|utilizado)/i,
-      /(?:numero.{0,10}ordine|order.{0,10}number|numéro.{0,10}commande|bestellnummer|número.{0,10}pedido)/i,
-    ];
+  if (loopResult.detected) {
+    const customerCount = conversationHistory.filter(m => m.role === 'customer').length;
+    console.warn(`[generateResponse] LOOP DETECTED via ${loopResult.strategy}: ${loopResult.details}`);
 
-    let repeatedInfoRequests = 0;
-    for (const resp of assistantResponses) {
-      for (const pattern of infoRequestPatterns) {
-        if (pattern.test(resp)) {
-          repeatedInfoRequests++;
-          break;
-        }
-      }
-    }
+    loopWarning = `
+⚠️⚠️⚠️ ALERTA DE LOOP DETECTADO ⚠️⚠️⚠️
+O sistema detectou que esta conversa está em loop (${loopResult.strategy}).
+Já existem ${loopResult.assistantCount} respostas suas e ${customerCount} mensagens do cliente.
 
-    if (repeatedInfoRequests >= 2) {
-      loopDetected = true;
-      loopWarning = `
-⚠️⚠️⚠️ ALERTA DE LOOP DETECTADO AUTOMATICAMENTE ⚠️⚠️⚠️
-O sistema detectou que você JÁ PEDIU informações ao cliente ${repeatedInfoRequests} vezes nesta conversa.
-O cliente já tentou responder ${conversationHistory.filter(m => m.role === 'customer').length} vezes.
-
-AÇÃO OBRIGATÓRIA: NÃO peça MAIS informações. Use [FORWARD_TO_HUMAN] e encaminhe para ${shopContext.support_email}.
-Diga ao cliente que vai encaminhar para a equipe resolver diretamente.
-NÃO repita o mesmo pedido de número do pedido/email/dados.
+REGRAS OBRIGATÓRIAS:
+1. NÃO peça MAIS informações ao cliente (número de pedido, email, nome, etc.)
+2. NÃO repita a mesma resposta ou pergunta de antes
+3. Use os DADOS que já tem disponíveis (dados do pedido, email do cliente, histórico)
+4. Se você TEM dados do pedido: responda com eles (rastreio, status, etc.)
+5. Se você NÃO TEM dados do pedido: peça desculpas pela dificuldade e forneça o email ${shopContext.support_email} para o cliente entrar em contato diretamente
+6. Seja empático e reconheça que o cliente já tentou várias vezes
 ⚠️⚠️⚠️ FIM DO ALERTA ⚠️⚠️⚠️`;
-      console.warn(`[generateResponse] LOOP DETECTED: ${repeatedInfoRequests} repeated info requests in conversation history`);
-    }
   }
 
   // Montar histórico

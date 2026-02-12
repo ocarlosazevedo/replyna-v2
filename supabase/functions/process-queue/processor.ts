@@ -452,7 +452,7 @@ async function processMessage(
   }
 
   // 6. Buscar histórico da conversa ANTES de classificar
-  const rawHistory = await getConversationHistory(conversation.id, 3);
+  const rawHistory = await getConversationHistory(conversation.id, 10);
   const conversationHistory = (rawHistory || []).map((msg: Message) => ({
     role: msg.direction === 'inbound' ? ('customer' as const) : ('assistant' as const),
     content: cleanEmailBody(msg.body_text || '', msg.body_html || ''),
@@ -918,6 +918,7 @@ async function processMessage(
     })),
     [], // emailImages
     classification.sentiment || 'calm',
+    conversation.status, // para loop detection pular exchange_count se pending_human
   );
 
   await logProcessingEvent({

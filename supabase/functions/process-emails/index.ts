@@ -1138,7 +1138,7 @@ async function processMessageInternal(
   }
 
   // 3. Buscar histórico da conversa
-  const history = await getConversationHistory(conversation.id, 3);
+  const history = await getConversationHistory(conversation.id, 10);
   const conversationHistory = history.map((m) => ({
     role: m.direction === 'inbound' ? ('customer' as const) : ('assistant' as const),
     content: cleanEmailBody(m.body_text || '', m.body_html || ''),
@@ -1369,7 +1369,8 @@ async function processMessageInternal(
       retentionContactCount,
       [], // additionalOrders
       cachedImages || [], // imagens do email para análise visual
-      classification.sentiment || 'calm'
+      classification.sentiment || 'calm',
+      conversation.status, // para loop detection pular exchange_count se pending_human
     );
 
     // Se a IA detectou que é terceiro contato de cancelamento, encaminhar para humano
