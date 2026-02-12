@@ -423,12 +423,7 @@ export default function Masterclass() {
         <div className="mc-hero-inner">
           <div className="mc-hero-text">
             <div className="mc-social-badge">
-              <div className="mc-social-stars">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={12} fill="#facc15" color="#facc15" />
-                ))}
-              </div>
-              <span>+500 alunos já assistiram</span>
+              <span>Masterclass 100% gratuita</span>
             </div>
 
             <h1 className="mc-headline">
