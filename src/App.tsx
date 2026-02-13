@@ -16,6 +16,7 @@ import ShopDetails from './pages/ShopDetails'
 import Account from './pages/Account'
 import ConversationDetails from './pages/ConversationDetails'
 import LandingPage from './pages/LandingPage'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 import Masterclass from './pages/Masterclass'
 import MasterclassWatch from './pages/MasterclassWatch'
 
@@ -149,6 +150,7 @@ function App() {
         <Routes>
           <Route path="/masterclass" element={<Masterclass />} />
           <Route path="/masterclass/assistir" element={<MasterclassWatch />} />
+          <Route path="/privacidade" element={<PrivacyPolicy />} />
           <Route path="*" element={<LandingPage />} />
         </Routes>
       </BrowserRouter>

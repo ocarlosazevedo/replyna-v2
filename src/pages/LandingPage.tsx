@@ -2347,7 +2347,7 @@ export default function LandingPage() {
             <a href="#" style={{ color: 'rgba(255,255,255,0.3)', textDecoration: 'none', fontSize: '14px', transition: 'color 0.2s' }}>
               Termos de uso
             </a>
-            <a href="#" style={{ color: 'rgba(255,255,255,0.3)', textDecoration: 'none', fontSize: '14px', transition: 'color 0.2s' }}>
+            <a href="/privacidade" style={{ color: 'rgba(255,255,255,0.3)', textDecoration: 'none', fontSize: '14px', transition: 'color 0.2s' }}>
               Privacidade
             </a>
             <a
