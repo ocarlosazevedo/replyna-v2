@@ -571,7 +571,7 @@ export default function PrivacyPolicy() {
                   </div>
                 )}
 
-                {section.subsections && section.subsections.map((sub, i) => (
+                {section.subsections && section.subsections.map((sub: any, i: number) => (
                   <div key={i} style={{ marginBottom: i < section.subsections!.length - 1 ? '24px' : '0' }}>
                     <h3 style={{
                       fontSize: '16px',
@@ -586,7 +586,7 @@ export default function PrivacyPolicy() {
                         {sub.description}
                       </p>
                     )}
-                    {sub.items && sub.items.map((item, j) => (
+                    {sub.items && sub.items.map((item: string, j: number) => (
                       <div key={j} className="pp-list-item">
                         <div className="pp-list-dot" />
                         <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
