@@ -15,6 +15,20 @@ import Stripe from 'https://esm.sh/stripe@20.2.0?target=deno';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
+/** Extrai period dates da subscription (compatível com API Stripe 2025-12-15.clover) */
+function getSubscriptionPeriod(subscription: any): { start: number; end: number } {
+  const item = subscription.items?.data?.[0];
+  const start = subscription.current_period_start ?? item?.current_period_start ?? item?.period?.start;
+  const end = subscription.current_period_end ?? item?.current_period_end ?? item?.period?.end;
+  return { start, end };
+}
+
+function safeTimestampToISO(timestamp: number | null | undefined): string | null {
+  if (!timestamp || typeof timestamp !== 'number' || timestamp <= 0) return null;
+  const date = new Date(timestamp * 1000);
+  return isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 interface UpdateSubscriptionRequest {
   user_id: string;
   new_plan_id: string;
@@ -546,9 +560,10 @@ serve(async (req) => {
     };
 
     // Se foi upgrade, atualizar as datas do período baseado na subscription atualizada do Stripe
-    if (isUpgrade && updatedSubscription.current_period_start && updatedSubscription.current_period_end) {
-      subscriptionUpdate.current_period_start = new Date(updatedSubscription.current_period_start * 1000).toISOString();
-      subscriptionUpdate.current_period_end = new Date(updatedSubscription.current_period_end * 1000).toISOString();
+    const upgradePeriod = getSubscriptionPeriod(updatedSubscription);
+    if (isUpgrade && upgradePeriod.start && upgradePeriod.end) {
+      subscriptionUpdate.current_period_start = safeTimestampToISO(upgradePeriod.start) || new Date().toISOString();
+      subscriptionUpdate.current_period_end = safeTimestampToISO(upgradePeriod.end) || new Date().toISOString();
       console.log('Upgrade: sincronizando datas do período:', {
         current_period_start: subscriptionUpdate.current_period_start,
         current_period_end: subscriptionUpdate.current_period_end,

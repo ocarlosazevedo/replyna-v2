@@ -1111,6 +1111,18 @@ function cleanAIResponse(text: string): string {
     /\[Your\s+[^\]]+\]/gi,
     /\[Seu\s+[^\]]+\]/gi,
     /\[Sua\s+[^\]]+\]/gi,
+    // Padrões de nome da empresa/loja (CRÍTICO - IA às vezes usa esses placeholders)
+    /\[Nome da Empresa\]/gi,
+    /\[Nome da Loja\]/gi,
+    /\[Company Name\]/gi,
+    /\[Store Name\]/gi,
+    /\[Brand Name\]/gi,
+    /\[Nombre de la Empresa\]/gi,
+    /\[Nombre de la Tienda\]/gi,
+    /\[Nom de l'Entreprise\]/gi,
+    /\[Firmenname\]/gi,
+    /\[Nome dell'Azienda\]/gi,
+    /\[Nome do Negócio\]/gi,
     // Padrões específicos comuns
     /\[Cliente\]/gi,
     /\[Customer\]/gi,
