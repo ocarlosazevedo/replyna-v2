@@ -875,23 +875,45 @@ export default function Account() {
                   <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Informações da conta</h2>
                   <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px' }}>Seus dados e configurações de segurança</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleToggleEdit}
-                  disabled={loading}
-                  style={{
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-card)',
-                    color: 'var(--text-primary)',
-                    padding: '8px 14px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {isEditing ? 'Cancelar' : 'Editar'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {isEditing && (
+                    <button
+                      type="submit"
+                      form="account-profile-form"
+                      disabled={saving}
+                      style={{
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: 'var(--accent)',
+                        color: '#ffffff',
+                        padding: '8px 14px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: saving ? 'not-allowed' : 'pointer',
+                        opacity: saving ? 0.7 : 1,
+                      }}
+                    >
+                      {saving ? 'Salvando...' : 'Salvar'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleToggleEdit}
+                    disabled={loading}
+                    style={{
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      padding: '8px 14px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {isEditing ? 'Cancelar' : 'Editar'}
+                  </button>
+                </div>
               </div>
             </div>
 
