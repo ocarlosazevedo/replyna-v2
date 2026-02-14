@@ -70,6 +70,7 @@ export interface User {
   shops_limit: number | null;   // null = ilimitado
   last_credits_warning_at: string | null;
   credits_warning_count: number;
+  whatsapp_number: string | null;
   created_at: string;
   updated_at: string;
 }

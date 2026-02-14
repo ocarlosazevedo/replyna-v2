@@ -17,6 +17,7 @@ interface UserProfile {
   extra_emails_used: number | null // Total de emails extras usados
   extra_email_price: number | null // Preço por email extra (do plano)
   extra_email_package_size: number | null // Tamanho do pacote de emails extras (do plano)
+  whatsapp_number: string | null
 }
 
 interface Plan {
@@ -83,6 +84,7 @@ export default function Account() {
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [whatsappNumber, setWhatsappNumber] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [shopsCount, setShopsCount] = useState<number>(0)
 
@@ -273,7 +275,7 @@ export default function Account() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
+        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number')
         .eq('id', user.id)
         .maybeSingle()
 
@@ -313,6 +315,7 @@ export default function Account() {
           extra_emails_used: newUserData.extra_emails_used,
           extra_email_price: null,
           extra_email_package_size: null,
+          whatsapp_number: null,
         })
         setName(newUserData.name || '')
         setEmail(newUserData.email || '')
@@ -321,9 +324,11 @@ export default function Account() {
           ...data,
           extra_email_price: null,
           extra_email_package_size: null,
+          whatsapp_number: data.whatsapp_number || null,
         })
         setName(data.name || user.user_metadata?.name || '')
         setEmail(data.email || user.email || '')
+        setWhatsappNumber(data.whatsapp_number || '')
       }
 
       // Buscar quantidade de lojas integradas
@@ -349,6 +354,7 @@ export default function Account() {
           ...data,
           extra_email_price: planData?.extra_email_price ?? 1,
           extra_email_package_size: planData?.extra_email_package_size ?? 100,
+          whatsapp_number: data.whatsapp_number || null,
         })
       }
     } catch (err) {
@@ -408,6 +414,7 @@ export default function Account() {
         .from('users')
         .update({
           name: name.trim(),
+          whatsapp_number: whatsappNumber.trim() || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id)
@@ -425,6 +432,7 @@ export default function Account() {
           ? {
               ...prev,
               name: name.trim(),
+              whatsapp_number: whatsappNumber.trim() || null,
             }
           : prev
       )
@@ -485,6 +493,7 @@ export default function Account() {
     if (isEditing) {
       setName(profile?.name || user?.user_metadata?.name || '')
       setEmail(profile?.email || user?.email || '')
+      setWhatsappNumber(profile?.whatsapp_number || '')
       setNotice(null)
     }
     setIsEditing((prev) => !prev)
@@ -565,7 +574,7 @@ export default function Account() {
         // Recarregar profile para atualizar créditos
         const { data: newProfile } = await supabase
           .from('users')
-          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
+          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number')
           .eq('id', user.id)
           .single()
         if (newProfile) setProfile({
@@ -590,7 +599,7 @@ export default function Account() {
         // Recarregar profile para atualizar créditos
         const { data: newProfile } = await supabase
           .from('users')
-          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
+          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number')
           .eq('id', user.id)
           .single()
         if (newProfile) setProfile({
@@ -664,7 +673,7 @@ export default function Account() {
       // Recarregar profile do banco para garantir dados sincronizados
       const { data: updatedProfile, error: profileError } = await supabase
         .from('users')
-        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
+        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number')
         .eq('id', user.id)
         .single()
 
@@ -930,6 +939,26 @@ export default function Account() {
                         cursor: isEditing ? 'text' : 'not-allowed',
                       }}
                     />
+                  </label>
+                  <label style={{ display: 'grid', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>WhatsApp</span>
+                    <input
+                      type="tel"
+                      value={whatsappNumber}
+                      onChange={(event) => setWhatsappNumber(event.target.value)}
+                      disabled={!isEditing}
+                      placeholder="+55 11 99999-9999"
+                      style={{
+                        border: `1px solid ${isEditing ? 'var(--input-border)' : 'var(--border-color)'}`,
+                        borderRadius: '10px',
+                        padding: '12px',
+                        fontSize: '14px',
+                        backgroundColor: isEditing ? 'var(--input-bg)' : 'var(--bg-primary)',
+                        color: isEditing ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        cursor: isEditing ? 'text' : 'not-allowed',
+                      }}
+                    />
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Para receber notificações sobre falhas de pagamento</span>
                   </label>
                 </form>
 
