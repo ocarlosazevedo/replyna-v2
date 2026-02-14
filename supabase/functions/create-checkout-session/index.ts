@@ -16,6 +16,7 @@ interface CreateCheckoutRequest {
   user_email: string;
   user_name?: string;
   user_id?: string; // Se já existe (upgrade)
+  whatsapp_number?: string;
   billing_cycle?: 'monthly' | 'yearly';
   coupon_code?: string;
   success_url: string;
@@ -41,6 +42,7 @@ serve(async (req) => {
       user_email,
       user_name,
       user_id,
+      whatsapp_number,
       billing_cycle = 'monthly',
       coupon_code,
       success_url,
@@ -172,6 +174,7 @@ serve(async (req) => {
         user_email: user_email,
         user_name: user_name || '',
         user_id: user_id || 'pending',
+        whatsapp_number: whatsapp_number || '',
         emails_limit: plan.emails_limit?.toString() ?? 'unlimited',
         shops_limit: plan.shops_limit?.toString() ?? 'unlimited',
       },

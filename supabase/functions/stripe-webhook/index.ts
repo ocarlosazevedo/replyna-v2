@@ -19,6 +19,23 @@ import { maskEmail } from '../_shared/email.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
+ * Helper: extrai current_period_start/end da subscription.
+ * Na API Stripe 2025-12-15.clover, esses campos foram movidos para items.data[].
+ */
+function getSubscriptionPeriod(subscription: Stripe.Subscription): { start: number; end: number } {
+  const item = subscription.items?.data?.[0];
+  const start = (subscription as any).current_period_start ?? item?.current_period_start ?? item?.period?.start;
+  const end = (subscription as any).current_period_end ?? item?.current_period_end ?? item?.period?.end;
+  return { start, end };
+}
+
+function safeTimestampToISO(timestamp: number | null | undefined): string | null {
+  if (!timestamp || typeof timestamp !== 'number' || timestamp <= 0) return null;
+  const date = new Date(timestamp * 1000);
+  return isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+/**
  * Obtém o cliente Supabase com service role key para operações admin
  */
 function getSupabaseAdminClient() {
@@ -363,6 +380,7 @@ async function handleCheckoutCompleted(
         emails_used: 0,
         stripe_customer_id: customerId,
         status: 'active',
+        whatsapp_number: metadata.whatsapp_number || null,
       };
       console.log('Dados do usuário:', JSON.stringify(userData));
 
@@ -408,8 +426,8 @@ async function handleCheckoutCompleted(
     stripe_price_id: priceId,
     status: 'active',
     billing_cycle: priceId?.includes('year') ? 'yearly' : 'monthly',
-    current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+    current_period_start: safeTimestampToISO(getSubscriptionPeriod(subscription).start) || new Date().toISOString(),
+    current_period_end: safeTimestampToISO(getSubscriptionPeriod(subscription).end) || new Date().toISOString(),
     cancel_at_period_end: subscription.cancel_at_period_end,
   };
 
@@ -530,12 +548,7 @@ async function handleSubscriptionUpdate(
   const status = mapStripeStatus(subscription.status);
   const priceId = subscription.items.data[0]?.price.id;
 
-  // Helper para converter timestamp Stripe para ISO string (previne Invalid Date)
-  const toISOStringOrNull = (timestamp: number | null | undefined): string | null => {
-    if (!timestamp || typeof timestamp !== 'number' || timestamp <= 0) return null;
-    const date = new Date(timestamp * 1000);
-    return isNaN(date.getTime()) ? null : date.toISOString();
-  };
+  const period = getSubscriptionPeriod(subscription);
 
   // Atualizar assinatura
   const { error } = await supabase
@@ -543,10 +556,10 @@ async function handleSubscriptionUpdate(
     .update({
       status,
       stripe_price_id: priceId,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_start: safeTimestampToISO(period.start) || new Date().toISOString(),
+      current_period_end: safeTimestampToISO(period.end) || new Date().toISOString(),
       cancel_at_period_end: subscription.cancel_at_period_end,
-      canceled_at: toISOStringOrNull(subscription.canceled_at as number | null),
+      canceled_at: safeTimestampToISO(subscription.canceled_at as number | null),
     })
     .eq('stripe_subscription_id', subscription.id);
 
@@ -697,8 +710,9 @@ async function handleInvoicePaid(
 
   // Se conseguimos buscar a subscription do Stripe, sincronizar as datas do período
   if (stripeSubscription) {
-    subscriptionUpdate.current_period_start = new Date(stripeSubscription.current_period_start * 1000).toISOString();
-    subscriptionUpdate.current_period_end = new Date(stripeSubscription.current_period_end * 1000).toISOString();
+    const period = getSubscriptionPeriod(stripeSubscription);
+    subscriptionUpdate.current_period_start = safeTimestampToISO(period.start) || new Date().toISOString();
+    subscriptionUpdate.current_period_end = safeTimestampToISO(period.end) || new Date().toISOString();
     console.log('Sincronizando datas do período:', {
       current_period_start: subscriptionUpdate.current_period_start,
       current_period_end: subscriptionUpdate.current_period_end,

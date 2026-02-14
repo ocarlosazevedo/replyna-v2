@@ -40,6 +40,7 @@ export default function Register() {
   // Form
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [whatsappNumber, setWhatsappNumber] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -174,6 +175,7 @@ export default function Register() {
           plan_id: selectedPlan.id,
           user_email: email,
           user_name: name,
+          whatsapp_number: whatsappNumber.trim() || undefined,
           billing_cycle: 'monthly',
           coupon_code: couponValidation?.is_valid ? couponCode.toUpperCase() : undefined,
           success_url: `${window.location.origin}/checkout/success`,
@@ -191,6 +193,7 @@ export default function Register() {
       localStorage.setItem('pending_registration', JSON.stringify({
         email,
         name,
+        whatsapp_number: whatsappNumber.trim() || null,
         plan_id: selectedPlan.id,
         plan_name: selectedPlan.name,
       }))
@@ -899,6 +902,42 @@ export default function Register() {
                 placeholder="seu@email.com"
                 required
               />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: 'var(--text-secondary)',
+                marginBottom: '8px',
+              }}>
+                WhatsApp
+              </label>
+              <input
+                type="tel"
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid var(--input-border)',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                }}
+                placeholder="+55 11 99999-9999"
+              />
+              <span style={{
+                display: 'block',
+                marginTop: '6px',
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+              }}>
+                Para receber notificações sobre sua conta
+              </span>
             </div>
 
             <div style={{
