@@ -1066,6 +1066,16 @@ async function processMessageInternal(
     return 'skipped';
   }
 
+  // Verificar se o usuário tem assinatura ativa
+  if (user.status !== 'active') {
+    console.log(`[Shop ${shop.name}] Usuário ${user.id} com status '${user.status}' - assinatura inativa, pulando msg ${message.id}`);
+    await updateMessage(message.id, {
+      status: 'failed',
+      error_message: `Assinatura inativa (status: ${user.status})`,
+    });
+    return 'skipped';
+  }
+
   // Operação atômica: verifica E reserva o crédito em uma única transação
   // Isso evita race condition quando múltiplos emails são processados em paralelo
   const creditReserved = await tryReserveCredit(user.id);

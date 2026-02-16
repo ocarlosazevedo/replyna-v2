@@ -52,6 +52,7 @@ export default function Shops() {
   const [loading, setLoading] = useState(true)
   const [shopsLimit, setShopsLimit] = useState<number | null>(null) // null = ainda carregando ou ilimitado
   const [limitsLoaded, setLimitsLoaded] = useState(false)
+  const [userStatus, setUserStatus] = useState<string>('active')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [businessFilter, setBusinessFilter] = useState<BusinessFilter>('all')
   const isMobile = useIsMobile()
@@ -142,13 +143,14 @@ export default function Shops() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('shops_limit')
+        .select('shops_limit, status')
         .eq('id', user.id)
         .single()
 
       if (!error && data) {
         // NULL = ilimitado, manter como null
         setShopsLimit(data.shops_limit)
+        setUserStatus(data.status || 'active')
       }
     } catch (err) {
       console.error('Erro ao carregar limite de lojas:', err)
@@ -156,6 +158,8 @@ export default function Shops() {
       setLimitsLoaded(true)
     }
   }
+
+  const isSubscriptionActive = userStatus === 'active'
 
   const loadShops = async () => {
     if (!user) return
@@ -193,6 +197,12 @@ export default function Shops() {
   }
 
   const handleToggleActive = async (shopId: string, currentStatus: boolean) => {
+    // Bloquear ativação se assinatura não está ativa
+    if (!currentStatus && !isSubscriptionActive) {
+      alert('Sua assinatura não está ativa. Regularize seu pagamento para ativar lojas.')
+      return
+    }
+
     // Verificar se está tentando ativar uma loja quando já atingiu o limite
     if (!currentStatus && !isUnlimited && shopsLimit !== null) {
       const currentActiveCount = shops.filter(s => s.is_active).length
@@ -270,8 +280,8 @@ export default function Shops() {
     justifyContent: 'center',
   }
 
-  // Verificar se pode adicionar mais lojas (ilimitado ou abaixo do limite)
-  const canAddMoreShops = isUnlimited || shops.length < (shopsLimit ?? 0)
+  // Verificar se pode adicionar mais lojas (ilimitado ou abaixo do limite) E assinatura ativa
+  const canAddMoreShops = isSubscriptionActive && (isUnlimited || shops.length < (shopsLimit ?? 0))
 
   return (
     <div>
@@ -286,6 +296,19 @@ export default function Shops() {
         </div>
         {!limitsLoaded ? (
           <Skeleton height={42} width={isMobile ? '100%' : 180} />
+        ) : !isSubscriptionActive ? (
+          <button
+            onClick={() => navigate('/account')}
+            style={{
+              ...buttonPrimary,
+              whiteSpace: 'nowrap',
+              width: isMobile ? '100%' : 'auto',
+              backgroundColor: '#ef4444',
+            }}
+            title="Regularize sua assinatura para usar o sistema"
+          >
+            Regularizar assinatura
+          </button>
         ) : canAddMoreShops ? (
           <button onClick={() => navigate('/shops/setup')} style={{ ...buttonPrimary, whiteSpace: 'nowrap', width: isMobile ? '100%' : 'auto' }}>
             + Integrar nova loja
@@ -305,6 +328,48 @@ export default function Shops() {
           </button>
         )}
       </div>
+
+      {/* Banner de assinatura inativa */}
+      {limitsLoaded && !isSubscriptionActive && (
+        <div style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'flex-start' : 'center',
+          gap: '12px',
+          padding: isMobile ? '14px' : '16px',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: '12px',
+          marginBottom: '20px',
+        }}>
+          <PowerOff size={isMobile ? 20 : 24} style={{ color: '#ef4444', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 600, color: '#ef4444', marginBottom: '4px' }}>
+              Assinatura inativa
+            </div>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              Sua assinatura está com status "{userStatus}". Suas lojas não estão processando emails.
+              Regularize seu pagamento para voltar a usar o sistema.
+              <button
+                onClick={() => navigate('/account')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#ef4444',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0,
+                  marginLeft: '4px',
+                  textDecoration: 'underline',
+                  fontSize: 'inherit',
+                }}
+              >
+                Ir para Minha Conta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Banner de lojas congeladas */}
       {hasFrozenShops && (

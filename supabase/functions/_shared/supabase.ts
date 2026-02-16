@@ -195,7 +195,28 @@ export async function getActiveShopsWithEmail(): Promise<Shop[]> {
     .order('last_email_sync_at', { ascending: true, nullsFirst: true });
 
   if (error) throw error;
-  return (data || []) as Shop[];
+  const shops = (data || []) as Shop[];
+
+  if (shops.length === 0) return shops;
+
+  // Filtrar lojas de usuários com assinatura ativa
+  const userIds = [...new Set(shops.map(s => s.user_id))];
+  const { data: activeUsers, error: usersError } = await supabase
+    .from('users')
+    .select('id')
+    .in('id', userIds)
+    .eq('status', 'active');
+
+  if (usersError) throw usersError;
+
+  const activeUserIds = new Set((activeUsers || []).map(u => u.id));
+  const filteredShops = shops.filter(s => activeUserIds.has(s.user_id));
+
+  if (filteredShops.length < shops.length) {
+    console.log(`[getActiveShopsWithEmail] Filtradas ${shops.length - filteredShops.length} lojas de usuários inativos/suspensos`);
+  }
+
+  return filteredShops;
 }
 
 /**

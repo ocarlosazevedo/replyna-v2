@@ -298,14 +298,21 @@ export default function ShopSetup() {
     // Verificar limite de lojas do plano (apenas para criação, não edição)
     if (!isEditing) {
       try {
-        // Buscar limite do usuário
+        // Buscar limite e status do usuário
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('shops_limit')
+          .select('shops_limit, status')
           .eq('id', user.id)
           .single()
 
         if (userError) throw userError
+
+        // Bloquear se assinatura não está ativa
+        if (userData?.status !== 'active') {
+          setError('Sua assinatura não está ativa. Regularize seu pagamento para adicionar novas lojas.')
+          setSaving(false)
+          return
+        }
 
         // Contar lojas atuais
         const { count: currentShops, error: countError } = await supabase
