@@ -1526,10 +1526,18 @@ export default function ChargebackPage() {
             >
               Calculadora
             </a>
-            <a href="/#como-funciona" className="lp-nav-link">
+            <a
+              href="#como-funciona"
+              onClick={(event) => scrollToSection(event, 'como-funciona')}
+              className="lp-nav-link"
+            >
               Como funciona
             </a>
-            <a href="/#precos" className="lp-nav-link">
+            <a
+              href="#precos"
+              onClick={(event) => scrollToSection(event, 'precos')}
+              className="lp-nav-link"
+            >
               Preços
             </a>
             <a href="/#faq" className="lp-nav-link">
@@ -1624,8 +1632,8 @@ export default function ChargebackPage() {
               Calculadora
             </a>
             <a
-              href="/#como-funciona"
-              onClick={() => setMobileMenuOpen(false)}
+              href="#como-funciona"
+              onClick={(event) => scrollToSection(event, 'como-funciona')}
               style={{
                 color: '#fff',
                 textDecoration: 'none',
@@ -1640,8 +1648,8 @@ export default function ChargebackPage() {
               Como funciona
             </a>
             <a
-              href="/#precos"
-              onClick={() => setMobileMenuOpen(false)}
+              href="#precos"
+              onClick={(event) => scrollToSection(event, 'precos')}
               style={{
                 color: '#fff',
                 textDecoration: 'none',
@@ -2016,7 +2024,7 @@ export default function ChargebackPage() {
             </p>
           </div>
 
-          <div style={{ marginBottom: '40px' }}>
+          <div id="como-funciona" style={{ marginBottom: '40px' }}>
             <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '16px' }}>
               Como acontece um chargeback (passo a passo)
             </h3>
@@ -2499,7 +2507,7 @@ export default function ChargebackPage() {
           </div>
         </section>
 
-        <section style={{ maxWidth: '1100px', margin: '80px auto 0', textAlign: 'center' }}>
+        <section id="precos" style={{ maxWidth: '1100px', margin: '80px auto 0', textAlign: 'center' }}>
           <h2 style={{ fontSize: '34px', fontWeight: 800, marginBottom: '16px' }}>
             Reduza chargebacks ainda este mês
           </h2>
