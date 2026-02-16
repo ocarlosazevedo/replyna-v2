@@ -526,10 +526,6 @@ export default function ChargebackPage() {
   const sliderValue = Math.min(10, Math.max(0, rawSliderValue))
   const sliderPercent = (sliderValue / 10) * 100
   const sliderBackground = `linear-gradient(90deg, #06b6d4 0%, #3b82f6 ${sliderPercent}%, rgba(255,255,255, 0.08) ${sliderPercent}%, rgba(255,255,255, 0.08) 100%)`
-  const reductionRate = 0.91
-  const residualPercent = (1 - reductionRate) * 100
-  const residualPrejuizo = calculatorData.prejuizoMensal * (1 - reductionRate)
-
   return (
     <div className="lp-container" onClick={handleAnchorClick}>
       <style>{`
@@ -1254,47 +1250,6 @@ export default function ChargebackPage() {
           color: rgba(16,185,129, 0.6);
         }
 
-        .cb-cta-row {
-          display: flex;
-          gap: 16px;
-          margin-bottom: 16px;
-        }
-        .cb-impact {
-          margin: 24px 0 32px;
-        }
-        .cb-impact-label {
-          font-size: 11px;
-          color: rgba(255,255,255, 0.3);
-          margin-bottom: 12px;
-        }
-        .cb-impact-row {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .cb-impact-bar {
-          height: 8px;
-          border-radius: 100px;
-        }
-        .cb-impact-bar--loss {
-          flex: 1;
-          background: rgba(239,68,68, 0.3);
-        }
-        .cb-impact-bar--gain {
-          min-width: 24px;
-          background: linear-gradient(90deg, #10b981, #34d399);
-          box-shadow: 0 0 12px rgba(16,185,129, 0.3);
-        }
-        .cb-impact-value {
-          font-size: 11px;
-          white-space: nowrap;
-        }
-        .cb-impact-value--loss {
-          color: #f87171;
-        }
-        .cb-impact-value--gain {
-          color: #34d399;
-        }
         .cb-cta-primary {
           flex: 1;
           padding: 16px 28px;
@@ -1489,9 +1444,6 @@ export default function ChargebackPage() {
           .cb-calculator-card {
             --cb-card-pad-x: 24px;
             --cb-card-pad-y: 32px;
-          }
-          .cb-cta-row {
-            flex-direction: column;
           }
           .cb-glossary-grid {
             grid-template-columns: 1fr;
@@ -1989,52 +1941,13 @@ export default function ChargebackPage() {
                   </div>
                 </div>
 
-                <div className="cb-impact">
-                  <div className="cb-impact-label">Impacto da redução</div>
-                  <div className="cb-impact-row">
-                    <div className="cb-impact-bar cb-impact-bar--loss" />
-                    <span className="cb-impact-value cb-impact-value--loss">
-                      {formatCurrency(calculatorData.prejuizoMensal)}
-                    </span>
-                  </div>
-                  <div className="cb-impact-row" style={{ marginTop: '8px' }}>
-                    <div
-                      className="cb-impact-bar cb-impact-bar--gain"
-                      style={{ width: `${residualPercent}%` }}
-                    />
-                    <span className="cb-impact-value cb-impact-value--gain">
-                      {formatCurrency(residualPrejuizo)}
-                    </span>
-                  </div>
-                </div>
-
                 <div
                   style={{
                     marginTop: '28px',
                     display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '16px',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    justifyContent: 'center',
                   }}
                 >
-                  <a
-                    href="https://replyna.me/#precos"
-                    className="lp-btn-primary"
-                    style={{
-                      color: '#fff',
-                      padding: '14px 22px',
-                      borderRadius: '12px',
-                      textDecoration: 'none',
-                      fontWeight: 600,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    Veja como automatizar seu pós-venda por R$197/mês
-                    <ArrowRight size={16} />
-                  </a>
                   <a
                     href="https://replyna.me/#como-funciona"
                     className="lp-btn-secondary"
@@ -2052,7 +1965,14 @@ export default function ChargebackPage() {
                     Ver como funciona →
                   </a>
                 </div>
-                <p style={{ marginTop: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>
+                <p
+                  style={{
+                    marginTop: '12px',
+                    fontSize: '12px',
+                    color: 'rgba(255,255,255,0.45)',
+                    textAlign: 'center',
+                  }}
+                >
                   * Baseado em caso real. Resultados podem variar de acordo com o volume e tipo de operação.
                 </p>
               </div>
