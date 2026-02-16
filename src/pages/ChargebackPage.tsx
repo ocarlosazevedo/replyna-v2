@@ -9,12 +9,15 @@ import {
   Clock,
   CreditCard,
   FileText,
+  Image as ImageIcon,
+  MapPin,
   Menu,
   PhoneCall,
   RefreshCcw,
   TrendingDown,
   TrendingUp,
   X,
+  Zap,
 } from 'lucide-react'
 
 const glossaryItems = [
@@ -245,6 +248,7 @@ export default function ChargebackPage() {
   const [selectedCurrency, setSelectedCurrency] = useState('BRL')
   const [currencyQuery, setCurrencyQuery] = useState('')
   const [currencyMenuOpen, setCurrencyMenuOpen] = useState(false)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
   const currencyDropdownRef = useRef<HTMLDivElement>(null)
 
   const currencyOptions = useMemo<CurrencyOption[]>(() => {
@@ -1048,6 +1052,31 @@ export default function ChargebackPage() {
           height: 1px;
           background: rgba(6,182,212, 0.12);
         }
+        .cb-icon-box {
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, rgba(70, 114, 236, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 16px;
+          color: #4672ec;
+        }
+        .cb-cost-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
+        }
+        .cb-prevent-grid {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 20px;
+        }
+        .cb-prevent-card {
+          flex: 0 1 calc(33.33% - 14px);
+        }
 
         .cb-results {
           opacity: 0;
@@ -1435,6 +1464,12 @@ export default function ChargebackPage() {
         @media (max-width: 1024px) {
           .lp-nav-desktop {
             gap: 20px;
+          }
+          .cb-cost-cards-grid {
+            grid-template-columns: 1fr;
+          }
+          .cb-prevent-card {
+            flex-basis: 100%;
           }
           .cb-input-grid {
             grid-template-columns: 1fr;
@@ -2222,8 +2257,11 @@ export default function ChargebackPage() {
             quatro frentes ao mesmo tempo:
           </p>
 
-          <div style={{ display: 'grid', gap: '16px' }}>
-            <div className="lp-glass" style={{ padding: '20px 24px', borderRadius: '16px' }}>
+          <div className="cb-cost-cards-grid">
+            <div className="lp-card-shine lp-gradient-border" style={{ padding: '26px 24px' }}>
+              <div className="cb-icon-box">
+                <CreditCard size={22} />
+              </div>
               <strong>O valor da venda + custo do produto</strong>
               <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
                 O banco devolve o dinheiro para o cliente. Você já pagou o fornecedor e já despachou. Então perdeu duas
@@ -2235,7 +2273,10 @@ export default function ChargebackPage() {
                 prejuízo com precisão.
               </p>
             </div>
-            <div className="lp-glass" style={{ padding: '20px 24px', borderRadius: '16px' }}>
+            <div className="lp-card-shine lp-gradient-border" style={{ padding: '26px 24px' }}>
+              <div className="cb-icon-box">
+                <FileText size={22} />
+              </div>
               <strong>A taxa do <GlossaryLink id="glossario-gateway">gateway</GlossaryLink></strong>
               <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
                 A Shopify Payments cobra $15 USD por cada chargeback disputado. Se você ganhar a disputa, a taxa é devolvida
@@ -2252,7 +2293,10 @@ export default function ChargebackPage() {
                 </a>
               </p>
             </div>
-            <div className="lp-glass" style={{ padding: '20px 24px', borderRadius: '16px' }}>
+            <div className="lp-card-shine lp-gradient-border" style={{ padding: '26px 24px' }}>
+              <div className="cb-icon-box">
+                <Clock size={22} />
+              </div>
               <strong>Custo operacional</strong>
               <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
                 Cada disputa exige tempo: reunir comprovantes, montar argumentação, enviar para o{' '}
@@ -2260,7 +2304,10 @@ export default function ChargebackPage() {
                 minutos a 2 horas de trabalho.
               </p>
             </div>
-            <div className="lp-glass" style={{ padding: '20px 24px', borderRadius: '16px' }}>
+            <div className="lp-card-shine lp-gradient-border" style={{ padding: '26px 24px' }}>
+              <div className="cb-icon-box">
+                <AlertTriangle size={22} />
+              </div>
               <strong>Dano acumulativo na conta Shopify Payments</strong>
               <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
                 Este é o prejuízo invisível e mais perigoso. A Shopify monitora a porcentagem de chargebacks em relação ao
@@ -2290,14 +2337,53 @@ export default function ChargebackPage() {
             </div>
           </div>
 
-          <p style={{ marginTop: '20px', fontSize: '15px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
-            Na prática: chargeback não é só perder R$150 de uma venda. É um problema que se acumula silenciosamente até o
-            dia em que sua conta trava. Se quer saber exatamente quanto sua loja está perdendo,{' '}
-            <a href="#calculadora" className="cb-inline-link">
-              use a calculadora gratuita no topo desta página
+          <div
+            className="lp-glass"
+            style={{
+              padding: '24px 28px',
+              borderRadius: '16px',
+              marginTop: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '16px',
+            }}
+          >
+            <p
+              style={{
+                fontSize: '15px',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1.6,
+                margin: 0,
+                flex: 1,
+                minWidth: '280px',
+              }}
+            >
+              Na prática: chargeback não é só perder R$150 de uma venda. É um problema que se acumula silenciosamente até o
+              dia em que sua conta trava. Se quer saber exatamente quanto sua loja está perdendo, use a calculadora
+              gratuita no topo desta página.
+            </p>
+            <a
+              href="#calculadora"
+              className="lp-btn-primary"
+              style={{
+                color: '#fff',
+                padding: '12px 24px',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                fontWeight: 600,
+                fontSize: '14px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Calcular meu prejuízo
+              <ArrowRight size={16} />
             </a>
-            .
-          </p>
+          </div>
         </section>
 
         <section id="limite" style={{ maxWidth: '1100px', margin: '0 auto 80px' }}>
@@ -2387,29 +2473,57 @@ export default function ChargebackPage() {
           <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: '24px' }}>
             A maioria dos chargebacks pode ser evitada antes de acontecer. As 5 práticas mais eficazes:
           </p>
-          <ul style={{ paddingLeft: '20px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.8 }}>
-            <li>
-              <strong>Responder rápido:</strong> lojas que respondem emails em menos de 2 horas reduzem chargebacks em até
-              40%. Quem recebe resposta rápida resolve com a loja.
-            </li>
-            <li>
-              <strong>Rastreamento visível:</strong> envie código de rastreio atualizado de forma proativa. A maioria dos
-              chargebacks por “produto não recebido” acontece por falta de informação.
-            </li>
-            <li>
-              <strong>Política de devolução clara:</strong> quando o cliente sabe que pode devolver fácil, ele devolve pela
-              loja. Se não sabe, abre chargeback.
-            </li>
-            <li>
-              <strong>Descrição de produto precisa:</strong> fotos reais, medidas corretas e especificações detalhadas.
-              Chargeback por “produto diferente” é 100% evitável.
-            </li>
-            <li>
-              <strong>Pós-venda automatizado com IA:</strong> ferramentas como a Replyna respondem emails em menos de 2
-              minutos com dados reais do pedido, 24 horas por dia. Esse pós-venda automatizado ajuda a prevenir
-              chargebacks antes que o cliente abra uma disputa.
-            </li>
-          </ul>
+          <div className="cb-prevent-grid">
+            <div className="lp-card-shine lp-gradient-border cb-prevent-card" style={{ padding: '26px 24px' }}>
+              <div className="cb-icon-box">
+                <Clock size={22} />
+              </div>
+              <strong>Responder rápido:</strong>
+              <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
+                lojas que respondem emails em menos de 2 horas reduzem chargebacks em até 40%. Quem recebe resposta rápida
+                resolve com a loja.
+              </p>
+            </div>
+            <div className="lp-card-shine lp-gradient-border cb-prevent-card" style={{ padding: '26px 24px' }}>
+              <div className="cb-icon-box">
+                <MapPin size={22} />
+              </div>
+              <strong>Rastreamento visível:</strong>
+              <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
+                envie código de rastreio atualizado de forma proativa. A maioria dos chargebacks por “produto não recebido”
+                acontece por falta de informação.
+              </p>
+            </div>
+            <div className="lp-card-shine lp-gradient-border cb-prevent-card" style={{ padding: '26px 24px' }}>
+              <div className="cb-icon-box">
+                <RefreshCcw size={22} />
+              </div>
+              <strong>Política de devolução clara:</strong>
+              <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
+                quando o cliente sabe que pode devolver fácil, ele devolve pela loja. Se não sabe, abre chargeback.
+              </p>
+            </div>
+            <div className="lp-card-shine lp-gradient-border cb-prevent-card" style={{ padding: '26px 24px' }}>
+              <div className="cb-icon-box">
+                <ImageIcon size={22} />
+              </div>
+              <strong>Descrição de produto precisa:</strong>
+              <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
+                fotos reais, medidas corretas e especificações detalhadas. Chargeback por “produto diferente” é 100%
+                evitável.
+              </p>
+            </div>
+            <div className="lp-card-shine lp-gradient-border cb-prevent-card" style={{ padding: '26px 24px' }}>
+              <div className="cb-icon-box">
+                <Zap size={22} />
+              </div>
+              <strong>Pós-venda automatizado com IA:</strong>
+              <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
+                ferramentas como a Replyna respondem emails em menos de 2 minutos com dados reais do pedido, 24 horas por
+                dia. Esse pós-venda automatizado ajuda a prevenir chargebacks antes que o cliente abra uma disputa.
+              </p>
+            </div>
+          </div>
         </section>
 
         <section id="caso-real" style={{ maxWidth: '1100px', margin: '0 auto 80px' }}>
@@ -2479,6 +2593,76 @@ export default function ChargebackPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section id="faq-chargeback" style={{ maxWidth: '1100px', margin: '80px auto 0' }}>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <h2 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '10px' }}>
+              Perguntas frequentes sobre chargeback
+            </h2>
+            <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.5)' }}>
+              As dúvidas mais comuns respondidas de forma direta
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {faqItems.map((item, index) => (
+              <div
+                key={index}
+                className="lp-glass"
+                style={{
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.2s ease',
+                  borderColor: openFaq === index ? 'rgba(70, 114, 236, 0.3)' : undefined,
+                }}
+                onClick={() => setOpenFaq(openFaq === index ? null : index)}
+              >
+                <div
+                  style={{
+                    padding: '20px 24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '16px',
+                  }}
+                >
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>
+                    {item.question}
+                  </h3>
+                  <ChevronDown
+                    size={20}
+                    style={{
+                      color: 'rgba(255,255,255,0.4)',
+                      transition: 'transform 0.3s ease',
+                      transform: openFaq === index ? 'rotate(180deg)' : 'rotate(0deg)',
+                      flexShrink: 0,
+                    }}
+                  />
+                </div>
+                <div
+                  style={{
+                    maxHeight: openFaq === index ? '200px' : '0px',
+                    overflow: 'hidden',
+                    transition: 'max-height 0.3s ease',
+                  }}
+                >
+                  <p
+                    style={{
+                      padding: '0 24px 20px',
+                      fontSize: '15px',
+                      color: 'rgba(255,255,255,0.5)',
+                      lineHeight: 1.7,
+                      margin: 0,
+                    }}
+                  >
+                    {item.answer}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
