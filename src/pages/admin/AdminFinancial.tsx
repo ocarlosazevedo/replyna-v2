@@ -594,7 +594,7 @@ export default function AdminFinancial() {
               {(stats?.churnRate || 0).toFixed(1)}%
             </div>
             <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              taxa de cancelamento
+              no período selecionado
             </div>
           </div>
         </div>

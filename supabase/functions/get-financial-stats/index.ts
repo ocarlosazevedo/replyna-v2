@@ -281,12 +281,6 @@ serve(async (req) => {
       ? ((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100
       : 0;
 
-    // Churn rate (cancelados / total ativo no início do período)
-    const totalWithHistory = activeCount + canceledCount;
-    const churnRate = totalWithHistory > 0
-      ? (canceledCount / totalWithHistory) * 100
-      : 0;
-
     // Ticket médio
     const averageTicket = successfulCharges.length > 0
       ? (successfulCharges.reduce((sum, c) => sum + c.amount, 0) / successfulCharges.length) / 100
@@ -319,6 +313,13 @@ serve(async (req) => {
         }
       }
     }
+
+    // Churn rate do PERÍODO: cancelados no período / ativos no início do período
+    // Ativos no início do período = ativos agora + cancelados no período (pois estavam ativos antes de cancelar)
+    const activesAtPeriodStart = activeCount + trialingCount + pastDueCount + canceledSubscriptionsInPeriod;
+    const churnRate = activesAtPeriodStart > 0
+      ? (canceledSubscriptionsInPeriod / activesAtPeriodStart) * 100
+      : 0;
 
     // Total de cobranças no período
     const chargesInPeriod = successfulCharges.filter(c => {
@@ -486,8 +487,8 @@ serve(async (req) => {
     const availableBalance = balance.available.find(b => b.currency === 'brl')?.amount || 0;
     const pendingBalance = balance.pending.find(b => b.currency === 'brl')?.amount || 0;
 
-    // Total de clientes baseado nas assinaturas (ativo + cancelado)
-    const totalCustomers = activeCount + canceledCount;
+    // Total de clientes baseado em todas as assinaturas (todos os status)
+    const totalCustomers = activeCount + pastDueCount + canceledCount + trialingCount;
 
     const stats: FinancialStats = {
       balance: {
