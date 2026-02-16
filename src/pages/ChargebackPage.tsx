@@ -936,6 +936,26 @@ export default function ChargebackPage() {
           gap: 24px;
         }
 
+        .cb-result-title {
+          font-size: 15px;
+          font-weight: 700;
+        }
+        .cb-result-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.6);
+        }
+        .cb-result-number-large {
+          font-size: 24px;
+          font-weight: 800;
+          line-height: 1.1;
+        }
+        .cb-result-number-small {
+          font-size: 20px;
+          font-weight: 700;
+          line-height: 1.1;
+        }
+
         .cb-glossary-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
@@ -1528,28 +1548,28 @@ export default function ChargebackPage() {
                   <div className="lp-card-shine lp-gradient-border" style={{ padding: '24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                       <TrendingDown size={20} color="#ef4444" />
-                      <span style={{ fontSize: '15px', fontWeight: 700, color: '#ef4444' }}>
+                      <span className="cb-result-title" style={{ color: '#ef4444' }}>
                         Seu prejuízo atual
                       </span>
                     </div>
                     <div style={{ display: 'grid', gap: '12px' }}>
                       <div>
-                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)' }}>
+                        <div className="cb-result-label">
                           Chargebacks estimados/mês
                         </div>
-                        <div style={{ fontSize: '24px', fontWeight: 800, color: '#f87171' }}>
+                        <div className="cb-result-number-large" style={{ color: '#f87171' }}>
                           {formatCount(calculatorData.chargebacksPorMes)}
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)' }}>Prejuízo mensal</div>
-                        <div style={{ fontSize: '26px', fontWeight: 800, color: '#ef4444' }}>
+                        <div className="cb-result-label">Prejuízo mensal</div>
+                        <div className="cb-result-number-large" style={{ color: '#ef4444' }}>
                           {formatCurrency(calculatorData.prejuizoMensal)}
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)' }}>Prejuízo anual</div>
-                        <div style={{ fontSize: '20px', fontWeight: 700, color: '#fca5a5' }}>
+                        <div className="cb-result-label">Prejuízo anual</div>
+                        <div className="cb-result-number-small" style={{ color: '#fca5a5' }}>
                           {formatCurrency(calculatorData.prejuizoAnual)}
                         </div>
                       </div>
@@ -1559,42 +1579,41 @@ export default function ChargebackPage() {
                   <div className="lp-card-shine lp-gradient-border" style={{ padding: '24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                       <TrendingUp size={20} color="#22c55e" />
-                      <span style={{ fontSize: '15px', fontWeight: 700, color: '#22c55e' }}>
+                      <span className="cb-result-title" style={{ color: '#22c55e' }}>
                         Com pós-venda automatizado (potencial de até 91% de redução)
                       </span>
                     </div>
                     <div style={{ display: 'grid', gap: '12px' }}>
                       <div>
-                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)' }}>
+                        <div className="cb-result-label">
                           Chargebacks evitados/mês
                         </div>
-                        <div className="lp-number" style={{ fontSize: '24px', fontWeight: 800 }}>
+                        <div className="cb-result-number-large" style={{ color: '#22c55e' }}>
                           {formatCount(calculatorData.chargebacksEvitados)}
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)' }}>Economia mensal</div>
-                        <div style={{ fontSize: '26px', fontWeight: 800, color: '#22c55e' }}>
+                        <div className="cb-result-label">Economia mensal</div>
+                        <div className="cb-result-number-large" style={{ color: '#22c55e' }}>
                           {formatCurrency(calculatorData.economiaMensal)}
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)' }}>Economia anual</div>
-                        <div style={{ fontSize: '20px', fontWeight: 700, color: '#86efac' }}>
+                        <div className="cb-result-label">Economia anual</div>
+                        <div className="cb-result-number-small" style={{ color: '#86efac' }}>
                           {formatCurrency(calculatorData.economiaAnual)}
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)' }}>ROI</div>
-                        <div style={{
-                          fontSize: '18px',
-                          fontWeight: 700,
-                          color: calculatorData.roiReplyna > 1 ? '#22c55e' : '#fff',
-                        }}>
+                        <div className="cb-result-label">ROI</div>
+                        <div
+                          className="cb-result-number-large"
+                          style={{ color: calculatorData.roiReplyna > 1 ? '#22c55e' : '#fff' }}
+                        >
                           {formatRatio(calculatorData.roiReplyna)}x o investimento
                         </div>
                         {calculatorData.roiReplyna > 1 && (
-                          <div style={{ fontSize: '12px', color: '#22c55e', marginTop: '6px' }}>
+                          <div className="cb-result-label" style={{ color: '#22c55e', marginTop: '6px' }}>
                             Lucro líquido desde o primeiro mês
                           </div>
                         )}
