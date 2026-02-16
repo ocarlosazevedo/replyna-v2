@@ -12,8 +12,8 @@ import {
   Menu,
   PhoneCall,
   RefreshCcw,
-  Shield,
   TrendingDown,
+  TrendingUp,
   X,
 } from 'lucide-react'
 
@@ -1079,9 +1079,8 @@ export default function ChargebackPage() {
         }
         .cb-results-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
-          margin-bottom: 32px;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 24px;
         }
         .cb-result-card {
           position: relative;
@@ -1163,9 +1162,19 @@ export default function ChargebackPage() {
           gap: 20px;
         }
         .cb-result-label {
-          font-size: 11px;
-          color: rgba(255,255,255, 0.35);
-          letter-spacing: 0.01em;
+          font-size: 13px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.6);
+        }
+        .cb-result-number-large {
+          font-size: 24px;
+          font-weight: 800;
+          line-height: 1.1;
+        }
+        .cb-result-number-small {
+          font-size: 20px;
+          font-weight: 700;
+          line-height: 1.1;
         }
         .cb-result-value {
           font-size: 28px;
@@ -1694,247 +1703,279 @@ export default function ChargebackPage() {
             </p>
           </div>
 
-          <div className="cb-calculator-card">
-            <div className="cb-card-glow-line" />
-            <div className="cb-card-glow-blur" />
-            <div className="cb-card-noise" />
-            <div className="cb-card-content">
-              <div className="cb-card-header">
-                <div className="cb-card-label">CALCULADORA</div>
-                <div className="cb-card-title">Simule sua economia</div>
+          <div className="lp-glass" style={{ padding: '32px', borderRadius: '24px' }}>
+            <div className="cb-input-grid">
+              <div className="cb-field-group cb-currency-select" ref={currencyDropdownRef}>
+                <span className="cb-field-label">Moeda</span>
+                <button
+                  type="button"
+                  className="cb-currency-button"
+                  onClick={() => setCurrencyMenuOpen((open) => !open)}
+                >
+                  <span className="cb-currency-info">
+                    <span className="cb-currency-flag">{selectedCurrencyOption.flag}</span>
+                    <span>
+                      {selectedCurrencyOption.code} ({selectedCurrencyOption.symbol})
+                    </span>
+                  </span>
+                  <ChevronDown size={16} />
+                </button>
+                {currencyMenuOpen && (
+                  <div className="cb-currency-menu">
+                    <input
+                      className="cb-currency-search"
+                      type="text"
+                      placeholder="Buscar país ou moeda"
+                      value={currencyQuery}
+                      onChange={(event) => setCurrencyQuery(event.target.value)}
+                      autoFocus
+                    />
+                    <div className="cb-currency-list">
+                      {filteredCurrencies.length === 0 && (
+                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', padding: '8px 4px' }}>
+                          Nenhuma moeda encontrada.
+                        </div>
+                      )}
+                      {filteredCurrencies.map((option) => (
+                        <button
+                          type="button"
+                          key={option.code}
+                          className={`cb-currency-option ${option.code === selectedCurrency ? 'active' : ''}`}
+                          onClick={() => {
+                            setSelectedCurrency(option.code)
+                            setCurrencyMenuOpen(false)
+                            setCurrencyQuery('')
+                          }}
+                        >
+                          <span className="cb-currency-flag">{option.flag}</span>
+                          <div className="cb-currency-meta">
+                            <span>
+                              {option.code} ({option.symbol})
+                            </span>
+                            <span className="cb-currency-country">{option.countryName}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="cb-input-grid">
-                <div className="cb-field-group cb-currency-select" ref={currencyDropdownRef}>
-                  <span className="cb-field-label">Moeda</span>
-                  <button
-                    type="button"
-                    className="cb-currency-button"
-                    onClick={() => setCurrencyMenuOpen((open) => !open)}
+              <div className="cb-field-group">
+                <span className="cb-field-label">
+                  <GlossaryLink id="glossario-ticket-medio">Ticket médio</GlossaryLink> ({selectedCurrencyOption.symbol})
+                </span>
+                <input
+                  className="cb-input"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Ex: 150"
+                  value={ticketMedioInput}
+                  onChange={(event) => setTicketMedioInput(event.target.value)}
+                />
+              </div>
+
+              <div className="cb-field-group">
+                <span className="cb-field-label">Pedidos por mês</span>
+                <input
+                  className="cb-input"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="Ex: 500"
+                  value={pedidosInput}
+                  onChange={(event) => setPedidosInput(event.target.value)}
+                />
+              </div>
+
+              <div className="cb-field-group">
+                <span className="cb-field-label">Taxa de chargeback atual</span>
+                <div className="cb-slider-row">
+                  <input
+                    className="cb-range"
+                    type="range"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    value={sliderValue}
+                    onChange={(event) => setTaxaInput(event.target.value)}
+                    style={{ background: sliderBackground }}
+                  />
+                  <span className="cb-slider-badge">{formatPercent(sliderValue)}%</span>
+                </div>
+                <p className="cb-helper-text">Shopify → Configurações → Payments → Ver repasses</p>
+              </div>
+            </div>
+
+            <div className="cb-divider" />
+
+            <div className="cb-cost-grid">
+              <div className="cb-field-group">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="cb-field-label">
+                    Custo médio por chargeback ({selectedCurrencyOption.symbol})
+                  </span>
+                  <span
+                    className="cb-info-badge"
+                    title="Inclui taxa do gateway (geralmente $15-25 USD) + custo do produto perdido + tempo operacional"
                   >
-                    <span className="cb-currency-info">
-                      <span className="cb-currency-flag">{selectedCurrencyOption.flag}</span>
-                      <span>
-                        {selectedCurrencyOption.code} ({selectedCurrencyOption.symbol})
+                    info
+                  </span>
+                </div>
+                <input
+                  className="cb-input"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Ex: 25"
+                  value={custoInput}
+                  onChange={(event) => setCustoInput(event.target.value)}
+                />
+                <p className="cb-helper-text">
+                  Inclui taxa do <GlossaryLink id="glossario-gateway">gateway</GlossaryLink> + custo do produto + tempo
+                  operacional. Se não souber, {formatCurrency(25)} é estimativa conservadora.
+                </p>
+              </div>
+
+              <div className="cb-mini-card">
+                <div className="cb-mini-title">Resumo rápido</div>
+                <div className="cb-mini-metric">
+                  <div className="cb-mini-label">Chargebacks estimados/mês</div>
+                  <div className="cb-mini-value">
+                    {shouldShowResults ? formatCount(calculatorData.chargebacksPorMes) : '--'}
+                  </div>
+                </div>
+                <div className="cb-mini-divider" />
+                <div className="cb-mini-metric">
+                  <div className="cb-mini-label">% da receita comprometida</div>
+                  <div className="cb-mini-value">
+                    {shouldShowResults ? `${formatPercent(calculatorData.percentualReceitaComprometida)}%` : '--'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`cb-results ${shouldShowResults ? 'cb-results-visible' : ''}`}>
+              <div style={{ marginTop: '36px' }}>
+                <div className="cb-results-grid">
+                  <div className="lp-card-shine lp-gradient-border" style={{ padding: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                      <TrendingDown size={20} color="#ef4444" />
+                      <span className="cb-result-title" style={{ color: '#ef4444' }}>
+                        Seu prejuízo atual
                       </span>
-                    </span>
-                    <ChevronDown size={16} />
-                  </button>
-                  {currencyMenuOpen && (
-                    <div className="cb-currency-menu">
-                      <input
-                        className="cb-currency-search"
-                        type="text"
-                        placeholder="Buscar país ou moeda"
-                        value={currencyQuery}
-                        onChange={(event) => setCurrencyQuery(event.target.value)}
-                        autoFocus
-                      />
-                      <div className="cb-currency-list">
-                        {filteredCurrencies.length === 0 && (
-                          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', padding: '8px 4px' }}>
-                            Nenhuma moeda encontrada.
+                    </div>
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      <div>
+                        <div className="cb-result-label">Chargebacks estimados/mês</div>
+                        <div className="cb-result-number-large" style={{ color: '#f87171' }}>
+                          {formatCount(calculatorData.chargebacksPorMes)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="cb-result-label">Prejuízo mensal</div>
+                        <div className="cb-result-number-large" style={{ color: '#ef4444' }}>
+                          {formatCurrency(calculatorData.prejuizoMensal)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="cb-result-label">Prejuízo anual</div>
+                        <div className="cb-result-number-small" style={{ color: '#fca5a5' }}>
+                          {formatCurrency(calculatorData.prejuizoAnual)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="lp-card-shine lp-gradient-border" style={{ padding: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                      <TrendingUp size={20} color="#22c55e" />
+                      <span className="cb-result-title" style={{ color: '#22c55e' }}>
+                        Com pós-venda automatizado (potencial de até 91% de redução)
+                      </span>
+                    </div>
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      <div>
+                        <div className="cb-result-label">Chargebacks evitados/mês</div>
+                        <div className="cb-result-number-large" style={{ color: '#22c55e' }}>
+                          {formatCount(calculatorData.chargebacksEvitados)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="cb-result-label">Economia mensal</div>
+                        <div className="cb-result-number-large" style={{ color: '#22c55e' }}>
+                          {formatCurrency(calculatorData.economiaMensal)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="cb-result-label">Economia anual</div>
+                        <div className="cb-result-number-small" style={{ color: '#86efac' }}>
+                          {formatCurrency(calculatorData.economiaAnual)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="cb-result-label">ROI</div>
+                        <div
+                          className="cb-result-number-large"
+                          style={{ color: calculatorData.roiReplyna > 1 ? '#22c55e' : '#fff' }}
+                        >
+                          {formatRatio(calculatorData.roiReplyna)}x o investimento
+                        </div>
+                        {calculatorData.roiReplyna > 1 && (
+                          <div className="cb-result-label" style={{ color: '#22c55e', marginTop: '6px' }}>
+                            Lucro líquido desde o primeiro mês
                           </div>
                         )}
-                        {filteredCurrencies.map((option) => (
-                          <button
-                            type="button"
-                            key={option.code}
-                            className={`cb-currency-option ${option.code === selectedCurrency ? 'active' : ''}`}
-                            onClick={() => {
-                              setSelectedCurrency(option.code)
-                              setCurrencyMenuOpen(false)
-                              setCurrencyQuery('')
-                            }}
-                          >
-                            <span className="cb-currency-flag">{option.flag}</span>
-                            <div className="cb-currency-meta">
-                              <span>
-                                {option.code} ({option.symbol})
-                              </span>
-                              <span className="cb-currency-country">{option.countryName}</span>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="cb-field-group">
-                  <span className="cb-field-label">
-                    <GlossaryLink id="glossario-ticket-medio">Ticket médio</GlossaryLink> ({selectedCurrencyOption.symbol})
-                  </span>
-                  <input
-                    className="cb-input"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="Ex: 150"
-                    value={ticketMedioInput}
-                    onChange={(event) => setTicketMedioInput(event.target.value)}
-                  />
-                </div>
-
-                <div className="cb-field-group">
-                  <span className="cb-field-label">Pedidos por mês</span>
-                  <input
-                    className="cb-input"
-                    type="number"
-                    inputMode="numeric"
-                    placeholder="Ex: 500"
-                    value={pedidosInput}
-                    onChange={(event) => setPedidosInput(event.target.value)}
-                  />
-                </div>
-
-                <div className="cb-field-group">
-                  <span className="cb-field-label">Taxa de chargeback atual</span>
-                  <div className="cb-slider-row">
-                    <input
-                      className="cb-range"
-                      type="range"
-                      min="0"
-                      max="10"
-                      step="0.1"
-                      value={sliderValue}
-                      onChange={(event) => setTaxaInput(event.target.value)}
-                      style={{ background: sliderBackground }}
-                    />
-                    <span className="cb-slider-badge">{formatPercent(sliderValue)}%</span>
-                  </div>
-                  <p className="cb-helper-text">Shopify → Configurações → Payments → Ver repasses</p>
-                </div>
-              </div>
-
-              <div className="cb-divider" />
-
-              <div className="cb-cost-grid">
-                <div className="cb-field-group">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="cb-field-label">
-                      Custo médio por chargeback ({selectedCurrencyOption.symbol})
-                    </span>
-                    <span
-                      className="cb-info-badge"
-                      title="Inclui taxa do gateway (geralmente $15-25 USD) + custo do produto perdido + tempo operacional"
-                    >
-                      info
-                    </span>
-                  </div>
-                  <input
-                    className="cb-input"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="Ex: 25"
-                    value={custoInput}
-                    onChange={(event) => setCustoInput(event.target.value)}
-                  />
-                  <p className="cb-helper-text">
-                    Inclui taxa do <GlossaryLink id="glossario-gateway">gateway</GlossaryLink> + custo do produto + tempo
-                    operacional. Se não souber, {formatCurrency(25)} é estimativa conservadora.
-                  </p>
-                </div>
-
-                <div className="cb-mini-card">
-                  <div className="cb-mini-title">Resumo rápido</div>
-                  <div className="cb-mini-metric">
-                    <div className="cb-mini-label">Chargebacks estimados/mês</div>
-                    <div className="cb-mini-value">
-                      {shouldShowResults ? formatCount(calculatorData.chargebacksPorMes) : '--'}
-                    </div>
-                  </div>
-                  <div className="cb-mini-divider" />
-                  <div className="cb-mini-metric">
-                    <div className="cb-mini-label">% da receita comprometida</div>
-                    <div className="cb-mini-value">
-                      {shouldShowResults ? `${formatPercent(calculatorData.percentualReceitaComprometida)}%` : '--'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className={`cb-results ${shouldShowResults ? 'cb-results-visible' : ''}`}>
-                <div className="cb-results-panel">
-                  <div className="cb-results-grid">
-                    <div className="cb-result-card cb-result-card--loss">
-                      <div className="cb-result-header">
-                        <div className="cb-result-icon cb-result-icon--loss">
-                          <TrendingDown size={16} />
-                        </div>
-                        <span className="cb-result-title cb-result-title--loss">Seu prejuízo atual</span>
-                      </div>
-                      <div className="cb-result-metrics">
-                        <div>
-                          <div className="cb-result-label">Chargebacks estimados/mês</div>
-                          <div className="cb-result-value cb-result-value--loss">
-                            {formatCount(calculatorData.chargebacksPorMes)}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="cb-result-label">Prejuízo mensal</div>
-                          <div className="cb-result-value cb-result-value--loss">
-                            {formatCurrency(calculatorData.prejuizoMensal)}
-                          </div>
-                        </div>
-                        <div className="cb-result-divider" />
-                        <div>
-                          <div className="cb-result-label">Prejuízo anual</div>
-                          <div className="cb-result-total cb-result-total--loss">
-                            {formatCurrency(calculatorData.prejuizoAnual)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="cb-result-card cb-result-card--gain">
-                      <div className="cb-result-badge">até 91% redução</div>
-                      <div className="cb-result-header">
-                        <div className="cb-result-icon cb-result-icon--gain">
-                          <Shield size={16} />
-                        </div>
-                        <span className="cb-result-title cb-result-title--gain">Com pós-venda automatizado</span>
-                      </div>
-                      <div className="cb-result-metrics">
-                        <div>
-                          <div className="cb-result-label">Chargebacks evitados/mês</div>
-                          <div className="cb-result-value cb-result-value--gain">
-                            {formatCount(calculatorData.chargebacksEvitados)}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="cb-result-label">Economia mensal</div>
-                          <div className="cb-result-value cb-result-value--gain">
-                            {formatCurrency(calculatorData.economiaMensal)}
-                          </div>
-                        </div>
-                        <div className="cb-result-divider cb-result-divider--gain" />
-                        <div>
-                          <div className="cb-result-label">Economia anual</div>
-                          <div className="cb-result-total cb-result-total--gain">
-                            {formatCurrency(calculatorData.economiaAnual)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="cb-roi-card">
-                        <div className="cb-roi-label">ROI</div>
-                        <div className="cb-roi-value">{formatRatio(calculatorData.roiReplyna)}x</div>
-                        <div className="cb-roi-subtitle">Lucro líquido desde o primeiro mês</div>
                       </div>
                     </div>
                   </div>
-
-                  <div className="cb-cta-row">
-                    <a href="https://replyna.me/#precos" className="cb-cta-primary">
-                      Veja como automatizar seu pós-venda por R$197/mês →
-                    </a>
-                    <a href="https://replyna.me/#como-funciona" className="cb-cta-secondary">
-                      Ver como funciona →
-                    </a>
-                  </div>
-                  <div className="cb-disclaimer">
-                    * Baseado em caso real. Resultados podem variar de acordo com o volume e tipo de operação.
-                  </div>
                 </div>
+
+                <div
+                  style={{
+                    marginTop: '28px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '16px',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <a
+                    href="https://replyna.me/#precos"
+                    className="lp-btn-primary"
+                    style={{
+                      color: '#fff',
+                      padding: '14px 22px',
+                      borderRadius: '12px',
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    Veja como automatizar seu pós-venda por R$197/mês
+                    <ArrowRight size={16} />
+                  </a>
+                  <a
+                    href="https://replyna.me/#como-funciona"
+                    className="lp-btn-secondary"
+                    style={{
+                      color: '#fff',
+                      padding: '12px 20px',
+                      borderRadius: '12px',
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    Ver como funciona →
+                  </a>
+                </div>
+                <p style={{ marginTop: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>
+                  * Baseado em caso real. Resultados podem variar de acordo com o volume e tipo de operação.
+                </p>
               </div>
             </div>
           </div>
