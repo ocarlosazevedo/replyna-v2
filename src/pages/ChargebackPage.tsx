@@ -80,19 +80,6 @@ const glossaryItems = [
   },
 ]
 
-const glossaryTooltips: Record<string, string> = {
-  'glossario-settlement': 'Prazo entre a venda e o repasse.',
-  'glossario-merchant': 'Lojista que recebe o pagamento.',
-  'glossario-gateway': 'Processador de pagamento.',
-  'glossario-friendly-fraud': 'Cliente contesta compra legítima.',
-  'glossario-chargeback-ratio': 'Percentual de disputas sobre transações.',
-  'glossario-rolling-reserve': 'Reserva retida pelo gateway.',
-  'glossario-vamp': 'Programa de monitoramento da Visa.',
-  'glossario-ecm': 'Programa de monitoramento da Mastercard.',
-  'glossario-ticket-medio': 'Valor médio por pedido.',
-  'glossario-d3': 'Recebimento em 3 dias úteis.',
-}
-
 const faqItems = [
   {
     question: 'O que é chargeback?',
@@ -236,7 +223,6 @@ function GlossaryLink({ id, children }: { id: string; children: ReactNode }) {
     <a
       href={`#${id}`}
       className="lp-glossary-link"
-      data-tooltip={glossaryTooltips[id] ?? ''}
     >
       {children}
     </a>
@@ -761,33 +747,11 @@ export default function ChargebackPage() {
         }
 
         .lp-glossary-link {
-          color: rgba(255,255,255,0.9);
+          color: inherit;
           text-decoration: none;
           border-bottom: 1px dashed rgba(255,255,255,0.4);
-          cursor: help;
+          cursor: pointer;
           position: relative;
-        }
-        .lp-glossary-link::after {
-          content: attr(data-tooltip);
-          position: absolute;
-          left: 50%;
-          bottom: calc(100% + 10px);
-          transform: translateX(-50%) translateY(8px);
-          padding: 8px 10px;
-          background: rgba(15, 15, 24, 0.95);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 10px;
-          font-size: 12px;
-          color: rgba(255,255,255,0.8);
-          white-space: nowrap;
-          opacity: 0;
-          pointer-events: none;
-          transition: all 0.2s ease;
-          z-index: 10;
-        }
-        .lp-glossary-link:hover::after {
-          opacity: 1;
-          transform: translateX(-50%) translateY(0);
         }
 
         .cb-input {
@@ -1108,9 +1072,6 @@ export default function ChargebackPage() {
           }
           .cb-glossary-grid {
             grid-template-columns: 1fr;
-          }
-          .lp-glossary-link::after {
-            display: none;
           }
         }
 
@@ -1444,7 +1405,7 @@ export default function ChargebackPage() {
               <div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                   <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
-                    Ticket médio ({selectedCurrencyOption.symbol})
+                    <GlossaryLink id="glossario-ticket-medio">Ticket médio</GlossaryLink> ({selectedCurrencyOption.symbol})
                   </span>
                 </label>
                 <input
@@ -1503,7 +1464,7 @@ export default function ChargebackPage() {
                 </div>
                 <p style={{ marginTop: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
                   Você encontra essa taxa no painel da Shopify em Configurações → Payments → Ver repasses, ou no relatório
-                  de disputas do seu gateway de pagamento.
+                  de disputas do seu <GlossaryLink id="glossario-gateway">gateway</GlossaryLink> de pagamento.
                 </p>
               </div>
 
@@ -1535,9 +1496,9 @@ export default function ChargebackPage() {
                   onChange={(event) => setCustoInput(event.target.value)}
                 />
                 <p style={{ marginTop: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
-                  Inclui a taxa cobrada pelo gateway ($15 USD na Shopify Payments) + o custo do produto com o fornecedor +
-                  tempo operacional gasto disputando. Se não souber o valor exato, {formatCurrency(25)} é uma estimativa
-                  conservadora.
+                  Inclui a taxa cobrada pelo <GlossaryLink id="glossario-gateway">gateway</GlossaryLink> ($15 USD na
+                  Shopify Payments) + o custo do produto com o fornecedor + tempo operacional gasto disputando. Se não
+                  souber o valor exato, {formatCurrency(25)} é uma estimativa conservadora.
                 </p>
               </div>
             </div>
@@ -1709,7 +1670,12 @@ export default function ChargebackPage() {
                 },
                 {
                   title: 'Valor é debitado',
-                  desc: 'O gateway debita automaticamente o valor da venda + taxa.',
+                  desc: (
+                    <>
+                      O <GlossaryLink id="glossario-gateway">gateway</GlossaryLink> debita automaticamente o valor da venda
+                      + taxa.
+                    </>
+                  ),
                   icon: <CreditCard size={24} />,
                 },
                 {
@@ -1822,8 +1788,9 @@ export default function ChargebackPage() {
                   <span style={{ fontSize: '12px', color: '#eab308', fontWeight: 600 }}>ESTORNO</span>
                 </div>
                 <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
-                  O gateway ou o banco reverte a transação por erro técnico. Cobrança duplicada, valor errado ou falha no
-                  processamento. Não foi iniciado pelo cliente como reclamação — foi um problema do sistema.
+                O <GlossaryLink id="glossario-gateway">gateway</GlossaryLink> ou o banco reverte a transação por erro
+                técnico. Cobrança duplicada, valor errado ou falha no processamento. Não foi iniciado pelo cliente como
+                reclamação — foi um problema do sistema.
                 </p>
               </div>
 
@@ -1917,11 +1884,12 @@ export default function ChargebackPage() {
               </p>
             </div>
             <div className="lp-glass" style={{ padding: '20px 24px', borderRadius: '16px' }}>
-              <strong>A taxa do gateway</strong>
+              <strong>A taxa do <GlossaryLink id="glossario-gateway">gateway</GlossaryLink></strong>
               <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
                 A Shopify Payments cobra $15 USD por cada chargeback disputado. Se você ganhar a disputa, a taxa é devolvida
                 junto com o valor no próximo repasse. Se perder, fica com o prejuízo da taxa + venda + custo do produto.
-                Outros gateways cobram entre $15 e $25 USD com regras similares.{' '}
+                Outros <GlossaryLink id="glossario-gateway">gateways</GlossaryLink> cobram entre $15 e $25 USD com regras
+                similares.{' '}
                 <a
                   className="cb-inline-link"
                   href="https://help.shopify.com/en/manual/payments/chargebacks"
@@ -1935,8 +1903,9 @@ export default function ChargebackPage() {
             <div className="lp-glass" style={{ padding: '20px 24px', borderRadius: '16px' }}>
               <strong>Custo operacional</strong>
               <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
-                Cada disputa exige tempo: reunir comprovantes, montar argumentação, enviar para o gateway, acompanhar prazo.
-                Uma disputa pode levar de 30 minutos a 2 horas de trabalho.
+                Cada disputa exige tempo: reunir comprovantes, montar argumentação, enviar para o{' '}
+                <GlossaryLink id="glossario-gateway">gateway</GlossaryLink>, acompanhar prazo. Uma disputa pode levar de 30
+                minutos a 2 horas de trabalho.
               </p>
             </div>
             <div className="lp-glass" style={{ padding: '20px 24px', borderRadius: '16px' }}>
@@ -1956,14 +1925,15 @@ export default function ChargebackPage() {
                 </li>
                 <li>
                   Em casos graves, a Shopify desativa o Shopify Payments. Você perde o processamento nativo e precisa
-                  migrar para gateways alternativos com taxas maiores.
+                  migrar para <GlossaryLink id="glossario-gateway">gateways</GlossaryLink> alternativos com taxas maiores.
                 </li>
               </ul>
               <p style={{ marginTop: '12px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
-                Para merchants novos, o <GlossaryLink id="glossario-settlement">settlement</GlossaryLink> pode começar em
-                até 7 dias úteis. Contas em risco podem entrar em <GlossaryLink id="glossario-rolling-reserve">rolling
-                reserve</GlossaryLink>, onde uma porcentagem de cada venda fica retida por 30 a 90 dias. Em alguns países o
-                repasse padrão já é em <GlossaryLink id="glossario-d3">D+3</GlossaryLink>.
+                Para <GlossaryLink id="glossario-merchant">merchants</GlossaryLink> novos, o{' '}
+                <GlossaryLink id="glossario-settlement">settlement</GlossaryLink> pode começar em até 7 dias úteis. Contas
+                em risco podem entrar em <GlossaryLink id="glossario-rolling-reserve">rolling reserve</GlossaryLink>, onde
+                uma porcentagem de cada venda fica retida por 30 a 90 dias. Em alguns países o repasse padrão já é em{' '}
+                <GlossaryLink id="glossario-d3">D+3</GlossaryLink>.
               </p>
             </div>
           </div>
@@ -1983,10 +1953,11 @@ export default function ChargebackPage() {
             Taxa de chargeback: qual o limite aceitável?
           </h2>
           <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: '24px' }}>
-            Cada bandeira e gateway monitora a porcentagem de chargebacks em relação ao total de transações da sua loja. Se
-            você processou 1.000 pedidos e recebeu 10 chargebacks, sua{' '}
-            <GlossaryLink id="glossario-chargeback-ratio">chargeback ratio</GlossaryLink> é de 1%. Passar do limite de cada
-            bandeira coloca o <GlossaryLink id="glossario-merchant">merchant</GlossaryLink> em programas de monitoramento
+            Cada bandeira e <GlossaryLink id="glossario-gateway">gateway</GlossaryLink> monitora a porcentagem de
+            chargebacks em relação ao total de transações da sua loja. Se você processou 1.000 pedidos e recebeu 10
+            chargebacks, sua <GlossaryLink id="glossario-chargeback-ratio">chargeback ratio</GlossaryLink> é de 1%. Passar
+            do limite de cada bandeira coloca o <GlossaryLink id="glossario-merchant">merchant</GlossaryLink> em programas
+            de monitoramento
             com multas progressivas — e em casos graves, sua conta é encerrada.
           </p>
 
@@ -1997,9 +1968,11 @@ export default function ChargebackPage() {
               </h3>
               <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
                 Desde abril de 2025, a Visa unificou seus programas de monitoramento (VDMP e VFMP) em um único programa
-                chamado VAMP. Um merchant é classificado como "Excessive" quando a VAMP Ratio ultrapassa 1.5%, com mínimo
-                de 1.500 disputas no mês. A partir de abril de 2026, esse limite cai para 0.9% nos EUA, Canadá e Europa.
-                Multa: $10 USD por disputa para merchants na categoria Excessive.{' '}
+                chamado <GlossaryLink id="glossario-vamp">VAMP</GlossaryLink>. Um{' '}
+                <GlossaryLink id="glossario-merchant">merchant</GlossaryLink> é classificado como "Excessive" quando a VAMP
+                Ratio ultrapassa 1.5%, com mínimo de 1.500 disputas no mês. A partir de abril de 2026, esse limite cai para
+                0.9% nos EUA, Canadá e Europa. Multa: $10 USD por disputa para{' '}
+                <GlossaryLink id="glossario-merchant">merchants</GlossaryLink> na categoria Excessive.{' '}
                 <a
                   className="cb-inline-link"
                   href="https://corporate.visa.com/content/dam/VCOM/corporate/visa-perspectives/security-and-trust/documents/visa-acquirer-monitoring-program-fact-sheet-2025.pdf"
@@ -2015,12 +1988,13 @@ export default function ChargebackPage() {
                 Mastercard (<GlossaryLink id="glossario-ecm">ECM</GlossaryLink>)
               </h3>
               <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
-                Entra no Excessive Chargeback Merchant quando a taxa de chargebacks ultrapassa 1.5% do total de transações
-                ou quando ultrapassa 100 chargebacks no mês (o que vier primeiro). Multas começam em $1.000 e podem chegar
-                a $200.000 USD dependendo de quanto tempo o merchant fica no programa sem resolver.{' '}
+                Entra no Excessive Chargeback <GlossaryLink id="glossario-merchant">Merchant</GlossaryLink> quando a taxa
+                de chargebacks ultrapassa 1.5% do total de transações ou quando ultrapassa 100 chargebacks no mês (o que
+                vier primeiro). Multas começam em $1.000 e podem chegar a $200.000 USD dependendo de quanto tempo o{' '}
+                <GlossaryLink id="glossario-merchant">merchant</GlossaryLink> fica no programa sem resolver.{' '}
                 <a
                   className="cb-inline-link"
-                  href="https://www.mastercard.com/brandcenter/en-us/brand-and-fraud-monitoring-programs"
+                  href="https://developer.paypal.com/braintree/articles/risk-and-security/card-brand-monitoring-programs/mastercard-programs/excessive-chargeback-program"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
