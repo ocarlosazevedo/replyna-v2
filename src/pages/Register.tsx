@@ -40,7 +40,8 @@ export default function Register() {
   // Form
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [whatsappNumber, setWhatsappNumber] = useState('')
+  const [countryCode, setCountryCode] = useState('+55')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -49,6 +50,67 @@ export default function Register() {
   const [couponValidation, setCouponValidation] = useState<CouponValidation | null>(null)
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [showCouponField, setShowCouponField] = useState(false)
+
+  const countryCodes = [
+    { code: '+55', label: 'BR +55' },
+    { code: '+1', label: 'US +1' },
+    { code: '+351', label: 'PT +351' },
+    { code: '+44', label: 'UK +44' },
+    { code: '+49', label: 'DE +49' },
+    { code: '+33', label: 'FR +33' },
+    { code: '+39', label: 'IT +39' },
+    { code: '+34', label: 'ES +34' },
+    { code: '+31', label: 'NL +31' },
+    { code: '+48', label: 'PL +48' },
+    { code: '+420', label: 'CZ +420' },
+    { code: '+43', label: 'AT +43' },
+    { code: '+41', label: 'CH +41' },
+    { code: '+32', label: 'BE +32' },
+    { code: '+46', label: 'SE +46' },
+    { code: '+47', label: 'NO +47' },
+    { code: '+45', label: 'DK +45' },
+    { code: '+358', label: 'FI +358' },
+    { code: '+353', label: 'IE +353' },
+    { code: '+61', label: 'AU +61' },
+    { code: '+64', label: 'NZ +64' },
+    { code: '+91', label: 'IN +91' },
+    { code: '+81', label: 'JP +81' },
+    { code: '+82', label: 'KR +82' },
+    { code: '+86', label: 'CN +86' },
+    { code: '+971', label: 'AE +971' },
+    { code: '+52', label: 'MX +52' },
+    { code: '+54', label: 'AR +54' },
+    { code: '+56', label: 'CL +56' },
+    { code: '+57', label: 'CO +57' },
+    { code: '+507', label: 'PA +507' },
+    { code: '+598', label: 'UY +598' },
+    { code: '+595', label: 'PY +595' },
+    { code: '+27', label: 'ZA +27' },
+    { code: '+234', label: 'NG +234' },
+    { code: '+90', label: 'TR +90' },
+    { code: '+7', label: 'RU +7' },
+    { code: '+380', label: 'UA +380' },
+    { code: '+30', label: 'GR +30' },
+    { code: '+36', label: 'HU +36' },
+    { code: '+40', label: 'RO +40' },
+    { code: '+359', label: 'BG +359' },
+    { code: '+385', label: 'HR +385' },
+    { code: '+65', label: 'SG +65' },
+    { code: '+60', label: 'MY +60' },
+    { code: '+66', label: 'TH +66' },
+    { code: '+63', label: 'PH +63' },
+    { code: '+62', label: 'ID +62' },
+    { code: '+84', label: 'VN +84' },
+    { code: '+20', label: 'EG +20' },
+    { code: '+212', label: 'MA +212' },
+    { code: '+972', label: 'IL +972' },
+  ]
+
+  const getFullPhoneNumber = () => {
+    const num = phoneNumber.trim()
+    if (!num) return ''
+    return `${countryCode} ${num}`
+  }
 
   useEffect(() => {
     loadPlans()
@@ -175,7 +237,7 @@ export default function Register() {
           plan_id: selectedPlan.id,
           user_email: email,
           user_name: name,
-          whatsapp_number: whatsappNumber.trim() || undefined,
+          whatsapp_number: getFullPhoneNumber() || undefined,
           billing_cycle: 'monthly',
           coupon_code: couponValidation?.is_valid ? couponCode.toUpperCase() : undefined,
           success_url: `${window.location.origin}/checkout/success`,
@@ -193,7 +255,7 @@ export default function Register() {
       localStorage.setItem('pending_registration', JSON.stringify({
         email,
         name,
-        whatsapp_number: whatsappNumber.trim() || null,
+        whatsapp_number: getFullPhoneNumber() || null,
         plan_id: selectedPlan.id,
         plan_name: selectedPlan.name,
       }))
@@ -912,24 +974,43 @@ export default function Register() {
                 color: 'var(--text-secondary)',
                 marginBottom: '8px',
               }}>
-                WhatsApp
+                Número de Celular
               </label>
-              <input
-                type="tel"
-                value={whatsappNumber}
-                onChange={(e) => setWhatsappNumber(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '1px solid var(--input-border)',
-                  borderRadius: '10px',
-                  fontSize: '16px',
-                  boxSizing: 'border-box',
-                  backgroundColor: 'var(--input-bg)',
-                  color: 'var(--text-primary)',
-                }}
-                placeholder="+55 11 99999-9999"
-              />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  style={{
+                    padding: '12px 8px',
+                    border: '1px solid var(--input-border)',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    minWidth: '110px',
+                  }}
+                >
+                  {countryCodes.map((c) => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '12px 16px',
+                    border: '1px solid var(--input-border)',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    boxSizing: 'border-box',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                  }}
+                  placeholder="11 99999-9999"
+                />
+              </div>
               <span style={{
                 display: 'block',
                 marginTop: '6px',

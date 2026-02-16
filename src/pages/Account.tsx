@@ -84,9 +84,88 @@ export default function Account() {
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [whatsappNumber, setWhatsappNumber] = useState('')
+  const [countryCode, setCountryCode] = useState('+55')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [shopsCount, setShopsCount] = useState<number>(0)
+
+  const countryCodes = [
+    { code: '+55', label: 'BR +55' },
+    { code: '+1', label: 'US +1' },
+    { code: '+351', label: 'PT +351' },
+    { code: '+44', label: 'UK +44' },
+    { code: '+49', label: 'DE +49' },
+    { code: '+33', label: 'FR +33' },
+    { code: '+39', label: 'IT +39' },
+    { code: '+34', label: 'ES +34' },
+    { code: '+31', label: 'NL +31' },
+    { code: '+48', label: 'PL +48' },
+    { code: '+420', label: 'CZ +420' },
+    { code: '+43', label: 'AT +43' },
+    { code: '+41', label: 'CH +41' },
+    { code: '+32', label: 'BE +32' },
+    { code: '+46', label: 'SE +46' },
+    { code: '+47', label: 'NO +47' },
+    { code: '+45', label: 'DK +45' },
+    { code: '+358', label: 'FI +358' },
+    { code: '+353', label: 'IE +353' },
+    { code: '+61', label: 'AU +61' },
+    { code: '+64', label: 'NZ +64' },
+    { code: '+91', label: 'IN +91' },
+    { code: '+81', label: 'JP +81' },
+    { code: '+82', label: 'KR +82' },
+    { code: '+86', label: 'CN +86' },
+    { code: '+971', label: 'AE +971' },
+    { code: '+52', label: 'MX +52' },
+    { code: '+54', label: 'AR +54' },
+    { code: '+56', label: 'CL +56' },
+    { code: '+57', label: 'CO +57' },
+    { code: '+507', label: 'PA +507' },
+    { code: '+598', label: 'UY +598' },
+    { code: '+595', label: 'PY +595' },
+    { code: '+27', label: 'ZA +27' },
+    { code: '+234', label: 'NG +234' },
+    { code: '+90', label: 'TR +90' },
+    { code: '+7', label: 'RU +7' },
+    { code: '+380', label: 'UA +380' },
+    { code: '+30', label: 'GR +30' },
+    { code: '+36', label: 'HU +36' },
+    { code: '+40', label: 'RO +40' },
+    { code: '+359', label: 'BG +359' },
+    { code: '+385', label: 'HR +385' },
+    { code: '+65', label: 'SG +65' },
+    { code: '+60', label: 'MY +60' },
+    { code: '+66', label: 'TH +66' },
+    { code: '+63', label: 'PH +63' },
+    { code: '+62', label: 'ID +62' },
+    { code: '+84', label: 'VN +84' },
+    { code: '+20', label: 'EG +20' },
+    { code: '+212', label: 'MA +212' },
+    { code: '+972', label: 'IL +972' },
+  ]
+
+  const parsePhoneNumber = (fullNumber: string) => {
+    if (!fullNumber) return { code: '+55', number: '' }
+    const match = fullNumber.match(/^(\+\d{1,4})\s*(.*)$/)
+    if (match) {
+      const matchedCode = countryCodes.find(c => c.code === match[1])
+      if (matchedCode) return { code: match[1], number: match[2] }
+    }
+    // Tentar match por códigos mais longos primeiro
+    const sorted = [...countryCodes].sort((a, b) => b.code.length - a.code.length)
+    for (const c of sorted) {
+      if (fullNumber.startsWith(c.code)) {
+        return { code: c.code, number: fullNumber.slice(c.code.length).trim() }
+      }
+    }
+    return { code: '+55', number: fullNumber.replace(/^\+/, '') }
+  }
+
+  const getFullPhoneNumber = () => {
+    const num = phoneNumber.trim()
+    if (!num) return ''
+    return `${countryCode} ${num}`
+  }
 
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
@@ -328,7 +407,9 @@ export default function Account() {
         })
         setName(data.name || user.user_metadata?.name || '')
         setEmail(data.email || user.email || '')
-        setWhatsappNumber(data.whatsapp_number || '')
+        const parsed = parsePhoneNumber(data.whatsapp_number || '')
+        setCountryCode(parsed.code)
+        setPhoneNumber(parsed.number)
       }
 
       // Buscar quantidade de lojas integradas
@@ -414,7 +495,7 @@ export default function Account() {
         .from('users')
         .update({
           name: name.trim(),
-          whatsapp_number: whatsappNumber.trim() || null,
+          whatsapp_number: getFullPhoneNumber() || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id)
@@ -432,7 +513,7 @@ export default function Account() {
           ? {
               ...prev,
               name: name.trim(),
-              whatsapp_number: whatsappNumber.trim() || null,
+              whatsapp_number: getFullPhoneNumber() || null,
             }
           : prev
       )
@@ -493,7 +574,9 @@ export default function Account() {
     if (isEditing) {
       setName(profile?.name || user?.user_metadata?.name || '')
       setEmail(profile?.email || user?.email || '')
-      setWhatsappNumber(profile?.whatsapp_number || '')
+      const parsed = parsePhoneNumber(profile?.whatsapp_number || '')
+      setCountryCode(parsed.code)
+      setPhoneNumber(parsed.number)
       setNotice(null)
     }
     setIsEditing((prev) => !prev)
@@ -963,23 +1046,46 @@ export default function Account() {
                     />
                   </label>
                   <label style={{ display: 'grid', gap: '6px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>WhatsApp</span>
-                    <input
-                      type="tel"
-                      value={whatsappNumber}
-                      onChange={(event) => setWhatsappNumber(event.target.value)}
-                      disabled={!isEditing}
-                      placeholder="+55 11 99999-9999"
-                      style={{
-                        border: `1px solid ${isEditing ? 'var(--input-border)' : 'var(--border-color)'}`,
-                        borderRadius: '10px',
-                        padding: '12px',
-                        fontSize: '14px',
-                        backgroundColor: isEditing ? 'var(--input-bg)' : 'var(--bg-primary)',
-                        color: isEditing ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        cursor: isEditing ? 'text' : 'not-allowed',
-                      }}
-                    />
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Número de Celular</span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <select
+                        value={countryCode}
+                        onChange={(e) => setCountryCode(e.target.value)}
+                        disabled={!isEditing}
+                        style={{
+                          border: `1px solid ${isEditing ? 'var(--input-border)' : 'var(--border-color)'}`,
+                          borderRadius: '10px',
+                          padding: '12px 8px',
+                          fontSize: '14px',
+                          backgroundColor: isEditing ? 'var(--input-bg)' : 'var(--bg-primary)',
+                          color: isEditing ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          cursor: isEditing ? 'pointer' : 'not-allowed',
+                          minWidth: '110px',
+                          appearance: isEditing ? undefined : 'none' as React.CSSProperties['appearance'],
+                        }}
+                      >
+                        {countryCodes.map((c) => (
+                          <option key={c.code} value={c.code}>{c.label}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        disabled={!isEditing}
+                        placeholder="11 99999-9999"
+                        style={{
+                          flex: 1,
+                          border: `1px solid ${isEditing ? 'var(--input-border)' : 'var(--border-color)'}`,
+                          borderRadius: '10px',
+                          padding: '12px',
+                          fontSize: '14px',
+                          backgroundColor: isEditing ? 'var(--input-bg)' : 'var(--bg-primary)',
+                          color: isEditing ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          cursor: isEditing ? 'text' : 'not-allowed',
+                        }}
+                      />
+                    </div>
                     <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Para receber notificações sobre falhas de pagamento</span>
                   </label>
                 </form>
