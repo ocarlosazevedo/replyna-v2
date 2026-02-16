@@ -1881,15 +1881,6 @@ export default function ChargebackPage() {
                 </p>
               </div>
 
-              <div className="cb-mini-card">
-                <div className="cb-mini-title">CASO REAL</div>
-                <div className="cb-mini-proof">
-                  <span style={{ color: '#f87171' }}>47</span>
-                  <span className="cb-mini-proof-arrow">→</span>
-                  <span style={{ color: '#34d399' }}>4</span>
-                </div>
-                <div className="cb-mini-subtitle">chargebacks/mês com atendimento automatizado</div>
-              </div>
             </div>
 
             <div className={`cb-results ${shouldShowResults ? 'cb-results-visible' : ''}`}>
