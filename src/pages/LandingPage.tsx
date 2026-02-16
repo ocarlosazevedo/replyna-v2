@@ -921,6 +921,9 @@ export default function LandingPage() {
             <a href="#como-funciona" onClick={(e) => scrollToSection(e, 'como-funciona')} className="lp-nav-link">
               Como funciona
             </a>
+            <a href="/chargeback" className="lp-nav-link">
+              Calculadora
+            </a>
             <a href="#precos" onClick={(e) => scrollToSection(e, 'precos')} className="lp-nav-link">
               Preços
             </a>
@@ -1006,13 +1009,20 @@ export default function LandingPage() {
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
             {[
               { href: '#como-funciona', label: 'Como funciona', id: 'como-funciona' },
+              { href: '/chargeback', label: 'Calculadora', id: null },
               { href: '#precos', label: 'Preços', id: 'precos' },
               { href: '#faq', label: 'FAQ', id: 'faq' },
-            ].map((item) => (
+            ].map((item, index) => (
               <a
-                key={item.id}
+                key={`${item.label}-${index}`}
                 href={item.href}
-                onClick={(e) => scrollToSection(e, item.id)}
+                onClick={(e) => {
+                  if (item.id) {
+                    scrollToSection(e, item.id)
+                    return
+                  }
+                  setMobileMenuOpen(false)
+                }}
                 style={{
                   color: '#fff',
                   textDecoration: 'none',

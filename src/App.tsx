@@ -16,6 +16,7 @@ import ShopDetails from './pages/ShopDetails'
 import Account from './pages/Account'
 import ConversationDetails from './pages/ConversationDetails'
 import LandingPage from './pages/LandingPage'
+import ChargebackPage from './pages/ChargebackPage'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import Masterclass from './pages/Masterclass'
 import MasterclassWatch from './pages/MasterclassWatch'
@@ -24,8 +25,26 @@ import MasterclassWatch from './pages/MasterclassWatch'
 const isLandingDomain = () => {
   const hostname = window.location.hostname
   // replyna.me (sem www ou subdomain) = landing page
-  // app.replyna.me, localhost, etc = app
+  // app.replyna.me = app
   return hostname === 'replyna.me' || hostname === 'www.replyna.me'
+}
+
+const isLocalhost = () => {
+  const hostname = window.location.hostname
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0'
+}
+
+const isLandingPath = () => {
+  const pathname = window.location.pathname
+  const normalized = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
+  const landingPaths = new Set([
+    '/',
+    '/chargeback',
+    '/masterclass',
+    '/masterclass/assistir',
+    '/privacidade',
+  ])
+  return landingPaths.has(normalized)
 }
 
 // Admin Pages
@@ -143,13 +162,14 @@ function AdminPublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  // Se estamos no domínio da landing page (replyna.me), mostrar LP e páginas de captura
-  if (isLandingDomain()) {
+  // replyna.me sempre usa LP. No localhost, liberar LP apenas para rotas específicas.
+  if (isLandingDomain() || (isLocalhost() && isLandingPath())) {
     return (
       <BrowserRouter>
         <Routes>
           <Route path="/masterclass" element={<Masterclass />} />
           <Route path="/masterclass/assistir" element={<MasterclassWatch />} />
+          <Route path="/chargeback" element={<ChargebackPage />} />
           <Route path="/privacidade" element={<PrivacyPolicy />} />
           <Route path="*" element={<LandingPage />} />
         </Routes>
