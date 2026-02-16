@@ -1107,9 +1107,8 @@ export default function ChargebackPage() {
             justifyContent: 'space-between',
           }}
         >
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
             <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '32px', width: 'auto' }} />
-            <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>← Voltar</span>
           </a>
 
           <nav className="lp-nav-desktop">
