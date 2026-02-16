@@ -526,6 +526,7 @@ export default function ChargebackPage() {
   const sliderValue = Math.min(10, Math.max(0, rawSliderValue))
   const sliderPercent = (sliderValue / 10) * 100
   const sliderBackground = `linear-gradient(90deg, #06b6d4 0%, #3b82f6 ${sliderPercent}%, rgba(255,255,255, 0.08) ${sliderPercent}%, rgba(255,255,255, 0.08) 100%)`
+  const mesesReplyna = Math.floor(calculatorData.prejuizoAnual / 197)
   return (
     <div className="lp-container" onClick={handleAnchorClick}>
       <style>{`
@@ -1023,6 +1024,25 @@ export default function ChargebackPage() {
           letter-spacing: 0.12em;
           color: rgba(6,182,212, 0.5);
         }
+        .cb-mini-proof {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+          font-size: 32px;
+          font-weight: 800;
+          line-height: 1;
+        }
+        .cb-mini-proof-arrow {
+          font-size: 20px;
+          color: rgba(255,255,255, 0.25);
+          font-weight: 600;
+        }
+        .cb-mini-subtitle {
+          font-size: 12px;
+          color: rgba(255,255,255, 0.35);
+          margin-top: 8px;
+          line-height: 1.4;
+        }
         .cb-mini-metric {
           display: flex;
           flex-direction: column;
@@ -1196,6 +1216,18 @@ export default function ChargebackPage() {
           font-size: 20px;
           font-weight: 700;
           line-height: 1.1;
+        }
+        .cb-result-months {
+          font-size: 28px;
+          font-weight: 800;
+          color: #f87171;
+          line-height: 1.1;
+        }
+        .cb-result-months-note {
+          font-size: 13px;
+          font-weight: 400;
+          color: rgba(255,255,255, 0.35);
+          margin-top: 4px;
         }
         .cb-result-value {
           font-size: 28px;
@@ -1850,20 +1882,13 @@ export default function ChargebackPage() {
               </div>
 
               <div className="cb-mini-card">
-                <div className="cb-mini-title">Resumo rápido</div>
-                <div className="cb-mini-metric">
-                  <div className="cb-mini-label">Chargebacks estimados/mês</div>
-                  <div className="cb-mini-value">
-                    {shouldShowResults ? formatCount(calculatorData.chargebacksPorMes) : '--'}
-                  </div>
+                <div className="cb-mini-title">CASO REAL</div>
+                <div className="cb-mini-proof">
+                  <span style={{ color: '#f87171' }}>47</span>
+                  <span className="cb-mini-proof-arrow">→</span>
+                  <span style={{ color: '#34d399' }}>4</span>
                 </div>
-                <div className="cb-mini-divider" />
-                <div className="cb-mini-metric">
-                  <div className="cb-mini-label">% da receita comprometida</div>
-                  <div className="cb-mini-value">
-                    {shouldShowResults ? `${formatPercent(calculatorData.percentualReceitaComprometida)}%` : '--'}
-                  </div>
-                </div>
+                <div className="cb-mini-subtitle">chargebacks/mês com atendimento automatizado</div>
               </div>
             </div>
 
@@ -1891,14 +1916,20 @@ export default function ChargebackPage() {
                             {formatCurrency(calculatorData.prejuizoMensal)}
                           </div>
                         </div>
-                        <div>
-                          <div className="cb-result-label">Prejuízo anual</div>
-                          <div className="cb-result-number-small" style={{ color: '#fca5a5' }}>
-                            {formatCurrency(calculatorData.prejuizoAnual)}
-                          </div>
+                      <div>
+                        <div className="cb-result-label">Prejuízo anual</div>
+                        <div className="cb-result-number-small" style={{ color: '#fca5a5' }}>
+                          {formatCurrency(calculatorData.prejuizoAnual)}
                         </div>
                       </div>
+                      <div className="cb-result-divider" style={{ marginTop: '20px' }} />
+                      <div style={{ marginTop: '20px' }}>
+                        <div className="cb-result-label">Com esse valor você pagaria</div>
+                        <div className="cb-result-months">{mesesReplyna}</div>
+                        <div className="cb-result-months-note">meses de Replyna</div>
+                      </div>
                     </div>
+                  </div>
                   </div>
 
                   <div className="lp-card-shine cb-result-card cb-result-card--gain">
