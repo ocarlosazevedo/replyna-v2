@@ -498,19 +498,6 @@ export default function ChargebackPage() {
     })
   }
 
-  const scrollToSection = (event: ReactMouseEvent<HTMLAnchorElement>, targetId: string) => {
-    event.preventDefault()
-    setMobileMenuOpen(false)
-    const element = document.getElementById(targetId)
-    if (!element) return
-    const headerOffset = 96
-    const elementTop = element.getBoundingClientRect().top + window.scrollY
-    window.scrollTo({
-      top: elementTop - headerOffset,
-      behavior: 'smooth',
-    })
-  }
-
   const handlePricingClick = (event: ReactMouseEvent<HTMLAnchorElement>) => {
     event.preventDefault()
     try {
@@ -1519,25 +1506,13 @@ export default function ChargebackPage() {
           </a>
 
           <nav className="lp-nav-desktop">
-            <a
-              href="#calculadora"
-              onClick={(event) => scrollToSection(event, 'calculadora')}
-              className="lp-nav-link"
-            >
+            <a href="/chargeback" className="lp-nav-link">
               Calculadora
             </a>
-            <a
-              href="#como-funciona"
-              onClick={(event) => scrollToSection(event, 'como-funciona')}
-              className="lp-nav-link"
-            >
+            <a href="/#como-funciona" className="lp-nav-link">
               Como funciona
             </a>
-            <a
-              href="#precos"
-              onClick={(event) => scrollToSection(event, 'precos')}
-              className="lp-nav-link"
-            >
+            <a href="/#precos" className="lp-nav-link">
               Preços
             </a>
             <a href="/#faq" className="lp-nav-link">
@@ -1616,8 +1591,8 @@ export default function ChargebackPage() {
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
             <a
-              href="#calculadora"
-              onClick={(event) => scrollToSection(event, 'calculadora')}
+              href="/chargeback"
+              onClick={() => setMobileMenuOpen(false)}
               style={{
                 color: '#fff',
                 textDecoration: 'none',
@@ -1632,8 +1607,8 @@ export default function ChargebackPage() {
               Calculadora
             </a>
             <a
-              href="#como-funciona"
-              onClick={(event) => scrollToSection(event, 'como-funciona')}
+              href="/#como-funciona"
+              onClick={() => setMobileMenuOpen(false)}
               style={{
                 color: '#fff',
                 textDecoration: 'none',
@@ -1648,8 +1623,8 @@ export default function ChargebackPage() {
               Como funciona
             </a>
             <a
-              href="#precos"
-              onClick={(event) => scrollToSection(event, 'precos')}
+              href="/#precos"
+              onClick={() => setMobileMenuOpen(false)}
               style={{
                 color: '#fff',
                 textDecoration: 'none',
