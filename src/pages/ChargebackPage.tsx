@@ -526,6 +526,9 @@ export default function ChargebackPage() {
   const sliderValue = Math.min(10, Math.max(0, rawSliderValue))
   const sliderPercent = (sliderValue / 10) * 100
   const sliderBackground = `linear-gradient(90deg, #06b6d4 0%, #3b82f6 ${sliderPercent}%, rgba(255,255,255, 0.08) ${sliderPercent}%, rgba(255,255,255, 0.08) 100%)`
+  const reductionRate = 0.91
+  const residualPercent = (1 - reductionRate) * 100
+  const residualPrejuizo = calculatorData.prejuizoMensal * (1 - reductionRate)
 
   return (
     <div className="lp-container" onClick={handleAnchorClick}>
@@ -1085,7 +1088,7 @@ export default function ChargebackPage() {
         .cb-result-card {
           position: relative;
           border-radius: 16px;
-          padding: 28px 28px 32px;
+          padding: 24px;
           overflow: hidden;
         }
         .cb-result-card::before {
@@ -1098,15 +1101,16 @@ export default function ChargebackPage() {
           opacity: 0.6;
         }
         .cb-result-card--loss {
-          background: rgba(239,68,68, 0.04);
-          border: 1px solid rgba(239,68,68, 0.1);
+          background: rgba(239,68,68, 0.03);
+          border: 1px solid rgba(239,68,68, 0.08);
+          opacity: 0.95;
         }
         .cb-result-card--loss::before {
           background: linear-gradient(90deg, transparent, rgba(239,68,68, 0.4), transparent);
         }
         .cb-result-card--gain {
           background: rgba(16,185,129, 0.04);
-          border: 1px solid rgba(16,185,129, 0.12);
+          border: 1px solid rgba(16,185,129, 0.15);
         }
         .cb-result-card--gain::before {
           background: linear-gradient(90deg, transparent, rgba(16,185,129, 0.5), transparent);
@@ -1115,15 +1119,36 @@ export default function ChargebackPage() {
           position: absolute;
           top: 16px;
           right: 16px;
-          padding: 4px 10px;
-          border-radius: 999px;
+          padding: 3px 10px;
+          border-radius: 100px;
           background: rgba(16,185,129, 0.12);
           border: 1px solid rgba(16,185,129, 0.2);
           color: #34d399;
           font-size: 10px;
           font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
+        }
+        .cb-result-hero-line {
+          position: absolute;
+          top: -1px;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(16,185,129, 0.5), transparent);
+          pointer-events: none;
+        }
+        .cb-result-hero-blur {
+          position: absolute;
+          top: -30px;
+          left: 0;
+          right: 0;
+          height: 60px;
+          background: rgba(16,185,129, 0.08);
+          filter: blur(25px);
+          pointer-events: none;
+        }
+        .cb-result-content {
+          position: relative;
+          z-index: 1;
         }
         .cb-result-header {
           display: flex;
@@ -1211,11 +1236,12 @@ export default function ChargebackPage() {
           border: 1px solid rgba(16,185,129, 0.1);
           display: grid;
           gap: 6px;
+          text-align: center;
         }
         .cb-roi-label {
           font-size: 10px;
           text-transform: uppercase;
-          letter-spacing: 0.12em;
+          letter-spacing: 0.1em;
           color: rgba(16,185,129, 0.5);
         }
         .cb-roi-value {
@@ -1232,6 +1258,42 @@ export default function ChargebackPage() {
           display: flex;
           gap: 16px;
           margin-bottom: 16px;
+        }
+        .cb-impact {
+          margin: 24px 0 32px;
+        }
+        .cb-impact-label {
+          font-size: 11px;
+          color: rgba(255,255,255, 0.3);
+          margin-bottom: 12px;
+        }
+        .cb-impact-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .cb-impact-bar {
+          height: 8px;
+          border-radius: 100px;
+        }
+        .cb-impact-bar--loss {
+          flex: 1;
+          background: rgba(239,68,68, 0.3);
+        }
+        .cb-impact-bar--gain {
+          min-width: 24px;
+          background: linear-gradient(90deg, #10b981, #34d399);
+          box-shadow: 0 0 12px rgba(16,185,129, 0.3);
+        }
+        .cb-impact-value {
+          font-size: 11px;
+          white-space: nowrap;
+        }
+        .cb-impact-value--loss {
+          color: #f87171;
+        }
+        .cb-impact-value--gain {
+          color: #34d399;
         }
         .cb-cta-primary {
           flex: 1;
@@ -1856,76 +1918,93 @@ export default function ChargebackPage() {
             <div className={`cb-results ${shouldShowResults ? 'cb-results-visible' : ''}`}>
               <div style={{ marginTop: '36px' }}>
                 <div className="cb-results-grid">
-                  <div className="lp-card-shine lp-gradient-border" style={{ padding: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                      <TrendingDown size={20} color="#ef4444" />
-                      <span className="cb-result-title" style={{ color: '#ef4444' }}>
-                        Seu prejuízo atual
-                      </span>
-                    </div>
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                      <div>
-                        <div className="cb-result-label">Chargebacks estimados/mês</div>
-                        <div className="cb-result-number-large" style={{ color: '#f87171' }}>
-                          {formatCount(calculatorData.chargebacksPorMes)}
-                        </div>
+                  <div className="lp-card-shine cb-result-card cb-result-card--loss">
+                    <div className="cb-result-content">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                        <TrendingDown size={20} color="#ef4444" />
+                        <span className="cb-result-title" style={{ color: '#ef4444' }}>
+                          Seu prejuízo atual
+                        </span>
                       </div>
-                      <div>
-                        <div className="cb-result-label">Prejuízo mensal</div>
-                        <div className="cb-result-number-large" style={{ color: '#ef4444' }}>
-                          {formatCurrency(calculatorData.prejuizoMensal)}
+                      <div style={{ display: 'grid', gap: '12px' }}>
+                        <div>
+                          <div className="cb-result-label">Chargebacks estimados/mês</div>
+                          <div className="cb-result-number-large" style={{ color: '#f87171' }}>
+                            {formatCount(calculatorData.chargebacksPorMes)}
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <div className="cb-result-label">Prejuízo anual</div>
-                        <div className="cb-result-number-small" style={{ color: '#fca5a5' }}>
-                          {formatCurrency(calculatorData.prejuizoAnual)}
+                        <div>
+                          <div className="cb-result-label">Prejuízo mensal</div>
+                          <div className="cb-result-number-large" style={{ color: '#ef4444' }}>
+                            {formatCurrency(calculatorData.prejuizoMensal)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="cb-result-label">Prejuízo anual</div>
+                          <div className="cb-result-number-small" style={{ color: '#fca5a5' }}>
+                            {formatCurrency(calculatorData.prejuizoAnual)}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="lp-card-shine lp-gradient-border" style={{ padding: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                      <TrendingUp size={20} color="#22c55e" />
-                      <span className="cb-result-title" style={{ color: '#22c55e' }}>
-                        Com pós-venda automatizado (potencial de até 91% de redução)
-                      </span>
-                    </div>
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                      <div>
-                        <div className="cb-result-label">Chargebacks evitados/mês</div>
-                        <div className="cb-result-number-large" style={{ color: '#22c55e' }}>
-                          {formatCount(calculatorData.chargebacksEvitados)}
-                        </div>
+                  <div className="lp-card-shine cb-result-card cb-result-card--gain">
+                    <div className="cb-result-hero-line" />
+                    <div className="cb-result-hero-blur" />
+                    <div className="cb-result-badge">até 91% redução</div>
+                    <div className="cb-result-content">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                        <TrendingUp size={20} color="#22c55e" />
+                        <span className="cb-result-title" style={{ color: '#22c55e' }}>
+                          Com pós-venda automatizado
+                        </span>
                       </div>
-                      <div>
-                        <div className="cb-result-label">Economia mensal</div>
-                        <div className="cb-result-number-large" style={{ color: '#22c55e' }}>
-                          {formatCurrency(calculatorData.economiaMensal)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="cb-result-label">Economia anual</div>
-                        <div className="cb-result-number-small" style={{ color: '#86efac' }}>
-                          {formatCurrency(calculatorData.economiaAnual)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="cb-result-label">ROI</div>
-                        <div
-                          className="cb-result-number-large"
-                          style={{ color: calculatorData.roiReplyna > 1 ? '#22c55e' : '#fff' }}
-                        >
-                          {formatRatio(calculatorData.roiReplyna)}x o investimento
-                        </div>
-                        {calculatorData.roiReplyna > 1 && (
-                          <div className="cb-result-label" style={{ color: '#22c55e', marginTop: '6px' }}>
-                            Lucro líquido desde o primeiro mês
+                      <div style={{ display: 'grid', gap: '12px' }}>
+                        <div>
+                          <div className="cb-result-label">Chargebacks evitados/mês</div>
+                          <div className="cb-result-number-large" style={{ color: '#22c55e' }}>
+                            {formatCount(calculatorData.chargebacksEvitados)}
                           </div>
-                        )}
+                        </div>
+                        <div>
+                          <div className="cb-result-label">Economia mensal</div>
+                          <div className="cb-result-number-large" style={{ color: '#22c55e' }}>
+                            {formatCurrency(calculatorData.economiaMensal)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="cb-result-label">Economia anual</div>
+                          <div className="cb-result-number-small" style={{ color: '#86efac' }}>
+                            {formatCurrency(calculatorData.economiaAnual)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="cb-roi-card">
+                        <div className="cb-roi-label">ROI</div>
+                        <div className="cb-roi-value">{formatRatio(calculatorData.roiReplyna)}x</div>
+                        <div className="cb-roi-subtitle">Lucro líquido desde o primeiro mês</div>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                <div className="cb-impact">
+                  <div className="cb-impact-label">Impacto da redução</div>
+                  <div className="cb-impact-row">
+                    <div className="cb-impact-bar cb-impact-bar--loss" />
+                    <span className="cb-impact-value cb-impact-value--loss">
+                      {formatCurrency(calculatorData.prejuizoMensal)}
+                    </span>
+                  </div>
+                  <div className="cb-impact-row" style={{ marginTop: '8px' }}>
+                    <div
+                      className="cb-impact-bar cb-impact-bar--gain"
+                      style={{ width: `${residualPercent}%` }}
+                    />
+                    <span className="cb-impact-value cb-impact-value--gain">
+                      {formatCurrency(residualPrejuizo)}
+                    </span>
                   </div>
                 </div>
 
