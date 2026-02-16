@@ -195,7 +195,19 @@ serve(async (req) => {
       invoicesFilter.created.lte = periodEndTimestamp;
     }
 
-    // Buscar todos os dados em paralelo (sem expand para ser mais rápido)
+    // Emails de contas internas, testes e VIPs (não geram receita real)
+    const excludedEmails = new Set([
+      'carlosrian114@gmail.com',       // Rian - cancelado
+      'bruno.pinheiro@replyna.com',    // Bruno Pinheiro - conta clonada para criativos
+      'carlos@eternityholding.com',    // Carlos Azevedo - conta de testes
+      'samcadastro@gmail.com',         // Samuel - VIP
+      'razbergcapital@gmail.com',      // Bernardo Chourik - VIP
+      'itssnobre@gmail.com',           // Nobre - VIP
+      'gustavolsilva2003@gmail.com',   // Teste Email - conta de teste
+      'horizonbluesolutionsllc@gmail.com', // Carlos Azevedo - VIP
+    ]);
+
+    // Buscar todos os dados em paralelo (expand customer para filtrar por email)
     const [
       balance,
       subscriptions,
@@ -203,7 +215,7 @@ serve(async (req) => {
       invoices,
     ] = await Promise.all([
       stripe.balance.retrieve(),
-      stripe.subscriptions.list({ limit: 50, status: 'all' }), // Reduzido
+      stripe.subscriptions.list({ limit: 50, status: 'all', expand: ['data.customer'] }),
       stripe.charges.list(chargesFilter), // Sem expand - usa billing_details
       stripe.invoices.list(invoicesFilter),
     ]);
@@ -213,7 +225,7 @@ serve(async (req) => {
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    // Calcular MRR baseado em assinaturas ativas
+    // Calcular MRR baseado em assinaturas ativas (excluindo contas internas/VIP)
     let mrr = 0;
     let activeCount = 0;
     let pastDueCount = 0;
@@ -222,7 +234,14 @@ serve(async (req) => {
     const planCounts: Record<string, number> = {};
 
     for (const sub of subscriptions.data) {
-      if (sub.status === 'active' || sub.status === 'trialing') {
+      // Extrair email do customer expandido
+      const customer = sub.customer as { email?: string | null } | string;
+      const customerEmail = (typeof customer === 'object' && customer?.email)
+        ? customer.email.toLowerCase()
+        : '';
+      const isExcluded = excludedEmails.has(customerEmail);
+
+      if (!isExcluded && (sub.status === 'active' || sub.status === 'trialing')) {
         // Calcular valor mensal da assinatura
         for (const item of sub.items.data) {
           const price = item.price;
@@ -236,18 +255,20 @@ serve(async (req) => {
             mrr += monthlyAmount;
           }
 
-          // Contar por plano (apenas ativos e trialing)
+          // Contar por plano (apenas ativos e trialing pagantes)
           const planName = sub.metadata?.plan_name || price.nickname || 'Starter';
           planCounts[planName] = (planCounts[planName] || 0) + 1;
         }
       }
 
-      // Contar por status
-      switch (sub.status) {
-        case 'active': activeCount++; break;
-        case 'past_due': pastDueCount++; break;
-        case 'canceled': canceledCount++; break;
-        case 'trialing': trialingCount++; break;
+      // Contar por status (excluindo contas internas/VIP)
+      if (!isExcluded) {
+        switch (sub.status) {
+          case 'active': activeCount++; break;
+          case 'past_due': pastDueCount++; break;
+          case 'canceled': canceledCount++; break;
+          case 'trialing': trialingCount++; break;
+        }
       }
     }
 
@@ -297,10 +318,16 @@ serve(async (req) => {
     }
     revenueInPeriod = revenueInPeriod / 100;
 
-    // Novas assinaturas no período
+    // Novas assinaturas no período (excluindo contas internas/VIP)
     let newSubscriptionsInPeriod = 0;
     let canceledSubscriptionsInPeriod = 0;
     for (const sub of subscriptions.data) {
+      const customer = sub.customer as { email?: string | null } | string;
+      const customerEmail = (typeof customer === 'object' && customer?.email)
+        ? customer.email.toLowerCase()
+        : '';
+      if (excludedEmails.has(customerEmail)) continue;
+
       const createdDate = new Date(sub.created * 1000);
       if (createdDate >= periodStart && createdDate <= periodEnd) {
         newSubscriptionsInPeriod++;
