@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
   Bell,
   CheckCircle2,
+  ChevronDown,
   Clock,
   CreditCard,
   FileText,
@@ -120,13 +121,79 @@ const faqItems = [
   },
 ]
 
-const formatCurrency = (value: number, options?: Intl.NumberFormatOptions) =>
-  new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    maximumFractionDigits: 0,
-    ...options,
-  }).format(value)
+type CurrencyOption = {
+  code: string
+  symbol: string
+  flag: string
+  countryName: string
+  currencyName: string
+  searchValue: string
+}
+
+const currencyRegionOverrides: Record<string, string> = {
+  EUR: 'EU',
+}
+
+const ISO_CURRENCY_CODES = [
+  'AED', 'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG', 'AZN',
+  'BAM', 'BBD', 'BDT', 'BGN', 'BHD', 'BIF', 'BMD', 'BND', 'BOB', 'BRL',
+  'BSD', 'BTN', 'BWP', 'BYN', 'BZD', 'CAD', 'CDF', 'CHF', 'CLP', 'CNY',
+  'COP', 'CRC', 'CUC', 'CUP', 'CVE', 'CZK', 'DJF', 'DKK', 'DOP', 'DZD',
+  'EGP', 'ERN', 'ETB', 'EUR', 'FJD', 'FKP', 'GBP', 'GEL', 'GHS', 'GIP',
+  'GMD', 'GNF', 'GTQ', 'GYD', 'HKD', 'HNL', 'HRK', 'HTG', 'HUF', 'IDR',
+  'ILS', 'INR', 'IQD', 'IRR', 'ISK', 'JMD', 'JOD', 'JPY', 'KES', 'KGS',
+  'KHR', 'KMF', 'KPW', 'KRW', 'KWD', 'KYD', 'KZT', 'LAK', 'LBP', 'LKR',
+  'LRD', 'LSL', 'LYD', 'MAD', 'MDL', 'MGA', 'MKD', 'MMK', 'MNT', 'MOP',
+  'MRU', 'MUR', 'MVR', 'MWK', 'MXN', 'MYR', 'MZN', 'NAD', 'NGN', 'NIO',
+  'NOK', 'NPR', 'NZD', 'OMR', 'PAB', 'PEN', 'PGK', 'PHP', 'PKR', 'PLN',
+  'PYG', 'QAR', 'RON', 'RSD', 'RUB', 'RWF', 'SAR', 'SBD', 'SCR', 'SDG',
+  'SEK', 'SGD', 'SHP', 'SLE', 'SLL', 'SOS', 'SRD', 'SSP', 'STN', 'SVC',
+  'SYP', 'SZL', 'THB', 'TJS', 'TMT', 'TND', 'TOP', 'TRY', 'TTD', 'TWD',
+  'TZS', 'UAH', 'UGX', 'USD', 'UYU', 'UZS', 'VES', 'VND', 'VUV', 'WST',
+  'XAF', 'XCD', 'XCG', 'XDR', 'XOF', 'XPF', 'XSU', 'YER', 'ZAR', 'ZMW',
+  'ZWG', 'ZWL',
+]
+
+const getRegionForCurrency = (code: string) => {
+  const override = currencyRegionOverrides[code]
+  if (override) return override
+  if (code.startsWith('X')) return 'UN'
+  const region = code.slice(0, 2).toUpperCase()
+  if (/^[A-Z]{2}$/.test(region)) return region
+  return 'UN'
+}
+
+const getFlagEmoji = (regionCode: string) => {
+  if (!regionCode) return '🏳️'
+  const base = 0x1f1e6
+  const chars = regionCode.toUpperCase().split('')
+  if (chars.length !== 2) return '🏳️'
+  return String.fromCodePoint(base + chars[0].charCodeAt(0) - 65, base + chars[1].charCodeAt(0) - 65)
+}
+
+const getCurrencySymbol = (code: string) => {
+  try {
+    const formatter = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: code,
+      currencyDisplay: 'narrowSymbol',
+    })
+    const parts = formatter.formatToParts(1)
+    const currencyPart = parts.find((part) => part.type === 'currency')
+    return currencyPart?.value ?? code
+  } catch {
+    return code
+  }
+}
+
+const getSupportedCurrencyCodes = () => {
+  const intl = Intl as typeof Intl & { supportedValuesOf?: (type: string) => string[] }
+  const supported = intl.supportedValuesOf ? intl.supportedValuesOf('currency') : []
+  if (supported.length) {
+    return Array.from(new Set([...supported, ...ISO_CURRENCY_CODES]))
+  }
+  return ISO_CURRENCY_CODES
+}
 
 const formatCount = (value: number) =>
   new Intl.NumberFormat('pt-BR', {
@@ -183,6 +250,67 @@ export default function ChargebackPage() {
   const [custoInput, setCustoInput] = useState('25')
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [selectedCurrency, setSelectedCurrency] = useState('BRL')
+  const [currencyQuery, setCurrencyQuery] = useState('')
+  const [currencyMenuOpen, setCurrencyMenuOpen] = useState(false)
+  const currencyDropdownRef = useRef<HTMLDivElement>(null)
+
+  const currencyOptions = useMemo<CurrencyOption[]>(() => {
+    const codes = getSupportedCurrencyCodes()
+    const currencyNames = typeof Intl.DisplayNames === 'function'
+      ? new Intl.DisplayNames(['pt-BR'], { type: 'currency' })
+      : null
+    const regionNames = typeof Intl.DisplayNames === 'function'
+      ? new Intl.DisplayNames(['pt-BR'], { type: 'region' })
+      : null
+
+    return codes
+      .map((code) => {
+        const region = getRegionForCurrency(code)
+        const flag = getFlagEmoji(region)
+        const currencyName = currencyNames?.of(code) ?? code
+        const countryName = regionNames?.of(region) ?? region
+        const symbol = getCurrencySymbol(code)
+        const searchValue = `${code} ${currencyName} ${countryName}`.toLowerCase()
+        return {
+          code,
+          symbol,
+          flag,
+          countryName,
+          currencyName,
+          searchValue,
+        }
+      })
+      .sort((a, b) => a.code.localeCompare(b.code))
+  }, [])
+
+  const selectedCurrencyOption = useMemo(() => {
+    return (
+      currencyOptions.find((option) => option.code === selectedCurrency) ?? {
+        code: selectedCurrency,
+        symbol: selectedCurrency,
+        flag: '🏳️',
+        countryName: '',
+        currencyName: selectedCurrency,
+        searchValue: selectedCurrency.toLowerCase(),
+      }
+    )
+  }, [currencyOptions, selectedCurrency])
+
+  const filteredCurrencies = useMemo(() => {
+    const query = currencyQuery.trim().toLowerCase()
+    if (!query) return currencyOptions
+    return currencyOptions.filter((option) => option.searchValue.includes(query))
+  }, [currencyOptions, currencyQuery])
+
+  const formatCurrency = (value: number, currencyCode = selectedCurrency, options?: Intl.NumberFormatOptions) =>
+    new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: currencyCode,
+      currencyDisplay: 'narrowSymbol',
+      maximumFractionDigits: 0,
+      ...options,
+    }).format(value)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
@@ -200,6 +328,27 @@ export default function ChargebackPage() {
       document.body.style.overflow = ''
     }
   }, [mobileMenuOpen])
+
+  useEffect(() => {
+    if (!currencyOptions.length) return
+    const hasSelected = currencyOptions.some((option) => option.code === selectedCurrency)
+    if (!hasSelected) {
+      setSelectedCurrency(currencyOptions[0].code)
+    }
+  }, [currencyOptions, selectedCurrency])
+
+  useEffect(() => {
+    if (!currencyMenuOpen) return
+    const handleClick = (event: MouseEvent) => {
+      if (!currencyDropdownRef.current) return
+      const target = event.target as Node
+      if (!currencyDropdownRef.current.contains(target)) {
+        setCurrencyMenuOpen(false)
+      }
+    }
+    window.addEventListener('mousedown', handleClick)
+    return () => window.removeEventListener('mousedown', handleClick)
+  }, [currencyMenuOpen])
 
   useEffect(() => {
     const previousTitle = document.title
@@ -654,6 +803,109 @@ export default function ChargebackPage() {
         .cb-input:focus {
           border-color: rgba(70, 114, 236, 0.5);
           box-shadow: 0 0 0 3px rgba(70, 114, 236, 0.15);
+        }
+
+        .cb-currency-select {
+          position: relative;
+          max-width: 360px;
+          width: 100%;
+        }
+        .cb-currency-label {
+          font-size: 12px;
+          color: rgba(255,255,255,0.45);
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin-bottom: 10px;
+          display: block;
+        }
+        .cb-currency-button {
+          width: 100%;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 14px;
+          padding: 12px 14px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          color: #fff;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .cb-currency-button:hover {
+          border-color: rgba(255,255,255,0.25);
+          background: rgba(255,255,255,0.07);
+        }
+        .cb-currency-info {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 14px;
+          font-weight: 600;
+        }
+        .cb-currency-flag {
+          font-size: 18px;
+        }
+        .cb-currency-menu {
+          position: absolute;
+          top: calc(100% + 10px);
+          left: 0;
+          right: 0;
+          background: rgba(8, 8, 14, 0.98);
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 16px;
+          padding: 12px;
+          z-index: 40;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+        .cb-currency-search {
+          width: 100%;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 12px;
+          padding: 10px 12px;
+          color: #fff;
+          font-size: 14px;
+          outline: none;
+        }
+        .cb-currency-list {
+          margin-top: 12px;
+          max-height: 280px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .cb-currency-option {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px;
+          border-radius: 12px;
+          background: transparent;
+          border: 1px solid transparent;
+          color: #fff;
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.2s ease;
+        }
+        .cb-currency-option:hover {
+          background: rgba(255,255,255,0.06);
+          border-color: rgba(255,255,255,0.12);
+        }
+        .cb-currency-option.active {
+          background: rgba(70, 114, 236, 0.16);
+          border-color: rgba(70, 114, 236, 0.4);
+        }
+        .cb-currency-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .cb-currency-country {
+          font-size: 12px;
+          color: rgba(255,255,255,0.45);
         }
 
         .cb-input-grid {
@@ -1111,11 +1363,68 @@ export default function ChargebackPage() {
           </div>
 
           <div className="lp-glass" style={{ padding: '32px', borderRadius: '24px' }}>
+            <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'flex-start' }}>
+              <div className="cb-currency-select" ref={currencyDropdownRef}>
+                <span className="cb-currency-label">Moeda</span>
+                <button
+                  type="button"
+                  className="cb-currency-button"
+                  onClick={() => setCurrencyMenuOpen((open) => !open)}
+                >
+                  <span className="cb-currency-info">
+                    <span className="cb-currency-flag">{selectedCurrencyOption.flag}</span>
+                    <span>
+                      {selectedCurrencyOption.code} ({selectedCurrencyOption.symbol})
+                    </span>
+                  </span>
+                  <ChevronDown size={16} />
+                </button>
+                {currencyMenuOpen && (
+                  <div className="cb-currency-menu">
+                    <input
+                      className="cb-currency-search"
+                      type="text"
+                      placeholder="Buscar país ou moeda"
+                      value={currencyQuery}
+                      onChange={(event) => setCurrencyQuery(event.target.value)}
+                      autoFocus
+                    />
+                    <div className="cb-currency-list">
+                      {filteredCurrencies.length === 0 && (
+                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', padding: '8px 4px' }}>
+                          Nenhuma moeda encontrada.
+                        </div>
+                      )}
+                      {filteredCurrencies.map((option) => (
+                        <button
+                          type="button"
+                          key={option.code}
+                          className={`cb-currency-option ${option.code === selectedCurrency ? 'active' : ''}`}
+                          onClick={() => {
+                            setSelectedCurrency(option.code)
+                            setCurrencyMenuOpen(false)
+                            setCurrencyQuery('')
+                          }}
+                        >
+                          <span className="cb-currency-flag">{option.flag}</span>
+                          <div className="cb-currency-meta">
+                            <span>
+                              {option.code} ({option.symbol})
+                            </span>
+                            <span className="cb-currency-country">{option.countryName}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="cb-input-grid">
               <div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                   <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
-                    Ticket médio (R$)
+                    Ticket médio ({selectedCurrencyOption.symbol})
                   </span>
                 </label>
                 <input
@@ -1172,12 +1481,16 @@ export default function ChargebackPage() {
                     onChange={(event) => setTaxaInput(event.target.value)}
                   />
                 </div>
+                <p style={{ marginTop: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+                  Você encontra essa taxa no painel da Shopify em Configurações → Payments → Ver repasses, ou no relatório
+                  de disputas do seu gateway de pagamento.
+                </p>
               </div>
 
               <div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                   <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
-                    Custo médio por chargeback (R$)
+                    Custo médio por chargeback ({selectedCurrencyOption.symbol})
                   </span>
                   <span
                     style={{
@@ -1201,6 +1514,11 @@ export default function ChargebackPage() {
                   value={custoInput}
                   onChange={(event) => setCustoInput(event.target.value)}
                 />
+                <p style={{ marginTop: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+                  Inclui a taxa cobrada pelo gateway ($15 USD na Shopify Payments) + o custo do produto com o fornecedor +
+                  tempo operacional gasto disputando. Se não souber o valor exato, {formatCurrency(25)} é uma estimativa
+                  conservadora.
+                </p>
               </div>
             </div>
 
@@ -1209,8 +1527,8 @@ export default function ChargebackPage() {
                 <div className="cb-results-grid">
                   <div className="lp-card-shine lp-gradient-border" style={{ padding: '24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                      <TrendingDown size={20} color="#f97316" />
-                      <span style={{ fontSize: '15px', fontWeight: 700, color: '#f97316' }}>
+                      <TrendingDown size={20} color="#ef4444" />
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: '#ef4444' }}>
                         Seu prejuízo atual
                       </span>
                     </div>
@@ -1219,19 +1537,19 @@ export default function ChargebackPage() {
                         <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)' }}>
                           Chargebacks estimados/mês
                         </div>
-                        <div className="lp-number" style={{ fontSize: '24px', fontWeight: 800 }}>
+                        <div style={{ fontSize: '24px', fontWeight: 800, color: '#f87171' }}>
                           {formatCount(calculatorData.chargebacksPorMes)}
                         </div>
                       </div>
                       <div>
                         <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)' }}>Prejuízo mensal</div>
-                        <div style={{ fontSize: '26px', fontWeight: 800, color: '#fb923c' }}>
+                        <div style={{ fontSize: '26px', fontWeight: 800, color: '#ef4444' }}>
                           {formatCurrency(calculatorData.prejuizoMensal)}
                         </div>
                       </div>
                       <div>
                         <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)' }}>Prejuízo anual</div>
-                        <div style={{ fontSize: '20px', fontWeight: 700, color: '#fdba74' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 700, color: '#fca5a5' }}>
                           {formatCurrency(calculatorData.prejuizoAnual)}
                         </div>
                       </div>
@@ -1242,7 +1560,7 @@ export default function ChargebackPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                       <TrendingUp size={20} color="#22c55e" />
                       <span style={{ fontSize: '15px', fontWeight: 700, color: '#22c55e' }}>
-                        Com a Replyna (91% de redução)
+                        Com pós-venda automatizado (potencial de até 91% de redução)
                       </span>
                     </div>
                     <div style={{ display: 'grid', gap: '12px' }}>
@@ -1307,7 +1625,7 @@ export default function ChargebackPage() {
                       gap: '8px',
                     }}
                   >
-                    Comece a economizar {formatCurrency(calculatorData.economiaMensal)} por mês por apenas R$197
+                    Veja como automatizar seu pós-venda por R$197/mês
                     <ArrowRight size={16} />
                   </a>
                   <a
@@ -1327,6 +1645,9 @@ export default function ChargebackPage() {
                     Ver como funciona →
                   </a>
                 </div>
+                <p style={{ marginTop: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>
+                  * Baseado em caso real. Resultados podem variar de acordo com o volume e tipo de operação.
+                </p>
               </div>
             </div>
           </div>
@@ -1338,23 +1659,6 @@ export default function ChargebackPage() {
       <article style={{ padding: '80px 24px' }}>
         <section id="o-que-e" style={{ maxWidth: '1100px', margin: '0 auto 80px' }}>
           <div style={{ marginBottom: '32px' }}>
-            <div
-              className="lp-badge"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                padding: '8px 16px',
-                borderRadius: '50px',
-                marginBottom: '16px',
-              }}
-            >
-              <AlertTriangle size={14} color="#ef4444" />
-              <span style={{ fontSize: '13px', color: '#ef4444', fontWeight: 600 }}>
-                Conceito essencial
-              </span>
-            </div>
             <h2 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '12px' }}>O que é chargeback?</h2>
             <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
               Chargeback é quando o cliente contesta uma compra diretamente com o banco ou operadora do cartão, pedindo o
@@ -1756,8 +2060,9 @@ export default function ChargebackPage() {
               Chargeback por “produto diferente” é 100% evitável.
             </li>
             <li>
-              <strong>Atendimento proativo com IA:</strong> ferramentas como a Replyna respondem emails em menos de 2 minutos
-              com dados reais do pedido, 24 horas por dia, antes que o cliente tenha tempo de abrir disputa.
+              <strong>Pós-venda automatizado com IA:</strong> ferramentas como a Replyna respondem emails em menos de 2
+              minutos com dados reais do pedido, 24 horas por dia. Esse pós-venda automatizado ajuda a prevenir
+              chargebacks antes que o cliente abra uma disputa.
             </li>
           </ul>
         </section>
@@ -1773,14 +2078,14 @@ export default function ChargebackPage() {
               tempo suficiente para o cliente desistir e ligar para o banco.
             </p>
             <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, marginTop: '16px' }}>
-              Depois de implementar a Replyna, o tempo de resposta caiu para menos de 2 minutos. A IA passou a responder
-              100% dos emails automaticamente, em qualquer idioma, consultando dados reais do pedido na Shopify (status,
-              rastreio e prazo de entrega).
+              Depois de implementar a Replyna como pós-venda automatizado, o tempo de resposta caiu para menos de 2 minutos.
+              A IA passou a responder 100% dos emails automaticamente, em qualquer idioma, consultando dados reais do
+              pedido na Shopify (status, rastreio e prazo de entrega).
             </p>
             <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, marginTop: '16px' }}>
-              Em 30 dias, os chargebacks caíram de 47 para 4. Redução de 91%. A conta Shopify Payments saiu da zona de
-              risco e permaneceu ativa. O custo da solução foi R$197/mês no plano Starter, evitando mais de R$15.000/mês em
-              prejuízo.
+              Em 30 dias, neste caso real, os chargebacks caíram de 47 para 4. Redução de 91%. A conta Shopify Payments
+              saiu da zona de risco e permaneceu ativa. O custo do pós-venda automatizado foi R$197/mês no plano Starter,
+              evitando mais de R$15.000/mês em prejuízo.
             </p>
             <a
               href={getAppUrl('/register?plan=starter')}
