@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /shops
+Disallow: /account
+Disallow: /conversations
+Disallow: /checkout
+Disallow: /migrate
+Disallow: /auth
+Disallow: /admin
+
+Sitemap: https://replyna.me/sitemap.xml
