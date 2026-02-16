@@ -12,8 +12,8 @@ import {
   Menu,
   PhoneCall,
   RefreshCcw,
+  Shield,
   TrendingDown,
-  TrendingUp,
   X,
 } from 'lucide-react'
 
@@ -189,6 +189,12 @@ const formatCount = (value: number) =>
 
 const formatRatio = (value: number) =>
   new Intl.NumberFormat('pt-BR', {
+    maximumFractionDigits: 1,
+  }).format(value)
+
+const formatPercent = (value: number) =>
+  new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   }).format(value)
 
@@ -436,6 +442,8 @@ export default function ChargebackPage() {
         economiaMensal: 0,
         economiaAnual: 0,
         roiReplyna: 0,
+        receitaMensal: 0,
+        percentualReceitaComprometida: 0,
       }
     }
 
@@ -451,6 +459,9 @@ export default function ChargebackPage() {
     const economiaMensal = chargebacksEvitados * (ticketMedio + custoMedioPorChargeback)
     const economiaAnual = economiaMensal * 12
     const roiReplyna = economiaMensal / 197
+    const receitaMensal = ticketMedio * pedidosPorMes
+    const percentualReceitaComprometida =
+      receitaMensal > 0 ? (prejuizoMensal / receitaMensal) * 100 : 0
 
     return {
       isReady: true,
@@ -461,6 +472,8 @@ export default function ChargebackPage() {
       economiaMensal,
       economiaAnual,
       roiReplyna,
+      receitaMensal,
+      percentualReceitaComprometida,
     }
   }, [ticketMedioInput, pedidosInput, taxaInput, custoInput])
 
@@ -509,6 +522,10 @@ export default function ChargebackPage() {
   }
 
   const shouldShowResults = calculatorData.isReady
+  const rawSliderValue = taxaInput === '' ? 0 : parseNumber(taxaInput)
+  const sliderValue = Math.min(10, Math.max(0, rawSliderValue))
+  const sliderPercent = (sliderValue / 10) * 100
+  const sliderBackground = `linear-gradient(90deg, #06b6d4 0%, #3b82f6 ${sliderPercent}%, rgba(255,255,255, 0.08) ${sliderPercent}%, rgba(255,255,255, 0.08) 100%)`
 
   return (
     <div className="lp-container" onClick={handleAnchorClick}>
@@ -771,7 +788,7 @@ export default function ChargebackPage() {
 
         .cb-currency-select {
           position: relative;
-          max-width: 360px;
+          max-width: none;
           width: 100%;
         }
         .cb-currency-label {
@@ -872,10 +889,158 @@ export default function ChargebackPage() {
           color: rgba(255,255,255,0.45);
         }
 
+        .cb-calculator-card {
+          --cb-card-pad-x: 44px;
+          --cb-card-pad-y: 48px;
+          background: rgba(255,255,255, 0.02);
+          backdrop-filter: blur(40px);
+          -webkit-backdrop-filter: blur(40px);
+          border: 1px solid rgba(255,255,255, 0.06);
+          border-radius: 20px;
+          padding: var(--cb-card-pad-y) var(--cb-card-pad-x);
+          position: relative;
+          overflow: hidden;
+        }
+        .cb-card-glow-line {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, #3b82f6, #8b5cf6, #06b6d4, transparent);
+          opacity: 0.8;
+          z-index: 1;
+        }
+        .cb-card-glow-blur {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 80px;
+          background: linear-gradient(90deg, transparent, rgba(59,130,246,0.12), rgba(139,92,246,0.14), rgba(6,182,212,0.12), transparent);
+          filter: blur(30px);
+          opacity: 1;
+          z-index: 1;
+        }
+        .cb-card-noise {
+          position: absolute;
+          inset: 0;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+          mix-blend-mode: overlay;
+          opacity: 0.4;
+          pointer-events: none;
+          z-index: 1;
+        }
+        .cb-card-content {
+          position: relative;
+          z-index: 2;
+        }
+        .cb-card-header {
+          margin-bottom: 40px;
+        }
+        .cb-card-label {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.15em;
+          color: rgba(6,182,212, 0.7);
+          margin-bottom: 8px;
+        }
+        .cb-card-title {
+          font-size: 18px;
+          font-weight: 600;
+          color: rgba(255,255,255, 0.9);
+        }
+
         .cb-input-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 20px;
+          grid-template-columns: 1fr 1fr;
+          gap: 28px;
+        }
+        .cb-field-group {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .cb-field-label {
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(255,255,255, 0.40);
+        }
+        .cb-helper-text {
+          font-size: 11px;
+          color: rgba(255,255,255, 0.25);
+          line-height: 1.4;
+        }
+        .cb-slider-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .cb-slider-badge {
+          min-width: 56px;
+          padding: 5px 10px;
+          border-radius: 8px;
+          background: rgba(6,182,212, 0.1);
+          border: 1px solid rgba(6,182,212, 0.2);
+          color: #06b6d4;
+          font-weight: 600;
+          font-size: 12px;
+          text-align: center;
+        }
+        .cb-divider {
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255, 0.06), transparent);
+          margin: 32px 0;
+        }
+        .cb-cost-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 28px;
+          align-items: start;
+        }
+        .cb-info-badge {
+          font-size: 9px;
+          font-weight: 600;
+          padding: 3px 6px;
+          border-radius: 4px;
+          border: 1px solid rgba(255,255,255, 0.12);
+          color: rgba(255,255,255,0.5);
+          cursor: help;
+        }
+        .cb-mini-card {
+          padding: 20px 24px;
+          border-radius: 14px;
+          background: rgba(6,182,212, 0.04);
+          border: 1px solid rgba(6,182,212, 0.08);
+          display: grid;
+          gap: 12px;
+          font-variant-numeric: tabular-nums;
+        }
+        .cb-mini-title {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: rgba(6,182,212, 0.5);
+        }
+        .cb-mini-metric {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .cb-mini-label {
+          font-size: 11px;
+          color: rgba(255,255,255, 0.35);
+        }
+        .cb-mini-value {
+          font-size: 20px;
+          font-weight: 700;
+          color: #06b6d4;
+        }
+        .cb-mini-divider {
+          height: 1px;
+          background: rgba(6,182,212, 0.12);
         }
 
         .cb-results {
@@ -893,31 +1058,207 @@ export default function ChargebackPage() {
           height: auto;
           overflow: visible;
         }
-
+        .cb-results-panel {
+          position: relative;
+          margin-top: 32px;
+          margin-left: calc(var(--cb-card-pad-x) * -1);
+          margin-right: calc(var(--cb-card-pad-x) * -1);
+          margin-bottom: calc(var(--cb-card-pad-y) * -1);
+          padding: 32px var(--cb-card-pad-x) 44px;
+          border-radius: 0 0 20px 20px;
+          z-index: 2;
+        }
+        .cb-results-panel::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255, 0.12), transparent);
+        }
         .cb-results-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 24px;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 32px;
         }
-
+        .cb-result-card {
+          position: relative;
+          border-radius: 16px;
+          padding: 28px 28px 32px;
+          overflow: hidden;
+        }
+        .cb-result-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          opacity: 0.6;
+        }
+        .cb-result-card--loss {
+          background: rgba(239,68,68, 0.04);
+          border: 1px solid rgba(239,68,68, 0.1);
+        }
+        .cb-result-card--loss::before {
+          background: linear-gradient(90deg, transparent, rgba(239,68,68, 0.4), transparent);
+        }
+        .cb-result-card--gain {
+          background: rgba(16,185,129, 0.04);
+          border: 1px solid rgba(16,185,129, 0.12);
+        }
+        .cb-result-card--gain::before {
+          background: linear-gradient(90deg, transparent, rgba(16,185,129, 0.5), transparent);
+        }
+        .cb-result-badge {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          background: rgba(16,185,129, 0.12);
+          border: 1px solid rgba(16,185,129, 0.2);
+          color: #34d399;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        .cb-result-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+        .cb-result-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .cb-result-icon--loss {
+          background: rgba(239,68,68, 0.1);
+          color: #f87171;
+        }
+        .cb-result-icon--gain {
+          background: rgba(16,185,129, 0.12);
+          color: #34d399;
+        }
         .cb-result-title {
           font-size: 15px;
           font-weight: 700;
         }
+        .cb-result-title--loss {
+          color: #f87171;
+        }
+        .cb-result-title--gain {
+          color: #34d399;
+        }
+        .cb-result-metrics {
+          display: grid;
+          gap: 20px;
+        }
         .cb-result-label {
-          font-size: 13px;
-          font-weight: 600;
-          color: rgba(255,255,255,0.6);
+          font-size: 11px;
+          color: rgba(255,255,255, 0.35);
+          letter-spacing: 0.01em;
         }
-        .cb-result-number-large {
-          font-size: 24px;
-          font-weight: 800;
-          line-height: 1.1;
-        }
-        .cb-result-number-small {
-          font-size: 20px;
+        .cb-result-value {
+          font-size: 28px;
           font-weight: 700;
-          line-height: 1.1;
+        }
+        .cb-result-value--loss {
+          color: #f87171;
+        }
+        .cb-result-value--gain {
+          color: #34d399;
+        }
+        .cb-result-divider {
+          height: 1px;
+          background: rgba(239,68,68, 0.08);
+        }
+        .cb-result-divider--gain {
+          background: rgba(16,185,129, 0.12);
+        }
+        .cb-result-total {
+          font-size: 32px;
+          font-weight: 800;
+        }
+        .cb-result-total--loss {
+          color: #f87171;
+        }
+        .cb-result-total--gain {
+          color: #34d399;
+        }
+        .cb-roi-card {
+          margin-top: 24px;
+          padding: 16px 20px;
+          border-radius: 12px;
+          background: rgba(16,185,129, 0.06);
+          border: 1px solid rgba(16,185,129, 0.1);
+          display: grid;
+          gap: 6px;
+        }
+        .cb-roi-label {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: rgba(16,185,129, 0.5);
+        }
+        .cb-roi-value {
+          font-size: 28px;
+          font-weight: 800;
+          color: #34d399;
+        }
+        .cb-roi-subtitle {
+          font-size: 11px;
+          color: rgba(16,185,129, 0.6);
+        }
+
+        .cb-cta-row {
+          display: flex;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+        .cb-cta-primary {
+          flex: 1;
+          padding: 16px 28px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: #fff;
+          font-size: 14px;
+          font-weight: 700;
+          text-decoration: none;
+          text-align: center;
+          box-shadow: 0 4px 20px rgba(16,185,129, 0.25), 0 0 40px rgba(16,185,129, 0.1);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .cb-cta-primary:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 24px rgba(16,185,129, 0.35), 0 0 50px rgba(16,185,129, 0.2);
+        }
+        .cb-cta-secondary {
+          padding: 16px 28px;
+          border-radius: 14px;
+          border: 1px solid rgba(255,255,255, 0.1);
+          background: rgba(255,255,255, 0.03);
+          color: rgba(255,255,255, 0.7);
+          font-size: 14px;
+          font-weight: 600;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+        .cb-cta-secondary:hover {
+          border-color: rgba(255,255,255, 0.3);
+          color: #fff;
+        }
+        .cb-disclaimer {
+          font-size: 11px;
+          color: rgba(255,255,255, 0.2);
         }
 
         .cb-glossary-grid {
@@ -951,7 +1292,8 @@ export default function ChargebackPage() {
           width: 100%;
           height: 6px;
           border-radius: 999px;
-          background: linear-gradient(90deg, #4672ec 0%, #8b5cf6 50%, #06b6d4 100%);
+          background: rgba(255,255,255, 0.08);
+          flex: 1;
           outline: none;
           appearance: none;
           -webkit-appearance: none;
@@ -961,18 +1303,18 @@ export default function ChargebackPage() {
           width: 18px;
           height: 18px;
           border-radius: 50%;
-          background: #ffffff;
-          border: 3px solid #4672ec;
-          box-shadow: 0 4px 12px rgba(70, 114, 236, 0.4);
+          background: radial-gradient(circle at 30% 30%, #67e8f9, #06b6d4);
+          border: 1px solid rgba(6,182,212, 0.4);
+          box-shadow: 0 0 12px rgba(6,182,212, 0.6);
           cursor: pointer;
         }
         .cb-range::-moz-range-thumb {
           width: 18px;
           height: 18px;
           border-radius: 50%;
-          background: #ffffff;
-          border: 3px solid #4672ec;
-          box-shadow: 0 4px 12px rgba(70, 114, 236, 0.4);
+          background: radial-gradient(circle at 30% 30%, #67e8f9, #06b6d4);
+          border: 1px solid rgba(6,182,212, 0.4);
+          box-shadow: 0 0 12px rgba(6,182,212, 0.6);
           cursor: pointer;
         }
 
@@ -1052,6 +1394,9 @@ export default function ChargebackPage() {
           .cb-input-grid {
             grid-template-columns: 1fr;
           }
+          .cb-cost-grid {
+            grid-template-columns: 1fr;
+          }
           .cb-results-grid {
             grid-template-columns: 1fr;
           }
@@ -1069,6 +1414,13 @@ export default function ChargebackPage() {
           }
           .lp-nav-mobile-toggle {
             display: block;
+          }
+          .cb-calculator-card {
+            --cb-card-pad-x: 24px;
+            --cb-card-pad-y: 32px;
+          }
+          .cb-cta-row {
+            flex-direction: column;
           }
           .cb-glossary-grid {
             grid-template-columns: 1fr;
@@ -1342,289 +1694,247 @@ export default function ChargebackPage() {
             </p>
           </div>
 
-          <div className="lp-glass" style={{ padding: '32px', borderRadius: '24px' }}>
-            <div className="cb-input-grid">
-              <div className="cb-currency-select" ref={currencyDropdownRef}>
-                <span className="cb-currency-label">Moeda</span>
-                <button
-                  type="button"
-                  className="cb-currency-button"
-                  onClick={() => setCurrencyMenuOpen((open) => !open)}
-                >
-                  <span className="cb-currency-info">
-                    <span className="cb-currency-flag">{selectedCurrencyOption.flag}</span>
-                    <span>
-                      {selectedCurrencyOption.code} ({selectedCurrencyOption.symbol})
-                    </span>
-                  </span>
-                  <ChevronDown size={16} />
-                </button>
-                {currencyMenuOpen && (
-                  <div className="cb-currency-menu">
-                    <input
-                      className="cb-currency-search"
-                      type="text"
-                      placeholder="Buscar país ou moeda"
-                      value={currencyQuery}
-                      onChange={(event) => setCurrencyQuery(event.target.value)}
-                      autoFocus
-                    />
-                    <div className="cb-currency-list">
-                      {filteredCurrencies.length === 0 && (
-                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', padding: '8px 4px' }}>
-                          Nenhuma moeda encontrada.
-                        </div>
-                      )}
-                      {filteredCurrencies.map((option) => (
-                        <button
-                          type="button"
-                          key={option.code}
-                          className={`cb-currency-option ${option.code === selectedCurrency ? 'active' : ''}`}
-                          onClick={() => {
-                            setSelectedCurrency(option.code)
-                            setCurrencyMenuOpen(false)
-                            setCurrencyQuery('')
-                          }}
-                        >
-                          <span className="cb-currency-flag">{option.flag}</span>
-                          <div className="cb-currency-meta">
-                            <span>
-                              {option.code} ({option.symbol})
-                            </span>
-                            <span className="cb-currency-country">{option.countryName}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+          <div className="cb-calculator-card">
+            <div className="cb-card-glow-line" />
+            <div className="cb-card-glow-blur" />
+            <div className="cb-card-noise" />
+            <div className="cb-card-content">
+              <div className="cb-card-header">
+                <div className="cb-card-label">CALCULADORA</div>
+                <div className="cb-card-title">Simule sua economia</div>
               </div>
-              <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
+
+              <div className="cb-input-grid">
+                <div className="cb-field-group cb-currency-select" ref={currencyDropdownRef}>
+                  <span className="cb-field-label">Moeda</span>
+                  <button
+                    type="button"
+                    className="cb-currency-button"
+                    onClick={() => setCurrencyMenuOpen((open) => !open)}
+                  >
+                    <span className="cb-currency-info">
+                      <span className="cb-currency-flag">{selectedCurrencyOption.flag}</span>
+                      <span>
+                        {selectedCurrencyOption.code} ({selectedCurrencyOption.symbol})
+                      </span>
+                    </span>
+                    <ChevronDown size={16} />
+                  </button>
+                  {currencyMenuOpen && (
+                    <div className="cb-currency-menu">
+                      <input
+                        className="cb-currency-search"
+                        type="text"
+                        placeholder="Buscar país ou moeda"
+                        value={currencyQuery}
+                        onChange={(event) => setCurrencyQuery(event.target.value)}
+                        autoFocus
+                      />
+                      <div className="cb-currency-list">
+                        {filteredCurrencies.length === 0 && (
+                          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', padding: '8px 4px' }}>
+                            Nenhuma moeda encontrada.
+                          </div>
+                        )}
+                        {filteredCurrencies.map((option) => (
+                          <button
+                            type="button"
+                            key={option.code}
+                            className={`cb-currency-option ${option.code === selectedCurrency ? 'active' : ''}`}
+                            onClick={() => {
+                              setSelectedCurrency(option.code)
+                              setCurrencyMenuOpen(false)
+                              setCurrencyQuery('')
+                            }}
+                          >
+                            <span className="cb-currency-flag">{option.flag}</span>
+                            <div className="cb-currency-meta">
+                              <span>
+                                {option.code} ({option.symbol})
+                              </span>
+                              <span className="cb-currency-country">{option.countryName}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="cb-field-group">
+                  <span className="cb-field-label">
                     <GlossaryLink id="glossario-ticket-medio">Ticket médio</GlossaryLink> ({selectedCurrencyOption.symbol})
                   </span>
-                </label>
-                <input
-                  className="cb-input"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="Ex: 150"
-                  value={ticketMedioInput}
-                  onChange={(event) => setTicketMedioInput(event.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
-                    Pedidos por mês
-                  </span>
-                </label>
-                <input
-                  className="cb-input"
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="Ex: 500"
-                  value={pedidosInput}
-                  onChange={(event) => setPedidosInput(event.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
-                    Taxa de chargeback atual (%)
-                  </span>
-                  <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
-                    {taxaInput ? `${taxaInput}%` : '0%'}
-                  </span>
-                </label>
-                <div style={{ display: 'grid', gap: '12px' }}>
                   <input
                     className="cb-input"
                     type="text"
                     inputMode="decimal"
-                    placeholder="Ex: 2"
-                    value={taxaInput}
-                    onChange={(event) => setTaxaInput(event.target.value)}
+                    placeholder="Ex: 150"
+                    value={ticketMedioInput}
+                    onChange={(event) => setTicketMedioInput(event.target.value)}
                   />
+                </div>
+
+                <div className="cb-field-group">
+                  <span className="cb-field-label">Pedidos por mês</span>
                   <input
-                    className="cb-range"
-                    type="range"
-                    min="0"
-                    max="10"
-                    step="0.1"
-                    value={taxaInput === '' ? 0 : parseNumber(taxaInput)}
-                    onChange={(event) => setTaxaInput(event.target.value)}
+                    className="cb-input"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="Ex: 500"
+                    value={pedidosInput}
+                    onChange={(event) => setPedidosInput(event.target.value)}
                   />
                 </div>
-                <p style={{ marginTop: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
-                  Você encontra essa taxa no painel da Shopify em Configurações → Payments → Ver repasses, ou no relatório
-                  de disputas do seu <GlossaryLink id="glossario-gateway">gateway</GlossaryLink> de pagamento.
-                </p>
+
+                <div className="cb-field-group">
+                  <span className="cb-field-label">Taxa de chargeback atual</span>
+                  <div className="cb-slider-row">
+                    <input
+                      className="cb-range"
+                      type="range"
+                      min="0"
+                      max="10"
+                      step="0.1"
+                      value={sliderValue}
+                      onChange={(event) => setTaxaInput(event.target.value)}
+                      style={{ background: sliderBackground }}
+                    />
+                    <span className="cb-slider-badge">{formatPercent(sliderValue)}%</span>
+                  </div>
+                  <p className="cb-helper-text">Shopify → Configurações → Payments → Ver repasses</p>
+                </div>
               </div>
 
-              <div style={{ gridColumn: '1 / -1', maxWidth: '420px', width: '100%', justifySelf: 'center' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
-                    Custo médio por chargeback ({selectedCurrencyOption.symbol})
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '12px',
-                      color: 'rgba(255,255,255,0.4)',
-                      padding: '4px 8px',
-                      borderRadius: '999px',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      background: 'rgba(255,255,255,0.04)',
-                    }}
-                    title="Inclui taxa do gateway (geralmente $15-25 USD) + custo do produto perdido + tempo operacional"
-                  >
-                    info
-                  </span>
-                </label>
-                <input
-                  className="cb-input"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="Ex: 25"
-                  value={custoInput}
-                  onChange={(event) => setCustoInput(event.target.value)}
-                />
-                <p style={{ marginTop: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
-                  Inclui a taxa cobrada pelo <GlossaryLink id="glossario-gateway">gateway</GlossaryLink> ($15 USD na
-                  Shopify Payments) + o custo do produto com o fornecedor + tempo operacional gasto disputando. Se não
-                  souber o valor exato, {formatCurrency(25)} é uma estimativa conservadora.
-                </p>
-              </div>
-            </div>
+              <div className="cb-divider" />
 
-            <div className={`cb-results ${shouldShowResults ? 'cb-results-visible' : ''}`}>
-              <div style={{ marginTop: '36px' }}>
-                <div className="cb-results-grid">
-                  <div className="lp-card-shine lp-gradient-border" style={{ padding: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                      <TrendingDown size={20} color="#ef4444" />
-                      <span className="cb-result-title" style={{ color: '#ef4444' }}>
-                        Seu prejuízo atual
-                      </span>
-                    </div>
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                      <div>
-                        <div className="cb-result-label">
-                          Chargebacks estimados/mês
-                        </div>
-                        <div className="cb-result-number-large" style={{ color: '#f87171' }}>
-                          {formatCount(calculatorData.chargebacksPorMes)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="cb-result-label">Prejuízo mensal</div>
-                        <div className="cb-result-number-large" style={{ color: '#ef4444' }}>
-                          {formatCurrency(calculatorData.prejuizoMensal)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="cb-result-label">Prejuízo anual</div>
-                        <div className="cb-result-number-small" style={{ color: '#fca5a5' }}>
-                          {formatCurrency(calculatorData.prejuizoAnual)}
-                        </div>
-                      </div>
+              <div className="cb-cost-grid">
+                <div className="cb-field-group">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="cb-field-label">
+                      Custo médio por chargeback ({selectedCurrencyOption.symbol})
+                    </span>
+                    <span
+                      className="cb-info-badge"
+                      title="Inclui taxa do gateway (geralmente $15-25 USD) + custo do produto perdido + tempo operacional"
+                    >
+                      info
+                    </span>
+                  </div>
+                  <input
+                    className="cb-input"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Ex: 25"
+                    value={custoInput}
+                    onChange={(event) => setCustoInput(event.target.value)}
+                  />
+                  <p className="cb-helper-text">
+                    Inclui taxa do <GlossaryLink id="glossario-gateway">gateway</GlossaryLink> + custo do produto + tempo
+                    operacional. Se não souber, {formatCurrency(25)} é estimativa conservadora.
+                  </p>
+                </div>
+
+                <div className="cb-mini-card">
+                  <div className="cb-mini-title">Resumo rápido</div>
+                  <div className="cb-mini-metric">
+                    <div className="cb-mini-label">Chargebacks estimados/mês</div>
+                    <div className="cb-mini-value">
+                      {shouldShowResults ? formatCount(calculatorData.chargebacksPorMes) : '--'}
                     </div>
                   </div>
-
-                  <div className="lp-card-shine lp-gradient-border" style={{ padding: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                      <TrendingUp size={20} color="#22c55e" />
-                      <span className="cb-result-title" style={{ color: '#22c55e' }}>
-                        Com pós-venda automatizado (potencial de até 91% de redução)
-                      </span>
+                  <div className="cb-mini-divider" />
+                  <div className="cb-mini-metric">
+                    <div className="cb-mini-label">% da receita comprometida</div>
+                    <div className="cb-mini-value">
+                      {shouldShowResults ? `${formatPercent(calculatorData.percentualReceitaComprometida)}%` : '--'}
                     </div>
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                      <div>
-                        <div className="cb-result-label">
-                          Chargebacks evitados/mês
+                  </div>
+                </div>
+              </div>
+
+              <div className={`cb-results ${shouldShowResults ? 'cb-results-visible' : ''}`}>
+                <div className="cb-results-panel">
+                  <div className="cb-results-grid">
+                    <div className="cb-result-card cb-result-card--loss">
+                      <div className="cb-result-header">
+                        <div className="cb-result-icon cb-result-icon--loss">
+                          <TrendingDown size={16} />
                         </div>
-                        <div className="cb-result-number-large" style={{ color: '#22c55e' }}>
-                          {formatCount(calculatorData.chargebacksEvitados)}
-                        </div>
+                        <span className="cb-result-title cb-result-title--loss">Seu prejuízo atual</span>
                       </div>
-                      <div>
-                        <div className="cb-result-label">Economia mensal</div>
-                        <div className="cb-result-number-large" style={{ color: '#22c55e' }}>
-                          {formatCurrency(calculatorData.economiaMensal)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="cb-result-label">Economia anual</div>
-                        <div className="cb-result-number-small" style={{ color: '#86efac' }}>
-                          {formatCurrency(calculatorData.economiaAnual)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="cb-result-label">ROI</div>
-                        <div
-                          className="cb-result-number-large"
-                          style={{ color: calculatorData.roiReplyna > 1 ? '#22c55e' : '#fff' }}
-                        >
-                          {formatRatio(calculatorData.roiReplyna)}x o investimento
-                        </div>
-                        {calculatorData.roiReplyna > 1 && (
-                          <div className="cb-result-label" style={{ color: '#22c55e', marginTop: '6px' }}>
-                            Lucro líquido desde o primeiro mês
+                      <div className="cb-result-metrics">
+                        <div>
+                          <div className="cb-result-label">Chargebacks estimados/mês</div>
+                          <div className="cb-result-value cb-result-value--loss">
+                            {formatCount(calculatorData.chargebacksPorMes)}
                           </div>
-                        )}
+                        </div>
+                        <div>
+                          <div className="cb-result-label">Prejuízo mensal</div>
+                          <div className="cb-result-value cb-result-value--loss">
+                            {formatCurrency(calculatorData.prejuizoMensal)}
+                          </div>
+                        </div>
+                        <div className="cb-result-divider" />
+                        <div>
+                          <div className="cb-result-label">Prejuízo anual</div>
+                          <div className="cb-result-total cb-result-total--loss">
+                            {formatCurrency(calculatorData.prejuizoAnual)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="cb-result-card cb-result-card--gain">
+                      <div className="cb-result-badge">até 91% redução</div>
+                      <div className="cb-result-header">
+                        <div className="cb-result-icon cb-result-icon--gain">
+                          <Shield size={16} />
+                        </div>
+                        <span className="cb-result-title cb-result-title--gain">Com pós-venda automatizado</span>
+                      </div>
+                      <div className="cb-result-metrics">
+                        <div>
+                          <div className="cb-result-label">Chargebacks evitados/mês</div>
+                          <div className="cb-result-value cb-result-value--gain">
+                            {formatCount(calculatorData.chargebacksEvitados)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="cb-result-label">Economia mensal</div>
+                          <div className="cb-result-value cb-result-value--gain">
+                            {formatCurrency(calculatorData.economiaMensal)}
+                          </div>
+                        </div>
+                        <div className="cb-result-divider cb-result-divider--gain" />
+                        <div>
+                          <div className="cb-result-label">Economia anual</div>
+                          <div className="cb-result-total cb-result-total--gain">
+                            {formatCurrency(calculatorData.economiaAnual)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="cb-roi-card">
+                        <div className="cb-roi-label">ROI</div>
+                        <div className="cb-roi-value">{formatRatio(calculatorData.roiReplyna)}x</div>
+                        <div className="cb-roi-subtitle">Lucro líquido desde o primeiro mês</div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div style={{
-                  marginTop: '28px',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '16px',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                  <a
-                    href="https://replyna.me/#precos"
-                    className="lp-btn-primary"
-                    style={{
-                      color: '#fff',
-                      padding: '14px 22px',
-                      borderRadius: '12px',
-                      textDecoration: 'none',
-                      fontWeight: 600,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    Veja como automatizar seu pós-venda por R$197/mês
-                    <ArrowRight size={16} />
-                  </a>
-                  <a
-                    href="https://replyna.me/#como-funciona"
-                    className="lp-btn-secondary"
-                    style={{
-                      color: '#fff',
-                      padding: '12px 20px',
-                      borderRadius: '12px',
-                      textDecoration: 'none',
-                      fontWeight: 600,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    Ver como funciona →
-                  </a>
+                  <div className="cb-cta-row">
+                    <a href="https://replyna.me/#precos" className="cb-cta-primary">
+                      Veja como automatizar seu pós-venda por R$197/mês →
+                    </a>
+                    <a href="https://replyna.me/#como-funciona" className="cb-cta-secondary">
+                      Ver como funciona →
+                    </a>
+                  </div>
+                  <div className="cb-disclaimer">
+                    * Baseado em caso real. Resultados podem variar de acordo com o volume e tipo de operação.
+                  </div>
                 </div>
-                <p style={{ marginTop: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>
-                  * Baseado em caso real. Resultados podem variar de acordo com o volume e tipo de operação.
-                </p>
               </div>
             </div>
           </div>
