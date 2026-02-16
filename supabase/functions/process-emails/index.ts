@@ -1076,19 +1076,7 @@ async function processMessageInternal(
     return 'skipped';
   }
 
-  // Operação atômica: verifica E reserva o crédito em uma única transação
-  // Isso evita race condition quando múltiplos emails são processados em paralelo
-  const creditReserved = await tryReserveCredit(user.id);
-  if (!creditReserved) {
-    await updateMessage(message.id, {
-      status: 'pending_credits',
-      category: 'duvidas_gerais', // Categoria padrão temporária até ter créditos
-    });
-    await handleCreditsExhausted(shop, user, message);
-    return 'pending_credits';
-  }
-
-  // 2.1 Verificar se é apenas uma mensagem de agradecimento/confirmação
+  // 2.1 Verificar se é apenas uma mensagem de agradecimento/confirmação (ANTES de gastar créditos)
   if (isAcknowledgmentMessage(cleanBody, message.subject || '')) {
     console.log(`[Shop ${shop.name}] Msg ${message.id} é agradecimento, marcando como replied sem responder`);
     await updateMessage(message.id, {
@@ -1112,7 +1100,7 @@ async function processMessageInternal(
     return 'acknowledgment';
   }
 
-  // 2.2 Verificar se há loop de auto-responder (muitas respostas em pouco tempo)
+  // 2.2 Verificar se há loop de auto-responder (ANTES de gastar créditos)
   const supabase = getSupabaseClient();
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
 
@@ -1145,6 +1133,17 @@ async function processMessageInternal(
     });
 
     return 'loop_detected';
+  }
+
+  // 2.3 Reservar crédito (apenas após verificações gratuitas confirmarem que precisa processar)
+  const creditReserved = await tryReserveCredit(user.id);
+  if (!creditReserved) {
+    await updateMessage(message.id, {
+      status: 'pending_credits',
+      category: 'duvidas_gerais', // Categoria padrão temporária até ter créditos
+    });
+    await handleCreditsExhausted(shop, user, message);
+    return 'pending_credits';
   }
 
   // 3. Buscar histórico da conversa

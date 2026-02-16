@@ -547,16 +547,8 @@ async function processMessage(
     return 'skipped';
   }
 
-  // Operação atômica: tenta reservar crédito (verifica E incrementa em uma única transação)
-  const creditReserved = await tryReserveCredit(user.id);
-  if (!creditReserved) {
-    await updateMessage(message.id, { status: 'pending_credits' });
-    await handleCreditsExhausted(shop, user, message);
-    return 'pending_credits';
-  }
-
-  // 2. Limpar corpo do email
-  let cleanBody = cleanEmailBody(message.body_text || '', message.body_html || '');
+  // 2. Verificar corpo do email (ANTES de gastar créditos - reutiliza preCleanBody)
+  let cleanBody = preCleanBody;
 
   if ((!cleanBody || cleanBody.trim().length < 3) && message.subject && message.subject.trim().length > 3) {
     console.log(`[Worker] Corpo vazio, usando assunto: "${message.subject}"`);
@@ -570,6 +562,14 @@ async function processMessage(
       error_message: 'Corpo e assunto do email vazios',
     });
     return 'skipped';
+  }
+
+  // 2.1 Reservar crédito (apenas após verificações gratuitas confirmarem que precisa processar)
+  const creditReserved = await tryReserveCredit(user.id);
+  if (!creditReserved) {
+    await updateMessage(message.id, { status: 'pending_credits' });
+    await handleCreditsExhausted(shop, user, message);
+    return 'pending_credits';
   }
 
   // 3. Buscar histórico da conversa
