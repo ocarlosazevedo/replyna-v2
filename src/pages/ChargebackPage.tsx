@@ -11,7 +11,6 @@ import {
   Menu,
   PhoneCall,
   RefreshCcw,
-  Sparkles,
   TrendingDown,
   TrendingUp,
   X,
@@ -155,6 +154,14 @@ const getAppUrl = (path: string) => {
     return path
   }
   return `https://app.replyna.me${path}`
+}
+
+const getLandingUrl = (path: string) => {
+  const hostname = window.location.hostname
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return path
+  }
+  return `https://replyna.me${path}`
 }
 
 function GlossaryLink({ id, children }: { id: string; children: ReactNode }) {
@@ -354,6 +361,16 @@ export default function ChargebackPage() {
       top: elementTop - headerOffset,
       behavior: 'smooth',
     })
+  }
+
+  const handlePricingClick = (event: ReactMouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault()
+    try {
+      localStorage.setItem('lp-scroll-target', 'precos')
+    } catch (error) {
+      // Ignore storage issues and continue with the redirect.
+    }
+    window.location.href = getLandingUrl('/#precos')
   }
 
   const shouldShowResults = calculatorData.isReady
@@ -1068,23 +1085,6 @@ export default function ChargebackPage() {
 
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <div
-              className="lp-fade-in lp-fade-in-delay-1 lp-badge"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: 'rgba(70, 114, 236, 0.1)',
-                padding: '8px 16px',
-                borderRadius: '50px',
-                marginBottom: '20px',
-              }}
-            >
-              <span style={{ fontSize: '13px', color: '#4672ec', fontWeight: 600 }}>
-                🧮 Calculadora Gratuita
-              </span>
-            </div>
-
             <h1
               className="lp-fade-in lp-fade-in-delay-2"
               style={{
@@ -1803,66 +1803,8 @@ export default function ChargebackPage() {
           </div>
         </section>
 
-        <section style={{ maxWidth: '1100px', margin: '0 auto 80px', textAlign: 'center' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: 'rgba(34, 197, 94, 0.1)',
-              padding: '8px 16px',
-              borderRadius: '50px',
-              marginBottom: '24px',
-            }}
-          >
-            <Sparkles size={14} color="#22c55e" />
-            <span style={{ fontSize: '13px', color: '#22c55e', fontWeight: 600 }}>
-              Pronto para proteger seu negócio?
-            </span>
-          </div>
-          <h2 style={{ fontSize: '34px', fontWeight: 800, marginBottom: '16px' }}>
-            Reduza chargebacks ainda este mês
-          </h2>
-          <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.5)', marginBottom: '32px' }}>
-            Comece agora e veja seus chargebacks despencarem com atendimento imediato e inteligente.
-          </p>
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a
-              href="https://replyna.me/#precos"
-              className="lp-btn-primary"
-              style={{
-                color: '#fff',
-                padding: '16px 32px',
-                borderRadius: '14px',
-                textDecoration: 'none',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              Ver planos
-              <ArrowRight size={16} />
-            </a>
-          </div>
-        </section>
-
         <section id="glossario" style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <div
-              className="lp-badge"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: 'rgba(6, 182, 212, 0.1)',
-                padding: '8px 16px',
-                borderRadius: '50px',
-                marginBottom: '16px',
-              }}
-            >
-              <span style={{ fontSize: '13px', color: '#06b6d4', fontWeight: 600 }}>📖 Glossário</span>
-            </div>
             <h2 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '10px' }}>
               Termos utilizados nesta página
             </h2>
@@ -1887,6 +1829,35 @@ export default function ChargebackPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section style={{ maxWidth: '1100px', margin: '80px auto 0', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '34px', fontWeight: 800, marginBottom: '16px' }}>
+            Reduza chargebacks ainda este mês
+          </h2>
+          <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.5)', marginBottom: '32px' }}>
+            Comece agora e veja seus chargebacks despencarem com atendimento imediato e inteligente.
+          </p>
+          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a
+              href={getLandingUrl('/#precos')}
+              onClick={handlePricingClick}
+              className="lp-btn-primary"
+              style={{
+                color: '#fff',
+                padding: '16px 32px',
+                borderRadius: '14px',
+                textDecoration: 'none',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              Ver planos
+              <ArrowRight size={16} />
+            </a>
           </div>
         </section>
       </article>

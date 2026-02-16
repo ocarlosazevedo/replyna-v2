@@ -271,19 +271,52 @@ export default function LandingPage() {
     }
   }, [mobileMenuOpen])
 
+  const scrollToId = (targetId: string) => {
+    const element = document.getElementById(targetId)
+    if (!element) return
+    const headerOffset = 80
+    const elementPosition = element.getBoundingClientRect().top
+    const offsetPosition = elementPosition + window.pageYOffset - headerOffset
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth'
+    })
+  }
+
+  useEffect(() => {
+    const scrollFromHash = () => {
+      let targetId = ''
+      try {
+        const storedTarget = localStorage.getItem('lp-scroll-target')
+        if (storedTarget) {
+          targetId = storedTarget
+          localStorage.removeItem('lp-scroll-target')
+        }
+      } catch {
+        // Ignore storage issues.
+      }
+
+      if (!targetId && window.location.hash) {
+        targetId = window.location.hash.replace('#', '')
+      }
+
+      if (targetId) {
+        scrollToId(targetId)
+      }
+    }
+
+    const timeout = window.setTimeout(scrollFromHash, 150)
+    window.addEventListener('hashchange', scrollFromHash)
+    return () => {
+      window.clearTimeout(timeout)
+      window.removeEventListener('hashchange', scrollFromHash)
+    }
+  }, [])
+
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
     e.preventDefault()
     setMobileMenuOpen(false)
-    const element = document.getElementById(targetId)
-    if (element) {
-      const headerOffset = 80
-      const elementPosition = element.getBoundingClientRect().top
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      })
-    }
+    scrollToId(targetId)
   }
 
   const formatPrice = (price: number) => {
