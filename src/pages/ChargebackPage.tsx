@@ -1343,7 +1343,7 @@ export default function ChargebackPage() {
           </div>
 
           <div className="lp-glass" style={{ padding: '32px', borderRadius: '24px' }}>
-            <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'flex-start' }}>
+            <div className="cb-input-grid">
               <div className="cb-currency-select" ref={currencyDropdownRef}>
                 <span className="cb-currency-label">Moeda</span>
                 <button
@@ -1399,8 +1399,6 @@ export default function ChargebackPage() {
                   </div>
                 )}
               </div>
-            </div>
-            <div className="cb-input-grid">
               <div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                   <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
@@ -1467,7 +1465,7 @@ export default function ChargebackPage() {
                 </p>
               </div>
 
-              <div>
+              <div style={{ gridColumn: '1 / -1', maxWidth: '420px', width: '100%', justifySelf: 'center' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                   <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
                     Custo médio por chargeback ({selectedCurrencyOption.symbol})
