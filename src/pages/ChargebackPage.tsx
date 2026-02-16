@@ -2596,6 +2596,35 @@ export default function ChargebackPage() {
           </div>
         </section>
 
+        <section id="precos" style={{ maxWidth: '1100px', margin: '80px auto 0', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '34px', fontWeight: 800, marginBottom: '16px' }}>
+            Reduza chargebacks ainda este mês
+          </h2>
+          <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.5)', marginBottom: '32px' }}>
+            Comece agora e veja seus chargebacks despencarem com atendimento imediato e inteligente.
+          </p>
+          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a
+              href={getLandingUrl('/#precos')}
+              onClick={handlePricingClick}
+              className="lp-btn-primary"
+              style={{
+                color: '#fff',
+                padding: '16px 32px',
+                borderRadius: '14px',
+                textDecoration: 'none',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              Ver planos
+              <ArrowRight size={16} />
+            </a>
+          </div>
+        </section>
+
         <section id="faq-chargeback" style={{ maxWidth: '1100px', margin: '80px auto 0' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <h2 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '10px' }}>
@@ -2663,35 +2692,6 @@ export default function ChargebackPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </section>
-
-        <section id="precos" style={{ maxWidth: '1100px', margin: '80px auto 0', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '34px', fontWeight: 800, marginBottom: '16px' }}>
-            Reduza chargebacks ainda este mês
-          </h2>
-          <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.5)', marginBottom: '32px' }}>
-            Comece agora e veja seus chargebacks despencarem com atendimento imediato e inteligente.
-          </p>
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a
-              href={getLandingUrl('/#precos')}
-              onClick={handlePricingClick}
-              className="lp-btn-primary"
-              style={{
-                color: '#fff',
-                padding: '16px 32px',
-                borderRadius: '14px',
-                textDecoration: 'none',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              Ver planos
-              <ArrowRight size={16} />
-            </a>
           </div>
         </section>
       </article>
