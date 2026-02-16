@@ -9,7 +9,6 @@ import {
   CreditCard,
   FileText,
   Menu,
-  MessageCircle,
   PhoneCall,
   RefreshCcw,
   Sparkles,
@@ -148,6 +147,14 @@ const parseNumber = (value: string) => {
     : trimmed
   const number = Number(normalized.replace(/[^0-9.-]/g, ''))
   return Number.isFinite(number) ? number : 0
+}
+
+const getAppUrl = (path: string) => {
+  const hostname = window.location.hostname
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return path
+  }
+  return `https://app.replyna.me${path}`
 }
 
 function GlossaryLink({ id, children }: { id: string; children: ReactNode }) {
@@ -1776,7 +1783,7 @@ export default function ChargebackPage() {
               prejuízo.
             </p>
             <a
-              href="https://replyna.me/#precos"
+              href={getAppUrl('/register?plan=starter')}
               className="lp-btn-primary"
               style={{
                 marginTop: '20px',
@@ -1836,25 +1843,6 @@ export default function ChargebackPage() {
             >
               Ver planos
               <ArrowRight size={16} />
-            </a>
-            <a
-              href="https://wa.me/5531973210191?text=Olá! Gostaria de saber mais sobre a Replyna."
-              className="lp-btn-secondary"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: '#fff',
-                padding: '16px 28px',
-                borderRadius: '14px',
-                textDecoration: 'none',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              <MessageCircle size={16} />
-              Fale com nossa equipe
             </a>
           </div>
         </section>
