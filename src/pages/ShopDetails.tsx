@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -60,6 +60,7 @@ export default function ShopDetails() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { shopId } = useParams()
+  const [searchParams] = useSearchParams()
   const isMobile = useIsMobile()
 
   const [shop, setShop] = useState<ShopData | null>(null)
@@ -74,6 +75,8 @@ export default function ShopDetails() {
   // Test connection states
   const [testingEmail, setTestingEmail] = useState(false)
   const [testingShopify, setTestingShopify] = useState(false)
+  const [oauthRequired, setOauthRequired] = useState(false)
+  const [oauthRedirecting, setOauthRedirecting] = useState(false)
 
   useEffect(() => {
     if (shopId) {
@@ -84,6 +87,32 @@ export default function ShopDetails() {
       markRetentionCouponTipAsSeen(user.id)
     }
   }, [shopId, user?.id])
+
+  // Handle OAuth callback result
+  useEffect(() => {
+    const oauthResult = searchParams.get('shopify_oauth')
+    if (oauthResult === 'success') {
+      setSuccess('Shopify autorizado com sucesso via OAuth!')
+      // Reload shop data to reflect new status
+      loadShop()
+      setTimeout(() => setSuccess(''), 5000)
+    } else if (oauthResult === 'error') {
+      const reason = searchParams.get('reason') || 'unknown'
+      const reasonMessages: Record<string, string> = {
+        missing_params: 'Parâmetros ausentes no callback',
+        invalid_state: 'Token de segurança inválido. Tente novamente.',
+        expired_state: 'A autorização expirou. Tente novamente.',
+        shop_not_found: 'Loja não encontrada no banco de dados.',
+        missing_credentials: 'Client ID ou Client Secret não encontrados.',
+        token_exchange_failed: 'Falha ao trocar código por token. Tente novamente.',
+        no_token: 'Nenhum token recebido do Shopify.',
+        db_error: 'Erro ao salvar token no banco de dados.',
+        server_config: 'Erro de configuração do servidor.',
+        unexpected: 'Erro inesperado. Tente novamente.',
+      }
+      setError(`Erro na autorização Shopify: ${reasonMessages[reason] || reason}`)
+    }
+  }, [searchParams])
 
   const loadShop = async () => {
     if (!shopId) return
@@ -191,6 +220,7 @@ export default function ShopDetails() {
     if (!editData.shopify_domain) return
     setTestingShopify(true)
     setError('')
+    setOauthRequired(false)
 
     try {
       const response = await fetch('/api/test-shopify', {
@@ -208,6 +238,9 @@ export default function ShopDetails() {
       if (data.success) {
         setEditData(prev => ({ ...prev, shopify_status: 'ok' }))
         setSuccess('Conexão Shopify testada com sucesso!')
+      } else if (data.oauth_required) {
+        setOauthRequired(true)
+        setError('Este app requer autorização OAuth. Use o botão abaixo para autorizar.')
       } else {
         setError(data.error || 'Falha na conexão Shopify')
       }
@@ -215,6 +248,47 @@ export default function ShopDetails() {
       setError('Erro ao testar conexão Shopify')
     } finally {
       setTestingShopify(false)
+    }
+  }
+
+  const startOAuthFlow = async () => {
+    if (!shop || !editData.shopify_domain || !editData.shopify_client_id) return
+    setOauthRedirecting(true)
+    setError('')
+
+    try {
+      // Save current Shopify fields first
+      await supabase
+        .from('shops')
+        .update({
+          shopify_domain: editData.shopify_domain,
+          shopify_client_id: editData.shopify_client_id,
+          shopify_client_secret: editData.shopify_client_secret,
+        })
+        .eq('id', shop.id)
+
+      // Call shopify-auth to get the authorization URL
+      const response = await fetch('/api/shopify-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: shop.id,
+          shopify_domain: editData.shopify_domain,
+          shopify_client_id: editData.shopify_client_id,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.auth_url) {
+        window.location.href = data.auth_url
+      } else {
+        setError(data.error || 'Erro ao gerar URL de autorização')
+        setOauthRedirecting(false)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao iniciar autorização OAuth')
+      setOauthRedirecting(false)
     }
   }
 
@@ -620,6 +694,30 @@ export default function ShopDetails() {
             >
               {testingShopify ? 'Testando...' : 'Testar conexão'}
             </button>
+            {oauthRequired && (
+              <div style={{
+                marginTop: '4px',
+                backgroundColor: 'rgba(70, 114, 236, 0.08)',
+                border: '1px solid rgba(70, 114, 236, 0.2)',
+                borderRadius: '12px',
+                padding: '16px',
+              }}>
+                <p style={{ fontSize: '14px', color: 'var(--text-primary)', margin: '0 0 12px 0' }}>
+                  <strong>Este app usa OAuth Authorization Code.</strong> Apps de distribuição requerem
+                  autorização direta na loja Shopify.
+                </p>
+                <button
+                  onClick={startOAuthFlow}
+                  disabled={oauthRedirecting}
+                  style={{
+                    ...buttonPrimary,
+                    opacity: oauthRedirecting ? 0.7 : 1,
+                  }}
+                >
+                  {oauthRedirecting ? 'Redirecionando...' : 'Autorizar via Shopify'}
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>

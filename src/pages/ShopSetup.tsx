@@ -112,6 +112,8 @@ export default function ShopSetup() {
   const [emailTestResult, setEmailTestResult] = useState<'success' | 'error' | null>(null)
   const [testingShopify, setTestingShopify] = useState(false)
   const [shopifyTestResult, setShopifyTestResult] = useState<'success' | 'error' | null>(null)
+  const [oauthRequired, setOauthRequired] = useState(false)
+  const [oauthRedirecting, setOauthRedirecting] = useState(false)
   const [emailProvider, setEmailProvider] = useState('')
 
   // Email providers configuration
@@ -156,6 +158,14 @@ export default function ShopSetup() {
       if (stepNum >= 1 && stepNum <= 5) {
         setCurrentStep(stepNum)
       }
+    }
+
+    // Handle OAuth callback result
+    const oauthResult = searchParams.get('shopify_oauth')
+    if (oauthResult === 'success') {
+      setShopifyTestResult('success')
+      setOauthRequired(false)
+      setCurrentStep(2)
     }
   }, [searchParams])
 
@@ -243,11 +253,12 @@ export default function ShopSetup() {
             setError('Client ID é obrigatório')
             return false
           }
-          if (!shopData.shopify_client_secret) {
+          // Client secret not required for OAuth apps that already authorized
+          if (!shopData.shopify_client_secret && shopifyTestResult !== 'success') {
             setError('Client Secret é obrigatório')
             return false
           }
-          // Require successful connection test
+          // Require successful connection test (or successful OAuth callback)
           if (shopifyTestResult !== 'success') {
             setError('Você precisa testar e validar a conexão com o Shopify antes de continuar.')
             return false
@@ -460,6 +471,7 @@ export default function ShopSetup() {
     setTestingShopify(true)
     setShopifyTestResult(null)
     setShopifyTestError('')
+    setOauthRequired(false)
 
     try {
       const response = await fetch('/api/test-shopify', {
@@ -478,7 +490,12 @@ export default function ShopSetup() {
         setShopifyTestResult('success')
       } else {
         setShopifyTestResult('error')
-        setShopifyTestError(data.error || 'Falha na conexão')
+        if (data.oauth_required) {
+          setOauthRequired(true)
+          setShopifyTestError('Este app requer autorização OAuth. Clique no botão abaixo para autorizar.')
+        } else {
+          setShopifyTestError(data.error || 'Falha na conexão')
+        }
       }
     } catch (err) {
       setShopifyTestResult('error')
@@ -486,6 +503,71 @@ export default function ShopSetup() {
     }
 
     setTestingShopify(false)
+  }
+
+  const startOAuthFlow = async () => {
+    if (!shopData.shopify_domain || !shopData.shopify_client_id) return
+    setOauthRedirecting(true)
+    setError('')
+
+    try {
+      // Save the shop as draft first so the callback can find it
+      if (!user) return
+      let savedShopId = shopId
+
+      if (!savedShopId) {
+        const { data: newShop, error: insertError } = await supabase
+          .from('shops')
+          .insert({
+            user_id: user.id,
+            name: shopData.name || 'Nova Loja',
+            attendant_name: shopData.attendant_name || 'Suporte',
+            support_email: shopData.support_email || user.email || '',
+            shopify_domain: shopData.shopify_domain,
+            shopify_client_id: shopData.shopify_client_id,
+            shopify_client_secret: shopData.shopify_client_secret,
+            is_active: false,
+          })
+          .select('id')
+          .single()
+
+        if (insertError) throw insertError
+        savedShopId = newShop.id
+      } else {
+        // Update existing shop with current Shopify fields
+        await supabase
+          .from('shops')
+          .update({
+            shopify_domain: shopData.shopify_domain,
+            shopify_client_id: shopData.shopify_client_id,
+            shopify_client_secret: shopData.shopify_client_secret,
+          })
+          .eq('id', savedShopId)
+      }
+
+      // Call shopify-auth to get the authorization URL
+      const response = await fetch('/api/shopify-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: savedShopId,
+          shopify_domain: shopData.shopify_domain,
+          shopify_client_id: shopData.shopify_client_id,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.auth_url) {
+        window.location.href = data.auth_url
+      } else {
+        setError(data.error || 'Erro ao gerar URL de autorização')
+        setOauthRedirecting(false)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao iniciar autorização OAuth')
+      setOauthRedirecting(false)
+    }
   }
 
   // Styles
@@ -931,10 +1013,34 @@ export default function ShopSetup() {
               Conexão estabelecida com sucesso!
             </p>
           )}
-          {shopifyTestResult === 'error' && (
+          {shopifyTestResult === 'error' && !oauthRequired && (
             <p style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>
               {shopifyTestError || 'Falha na conexão. Verifique as credenciais.'}
             </p>
+          )}
+          {oauthRequired && (
+            <div style={{
+              marginTop: '12px',
+              backgroundColor: 'rgba(70, 114, 236, 0.08)',
+              border: '1px solid rgba(70, 114, 236, 0.2)',
+              borderRadius: '12px',
+              padding: '16px',
+            }}>
+              <p style={{ fontSize: '14px', color: 'var(--text-primary)', margin: '0 0 12px 0' }}>
+                <strong>Este app usa OAuth Authorization Code.</strong> Apps de distribuição requerem
+                autorização direta na loja Shopify. Clique abaixo para autorizar.
+              </p>
+              <button
+                onClick={startOAuthFlow}
+                disabled={oauthRedirecting}
+                style={{
+                  ...buttonPrimary,
+                  opacity: oauthRedirecting ? 0.7 : 1,
+                }}
+              >
+                {oauthRedirecting ? 'Redirecionando...' : 'Autorizar via Shopify'}
+              </button>
+            </div>
           )}
         </div>
       )}

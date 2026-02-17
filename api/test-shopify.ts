@@ -136,9 +136,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         '3. Confirme que o Client ID e Client Secret estão corretos (copie novamente)\n' +
         '4. Verifique se os escopos read_orders e read_customers estão habilitados'
 
+      // Detect if this is a distribution app that needs OAuth Authorization Code flow
+      const errorLower = (tokenResult.error || '').toLowerCase()
+      const isOAuthRequired = errorLower.includes('invalid_request') ||
+        errorLower.includes('requisição oauth inválida') ||
+        errorLower.includes('requisição inválida')
+
       return res.status(400).json({
         success: false,
-        error: (tokenResult.error || 'Falha ao obter token de acesso') + helpText
+        error: (tokenResult.error || 'Falha ao obter token de acesso') + helpText,
+        oauth_required: isOAuthRequired,
       })
     }
 

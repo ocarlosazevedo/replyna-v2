@@ -205,6 +205,8 @@ export async function decryptShopifyCredentials(shop: {
   shopify_client_id: string | null;
   shopify_client_secret: string | null;
   shopify_client_secret_encrypted: string | null;
+  shopify_access_token_encrypted?: string | null;
+  shopify_auth_type?: string | null;
 }): Promise<ShopifyCredentials | null> {
   if (!shop.shopify_domain || !shop.shopify_client_id) {
     return null;
@@ -219,7 +221,14 @@ export async function decryptShopifyCredentials(shop: {
     clientSecret = shop.shopify_client_secret;
   }
 
-  if (!clientSecret) {
+  // For OAuth apps, decrypt the stored access token
+  let accessToken: string | undefined;
+  if (shop.shopify_auth_type === 'oauth' && shop.shopify_access_token_encrypted) {
+    accessToken = await decrypt(shop.shopify_access_token_encrypted, encryptionKey);
+  }
+
+  // OAuth apps may not have client_secret, but must have access_token
+  if (!clientSecret && !accessToken) {
     return null;
   }
 
@@ -227,6 +236,7 @@ export async function decryptShopifyCredentials(shop: {
     domain: shop.shopify_domain,
     client_id: shop.shopify_client_id,
     client_secret: clientSecret,
+    access_token: accessToken,
   };
 }
 

@@ -20,6 +20,8 @@ export interface Shop {
   shopify_client_id: string | null;
   shopify_client_secret: string | null;
   shopify_client_secret_encrypted: string | null;
+  shopify_access_token_encrypted: string | null;
+  shopify_auth_type: string | null;
   shopify_status: string | null;
 
   // Email
