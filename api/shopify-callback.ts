@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const oauthSecret = process.env.SHOPIFY_OAUTH_SECRET
-  const encryptionKey = process.env.EMAIL_ENCRYPTION_KEY
+  const encryptionKey = process.env.OAUTH_ENCRYPTION_KEY
   const supabaseUrl = process.env.SUPABASE_URL || 'https://ulldjamxdsaqqyurcmcs.supabase.co'
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 

@@ -221,10 +221,14 @@ export async function decryptShopifyCredentials(shop: {
     clientSecret = shop.shopify_client_secret;
   }
 
-  // For OAuth apps, decrypt the stored access token
+  // For OAuth apps, decrypt the stored access token using dedicated OAuth key
   let accessToken: string | undefined;
   if (shop.shopify_auth_type === 'oauth' && shop.shopify_access_token_encrypted) {
-    accessToken = await decrypt(shop.shopify_access_token_encrypted, encryptionKey);
+    const oauthKey = Deno.env.get('OAUTH_ENCRYPTION_KEY');
+    if (!oauthKey) {
+      throw new Error('OAUTH_ENCRYPTION_KEY não está configurada.');
+    }
+    accessToken = await decrypt(shop.shopify_access_token_encrypted, oauthKey);
   }
 
   // OAuth apps may not have client_secret, but must have access_token
