@@ -867,6 +867,7 @@ export default function LandingPage() {
             flex-direction: column;
             text-align: center;
             gap: 20px;
+            padding-bottom: 70px;
           }
 
           /* Hide carousel, show grid on mobile */
