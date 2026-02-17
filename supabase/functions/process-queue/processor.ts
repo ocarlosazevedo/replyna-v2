@@ -1168,6 +1168,9 @@ function isAcknowledgmentMessage(body: string, subject: string): boolean {
     /^danke\s+(für|schön|sehr)/,
     /^(muito obrigad[oa]|thanks a lot|many thanks|muchísimas gracias)/,
     /^(valeu|vlw|thx|tks|ty)\b/,
+    // Padrões compostos: "ok" + agradecimento/espera
+    /^ok[,.\s]+(obrigad|thanks|merci|danke|gracias)/i,
+    /^(ok|okay|certo|entendi|perfeito)[,.\s]+(vou|i'?ll|i will)\s+(esperar|aguardar|wait)/i,
   ];
 
   for (const pattern of exactPatterns) {
@@ -1184,6 +1187,15 @@ function isAcknowledgmentMessage(body: string, subject: string): boolean {
         console.log(`[isAcknowledgment] Detected short ack: "${bodyWithoutSignature.substring(0, 50)}"`);
         return true;
       }
+    }
+
+    // Detecção de mensagem de "espera" / "I'll wait" (acknowledgment implícito)
+    if (/\b(vou|irei)\s+(esperar|aguardar)\b/i.test(bodyWithoutSignature) ||
+        /\b(i'?ll|i will)\s+wait\b/i.test(bodyWithoutSignature) ||
+        /\b(werde)\s+(warten|abwarten)\b/i.test(bodyWithoutSignature) ||
+        /\b(voy a|vamos a)\s+esperar\b/i.test(bodyWithoutSignature)) {
+      console.log(`[isAcknowledgment] Detected waiting message: "${bodyWithoutSignature.substring(0, 50)}"`);
+      return true;
     }
   }
 

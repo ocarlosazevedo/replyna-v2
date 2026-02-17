@@ -1402,6 +1402,13 @@ export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
     /^Von:\s/m, // Headers de forward (Alemão)
     /^De:\s/m, // Headers de forward (Português/Espanhol/Francês)
     /^>+\s/m, // Quoted text
+    // Citações inline com data/hora (Gmail mobile, webmail)
+    // Ex: "Na segunda-feira, 9 de fevereiro de 2026, às 21h17, John <email@example.com> escreveu:"
+    /^(Na |On |Am |Le |El |Op )?(segunda|terça|quarta|quinta|sexta|sábado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)/im,
+    // Citações com formato de data genérico seguido de email: "9 de fevereiro de 2026, ... <email>"
+    /^\d{1,2}\s+de\s+\w+\s+de\s+\d{4}/m,
+    // Formato inline com < email > (citação com endereço de email entre < >)
+    /^.{0,80}<\s*[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\s*>\s*(escreveu|wrote|schrieb|a écrit|escribió|ha scritto|schreef)\s*:/im,
   ];
 
   let cleanBody = body;
