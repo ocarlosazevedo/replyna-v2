@@ -213,6 +213,11 @@ export default function Register() {
     e.preventDefault()
     setError('')
 
+    if (!phoneNumber.trim()) {
+      setError('Informe seu número de celular/WhatsApp')
+      return
+    }
+
     if (!selectedPlan) {
       setError('Selecione um plano')
       return
@@ -1009,6 +1014,7 @@ export default function Register() {
                     color: 'var(--text-primary)',
                   }}
                   placeholder="11 99999-9999"
+                  required
                 />
               </div>
               <span style={{
