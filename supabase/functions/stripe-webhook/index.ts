@@ -579,18 +579,23 @@ async function handleSubscriptionUpdate(
     return;
   }
 
-  // Se cancelado ou unpaid, atualizar status do usuário para free
-  if (status === 'canceled' || status === 'unpaid') {
+  // Se cancelado, unpaid ou past_due, atualizar status do usuário
+  if (status === 'canceled' || status === 'unpaid' || status === 'past_due') {
+    const userStatus = status === 'canceled' ? 'inactive' : 'suspended';
+    const updateData: Record<string, any> = { status: userStatus };
+
+    // Apenas resetar plano para canceled/unpaid (past_due mantém o plano para quando pagar)
+    if (status === 'canceled' || status === 'unpaid') {
+      updateData.plan = 'free';
+      updateData.emails_limit = 0;
+      updateData.shops_limit = 0;
+    }
+
     await supabase
       .from('users')
-      .update({
-        status: status === 'canceled' ? 'inactive' : 'suspended',
-        plan: 'free',
-        emails_limit: 0,
-        shops_limit: 0,
-      })
+      .update(updateData)
       .eq('id', sub.user_id);
-    console.log('Usuário atualizado para free devido a status:', status);
+    console.log(`Usuário ${sub.user_id} atualizado para status '${userStatus}' devido a subscription status: ${status}`);
     return;
   }
 
