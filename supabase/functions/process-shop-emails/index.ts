@@ -39,6 +39,7 @@ import {
 import {
   decryptEmailCredentials,
   fetchUnreadEmails,
+  markEmailsAsSeen,
   sendEmail,
   buildReplyHeaders,
   buildReplySubject,
@@ -240,18 +241,30 @@ async function processShop(
     throw error;
   }
 
-  // 3. Salvar emails no banco
+  // 3. Salvar emails no banco e marcar como lidos no IMAP após salvar
   const shopEmail = emailCredentials.smtp_user.toLowerCase();
+  const savedUids: number[] = [];
   for (const email of incomingEmails) {
     if (email.from_email.toLowerCase() === shopEmail) {
       console.log(`[Worker] Ignorando email de ${email.from_email} (própria loja)`);
+      if (email.imap_uid) savedUids.push(email.imap_uid); // Marcar próprios emails como lidos também
       continue;
     }
     try {
       await saveIncomingEmail(shop.id, email);
+      if (email.imap_uid) savedUids.push(email.imap_uid);
     } catch (error) {
       console.error(`[Worker] Erro ao salvar email ${email.message_id}:`, error);
       stats.errors++;
+    }
+  }
+
+  // Marcar como lidos apenas emails salvos com sucesso
+  if (savedUids.length > 0) {
+    try {
+      await markEmailsAsSeen(emailCredentials, savedUids);
+    } catch (error) {
+      console.error(`[Worker] Erro ao marcar emails como lidos:`, error);
     }
   }
 

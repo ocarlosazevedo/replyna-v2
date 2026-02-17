@@ -266,6 +266,24 @@ export async function tryReserveCredit(userId: string): Promise<boolean> {
 }
 
 /**
+ * Devolve um crédito reservado por tryReserveCredit() quando o processamento falha
+ * @returns true se crédito foi devolvido, false se não havia crédito para devolver
+ */
+export async function releaseCredit(userId: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase.rpc('release_credit', {
+    p_user_id: userId,
+  });
+
+  if (error) {
+    console.error(`[releaseCredit] Erro ao devolver crédito para user ${userId}:`, error);
+    return false;
+  }
+  return data as boolean;
+}
+
+/**
  * Incrementa contador de emails usados
  * @deprecated Use tryReserveCredit() para operação atômica
  */
@@ -360,7 +378,12 @@ export async function getPendingMessages(shopId: string): Promise<Message[]> {
         id,
         shop_id,
         customer_email,
+        customer_name,
+        category,
+        status,
+        language,
         data_request_count,
+        retention_contact_count,
         shopify_order_id,
         shopify_customer_id
       )

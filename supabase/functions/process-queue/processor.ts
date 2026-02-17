@@ -13,6 +13,7 @@
 import {
   getUserById,
   tryReserveCredit,
+  releaseCredit,
   incrementEmailsUsed,  // Mantido para compatibilidade
   updateMessage,
   getConversationHistory,
@@ -517,6 +518,9 @@ async function processMessage(
     throw new Error('Créditos insuficientes');
   }
 
+  // Envolver processamento pós-crédito em try/catch para rollback em caso de falha
+  try {
+
   // 9. Se for spam, salvar categoria na MENSAGEM (para aparecer no painel), mas NÃO atualizar CONVERSA
   if (classification.category === 'spam') {
     // Salvar categoria 'spam' na MENSAGEM para aparecer no filtro do painel
@@ -830,19 +834,14 @@ async function processMessage(
       classification.language || 'en'
     );
 
-    await sendReply(message, conversation, shop, humanFallbackResult.response, 'forwarded_to_human');
-
-    await updateMessage(message.id, {
-      status: 'pending_human',
-      processed_at: new Date().toISOString(),
-    });
-
-    await updateConversation(conversation.id, {
-      status: 'pending_human',
-    });
+    await sendReply(message, conversation, shop, humanFallbackResult.response, 'forwarded_to_human', 'pending_human');
 
     // Forward to human support
-    await forwardToHuman(shop, message);
+    try {
+      await forwardToHuman(shop, message);
+    } catch (fwdError) {
+      console.error(`[Processor] Erro ao encaminhar para humano (msg ${message.id}), resposta já enviada ao cliente:`, fwdError);
+    }
 
     await logProcessingEvent({
       shop_id: shop.id,
@@ -940,7 +939,11 @@ async function processMessage(
 
   if (aiResponse.forward_to_human) {
     finalStatus = 'pending_human';
-    await forwardToHuman(shop, message);
+    try {
+      await forwardToHuman(shop, message);
+    } catch (fwdError) {
+      console.error(`[Processor] Erro ao encaminhar para humano (msg ${message.id}), resposta já será enviada ao cliente:`, fwdError);
+    }
     console.log(`[Processor] Forwarding to human - ai_forward: true`);
   } else if (classification.category === 'troca_devolucao_reembolso' && currentRetentionCount >= 3) {
     // Só marca como pending_human APÓS 3 contatos de retenção
@@ -949,20 +952,17 @@ async function processMessage(
     console.log(`[Processor] Marked as pending_human - category: troca_devolucao_reembolso after ${currentRetentionCount} retention contacts`);
   }
 
-  // 14. Enviar resposta por email
-  await sendReply(message, conversation, shop, aiResponse.response, 'response_sent');
+  // 14. Enviar resposta por email (com status correto para evitar race condition)
+  await sendReply(message, conversation, shop, aiResponse.response, 'response_sent', finalStatus);
 
-  // 15. Atualizar status da mensagem
+  // 15. Atualizar tokens na mensagem (status já definido pelo sendReply)
   await updateMessage(message.id, {
-    status: finalStatus,
     tokens_input: aiResponse.tokens_input,
     tokens_output: aiResponse.tokens_output,
-    processed_at: new Date().toISOString(),
-    replied_at: new Date().toISOString(),
   });
 
   if (finalStatus === 'pending_human') {
-    await updateConversation(conversation.id, { status: 'pending_human' });
+    // Conversation status já definido pelo sendReply, apenas logar
 
     // Log event - different reasons for different scenarios
     await logProcessingEvent({
@@ -986,6 +986,20 @@ async function processMessage(
 
   console.log(`[Processor] Message ${message.id} processed successfully`);
   return true; // Marked as processing at the beginning
+
+  } catch (creditError) {
+    // Rollback do crédito reservado que não foi utilizado com sucesso
+    console.error(`[Processor] Erro após reserva de crédito para msg ${message.id}, fazendo rollback:`, creditError);
+    try {
+      const released = await releaseCredit(user.id);
+      if (released) {
+        console.log(`[Processor] Crédito devolvido com sucesso para user ${user.id}`);
+      }
+    } catch (rollbackError) {
+      console.error(`[Processor] Falha ao devolver crédito para user ${user.id}:`, rollbackError);
+    }
+    throw creditError;
+  }
 }
 
 /**
@@ -996,8 +1010,10 @@ async function sendReply(
   conversation: Conversation,
   shop: Shop,
   replyText: string,
-  eventType: string
+  eventType: string,
+  statusOverride?: 'replied' | 'pending_human'
 ): Promise<void> {
+  const messageStatus = statusOverride || 'replied';
   // Build reply headers
   const replyHeaders = buildReplyHeaders(message.message_id, message.references_header);
   const replySubject = buildReplySubject(message.subject || '');
@@ -1043,14 +1059,14 @@ async function sendReply(
 
   // Update original message status
   await updateMessage(message.id, {
-    status: 'replied',
+    status: messageStatus,
     processed_at: new Date().toISOString(),
     replied_at: new Date().toISOString(),
   });
 
   // Update conversation
   await updateConversation(conversation.id, {
-    status: 'replied',
+    status: messageStatus,
     last_message_at: new Date().toISOString(),
   });
 
@@ -1068,6 +1084,11 @@ async function sendReply(
  * Encaminha email para suporte humano
  */
 async function forwardToHuman(shop: Shop, message: Message): Promise<void> {
+  if (!shop.support_email) {
+    console.warn(`[Processor] Shop ${shop.name || shop.id} não tem support_email configurado, não é possível encaminhar msg ${message.id}`);
+    return;
+  }
+
   const emailCredentials = await decryptEmailCredentials(shop);
   if (!emailCredentials) return;
 

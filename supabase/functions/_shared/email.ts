@@ -52,6 +52,7 @@ export interface IncomingEmail {
   has_attachments: boolean;
   attachment_count: number;
   images: EmailImage[]; // Imagens extraídas do email para análise visual
+  imap_uid?: number; // UID do IMAP para marcar como lido após salvar no DB
 }
 
 export interface OutgoingEmail {
@@ -557,11 +558,10 @@ export async function fetchUnreadEmails(
           has_attachments: decodedBody.hasAttachments,
           attachment_count: decodedBody.attachmentCount,
           images: limitedImages,
+          imap_uid: uid,
         });
 
-        // Marcar como lida
-        await client.markAsSeen(uid);
-        console.log(`Processada mensagem ${uid}: ${msg.envelope.subject}`);
+        console.log(`Fetched mensagem ${uid}: ${msg.envelope.subject}`);
       } catch (msgError) {
         console.error(`Erro ao processar mensagem ${uid}:`, msgError);
       }
@@ -571,6 +571,48 @@ export async function fetchUnreadEmails(
   }
 
   return emails;
+}
+
+/**
+ * Marca emails como lidos no IMAP após terem sido salvos no banco de dados.
+ * Deve ser chamada APÓS saveAndEnqueueEmail/saveIncomingEmail para evitar perda de emails.
+ *
+ * @param credentials - Credenciais de email
+ * @param uids - Lista de UIDs IMAP para marcar como lidos
+ */
+export async function markEmailsAsSeen(
+  credentials: EmailCredentials,
+  uids: number[]
+): Promise<void> {
+  if (uids.length === 0) return;
+
+  const client = new SimpleImapClient(
+    credentials.imap_host,
+    credentials.imap_port,
+    credentials.imap_user,
+    credentials.imap_password
+  );
+
+  try {
+    await client.connect();
+    await client.selectInbox();
+
+    for (const uid of uids) {
+      try {
+        await client.markAsSeen(uid);
+      } catch (err) {
+        console.error(`Erro ao marcar email ${uid} como lido:`, err);
+      }
+    }
+  } catch (err) {
+    console.error(`Erro ao conectar IMAP para marcar emails como lidos:`, err);
+  } finally {
+    try {
+      await client.logout();
+    } catch {
+      // Ignorar erro no logout
+    }
+  }
 }
 
 /**

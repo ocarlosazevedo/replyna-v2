@@ -26,6 +26,7 @@ import {
   getActiveShopsWithEmail,
   getUserById,
   tryReserveCredit,
+  releaseCredit,
   incrementEmailsUsed,  // Mantido para compatibilidade
   getOrCreateConversation,
   saveMessage,
@@ -44,6 +45,7 @@ import {
 import {
   decryptEmailCredentials,
   fetchUnreadEmails,
+  markEmailsAsSeen,
   sendEmail,
   buildReplyHeaders,
   buildReplySubject,
@@ -649,15 +651,26 @@ async function processShop(shop: Shop, globalStartTime: number): Promise<ShopSta
     throw error;
   }
 
-  // 3. Salvar emails no banco
+  // 3. Salvar emails no banco e marcar como lidos no IMAP após salvar
   const shopEmail = emailCredentials.smtp_user.toLowerCase();
+  const savedUids: number[] = [];
   for (const email of incomingEmails) {
     if (email.from_email.toLowerCase() === shopEmail) continue;
     try {
       await saveIncomingEmail(shop.id, email);
+      if (email.imap_uid) savedUids.push(email.imap_uid);
     } catch (error) {
       console.error(`[Shop ${shop.name}] Erro ao salvar email:`, error);
       stats.errors++;
+    }
+  }
+
+  // Marcar como lidos apenas emails salvos com sucesso
+  if (savedUids.length > 0) {
+    try {
+      await markEmailsAsSeen(emailCredentials, savedUids);
+    } catch (error) {
+      console.error(`[Shop ${shop.name}] Erro ao marcar emails como lidos:`, error);
     }
   }
 
@@ -680,10 +693,14 @@ async function processShop(shop: Shop, globalStartTime: number): Promise<ShopSta
         try {
           return await processMessage(shop, message, emailCredentials);
         } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : 'Erro';
           console.error(`[Shop ${shop.name}] Erro ao processar msg ${message.id}:`, error);
+          // Erros permanentes: email inválido, spam, vazio, sistema - marcar como failed
+          // Erros transitórios: timeout, rede, API - resetar para pending para reprocessar
+          const isPermanentError = /invalid|invalido|spam|vazio|sistema|remetente|forwarding notification/i.test(errorMsg);
           await updateMessage(message.id, {
-            status: 'failed',
-            error_message: error instanceof Error ? error.message : 'Erro',
+            status: isPermanentError ? 'failed' : 'pending',
+            error_message: errorMsg,
           });
           throw error;
         }
@@ -1146,6 +1163,9 @@ async function processMessageInternal(
     return 'pending_credits';
   }
 
+  // Envolver processamento pós-crédito em try/catch para rollback em caso de falha
+  try {
+
   // 3. Buscar histórico da conversa
   const history = await getConversationHistory(conversation.id, 10);
   const conversationHistory = history.map((m) => ({
@@ -1268,7 +1288,11 @@ async function processMessageInternal(
       classification.language
     );
     finalStatus = 'pending_human';
-    await forwardToHuman(shop, message, emailCredentials);
+    try {
+      await forwardToHuman(shop, message, emailCredentials);
+    } catch (fwdError) {
+      console.error(`[processMessage] Erro ao encaminhar para humano (msg ${message.id}), mas resposta ao cliente será enviada:`, fwdError);
+    }
   } else if (!shopifyData && needsOrderData) {
     // CORREÇÃO: Verificar se já temos número de pedido antes de pedir ao cliente
     const knownOrderNumber = conversation.shopify_order_id
@@ -1329,7 +1353,11 @@ async function processMessageInternal(
         classification.language
       );
       finalStatus = 'pending_human';
-      await forwardToHuman(shop, message, emailCredentials);
+      try {
+        await forwardToHuman(shop, message, emailCredentials);
+      } catch (fwdError) {
+        console.error(`[processMessage] Erro ao encaminhar para humano (msg ${message.id}), mas resposta ao cliente será enviada:`, fwdError);
+      }
     }
   }
 
@@ -1385,7 +1413,11 @@ async function processMessageInternal(
     // Se a IA detectou que é terceiro contato de cancelamento, encaminhar para humano
     if (responseResult.forward_to_human) {
       finalStatus = 'pending_human';
-      await forwardToHuman(shop, message, emailCredentials);
+      try {
+        await forwardToHuman(shop, message, emailCredentials);
+      } catch (fwdError) {
+        console.error(`[processMessage] Erro ao encaminhar para humano (msg ${message.id}), mas resposta ao cliente será enviada:`, fwdError);
+      }
     }
 
     // Limpar imagens do cache após processamento
@@ -1476,6 +1508,20 @@ async function processMessageInternal(
   });
 
   return finalStatus === 'pending_human' ? 'forwarded_human' : 'replied';
+
+  } catch (creditError) {
+    // Rollback do crédito reservado que não foi utilizado com sucesso
+    console.error(`[processMessage] Erro após reserva de crédito, fazendo rollback:`, creditError);
+    try {
+      const released = await releaseCredit(user.id);
+      if (released) {
+        console.log(`[processMessage] Crédito devolvido com sucesso para user ${user.id}`);
+      }
+    } catch (rollbackError) {
+      console.error(`[processMessage] Falha ao devolver crédito para user ${user.id}:`, rollbackError);
+    }
+    throw creditError; // Re-throw para o error handler externo tratar o status da mensagem
+  }
 }
 
 /**
@@ -1486,6 +1532,11 @@ async function forwardToHuman(
   message: Message,
   emailCredentials: NonNullable<Awaited<ReturnType<typeof decryptEmailCredentials>>>
 ): Promise<void> {
+  if (!shop.support_email) {
+    console.warn(`[forwardToHuman] Shop ${shop.name} não tem support_email configurado, não é possível encaminhar msg ${message.id}`);
+    return;
+  }
+
   const forwardSubject = `[ENCAMINHADO] ${message.subject || 'Sem assunto'} - De: ${message.from_email}`;
 
   const forwardBody = `

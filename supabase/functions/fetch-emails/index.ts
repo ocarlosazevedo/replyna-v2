@@ -27,7 +27,7 @@ import {
   getActiveShopsWithEmail,
   type Shop,
 } from '../_shared/supabase.ts';
-import { decryptEmailCredentials, fetchUnreadEmails } from '../_shared/email.ts';
+import { decryptEmailCredentials, fetchUnreadEmails, markEmailsAsSeen } from '../_shared/email.ts';
 
 // Configuration
 const MAX_CONCURRENT_SHOPS = 10; // Process 10 shops in parallel
@@ -222,14 +222,29 @@ async function processShop(shop: Shop, supabase: any): Promise<ShopResult> {
       return shopResult;
     }
 
-    // Process each email: save + enqueue
+    // Process each email: save + enqueue, then mark as seen in IMAP
+    const savedUids: number[] = [];
     for (const email of incomingEmails) {
       try {
         await saveAndEnqueueEmail(email, shop, supabase);
         shopResult.jobs_enqueued++;
+        // Apenas marcar como lido após salvar com sucesso no banco
+        if (email.imap_uid) savedUids.push(email.imap_uid);
       } catch (error: any) {
         console.error(`[Shop:${shop.name}] Failed to save/enqueue email ${email.message_id}:`, error.message);
         shopResult.errors++;
+        // NÃO adiciona o UID - email não salvo não deve ser marcado como lido
+      }
+    }
+
+    // Marcar como lidos apenas emails que foram salvos no banco com sucesso
+    if (savedUids.length > 0 && emailCredentials) {
+      try {
+        await markEmailsAsSeen(emailCredentials, savedUids);
+        console.log(`[Shop:${shop.name}] Marked ${savedUids.length} emails as seen in IMAP`);
+      } catch (error: any) {
+        // Não é crítico - a dedup por message_id protege contra reprocessamento
+        console.error(`[Shop:${shop.name}] Failed to mark emails as seen:`, error.message);
       }
     }
 
