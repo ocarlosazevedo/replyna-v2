@@ -255,10 +255,12 @@ async function getAccessToken(credentials: ShopifyCredentials): Promise<string> 
 
   if (!response.ok) {
     const error = await response.text();
+    console.error(`[Shopify Auth] Falha ao obter token para ${credentials.domain}: ${response.status} - ${error.substring(0, 200)}`);
     throw new Error(`Erro ao obter access token Shopify: ${response.status} - ${error}`);
   }
 
   const data = await response.json();
+  console.log(`[Shopify Auth] Token obtido com sucesso para ${credentials.domain}`);
   return data.access_token;
 }
 
@@ -272,7 +274,7 @@ async function shopifyRequest<T>(
   body?: unknown
 ): Promise<T> {
   const accessToken = await getAccessToken(credentials);
-  const url = `https://${credentials.domain}/admin/api/2024-01/${endpoint}`;
+  const url = `https://${credentials.domain}/admin/api/2025-01/${endpoint}`;
 
   const response = await fetch(url, {
     method,
@@ -285,6 +287,7 @@ async function shopifyRequest<T>(
 
   if (!response.ok) {
     const error = await response.text();
+    console.error(`[Shopify API] ${method} ${url} → ${response.status}: ${error.substring(0, 200)}`);
     throw new Error(`Erro na API Shopify: ${response.status} - ${error}`);
   }
 
@@ -293,21 +296,73 @@ async function shopifyRequest<T>(
 
 /**
  * Busca pedidos de um cliente pelo email
+ * Tenta primeiro pela API de orders com filtro email,
+ * depois fallback via customer search + orders do customer
  */
 export async function getOrdersByCustomerEmail(
   credentials: ShopifyCredentials,
   customerEmail: string,
   limit: number = 5
 ): Promise<ShopifyOrder[]> {
+  const normalizedEmail = customerEmail.trim().toLowerCase();
+  console.log(`[Shopify] Buscando pedidos para email: ${normalizedEmail}`);
+
+  // Tentativa 1: Busca direta por email na API de orders
   try {
     const data = await shopifyRequest<{ orders: ShopifyOrder[] }>(
       credentials,
-      `orders.json?email=${encodeURIComponent(customerEmail)}&status=any&limit=${limit}`
+      `orders.json?email=${encodeURIComponent(normalizedEmail)}&status=any&limit=${limit}`
     );
 
+    if (data.orders && data.orders.length > 0) {
+      console.log(`[Shopify] Encontrados ${data.orders.length} pedidos via orders?email=`);
+      return data.orders;
+    }
+    console.log(`[Shopify] Nenhum pedido encontrado via orders?email= para ${normalizedEmail}`);
+  } catch (error: any) {
+    console.error(`[Shopify] Erro na busca direta por email (${normalizedEmail}):`, error.message);
+  }
+
+  // Tentativa 2: Buscar cliente pelo email e depois seus pedidos
+  try {
+    console.log(`[Shopify] Tentando fallback via customer search para ${normalizedEmail}`);
+    const customer = await getCustomerByEmail(credentials, normalizedEmail);
+
+    if (customer) {
+      console.log(`[Shopify] Cliente encontrado: ${customer.first_name} ${customer.last_name} (ID: ${customer.id})`);
+      const customerOrders = await getOrdersByCustomerId(credentials, customer.id, limit);
+
+      if (customerOrders.length > 0) {
+        console.log(`[Shopify] Encontrados ${customerOrders.length} pedidos via customer ID ${customer.id}`);
+        return customerOrders;
+      }
+      console.log(`[Shopify] Cliente encontrado mas sem pedidos associados`);
+    } else {
+      console.log(`[Shopify] Nenhum cliente encontrado para email ${normalizedEmail}`);
+    }
+  } catch (error: any) {
+    console.error(`[Shopify] Erro no fallback via customer search (${normalizedEmail}):`, error.message);
+  }
+
+  return [];
+}
+
+/**
+ * Busca pedidos pelo ID do cliente no Shopify
+ */
+async function getOrdersByCustomerId(
+  credentials: ShopifyCredentials,
+  customerId: number,
+  limit: number = 5
+): Promise<ShopifyOrder[]> {
+  try {
+    const data = await shopifyRequest<{ orders: ShopifyOrder[] }>(
+      credentials,
+      `orders.json?customer_id=${customerId}&status=any&limit=${limit}`
+    );
     return data.orders || [];
-  } catch (error) {
-    console.error('Erro ao buscar pedidos por email:', error);
+  } catch (error: any) {
+    console.error(`[Shopify] Erro ao buscar pedidos por customer_id ${customerId}:`, error.message);
     return [];
   }
 }
@@ -394,14 +449,19 @@ export async function getCustomerByEmail(
   email: string
 ): Promise<ShopifyCustomer | null> {
   try {
+    const normalizedEmail = email.trim().toLowerCase();
     const data = await shopifyRequest<{ customers: ShopifyCustomer[] }>(
       credentials,
-      `customers/search.json?query=email:${encodeURIComponent(email)}&limit=1`
+      `customers/search.json?query=email:${encodeURIComponent(normalizedEmail)}&limit=1`
     );
 
-    return data.customers?.[0] || null;
-  } catch (error) {
-    console.error('Erro ao buscar cliente por email:', error);
+    const customer = data.customers?.[0] || null;
+    if (customer) {
+      console.log(`[Shopify] Cliente encontrado para ${normalizedEmail}: ${customer.first_name} ${customer.last_name} (${customer.orders_count} pedidos)`);
+    }
+    return customer;
+  } catch (error: any) {
+    console.error(`[Shopify] Erro ao buscar cliente por email (${email}):`, error.message);
     return null;
   }
 }
@@ -460,20 +520,26 @@ export async function getOrderDataForAI(
   customerEmail: string,
   orderNumberFromEmail?: string | null
 ): Promise<OrderSummary | null> {
+  console.log(`[getOrderDataForAI] email=${customerEmail}, orderNumber=${orderNumberFromEmail || 'none'}`);
+
   // Se tem número do pedido no email, buscar direto
   if (orderNumberFromEmail) {
     const order = await getOrderByNumber(credentials, orderNumberFromEmail);
     if (order) {
+      console.log(`[getOrderDataForAI] Pedido encontrado por número: ${order.name}`);
       return orderToSummary(order);
     }
+    console.log(`[getOrderDataForAI] Pedido não encontrado por número, tentando por email...`);
   }
 
-  // Buscar pelo email do cliente
+  // Buscar pelo email do cliente (inclui fallback via customer search)
   const orders = await getOrdersByCustomerEmail(credentials, customerEmail, 1);
   if (orders.length > 0) {
+    console.log(`[getOrderDataForAI] Pedido encontrado por email: ${orders[0].name}`);
     return orderToSummary(orders[0]);
   }
 
+  console.log(`[getOrderDataForAI] Nenhum pedido encontrado para email=${customerEmail}`);
   return null;
 }
 
