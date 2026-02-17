@@ -4056,7 +4056,8 @@ export async function generateDataRequestMessage(
   emailSubject: string,
   emailBody: string,
   attemptNumber: number,
-  language: string = 'en'
+  language: string = 'en',
+  emailAlreadySearched: boolean = true
 ): Promise<ResponseGenerationResult> {
   const toneInstructions: Record<string, string> = {
     professional:
@@ -4132,12 +4133,14 @@ REGRA CRÍTICA - IDENTIDADE (PRIORIDADE MÁXIMA):
 - NUNCA adicione "Assistente Virtual" ou similar na assinatura
 
 O cliente enviou um email mas não conseguimos localizar o pedido dele no sistema.
+${emailAlreadySearched ? 'IMPORTANTE: Já buscamos pelo email do cliente em nosso sistema e NÃO encontramos nenhum pedido associado. NÃO peça o email novamente - peça APENAS o número do pedido.' : ''}
 
 ANALISE A MENSAGEM DO CLIENTE PRIMEIRO:
 - Se o cliente diz "mesmo email", "same email", "this email", "email que uso", "estou usando" → NÃO peça o email novamente!
   → Em vez disso, diga: "Verificamos em nosso sistema mas não encontramos pedidos com seu email. Você recebeu confirmação de compra? O valor foi cobrado no cartão?"
 - Se o cliente menciona detalhes do pedido (produto, data, valor) mas não tem número → peça apenas o número do pedido
-- Se o cliente não forneceu nada → peça email ou número do pedido
+- Se o cliente já forneceu o email ou se já buscamos pelo email dele → peça APENAS o número do pedido e informe que não encontramos pedidos com o email dele
+- Se o cliente não forneceu nada E ainda não buscamos pelo email → peça email ou número do pedido
 
 REGRA CRÍTICA - NUNCA PEÇA TRACKING AO CLIENTE (PRIORIDADE ABSOLUTA):
 - O código de rastreio (tracking) é responsabilidade da LOJA, não do cliente
@@ -4166,7 +4169,7 @@ ${urgencyNote}`;
     [
       {
         role: 'user',
-        content: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}\n\nGere uma resposta pedindo APENAS o número do pedido (order number) ou email de compra. LEMBRETE: NUNCA peça tracking number, código de rastreio, ou link de rastreamento - peça SOMENTE order number ou email.${languageReminderFinal}`,
+        content: `ASSUNTO: ${emailSubject || '(sem assunto)'}\n\n${emailBody}\n\n${emailAlreadySearched ? 'CONTEXTO: Já buscamos pelo email do cliente no sistema e NÃO encontramos pedidos. Gere uma resposta informando que não encontramos pedidos com o email dele e pedindo APENAS o número do pedido (order number). NÃO peça o email novamente.' : 'Gere uma resposta pedindo APENAS o número do pedido (order number) ou email de compra.'} LEMBRETE: NUNCA peça tracking number, código de rastreio, ou link de rastreamento - peça SOMENTE order number${emailAlreadySearched ? '' : ' ou email'}.${languageReminderFinal}`,
       },
     ],
     200
