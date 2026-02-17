@@ -44,6 +44,56 @@ function parseShopifyError(responseText: string, statusCode: number): string {
   return responseText || `Erro desconhecido (${statusCode})`
 }
 
+/**
+ * Tenta obter access token via Client Credentials Grant
+ * Tenta primeiro com application/json, depois com x-www-form-urlencoded
+ */
+async function getAccessToken(domain: string, clientId: string, clientSecret: string): Promise<{ token?: string; error?: string }> {
+  const tokenUrl = `https://${domain}/admin/oauth/access_token`
+
+  // Tentativa 1: JSON (mesmo formato usado no shopify.ts das Edge Functions)
+  const jsonResponse = await fetch(tokenUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  })
+
+  if (jsonResponse.ok) {
+    try {
+      const data = await jsonResponse.json()
+      if (data.access_token) return { token: data.access_token }
+    } catch { /* fall through */ }
+  }
+
+  // Tentativa 2: x-www-form-urlencoded (formato alternativo)
+  const formResponse = await fetch(tokenUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+    }).toString(),
+  })
+
+  const responseText = await formResponse.text()
+
+  if (!formResponse.ok) {
+    return { error: parseShopifyError(responseText, formResponse.status) }
+  }
+
+  try {
+    const data = JSON.parse(responseText)
+    if (data.access_token) return { token: data.access_token }
+  } catch { /* fall through */ }
+
+  return { error: 'Não foi possível obter o access token. Verifique se o app foi instalado na loja.' }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -76,68 +126,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       domain = `${domain}.myshopify.com`
     }
 
-    // Step 1: Get access token using Client Credentials Grant (Shopify 2026 flow)
-    const tokenUrl = `https://${domain}/admin/oauth/access_token`
+    // Step 1: Get access token
+    const tokenResult = await getAccessToken(domain, config.shopify_client_id, config.shopify_client_secret)
 
-    const tokenResponse = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: config.shopify_client_id,
-        client_secret: config.shopify_client_secret,
-      }).toString(),
-    })
-
-    const tokenResponseText = await tokenResponse.text()
-
-    if (!tokenResponse.ok) {
-      const errorMessage = parseShopifyError(tokenResponseText, tokenResponse.status)
-
-      // Provide helpful guidance based on error
-      let helpText = ''
-      if (tokenResponse.status === 400 || tokenResponseText.includes('invalid_request')) {
-        helpText = '\n\nPossíveis soluções:\n' +
-          '1. Verifique se o app foi instalado na loja (Release → Install)\n' +
-          '2. Confirme que o Client ID e Secret estão corretos\n' +
-          '3. Verifique se os escopos foram configurados corretamente'
-      }
+    if (!tokenResult.token) {
+      const helpText = '\n\nComo resolver:\n' +
+        '1. No Shopify Admin, vá em Settings > Apps and sales channels > Develop apps\n' +
+        '2. Clique no seu app e depois em "Install app" (botão verde no topo)\n' +
+        '3. Confirme que o Client ID e Client Secret estão corretos (copie novamente)\n' +
+        '4. Verifique se os escopos read_orders e read_customers estão habilitados'
 
       return res.status(400).json({
         success: false,
-        error: errorMessage + helpText
-      })
-    }
-
-    // Try to parse token response
-    let tokenData
-    try {
-      tokenData = JSON.parse(tokenResponseText)
-    } catch {
-      return res.status(400).json({
-        success: false,
-        error: 'Resposta inválida do Shopify ao obter token. Verifique as credenciais.'
-      })
-    }
-
-    const accessToken = tokenData.access_token
-
-    if (!accessToken) {
-      return res.status(400).json({
-        success: false,
-        error: 'Não foi possível obter o access token. Verifique se o app foi instalado na loja.'
+        error: (tokenResult.error || 'Falha ao obter token de acesso') + helpText
       })
     }
 
     // Step 2: Test the connection by making a simple API call
-    const apiUrl = `https://${domain}/admin/api/2024-01/shop.json`
+    const apiUrl = `https://${domain}/admin/api/2025-01/shop.json`
 
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
-        'X-Shopify-Access-Token': accessToken,
+        'X-Shopify-Access-Token': tokenResult.token,
         'Content-Type': 'application/json',
       },
     })
