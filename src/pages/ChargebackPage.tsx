@@ -224,7 +224,7 @@ const getLandingUrl = (path: string) => {
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return path
   }
-  return `https://replyna.me${path}`
+  return `https://www.replyna.me${path}`
 }
 
 function GlossaryLink({ id, children }: { id: string; children: ReactNode }) {
@@ -377,7 +377,7 @@ export default function ChargebackPage() {
       canonical.rel = 'canonical'
       document.head.appendChild(canonical)
     }
-    canonical.href = 'https://replyna.me/chargeback'
+    canonical.href = 'https://www.replyna.me/chargeback'
     canonical.dataset.chargeback = 'true'
 
     return () => {
@@ -1557,7 +1557,7 @@ export default function ChargebackPage() {
               Entrar
             </a>
             <a
-              href="https://replyna.me/#precos"
+              href="https://www.replyna.me/#precos"
               className="lp-btn-primary"
               style={{
                 color: '#ffffff',
@@ -1708,7 +1708,7 @@ export default function ChargebackPage() {
           </nav>
 
           <a
-            href="https://replyna.me/#precos"
+            href="https://www.replyna.me/#precos"
             className="lp-btn-primary"
             style={{
               color: '#ffffff',
@@ -1989,7 +1989,7 @@ export default function ChargebackPage() {
                   }}
                 >
                   <a
-                    href="https://replyna.me/#como-funciona"
+                    href="https://www.replyna.me/#como-funciona"
                     className="lp-btn-secondary"
                     style={{
                       color: '#fff',

@@ -14,4 +14,4 @@ Disallow: /migrate
 Disallow: /auth
 Disallow: /admin
 
-Sitemap: https://replyna.me/sitemap.xml
+Sitemap: https://www.replyna.me/sitemap.xml
