@@ -113,7 +113,9 @@ export default function ShopSetup() {
   const [testingShopify, setTestingShopify] = useState(false)
   const [shopifyTestResult, setShopifyTestResult] = useState<'success' | 'error' | null>(null)
   const [oauthRequired, setOauthRequired] = useState(false)
+  const [oauthAvailable, setOauthAvailable] = useState(false)
   const [oauthRedirecting, setOauthRedirecting] = useState(false)
+  const [shopifyMethod, setShopifyMethod] = useState<'custom_app' | 'distribution'>('custom_app')
   const [emailProvider, setEmailProvider] = useState('')
 
   // Email providers configuration
@@ -260,7 +262,11 @@ export default function ShopSetup() {
           }
           // Require successful connection test (or successful OAuth callback)
           if (shopifyTestResult !== 'success') {
-            setError('Você precisa testar e validar a conexão com o Shopify antes de continuar.')
+            if (shopifyMethod === 'distribution') {
+              setError('Você precisa autorizar a conexão com o Shopify via OAuth antes de continuar.')
+            } else {
+              setError('Você precisa testar e validar a conexão com o Shopify antes de continuar.')
+            }
             return false
           }
         }
@@ -472,6 +478,7 @@ export default function ShopSetup() {
     setShopifyTestResult(null)
     setShopifyTestError('')
     setOauthRequired(false)
+    setOauthAvailable(false)
 
     try {
       const response = await fetch('/api/test-shopify', {
@@ -495,6 +502,10 @@ export default function ShopSetup() {
           setShopifyTestError('Este app requer autorização OAuth. Clique no botão abaixo para autorizar.')
         } else {
           setShopifyTestError(data.error || 'Falha na conexão')
+          // Show OAuth as fallback option even if not auto-detected
+          if (data.oauth_available) {
+            setOauthAvailable(true)
+          }
         }
       }
     } catch (err) {
@@ -839,102 +850,230 @@ export default function ShopSetup() {
           Integração Shopify
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
-          Conecte sua loja Shopify via Custom App (Dev Dashboard)
+          Conecte sua loja Shopify para buscar pedidos e dados de clientes
         </p>
         <TutorialLink />
       </div>
 
-      {/* How to get credentials - estilo do print */}
-      <div style={{
-        backgroundColor: 'var(--bg-primary)',
-        padding: '20px',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <div style={{
-            width: '20px',
-            height: '20px',
-            borderRadius: '50%',
-            border: '2px solid var(--accent)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '12px',
-            color: 'var(--accent)',
-            fontWeight: '700'
-          }}>i</div>
-          <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--accent)' }}>
-            Como obter as credenciais
-          </span>
+      {/* Method Selector */}
+      <div>
+        <label style={{ ...labelStyle, marginBottom: '12px' }}>Tipo de integração</label>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
+          <button
+            onClick={() => {
+              setShopifyMethod('custom_app')
+              setShopifyTestResult(null)
+              setShopifyTestError('')
+              setOauthRequired(false)
+              setOauthAvailable(false)
+            }}
+            style={{
+              padding: '16px',
+              borderRadius: '12px',
+              border: shopifyMethod === 'custom_app'
+                ? '2px solid var(--accent)'
+                : '1px solid var(--border-color)',
+              backgroundColor: shopifyMethod === 'custom_app'
+                ? 'rgba(70, 114, 236, 0.08)'
+                : 'var(--bg-card)',
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+              Custom App
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Crie seu próprio app no painel de desenvolvedor Shopify
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              setShopifyMethod('distribution')
+              setShopifyTestResult(null)
+              setShopifyTestError('')
+              setOauthRequired(false)
+              setOauthAvailable(false)
+            }}
+            style={{
+              padding: '16px',
+              borderRadius: '12px',
+              border: shopifyMethod === 'distribution'
+                ? '2px solid var(--accent)'
+                : '1px solid var(--border-color)',
+              backgroundColor: shopifyMethod === 'distribution'
+                ? 'rgba(70, 114, 236, 0.08)'
+                : 'var(--bg-card)',
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+              App por Link de Distribuição
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              App instalado via link de distribuição (unlisted app)
+            </div>
+          </button>
         </div>
+      </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '14px', color: 'var(--text-primary)' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <span style={{ color: 'var(--accent)' }}>→</span>
-            <span>Acesse o <a href="https://admin.shopify.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '600' }}>Admin da Shopify</a> e vá em <strong>Settings</strong> → <strong>Apps and sales channels</strong> → <strong>Develop apps</strong></span>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <span style={{ color: 'var(--accent)' }}>→</span>
-            <span>Clique em <strong>Create an app</strong></span>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-            <span style={{ color: 'var(--accent)' }}>→</span>
-            <span>Em <strong>App URL</strong>, adicione: <code
-              onClick={() => copyToClipboard('https://app.replyna.me', 'URL copiada!')}
-              style={{
-                backgroundColor: 'rgba(70, 114, 236, 0.15)',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '13px'
-              }}>https://app.replyna.me</code></span>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginLeft: '20px' }}>
-            <span style={{ color: '#ef4444' }}>⚠</span>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-              <strong>Não</strong> marque a opção "Embed app in Shopify admin" abaixo de App URL
+      {/* Instructions for Custom App */}
+      {shopifyMethod === 'custom_app' && (
+        <div style={{
+          backgroundColor: 'var(--bg-primary)',
+          padding: '20px',
+          borderRadius: '12px',
+          border: '1px solid var(--border-color)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              border: '2px solid var(--accent)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              color: 'var(--accent)',
+              fontWeight: '700'
+            }}>i</div>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--accent)' }}>
+              Como obter as credenciais
             </span>
           </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-            <span style={{ color: 'var(--accent)' }}>→</span>
-            <div>
-              <span>Em <strong>Scopes</strong>, adicione: </span>
-              <code
-                onClick={() => copyToClipboard('read_orders, read_products, read_customers, read_inventory, read_fulfillments', 'Escopos copiados!')}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '14px', color: 'var(--text-primary)' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <span style={{ color: 'var(--accent)' }}>→</span>
+              <span>Acesse o <a href="https://admin.shopify.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '600' }}>Admin da Shopify</a> e vá em <strong>Settings</strong> → <strong>Apps and sales channels</strong> → <strong>Develop apps</strong></span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <span style={{ color: 'var(--accent)' }}>→</span>
+              <span>Clique em <strong>Create an app</strong></span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <span style={{ color: 'var(--accent)' }}>→</span>
+              <span>Em <strong>App URL</strong>, adicione: <code
+                onClick={() => copyToClipboard('https://app.replyna.me', 'URL copiada!')}
                 style={{
                   backgroundColor: 'rgba(70, 114, 236, 0.15)',
                   padding: '2px 8px',
                   borderRadius: '4px',
                   cursor: 'pointer',
-                  fontSize: '13px',
-                  display: 'inline-block',
-                  marginTop: '4px'
-                }}>read_orders, read_products, read_customers, read_inventory, read_fulfillments</code>
+                  fontSize: '13px'
+                }}>https://app.replyna.me</code></span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginLeft: '20px' }}>
+              <span style={{ color: '#ef4444' }}>⚠</span>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+                <strong>Não</strong> marque a opção "Embed app in Shopify admin" abaixo de App URL
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <span style={{ color: 'var(--accent)' }}>→</span>
+              <div>
+                <span>Em <strong>Scopes</strong>, adicione: </span>
+                <code
+                  onClick={() => copyToClipboard('read_orders, read_products, read_customers, read_inventory, read_fulfillments', 'Escopos copiados!')}
+                  style={{
+                    backgroundColor: 'rgba(70, 114, 236, 0.15)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    display: 'inline-block',
+                    marginTop: '4px'
+                  }}>read_orders, read_products, read_customers, read_inventory, read_fulfillments</code>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <span style={{ color: 'var(--accent)' }}>→</span>
+              <span>Em <strong>Redirect URLs</strong>, adicione: <code
+                onClick={() => copyToClipboard('https://app.replyna.me/api/shopify-callback', 'URL copiada!')}
+                style={{
+                  backgroundColor: 'rgba(70, 114, 236, 0.15)',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '13px'
+                }}>https://app.replyna.me/api/shopify-callback</code></span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <span style={{ color: 'var(--accent)' }}>→</span>
+              <span>Clique em <strong>Save</strong> e depois <strong>Install app</strong></span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <span style={{ color: 'var(--accent)' }}>→</span>
+              <span>Copie o <strong>Client ID</strong> e <strong>Client Secret</strong> em Settings</span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-            <span style={{ color: 'var(--accent)' }}>→</span>
-            <span>Em <strong>Redirect URLs</strong>, adicione: <code
-              onClick={() => copyToClipboard('https://app.replyna.me/api/shopify-callback', 'URL copiada!')}
-              style={{
-                backgroundColor: 'rgba(70, 114, 236, 0.15)',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '13px'
-              }}>https://app.replyna.me/api/shopify-callback</code></span>
+        </div>
+      )}
+
+      {/* Instructions for Distribution Link */}
+      {shopifyMethod === 'distribution' && (
+        <div style={{
+          backgroundColor: 'var(--bg-primary)',
+          padding: '20px',
+          borderRadius: '12px',
+          border: '1px solid var(--border-color)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              border: '2px solid var(--accent)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              color: 'var(--accent)',
+              fontWeight: '700'
+            }}>i</div>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--accent)' }}>
+              App por link de distribuição
+            </span>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <span style={{ color: 'var(--accent)' }}>→</span>
-            <span>Clique em <strong>Save</strong> e depois <strong>Install app</strong></span>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '14px', color: 'var(--text-primary)' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <span style={{ color: 'var(--accent)' }}>→</span>
+              <span>Insira as credenciais (<strong>Client ID</strong> e <strong>Client Secret</strong>) fornecidas pelo desenvolvedor do app</span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <span style={{ color: 'var(--accent)' }}>→</span>
+              <span>Informe o <strong>domínio</strong> da sua loja Shopify</span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <span style={{ color: 'var(--accent)' }}>→</span>
+              <span>Clique em <strong>Autorizar via Shopify</strong> para conectar o app à sua loja</span>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <span style={{ color: 'var(--accent)' }}>→</span>
-            <span>Copie o <strong>Client ID</strong> e <strong>Client Secret</strong> em Settings</span>
+
+          <div style={{
+            backgroundColor: 'rgba(70, 114, 236, 0.08)',
+            padding: '12px 16px',
+            borderRadius: '10px',
+            marginTop: '16px',
+            border: '1px solid rgba(70, 114, 236, 0.15)'
+          }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: 0, lineHeight: '1.5' }}>
+              <strong>Importante:</strong> O app deve ter a URL de redirecionamento <code
+                onClick={() => copyToClipboard('https://app.replyna.me/api/shopify-callback', 'URL copiada!')}
+                style={{
+                  backgroundColor: 'rgba(70, 114, 236, 0.15)',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}>https://app.replyna.me/api/shopify-callback</code> configurada nas Redirect URLs.
+            </p>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Store Domain */}
       <div>
@@ -972,7 +1111,7 @@ export default function ShopSetup() {
             value={shopData.shopify_client_secret}
             onChange={(e) => updateField('shopify_client_secret', e.target.value)}
             style={{ ...inputStyle, paddingRight: '48px' }}
-            placeholder="Ex: shpss_xxxxxxxxxxxxxxxxxxxxx"
+            placeholder={shopifyMethod === 'distribution' ? 'Client Secret do app de distribuição' : 'Ex: shpss_xxxxxxxxxxxxxxxxxxxxx'}
           />
           <button
             type="button"
@@ -991,12 +1130,48 @@ export default function ShopSetup() {
             {showShopifyToken ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-          Começa com shpss_
-        </p>
+        {shopifyMethod === 'custom_app' && (
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+            Começa com shpss_
+          </p>
+        )}
       </div>
 
-      {shopData.shopify_domain && shopData.shopify_client_id && shopData.shopify_client_secret && (
+      {/* Distribution Link: show OAuth button directly */}
+      {shopifyMethod === 'distribution' && shopData.shopify_domain && shopData.shopify_client_id && shopData.shopify_client_secret && (
+        <div>
+          {shopifyTestResult === 'success' ? (
+            <p style={{ color: '#22c55e', fontSize: '14px', fontWeight: '600' }}>
+              Conexão autorizada com sucesso via OAuth!
+            </p>
+          ) : (
+            <div style={{
+              backgroundColor: 'rgba(70, 114, 236, 0.08)',
+              border: '1px solid rgba(70, 114, 236, 0.2)',
+              borderRadius: '12px',
+              padding: '16px',
+            }}>
+              <p style={{ fontSize: '14px', color: 'var(--text-primary)', margin: '0 0 12px 0' }}>
+                Apps de distribuição requerem autorização direta na loja Shopify.
+                Clique abaixo para autorizar a conexão.
+              </p>
+              <button
+                onClick={startOAuthFlow}
+                disabled={oauthRedirecting}
+                style={{
+                  ...buttonPrimary,
+                  opacity: oauthRedirecting ? 0.7 : 1,
+                }}
+              >
+                {oauthRedirecting ? 'Redirecionando...' : 'Autorizar via Shopify'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Custom App: show test connection button and OAuth fallback */}
+      {shopifyMethod === 'custom_app' && shopData.shopify_domain && shopData.shopify_client_id && shopData.shopify_client_secret && (
         <div>
           <button
             onClick={testShopifyConnection}
@@ -1014,9 +1189,36 @@ export default function ShopSetup() {
             </p>
           )}
           {shopifyTestResult === 'error' && !oauthRequired && (
-            <p style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>
-              {shopifyTestError || 'Falha na conexão. Verifique as credenciais.'}
-            </p>
+            <div>
+              <p style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>
+                {shopifyTestError || 'Falha na conexão. Verifique as credenciais.'}
+              </p>
+              {/* Show OAuth fallback suggestion */}
+              {oauthAvailable && (
+                <div style={{
+                  marginTop: '12px',
+                  backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid rgba(245, 158, 11, 0.2)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                }}>
+                  <p style={{ fontSize: '14px', color: 'var(--text-primary)', margin: '0 0 12px 0' }}>
+                    <strong>Este app pode ser um app de distribuição.</strong> Se você recebeu este app
+                    via link de distribuição, tente autorizar via OAuth ou selecione "App por Link de Distribuição" acima.
+                  </p>
+                  <button
+                    onClick={startOAuthFlow}
+                    disabled={oauthRedirecting}
+                    style={{
+                      ...buttonPrimary,
+                      opacity: oauthRedirecting ? 0.7 : 1,
+                    }}
+                  >
+                    {oauthRedirecting ? 'Redirecionando...' : 'Tentar autorizar via OAuth'}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           {oauthRequired && (
             <div style={{
