@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     // POST - Aceitar convite e criar assinatura no Asaas
     if (req.method === 'POST') {
       const body = await req.json();
-      const { code, user_email, user_name } = body;
+      const { code, user_email, user_name, whatsapp_number } = body;
 
       if (!code || !user_email) {
         return new Response(
@@ -169,6 +169,7 @@ Deno.serve(async (req) => {
         customer = await createCustomer({
           name: user_name || invite.customer_name || user_email,
           email: user_email,
+          mobilePhone: whatsapp_number,
         });
       }
 

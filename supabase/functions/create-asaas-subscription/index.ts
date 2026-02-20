@@ -137,7 +137,7 @@ serve(async (req) => {
       customer = await createCustomer({
         name: user_name || user_email,
         email: user_email,
-        mobilePhone: whatsapp_number || undefined,
+        mobilePhone: whatsapp_number,
       });
     }
 
