@@ -56,6 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           LASTNAME: '',
           NOME: cleanName
         },
+        listIds: [4],
         updateEnabled: true
       })
     })
@@ -70,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const error = await response.json()
 
       if (error.code === 'duplicate_parameter') {
-        // Contato já existe, atualizar atributos
+        // Contato já existe, atualizar atributos e adicionar à lista
         await fetch(`https://api.brevo.com/v3/contacts/${encodeURIComponent(cleanEmail)}`, {
           method: 'PUT',
           headers: {
@@ -83,7 +84,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               FIRSTNAME: cleanName,
               LASTNAME: '',
               NOME: cleanName
-            }
+            },
+            listIds: [4]
           })
         })
         return res.status(200).json({ success: true, message: 'Lead atualizado' })
