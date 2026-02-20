@@ -564,6 +564,7 @@ export default function ShopSetup() {
           shop_id: savedShopId,
           shopify_domain: shopData.shopify_domain,
           shopify_client_id: shopData.shopify_client_id,
+          shopify_method: shopifyMethod,
         }),
       })
 
