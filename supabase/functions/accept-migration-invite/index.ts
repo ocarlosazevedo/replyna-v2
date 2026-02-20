@@ -163,13 +163,18 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Limpar telefone: remover +55, parênteses, espaços, traços
+      const cleanPhone = (whatsapp_number || '')
+        .replace(/^\+?55\s?/, '')
+        .replace(/[\s\-\(\)]/g, '');
+
       // Criar/buscar customer Asaas
       let customer = await getCustomerByEmail(user_email);
       if (!customer) {
         customer = await createCustomer({
           name: user_name || invite.customer_name || user_email,
           email: user_email,
-          mobilePhone: whatsapp_number,
+          mobilePhone: cleanPhone || undefined,
         });
       }
 
