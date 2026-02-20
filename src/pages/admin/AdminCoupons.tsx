@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Plus, Edit2, Trash2, Tag, Percent, DollarSign, Calendar, RefreshCw, Check } from 'lucide-react'
+import { Plus, Edit2, Trash2, Tag, Percent, DollarSign, Calendar, RefreshCw } from 'lucide-react'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -132,8 +132,6 @@ export default function AdminCoupons() {
         is_active: formData.is_active,
       }
 
-      let couponId: string
-
       if (editingCoupon) {
         const { error } = await supabase
           .from('coupons')
@@ -141,7 +139,6 @@ export default function AdminCoupons() {
           .eq('id', editingCoupon.id)
 
         if (error) throw error
-        couponId = editingCoupon.id
       } else {
         const { data, error } = await supabase
           .from('coupons')
@@ -150,7 +147,9 @@ export default function AdminCoupons() {
           .single()
 
         if (error) throw error
-        couponId = data.id
+        if (!data?.id) {
+          throw new Error('Erro ao criar cupom: ID não retornado')
+        }
       }
 
       setShowModal(false)
