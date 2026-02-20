@@ -229,7 +229,7 @@ export default function MasterclassWatch() {
               <ChevronRight size={18} />
             </a>
             <p className="mcw-cta-coupon">
-              Cupom <strong>MASTERCLASS20</strong> = 20% off
+              Cupom <strong>LIVE30</strong> = 30% off
             </p>
           </div>
         </main>
@@ -266,7 +266,7 @@ export default function MasterclassWatch() {
               <ChevronRight size={18} />
             </a>
             <p className="mcw-cta-coupon">
-              Cupom <strong>MASTERCLASS20</strong> = 20% off
+              Cupom <strong>LIVE30</strong> = 30% off
             </p>
           </div>
         </aside>
