@@ -163,10 +163,15 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Limpar telefone: remover +55, parênteses, espaços, traços
-      const cleanPhone = (whatsapp_number || '')
-        .replace(/^\+?55\s?/, '')
-        .replace(/[\s\-\(\)]/g, '');
+      // Limpar telefone: remover caracteres e codigo do pais (fica apenas DDD + numero)
+      const digitsOnly = (whatsapp_number || '').replace(/\D/g, '');
+      let cleanPhone = digitsOnly;
+      if (digitsOnly.length > 11) {
+        const candidates = [3, 2, 1]
+          .map(prefix => digitsOnly.slice(prefix))
+          .filter(value => value.length === 10 || value.length === 11);
+        cleanPhone = candidates[0] || digitsOnly.slice(-11);
+      }
 
       // Criar/buscar customer Asaas
       let customer = await getCustomerByEmail(user_email);
