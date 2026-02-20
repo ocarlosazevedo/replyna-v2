@@ -579,6 +579,9 @@ export default function Masterclass() {
       <section className="mc-block2 mc-fade-in">
         <div className="mc-block2-glow" />
         <div className="mc-block2-inner">
+          <div className="mc-block2-shopify-icon">
+            <ShoppingBag size={32} />
+          </div>
           <div className="mc-block2-badge">
             <Shield size={14} />
             <span>PROTEÇÃO MÁXIMA</span>
@@ -1506,9 +1509,49 @@ const styles = `
     padding: 80px 20px 60px;
     text-align: center;
     overflow: hidden;
-    background: linear-gradient(180deg, #050a18 0%, #0c1a33 40%, #0a1628 100%);
-    border-top: 1px solid rgba(30,144,255,0.08);
-    border-bottom: 1px solid rgba(30,144,255,0.08);
+  }
+  .mc-block2-shopify-icon {
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #96bf48 0%, #5e8e3e 100%);
+    box-shadow: 0 0 30px rgba(150,191,72,0.3), 0 0 60px rgba(150,191,72,0.1);
+    margin-bottom: 28px;
+    position: relative;
+    animation: shopifyFloat 3s ease-in-out infinite;
+  }
+  .mc-block2-shopify-icon::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(150,191,72,0.4), rgba(94,142,62,0.2));
+    z-index: -1;
+    animation: shopifyPulse 2s ease-in-out infinite;
+  }
+  .mc-block2-shopify-icon::after {
+    content: '';
+    position: absolute;
+    inset: -12px;
+    border-radius: 28px;
+    border: 1px solid rgba(150,191,72,0.15);
+    animation: shopifyRing 3s ease-in-out infinite;
+  }
+  .mc-block2-shopify-icon svg { color: #fff; }
+  @keyframes shopifyFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  @keyframes shopifyPulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.08); }
+  }
+  @keyframes shopifyRing {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.12); }
   }
   .mc-block2-glow {
     position: absolute;
