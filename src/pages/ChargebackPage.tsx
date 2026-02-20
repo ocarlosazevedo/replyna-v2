@@ -37,7 +37,7 @@ const glossaryItems = [
     id: 'glossario-gateway',
     term: 'Gateway de pagamento',
     definition:
-      'Processador que faz a intermediação entre a loja, o banco do cliente e o banco do lojista. Exemplos: Shopify Payments, Stripe, PayPal. É o gateway que debita o valor do chargeback da conta do lojista.',
+      'Processador que faz a intermediação entre a loja, o banco do cliente e o banco do lojista. Exemplos: Shopify Payments, Stripe, Asaas, PayPal. É o gateway que debita o valor do chargeback da conta do lojista.',
   },
   {
     id: 'glossario-friendly-fraud',

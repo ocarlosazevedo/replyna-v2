@@ -308,7 +308,7 @@ export default function AdminMigration() {
           <li>Copie e envie o link de convite para o cliente</li>
           <li>O cliente acessa o link, cria a conta e adiciona o cartão</li>
           <li>O cliente usa o sistema normalmente até a data de início da cobrança</li>
-          <li>Na data definida, o Stripe cobra automaticamente</li>
+          <li>Na data definida, o Asaas cobra automaticamente</li>
         </ol>
       </div>
 

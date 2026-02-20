@@ -1006,6 +1006,7 @@ async function processMessageInternal(
     // Outros sistemas
     '@paypal.com',
     '@stripe.com',
+    '@asaas.com.br',
   ];
 
   // Verificar se é outro tipo de email de sistema (não Shopify, já tratado acima)

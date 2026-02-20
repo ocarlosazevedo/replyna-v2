@@ -45,7 +45,7 @@ serve(async (req) => {
         .order('sort_order'),
       supabase
         .from('subscriptions')
-        .select('user_id, stripe_subscription_id, status, current_period_end'),
+        .select('user_id, asaas_subscription_id, status, current_period_end'),
     ]);
 
     if (usersResult.error) {
@@ -75,7 +75,7 @@ serve(async (req) => {
 
     // Agrupar subscriptions por usuário
     const subscriptionsByUser: Record<string, {
-      stripe_subscription_id: string;
+      asaas_subscription_id: string;
       status: string;
       current_period_end: string;
     }> = {};
@@ -98,7 +98,7 @@ serve(async (req) => {
       // Só sobrescrever se a nova subscription tem status de maior prioridade
       if (newPriority < existingPriority) {
         subscriptionsByUser[sub.user_id] = {
-          stripe_subscription_id: sub.stripe_subscription_id,
+          asaas_subscription_id: sub.asaas_subscription_id,
           status: sub.status,
           current_period_end: sub.current_period_end,
         };

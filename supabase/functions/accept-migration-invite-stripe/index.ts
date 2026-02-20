@@ -1,21 +1,17 @@
 /**
- * Edge Function: Accept Migration Invite (Asaas)
+ * Edge Function: Accept Migration Invite
  *
- * GET - valida convite
- * POST - cria assinatura no Asaas com nextDueDate futuro
+ * Valida o código de convite e cria sessão de checkout com trial
+ * até a data de início da cobrança.
+ *
+ * GET - Valida o código e retorna dados do convite
+ * POST - Aceita o convite e cria checkout session
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
+import Stripe from 'https://esm.sh/stripe@20.2.0?target=deno';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { isValidEmail } from '../_shared/validation.ts';
-import { createCustomer, getCustomerByEmail, createSubscription, getPaymentsBySubscription } from '../_shared/asaas.ts';
-
-function formatDateYYYYMMDD(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('origin');
@@ -28,6 +24,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -36,36 +33,46 @@ Deno.serve(async (req) => {
       },
     });
 
-    // GET - Validar codigo e retornar dados do convite
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
+    });
+
+    // GET - Validar código e retornar dados do convite
     if (req.method === 'GET') {
       const url = new URL(req.url);
       const code = url.searchParams.get('code');
 
       if (!code) {
         return new Response(
-          JSON.stringify({ error: 'Codigo do convite e obrigatorio' }),
+          JSON.stringify({ error: 'Código do convite é obrigatório' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
+      // Buscar convite
       const { data: invite, error } = await supabase
         .from('migration_invites')
-        .select(`*, plan:plans(id, name, price_monthly, shops_limit, emails_limit)`)
+        .select(`
+          *,
+          plan:plans(id, name, price_monthly, shops_limit, emails_limit)
+        `)
         .eq('code', code.toUpperCase())
         .single();
 
       if (error || !invite) {
         return new Response(
-          JSON.stringify({ error: 'Convite nao encontrado', valid: false }),
+          JSON.stringify({ error: 'Convite não encontrado', valid: false }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
+      // Verificar status
       if (invite.status !== 'pending') {
         return new Response(
           JSON.stringify({
             error: invite.status === 'accepted'
-              ? 'Este convite ja foi utilizado'
+              ? 'Este convite já foi utilizado'
               : invite.status === 'expired'
                 ? 'Este convite expirou'
                 : 'Este convite foi cancelado',
@@ -76,7 +83,9 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Verificar expiração
       if (new Date(invite.expires_at) < new Date()) {
+        // Atualizar status para expirado
         await supabase
           .from('migration_invites')
           .update({ status: 'expired' })
@@ -88,10 +97,14 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Calcular dias de trial (diferença em dias completos usando UTC)
       const billingDate = new Date(invite.billing_start_date);
       const todayUTC = new Date();
+
+      // Extrair apenas ano, mês, dia em UTC
       const billingUTC = Date.UTC(billingDate.getUTCFullYear(), billingDate.getUTCMonth(), billingDate.getUTCDate());
       const nowUTC = Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate());
+
       const trialDays = Math.max(0, Math.floor((billingUTC - nowUTC) / (1000 * 60 * 60 * 24)));
 
       return new Response(
@@ -110,39 +123,45 @@ Deno.serve(async (req) => {
       );
     }
 
-    // POST - Aceitar convite e criar assinatura no Asaas
+    // POST - Aceitar convite e criar checkout session
     if (req.method === 'POST') {
       const body = await req.json();
-      const { code, user_email, user_name } = body;
+      const { code, user_email, user_name, success_url, cancel_url } = body;
 
-      if (!code || !user_email) {
+      if (!code || !user_email || !success_url || !cancel_url) {
         return new Response(
-          JSON.stringify({ error: 'Campos obrigatorios: code, user_email' }),
+          JSON.stringify({ error: 'Campos obrigatórios: code, user_email, success_url, cancel_url' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
+      // Validar formato do email
       if (!isValidEmail(user_email)) {
         return new Response(
-          JSON.stringify({ error: 'Email invalido' }),
+          JSON.stringify({ error: 'Email inválido' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
+      // Buscar convite
       const { data: invite, error: inviteError } = await supabase
         .from('migration_invites')
-        .select(`*, plan:plans(*)`)
+        .select(`
+          *,
+          plan:plans(*)
+        `)
         .eq('code', code.toUpperCase())
         .eq('status', 'pending')
         .single();
 
       if (inviteError || !invite) {
         return new Response(
-          JSON.stringify({ error: 'Convite nao encontrado ou ja utilizado' }),
+          JSON.stringify({ error: 'Convite não encontrado ou já utilizado' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
+      // Verificar expiração
       if (new Date(invite.expires_at) < new Date()) {
         await supabase
           .from('migration_invites')
@@ -158,121 +177,98 @@ Deno.serve(async (req) => {
       const plan = invite.plan;
       if (!plan) {
         return new Response(
-          JSON.stringify({ error: 'Plano do convite nao encontrado' }),
+          JSON.stringify({ error: 'Plano do convite não encontrado' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Criar/buscar customer Asaas
-      let customer = await getCustomerByEmail(user_email);
-      if (!customer) {
-        customer = await createCustomer({
-          name: user_name || invite.customer_name || user_email,
-          email: user_email,
-        });
+      // Determinar price_id (sempre mensal para migração)
+      const stripePriceId = plan.stripe_price_monthly_id;
+      if (!stripePriceId) {
+        return new Response(
+          JSON.stringify({ error: 'Plano não configurado no Stripe' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
-      const nextDueDate = formatDateYYYYMMDD(new Date(invite.billing_start_date));
+      // Criar/buscar customer Stripe
+      let stripeCustomerId: string;
 
-      const subscription = await createSubscription({
-        customer: customer.id,
-        billingType: 'CREDIT_CARD',
-        value: Number(plan.price_monthly || 0),
-        cycle: 'MONTHLY',
-        description: `Replyna - Plano ${plan.name} (migracao)`,
-        nextDueDate,
+      const existingCustomers = await stripe.customers.list({
+        email: user_email,
+        limit: 1,
       });
 
-      const payments = await getPaymentsBySubscription(subscription.id, { limit: 1, order: 'desc' });
-      const firstPayment = payments.data?.[0];
-      const invoiceUrl = firstPayment?.invoiceUrl || null;
-
-      // Criar ou obter usuario no Auth
-      const { data: existingAuth } = await supabase.auth.admin.getUserByEmail(user_email);
-      let userId = existingAuth?.user?.id || null;
-
-      if (!userId) {
-        const tempPassword = crypto.randomUUID().slice(0, 12) + 'Aa1!';
-        const { data: newAuth, error: authError } = await supabase.auth.admin.createUser({
+      if (existingCustomers.data.length > 0) {
+        stripeCustomerId = existingCustomers.data[0].id;
+      } else {
+        const newCustomer = await stripe.customers.create({
           email: user_email,
-          password: tempPassword,
-          email_confirm: true,
-          user_metadata: { name: user_name || invite.customer_name || '' },
+          name: user_name || invite.customer_name,
+          metadata: {
+            migration_invite_code: code,
+          },
         });
-        if (authError) {
-          throw new Error(`Erro ao criar usuario no Auth: ${authError.message}`);
-        }
-        userId = newAuth.user.id;
+        stripeCustomerId = newCustomer.id;
       }
 
-      // Upsert user
-      await supabase
-        .from('users')
-        .upsert({
-          id: userId,
-          email: user_email.toLowerCase(),
-          name: user_name || invite.customer_name || null,
-          plan: plan.name,
-          emails_limit: plan.emails_limit,
-          shops_limit: plan.shops_limit,
-          emails_used: 0,
-          extra_emails_purchased: 0,
-          extra_emails_used: 0,
-          pending_extra_emails: 0,
-          asaas_customer_id: customer.id,
-          status: 'active',
-          updated_at: new Date().toISOString(),
-        });
+      // Calcular trial_end (timestamp Unix)
+      const billingStartDate = new Date(invite.billing_start_date);
+      const trialEnd = Math.floor(billingStartDate.getTime() / 1000);
 
-      const now = new Date();
-      const periodEnd = new Date(now);
-      periodEnd.setDate(periodEnd.getDate() + 30);
-
-      await supabase
-        .from('subscriptions')
-        .insert({
-          user_id: userId,
+      // Criar checkout session com trial
+      const session = await stripe.checkout.sessions.create({
+        customer: stripeCustomerId,
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: stripePriceId,
+            quantity: 1,
+          },
+        ],
+        success_url: `${success_url}?session_id={CHECKOUT_SESSION_ID}&migration=true`,
+        cancel_url: cancel_url,
+        subscription_data: {
+          trial_end: trialEnd,
+          metadata: {
+            plan_id: plan.id,
+            plan_name: plan.name,
+            migration_invite_id: invite.id,
+            migration_invite_code: code,
+            user_id: 'pending',
+          },
+        },
+        metadata: {
           plan_id: plan.id,
-          asaas_customer_id: customer.id,
-          asaas_subscription_id: subscription.id,
-          status: 'active',
-          billing_cycle: 'monthly',
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-          cancel_at_period_end: false,
-        });
-
-      await supabase
-        .from('migration_invites')
-        .update({
-          status: 'accepted',
-          accepted_by_user_id: userId,
-          accepted_at: now.toISOString(),
-        })
-        .eq('id', invite.id);
-
-      try {
-        await supabase.auth.admin.resetPasswordForEmail(user_email, {
-          redirectTo: 'https://app.replyna.me/reset-password',
-        });
-      } catch (err) {
-        console.error('Erro ao enviar reset de senha:', err);
-      }
+          plan_name: plan.name,
+          user_email: user_email,
+          user_name: user_name || invite.customer_name || '',
+          user_id: 'pending',
+          emails_limit: plan.emails_limit?.toString() ?? 'unlimited',
+          shops_limit: plan.shops_limit?.toString() ?? 'unlimited',
+          migration_invite_id: invite.id,
+          migration_invite_code: code,
+        },
+        billing_address_collection: 'auto',
+        locale: 'pt-BR',
+      });
 
       return new Response(
         JSON.stringify({
-          subscription_id: subscription.id,
-          url: invoiceUrl,
-          next_due_date: invite.billing_start_date,
+          session_id: session.id,
+          url: session.url,
+          trial_end: invite.billing_start_date,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     return new Response(
-      JSON.stringify({ error: 'Metodo nao permitido' }),
+      JSON.stringify({ error: 'Método não permitido' }),
       { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
     console.error('Erro:', error);
     return new Response(

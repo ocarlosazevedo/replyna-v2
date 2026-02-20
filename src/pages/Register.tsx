@@ -21,7 +21,7 @@ interface Plan {
   shops_limit: number | null   // null = ilimitado
   features: string[]
   is_popular: boolean
-  stripe_price_monthly_id: string | null
+  is_active: boolean
 }
 
 export default function Register() {
@@ -132,7 +132,7 @@ export default function Register() {
     try {
       const { data, error } = await supabase
         .from('plans')
-        .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, stripe_price_monthly_id')
+        .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
 
@@ -146,7 +146,7 @@ export default function Register() {
   }
 
   const isEnterprisePlan = (plan: Plan) => {
-    return !plan.stripe_price_monthly_id || plan.price_monthly === 0
+    return !plan.is_active || plan.price_monthly === 0
   }
 
   const handleSelectPlan = (plan: Plan) => {
@@ -223,16 +223,16 @@ export default function Register() {
       return
     }
 
-    if (!selectedPlan.stripe_price_monthly_id) {
-      setError('Este plano ainda nao esta configurado para pagamento. Entre em contato com o suporte.')
+    if (!selectedPlan.is_active || selectedPlan.price_monthly === 0) {
+      setError('Este plano nao esta disponivel para pagamento. Entre em contato com o suporte.')
       return
     }
 
     setLoading(true)
 
     try {
-      // Chamar Edge Function para criar checkout session
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`, {
+      // Chamar Edge Function para criar assinatura no Asaas
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-asaas-subscription`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -243,10 +243,7 @@ export default function Register() {
           user_email: email,
           user_name: name,
           whatsapp_number: getFullPhoneNumber() || undefined,
-          billing_cycle: 'monthly',
           coupon_code: couponValidation?.is_valid ? couponCode.toUpperCase() : undefined,
-          success_url: `${window.location.origin}/checkout/success`,
-          cancel_url: `${window.location.origin}/register?plan=${selectedPlan.name.toLowerCase()}`,
         }),
       })
 
@@ -265,8 +262,13 @@ export default function Register() {
         plan_name: selectedPlan.name,
       }))
 
-      // Redirecionar para o Stripe Checkout
-      window.location.href = data.url
+      // Redirecionar para o pagamento do Asaas (ou login se pagamento instantaneo)
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        // Pagamento confirmado instantaneamente, redirecionar para login
+        window.location.href = '/login?registered=true'
+      }
 
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao processar'
@@ -1079,7 +1081,7 @@ export default function Register() {
               color: 'var(--text-secondary)',
               textAlign: 'center',
             }}>
-              Pagamento seguro processado pelo Stripe
+              Pagamento seguro processado pelo Asaas
             </p>
           </form>
 

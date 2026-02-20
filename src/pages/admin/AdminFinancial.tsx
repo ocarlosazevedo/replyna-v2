@@ -196,14 +196,21 @@ export default function AdminFinancial() {
   const getStatusBadge = (status: string) => {
     const base: React.CSSProperties = { padding: '4px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600 }
     switch (status) {
+      case 'CONFIRMED':
+      case 'RECEIVED':
+      case 'RECEIVED_IN_CASH':
       case 'succeeded':
       case 'paid':
       case 'active':
         return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#22c55e' }
+      case 'REFUNDED':
       case 'failed':
       case 'canceled':
       case 'void':
         return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#ef4444' }
+      case 'OVERDUE':
+      case 'PENDING':
+      case 'AWAITING_RISK_ANALYSIS':
       case 'pending':
       case 'past_due':
       case 'open':
@@ -218,16 +225,26 @@ export default function AdminFinancial() {
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
+      // Stripe (legacy)
       succeeded: 'Pago',
       paid: 'Pago',
-      active: 'Ativo',
       failed: 'Falhou',
-      canceled: 'Cancelado',
       void: 'Anulado',
+      draft: 'Rascunho',
+      // Asaas
+      CONFIRMED: 'Pago',
+      RECEIVED: 'Recebido',
+      OVERDUE: 'Atrasado',
+      PENDING: 'Pendente',
+      REFUNDED: 'Estornado',
+      RECEIVED_IN_CASH: 'Recebido',
+      AWAITING_RISK_ANALYSIS: 'Analisando',
+      // Compartilhados
+      active: 'Ativo',
+      canceled: 'Cancelado',
       pending: 'Pendente',
       past_due: 'Atrasado',
       open: 'Aberto',
-      draft: 'Rascunho',
       trialing: 'Trial',
     }
     return labels[status] || status
@@ -402,7 +419,7 @@ export default function AdminFinancial() {
             Financeiro
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: isMobile ? '14px' : '15px' }}>
-            Dados em tempo real do Stripe
+            Dados em tempo real do Asaas
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -427,8 +444,8 @@ export default function AdminFinancial() {
             <RefreshCw size={16} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
             Atualizar
           </button>
-          <a
-            href="https://dashboard.stripe.com"
+            <a
+            href="https://www.asaas.com/dashboard"
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -444,7 +461,7 @@ export default function AdminFinancial() {
               fontSize: '14px',
             }}
           >
-            Stripe Dashboard
+            Painel Asaas
             <ExternalLink size={16} />
           </a>
         </div>

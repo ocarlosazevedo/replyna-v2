@@ -2,16 +2,16 @@
  * Edge Function: Admin Delete Client
  *
  * Deleta um cliente completamente:
- * - Cancela assinatura no Asaas
+ * - Cancela assinatura no Stripe
  * - Remove dados do Supabase (users, shops, subscriptions, etc)
  * - Remove usuário do Auth
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
+import Stripe from 'https://esm.sh/stripe@20.2.0?target=deno';
 import { maskEmail } from '../_shared/email.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { deleteSubscription as asaasDeleteSubscription } from '../_shared/asaas.ts';
 
 serve(async (req) => {
   const origin = req.headers.get('origin');
@@ -31,12 +31,18 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
       },
+    });
+
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
     const { userId } = await req.json();
@@ -53,7 +59,7 @@ serve(async (req) => {
     // 1. Buscar dados do usuário
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, email, asaas_customer_id')
+      .select('id, email, stripe_customer_id')
       .eq('id', userId)
       .single();
 
@@ -67,20 +73,20 @@ serve(async (req) => {
 
     console.log('Usuário encontrado:', maskEmail(user.email));
 
-    // 2. Buscar e cancelar assinatura no Asaas
+    // 2. Buscar e cancelar assinatura no Stripe
     const { data: subscription } = await supabase
       .from('subscriptions')
-      .select('asaas_subscription_id')
+      .select('stripe_subscription_id')
       .eq('user_id', userId)
       .single();
 
-    if (subscription?.asaas_subscription_id) {
+    if (subscription?.stripe_subscription_id) {
       try {
-        console.log('Cancelando assinatura no Asaas:', subscription.asaas_subscription_id);
-        await asaasDeleteSubscription(subscription.asaas_subscription_id);
+        console.log('Cancelando assinatura no Stripe:', subscription.stripe_subscription_id);
+        await stripe.subscriptions.cancel(subscription.stripe_subscription_id);
         console.log('Assinatura cancelada com sucesso');
-      } catch (asaasError) {
-        console.error('Erro ao cancelar assinatura (pode já estar cancelada):', asaasError);
+      } catch (stripeError) {
+        console.error('Erro ao cancelar assinatura (pode já estar cancelada):', stripeError);
         // Continua mesmo se falhar - a assinatura pode já estar cancelada
       }
     }
