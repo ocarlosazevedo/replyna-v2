@@ -262,15 +262,6 @@ serve(async (req) => {
       });
     }
 
-    // Enviar email de reset de senha
-    try {
-      await supabase.auth.admin.resetPasswordForEmail(user_email, {
-        redirectTo: 'https://app.replyna.me/reset-password',
-      });
-    } catch (err) {
-      console.error('Erro ao enviar reset de senha:', err);
-    }
-
     return new Response(
       JSON.stringify({
         url: invoiceUrl,

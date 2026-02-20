@@ -272,14 +272,6 @@ Deno.serve(async (req) => {
         })
         .eq('id', invite.id);
 
-      try {
-        await supabase.auth.admin.resetPasswordForEmail(user_email, {
-          redirectTo: 'https://app.replyna.me/reset-password',
-        });
-      } catch (err) {
-        console.error('Erro ao enviar reset de senha:', err);
-      }
-
       return new Response(
         JSON.stringify({
           subscription_id: subscription.id,

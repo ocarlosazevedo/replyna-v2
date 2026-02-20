@@ -19,6 +19,15 @@ interface AsaasPaymentPayload {
   }
 }
 
+function maskEmail(email?: string | null) {
+  if (!email) return '[vazio]'
+  const parts = email.split('@')
+  if (parts.length !== 2) return '[email-invalido]'
+  const [local, domain] = parts
+  if (local.length <= 2) return `${local[0]}***@${domain}`
+  return `${local[0]}***${local[local.length - 1]}@${domain}`
+}
+
 function addDays(date: Date, days: number): Date {
   const result = new Date(date)
   result.setDate(result.getDate() + days)
@@ -50,6 +59,88 @@ async function callProcessPendingCredits(supabaseUrl: string, serviceRoleKey: st
     }
   } catch (err) {
     console.error('[ASAAS][WEBHOOK] Excecao process-pending-credits:', err)
+  }
+}
+
+async function sendPasswordSetupEmail({
+  supabase,
+  email,
+  name,
+}: {
+  supabase: ReturnType<typeof createClient>
+  email: string
+  name?: string | null
+}) {
+  const resendApiKey = process.env.RESEND_API_KEY
+  if (!resendApiKey) {
+    console.error('[ASAAS][WEBHOOK] RESEND_API_KEY ausente')
+    return
+  }
+
+  const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: { redirectTo: 'https://app.replyna.me/reset-password' },
+  })
+
+  if (linkError) {
+    console.error('[ASAAS][WEBHOOK] Erro ao gerar link de reset:', linkError)
+    return
+  }
+
+  const actionLink = linkData?.properties?.action_link
+  if (!actionLink) {
+    console.error('[ASAAS][WEBHOOK] Link de reset ausente')
+    return
+  }
+
+  const from = process.env.RESEND_FROM_EMAIL || 'Replyna <no-reply@replyna.me>'
+  const subject = 'Defina sua senha no Replyna'
+  const safeName = name?.trim() || 'Olá'
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
+      <h2 style="margin: 0 0 12px;">${safeName}, sua conta foi ativada</h2>
+      <p style="margin: 0 0 16px;">
+        Clique no botão abaixo para definir sua senha e acessar o Replyna.
+      </p>
+      <p style="margin: 0 0 24px;">
+        <a href="${actionLink}" style="background:#2563eb;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block;">
+          Definir minha senha
+        </a>
+      </p>
+      <p style="margin: 0; font-size: 13px; color: #475569;">
+        Se o botão não funcionar, copie e cole este link no navegador:
+        <br />
+        ${actionLink}
+      </p>
+    </div>
+  `
+  const text = `Sua conta foi ativada. Defina sua senha: ${actionLink}`
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: email,
+        subject,
+        html,
+        text,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[ASAAS][WEBHOOK] Erro Resend:', response.status, errorText)
+    } else {
+      console.log('[ASAAS][WEBHOOK] Email de senha enviado para', maskEmail(email))
+    }
+  } catch (err) {
+    console.error('[ASAAS][WEBHOOK] Excecao Resend:', err)
   }
 }
 
@@ -92,7 +183,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (subscriptionId) {
         const { data: subscriptionRow } = await supabase
           .from('subscriptions')
-          .select('id, user_id, status, current_period_start')
+          .select('id, user_id, status, current_period_start, asaas_payment_id')
           .eq('asaas_subscription_id', subscriptionId)
           .maybeSingle()
 
@@ -101,8 +192,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return respondOk({ ok: true, warning: 'Subscription not found' })
         }
 
+        const shouldSendPasswordEmail = !subscriptionRow.asaas_payment_id
+
         // Idempotencia: se ja atualizou recentemente, nao processa novamente
-        if (subscriptionRow.status === 'active' && isRecent(subscriptionRow.current_period_start)) {
+        if (
+          subscriptionRow.status === 'active' &&
+          isRecent(subscriptionRow.current_period_start) &&
+          subscriptionRow.asaas_payment_id === payment.id
+        ) {
           return respondOk({ ok: true, idempotent: true })
         }
 
@@ -130,6 +227,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             updated_at: now.toISOString(),
           })
           .eq('id', subscriptionRow.user_id)
+
+        if (shouldSendPasswordEmail) {
+          const { data: user } = await supabase
+            .from('users')
+            .select('email, name')
+            .eq('id', subscriptionRow.user_id)
+            .maybeSingle()
+
+          if (user?.email) {
+            await sendPasswordSetupEmail({
+              supabase,
+              email: user.email,
+              name: user.name,
+            })
+          } else {
+            console.warn('[ASAAS][WEBHOOK] Email do usuario nao encontrado para envio de senha')
+          }
+        }
 
         await callProcessPendingCredits(supabaseUrl, supabaseServiceKey, subscriptionRow.user_id)
         return respondOk({ ok: true })
