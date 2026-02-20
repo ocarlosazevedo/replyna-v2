@@ -161,6 +161,10 @@ serve(async (req) => {
       cycle: 'MONTHLY',
       description: `Replyna - Plano ${plan.name}`,
       nextDueDate,
+      callback: {
+        successUrl: 'https://app.replyna.me/login?registered=true',
+        autoRedirect: true,
+      },
       discount: asaasDiscount,
     });
 

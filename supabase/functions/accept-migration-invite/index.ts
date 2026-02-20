@@ -192,6 +192,10 @@ Deno.serve(async (req) => {
         cycle: 'MONTHLY',
         description: `Replyna - Plano ${plan.name} (migracao)`,
         nextDueDate,
+        callback: {
+          successUrl: 'https://app.replyna.me/login?registered=true',
+          autoRedirect: true,
+        },
       });
 
       const payments = await getPaymentsBySubscription(subscription.id, { limit: 1, order: 'desc' });

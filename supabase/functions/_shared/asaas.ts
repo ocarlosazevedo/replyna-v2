@@ -194,6 +194,10 @@ export async function createSubscription(input: {
   creditCard?: unknown;
   creditCardHolderInfo?: unknown;
   discount?: AsaasDiscount;
+  callback?: {
+    successUrl: string;
+    autoRedirect?: boolean;
+  };
 }): Promise<AsaasSubscription> {
   return await asaasRequest<AsaasSubscription>('POST', '/subscriptions', input);
 }
