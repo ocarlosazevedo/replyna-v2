@@ -12,21 +12,6 @@ interface AsaasSubscriptionPayload {
   }
 }
 
-const PLAN_BY_VALUE: Record<string, string> = {
-  '197.00': '9fe6e93a-e275-4f86-9469-cd375cfd698e',
-  '397.00': 'c79ef273-21d1-4c08-a1be-ee15f5286956',
-  '597.00': '30befa22-8bc1-4547-9587-22443859208d',
-  '997.00': 'c2ddb481-4185-4941-8989-3b4ba627f1ac',
-  '1497.00': '2cda9374-d155-4a65-b1f6-36926f340f4c',
-}
-
-function mapPlanIdByValue(value: number | string): string | null {
-  const numeric = typeof value === 'string' ? parseFloat(value) : value
-  if (Number.isNaN(numeric)) return null
-  const key = numeric.toFixed(2)
-  return PLAN_BY_VALUE[key] || null
-}
-
 function mapAsaasStatus(status?: string): 'active' | 'canceled' | 'past_due' {
   const normalized = (status || '').toUpperCase()
   if (normalized === 'ACTIVE') return 'active'
@@ -99,11 +84,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return respondOk({ ok: true, warning: 'User not found' })
       }
 
-      const planId = mapPlanIdByValue(subscription.value)
-      if (!planId) {
-        console.warn('[ASAAS][WEBHOOK] Valor nao mapeado para plano:', subscription.value)
-      }
-
       const now = new Date()
       const periodEnd = addDays(now, 30)
 
@@ -113,11 +93,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           asaas_subscription_id: subscriptionId,
           asaas_customer_id: customerId,
           status: 'active',
-          billing_cycle: 'monthly',
-          plan_id: planId,
           current_period_start: now.toISOString(),
           current_period_end: periodEnd.toISOString(),
-          updated_at: now.toISOString(),
         })
         .eq('user_id', user.id)
 
@@ -137,51 +114,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return respondOk({ ok: true, warning: 'Subscription not found' })
       }
 
-      const planId = mapPlanIdByValue(subscription.value)
       const mappedStatus = mapAsaasStatus(subscription.status)
-      const now = new Date()
 
       await supabase
         .from('subscriptions')
         .update({
-          plan_id: planId,
           status: mappedStatus,
-          billing_cycle: 'monthly',
-          updated_at: now.toISOString(),
         })
         .eq('id', subscriptionRow.id)
-
-      if (mappedStatus === 'canceled') {
-        await supabase
-          .from('users')
-          .update({
-            status: 'inactive',
-            plan: 'free',
-            emails_limit: 0,
-            shops_limit: 0,
-            updated_at: now.toISOString(),
-          })
-          .eq('id', subscriptionRow.user_id)
-      } else if (planId) {
-        const { data: plan } = await supabase
-          .from('plans')
-          .select('id, name, emails_limit, shops_limit')
-          .eq('id', planId)
-          .maybeSingle()
-
-        if (plan) {
-          await supabase
-            .from('users')
-            .update({
-              plan: plan.name,
-              emails_limit: plan.emails_limit,
-              shops_limit: plan.shops_limit,
-              status: 'active',
-              updated_at: now.toISOString(),
-            })
-            .eq('id', subscriptionRow.user_id)
-        }
-      }
 
       return respondOk({ ok: true })
     }
@@ -198,27 +138,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return respondOk({ ok: true, warning: 'Subscription not found' })
       }
 
-      const now = new Date()
-
       await supabase
         .from('subscriptions')
         .update({
           status: 'canceled',
-          canceled_at: now.toISOString(),
-          updated_at: now.toISOString(),
         })
         .eq('id', subscriptionRow.id)
-
-      await supabase
-        .from('users')
-        .update({
-          status: 'inactive',
-          plan: 'free',
-          emails_limit: 0,
-          shops_limit: 0,
-          updated_at: now.toISOString(),
-        })
-        .eq('id', subscriptionRow.user_id)
 
       return respondOk({ ok: true })
     }
@@ -235,23 +160,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return respondOk({ ok: true, warning: 'Subscription not found' })
       }
 
-      const now = new Date()
-
       await supabase
         .from('subscriptions')
         .update({
           status: 'past_due',
-          updated_at: now.toISOString(),
         })
         .eq('id', subscriptionRow.id)
-
-      await supabase
-        .from('users')
-        .update({
-          status: 'suspended',
-          updated_at: now.toISOString(),
-        })
-        .eq('id', subscriptionRow.user_id)
 
       return respondOk({ ok: true })
     }

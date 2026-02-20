@@ -42,26 +42,6 @@ function isRecent(dateStr?: string | null, minutes = 60): boolean {
   return diff < minutes * 60 * 1000
 }
 
-async function callProcessPendingCredits(supabaseUrl: string, serviceRoleKey: string, userId: string) {
-  try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/process-pending-credits`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ user_id: userId }),
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[ASAAS][WEBHOOK] Erro process-pending-credits:', response.status, errorText)
-    }
-  } catch (err) {
-    console.error('[ASAAS][WEBHOOK] Excecao process-pending-credits:', err)
-  }
-}
-
 async function sendPasswordSetupEmail({
   supabase,
   email,
@@ -213,20 +193,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             asaas_payment_id: payment.id,
             current_period_start: now.toISOString(),
             current_period_end: periodEnd.toISOString(),
-            updated_at: now.toISOString(),
           })
           .eq('id', subscriptionRow.id)
-
-        await supabase
-          .from('users')
-          .update({
-            status: 'active',
-            emails_used: 0,
-            extra_emails_used: 0,
-            pending_extra_emails: 0,
-            updated_at: now.toISOString(),
-          })
-          .eq('id', subscriptionRow.user_id)
 
         if (shouldSendPasswordEmail) {
           const { data: user } = await supabase
@@ -246,7 +214,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
         }
 
-        await callProcessPendingCredits(supabaseUrl, supabaseServiceKey, subscriptionRow.user_id)
         return respondOk({ ok: true })
       }
 
@@ -276,25 +243,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         })
         .eq('id', purchase.id)
 
-      const { data: user } = await supabase
-        .from('users')
-        .select('extra_emails_purchased, pending_extra_emails')
-        .eq('id', purchase.user_id)
-        .maybeSingle()
-
-      const currentPurchased = user?.extra_emails_purchased || 0
-      const currentPending = user?.pending_extra_emails || 0
-
-      await supabase
-        .from('users')
-        .update({
-          extra_emails_purchased: currentPurchased + purchase.package_size,
-          pending_extra_emails: Math.max(0, currentPending - purchase.package_size),
-          updated_at: now.toISOString(),
-        })
-        .eq('id', purchase.user_id)
-
-      await callProcessPendingCredits(supabaseUrl, supabaseServiceKey, purchase.user_id)
       return respondOk({ ok: true })
     }
 
@@ -307,16 +255,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .maybeSingle()
 
         if (subscriptionRow?.id) {
-          const now = new Date()
           await supabase
             .from('subscriptions')
-            .update({ status: 'past_due', updated_at: now.toISOString() })
+            .update({ status: 'past_due' })
             .eq('id', subscriptionRow.id)
-
-          await supabase
-            .from('users')
-            .update({ status: 'suspended', updated_at: now.toISOString() })
-            .eq('id', subscriptionRow.user_id)
         }
       }
 

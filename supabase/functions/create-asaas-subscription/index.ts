@@ -77,6 +77,21 @@ serve(async (req) => {
     }
 
     const baseValue = Number(plan.price_monthly || 0);
+    const normalizedEmail = user_email.toLowerCase();
+
+    // Verificar se já existe usuário ativo com este email
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id, email, status')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    if (existingUser?.id && existingUser.status === 'active') {
+      return new Response(
+        JSON.stringify({ error: 'Este email já possui uma conta ativa. Faça login ou use outro email.' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     let finalValue = baseValue;
     let discountApplied = 0;
     let couponId: string | null = null;
@@ -142,11 +157,11 @@ serve(async (req) => {
     }
 
     // Criar ou buscar customer no Asaas
-    let customer = await getCustomerByEmail(user_email);
+    let customer = await getCustomerByEmail(normalizedEmail);
     if (!customer) {
       customer = await createCustomer({
         name: user_name || user_email,
-        email: user_email,
+        email: normalizedEmail,
         mobilePhone: cleanPhone || undefined,
       });
     }
@@ -173,36 +188,36 @@ serve(async (req) => {
     const firstPayment = payments.data?.[0];
     const invoiceUrl = firstPayment?.invoiceUrl || null;
 
-    // Criar ou obter usuario no Auth
-    const { data: existingAuth, error: existingAuthError } = await supabase.auth.admin.listUsers({
-      filter: { email: user_email },
+    // Criar usuario no Auth (nunca reutilizar)
+    const tempPassword = crypto.randomUUID().slice(0, 12) + 'Aa1!';
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: normalizedEmail,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { name: user_name || '' },
     });
-    if (existingAuthError) {
-      throw new Error(`Erro ao buscar usuario no Auth: ${existingAuthError.message}`);
-    }
-    const existingUser = existingAuth?.users?.[0] || null;
-    let userId = existingUser?.id || null;
-
-    if (!userId) {
-      const tempPassword = crypto.randomUUID().slice(0, 12) + 'Aa1!';
-      const { data: newAuth, error: authError } = await supabase.auth.admin.createUser({
-        email: user_email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { name: user_name || '' },
-      });
-      if (authError) {
-        throw new Error(`Erro ao criar usuario no Auth: ${authError.message}`);
+    if (authError) {
+      const message = authError.message?.toLowerCase() || '';
+      if (message.includes('already') || message.includes('exists') || message.includes('registered')) {
+        return new Response(
+          JSON.stringify({ error: 'Este email já possui uma conta ativa. Faça login ou use outro email.' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
-      userId = newAuth.user.id;
+      throw new Error(`Erro ao criar usuario no Auth: ${authError.message}`);
     }
 
-    // Upsert na tabela users
+    const userId = authData?.user?.id;
+    if (!userId) {
+      throw new Error('Erro ao criar usuario no Auth: ID ausente');
+    }
+
+    // Insert na tabela users (nunca upsert)
     await supabase
       .from('users')
-      .upsert({
+      .insert({
         id: userId,
-        email: user_email.toLowerCase(),
+        email: normalizedEmail,
         name: user_name || null,
         plan: plan.name,
         emails_limit: plan.emails_limit,
@@ -222,16 +237,9 @@ serve(async (req) => {
     const periodEnd = new Date(now);
     periodEnd.setDate(periodEnd.getDate() + 30);
 
-    const { data: existingSub } = await supabase
-      .from('subscriptions')
-      .select('id')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
     const subscriptionData = {
       user_id: userId,
-      plan_id: plan_id,
+      plan_id: plan.id,
       asaas_customer_id: customer.id,
       asaas_subscription_id: subscription.id,
       status: 'active',
@@ -241,17 +249,9 @@ serve(async (req) => {
       cancel_at_period_end: false,
       coupon_id: couponId,
     };
-
-    if (existingSub && existingSub.length > 0) {
-      await supabase
-        .from('subscriptions')
-        .update(subscriptionData)
-        .eq('id', existingSub[0].id);
-    } else {
-      await supabase
-        .from('subscriptions')
-        .insert(subscriptionData);
-    }
+    await supabase
+      .from('subscriptions')
+      .insert(subscriptionData);
 
     if (couponId) {
       await supabase.rpc('use_coupon', {
