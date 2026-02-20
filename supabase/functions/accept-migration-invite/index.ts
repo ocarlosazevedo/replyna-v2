@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
         description: `Replyna - Plano ${plan.name} (migracao)`,
         nextDueDate,
         callback: {
-          successUrl: 'https://app.replyna.me/login?registered=true',
+          successUrl: 'https://app.replyna.me/checkout/success',
           autoRedirect: true,
         },
       });

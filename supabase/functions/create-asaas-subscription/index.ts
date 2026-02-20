@@ -163,7 +163,7 @@ serve(async (req) => {
       description: `Replyna - Plano ${plan.name}`,
       nextDueDate,
       callback: {
-        successUrl: 'https://app.replyna.me/login?registered=true',
+        successUrl: 'https://app.replyna.me/checkout/success',
         autoRedirect: true,
       },
       discount: asaasDiscount,
