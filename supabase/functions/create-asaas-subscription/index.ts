@@ -160,8 +160,14 @@ serve(async (req) => {
     const invoiceUrl = firstPayment?.invoiceUrl || null;
 
     // Criar ou obter usuario no Auth
-    const { data: existingAuth } = await supabase.auth.admin.getUserByEmail(user_email);
-    let userId = existingAuth?.user?.id || null;
+    const { data: existingAuth, error: existingAuthError } = await supabase.auth.admin.listUsers({
+      filter: { email: user_email },
+    });
+    if (existingAuthError) {
+      throw new Error(`Erro ao buscar usuario no Auth: ${existingAuthError.message}`);
+    }
+    const existingUser = existingAuth?.users?.[0] || null;
+    let userId = existingUser?.id || null;
 
     if (!userId) {
       const tempPassword = crypto.randomUUID().slice(0, 12) + 'Aa1!';
