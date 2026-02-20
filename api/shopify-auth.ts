@@ -57,19 +57,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Build Shopify authorization URL
     const redirectUri = 'https://app.replyna.me/api/shopify-callback'
+    const scopes = 'read_orders,read_products,read_customers,read_inventory,read_fulfillments'
 
-    // For distribution apps (managed installation), omit scope parameter
-    // as scopes are already defined in the app configuration on Partners Dashboard.
-    // Including scope can cause "something went wrong" errors on newer Shopify apps.
-    let authUrl = `https://${domain}/admin/oauth/authorize?` +
-      `client_id=${encodeURIComponent(shopify_client_id)}`
-
-    if (shopify_method !== 'distribution') {
-      const scopes = 'read_orders,read_products,read_customers,read_inventory,read_fulfillments'
-      authUrl += `&scope=${encodeURIComponent(scopes)}`
-    }
-
-    authUrl += `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    // Always include scope parameter — it's required unless the app uses
+    // Shopify managed installation. Most distribution apps do NOT use managed
+    // installation, so including scope is the safer default.
+    const authUrl = `https://${domain}/admin/oauth/authorize?` +
+      `client_id=${encodeURIComponent(shopify_client_id)}` +
+      `&scope=${encodeURIComponent(scopes)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&state=${encodeURIComponent(state)}`
 
     return res.status(200).json({ auth_url: authUrl })
