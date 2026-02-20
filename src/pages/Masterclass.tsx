@@ -576,21 +576,27 @@ export default function Masterclass() {
       </section>
 
       {/* ===== HEADLINE BLOCK 2 ===== */}
-      <section className="mc-section mc-fade-in" style={{ paddingTop: '60px', paddingBottom: '20px' }}>
-        <div className="mc-section-inner" style={{ textAlign: 'center' }}>
-          <h2 className="mc-section-title" style={{ fontSize: '36px', lineHeight: 1.3 }}>
-            Dê Adeus aos Bloqueios da Shopify Payments:{' '}
-            <span className="mc-highlight">Método Ultra Validado</span>{' '}
-            para ZERAR os bloqueios!
+      <section className="mc-block2 mc-fade-in">
+        <div className="mc-block2-glow" />
+        <div className="mc-block2-inner">
+          <div className="mc-block2-badge">
+            <Shield size={14} />
+            <span>PROTEÇÃO MÁXIMA</span>
+          </div>
+          <h2 className="mc-block2-title">
+            Dê Adeus aos Bloqueios da<br />Shopify Payments
           </h2>
-          <p className="mc-section-text" style={{ maxWidth: '700px', margin: '20px auto 0', fontSize: '18px' }}>
-            Descubra o grande segredo dos maiores players do mercado e as estratégias para manter
-            as contas da Payments ativas por mais de 6 meses.
+          <div className="mc-block2-highlight-bar">
+            <span>Método Ultra Validado para <strong>ZERAR</strong> os bloqueios!</span>
+          </div>
+          <p className="mc-block2-text">
+            Descubra o grande segredo dos maiores players do mercado e as estratégias
+            para manter as contas da Payments ativas por mais de 6 meses.
           </p>
 
-          <div className="mc-stats-grid" style={{ marginTop: '40px' }}>
+          <div className="mc-block2-stats">
             {statsData.map((stat, i) => (
-              <div key={i} className="mc-stat-card">
+              <div key={i} className="mc-block2-stat">
                 <div className="mc-stat-icon">{stat.icon}</div>
                 <span className="mc-stat-value">{stat.value}</span>
                 <span className="mc-stat-label">{stat.label}</span>
@@ -598,7 +604,7 @@ export default function Masterclass() {
             ))}
           </div>
 
-          <div className="mc-trust-row" style={{ marginTop: '30px' }}>
+          <div className="mc-trust-row">
             {trustBadges.map((badge, i) => (
               <div key={i} className="mc-trust-badge">
                 {badge.icon}
@@ -1494,6 +1500,104 @@ const styles = `
     margin: 0;
   }
 
+  /* ===== BLOCK 2 - HEADLINE IMPACT ===== */
+  .mc-block2 {
+    position: relative;
+    padding: 80px 20px 60px;
+    text-align: center;
+    overflow: hidden;
+    background: linear-gradient(180deg, #050a18 0%, #0c1a33 40%, #0a1628 100%);
+    border-top: 1px solid rgba(30,144,255,0.08);
+    border-bottom: 1px solid rgba(30,144,255,0.08);
+  }
+  .mc-block2-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(30,144,255,0.12) 0%, rgba(32,178,170,0.06) 40%, transparent 70%);
+    filter: blur(60px);
+    pointer-events: none;
+  }
+  .mc-block2-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .mc-block2-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: rgba(30,144,255,0.12);
+    border: 1px solid rgba(30,144,255,0.25);
+    border-radius: 50px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #5ba8ff;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .mc-block2-badge svg { color: #5ba8ff; }
+  .mc-block2-title {
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #fff;
+    margin: 0 0 20px;
+    letter-spacing: -0.02em;
+  }
+  .mc-block2-highlight-bar {
+    display: inline-block;
+    padding: 10px 28px;
+    background: linear-gradient(135deg, rgba(30,144,255,0.18), rgba(32,178,170,0.12));
+    border: 1px solid rgba(30,144,255,0.3);
+    border-radius: 12px;
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  .mc-block2-highlight-bar strong {
+    color: #5bf5a0;
+    font-weight: 800;
+  }
+  .mc-block2-text {
+    font-size: 17px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.65);
+    max-width: 600px;
+    margin: 0 0 36px;
+  }
+  .mc-block2-stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+  .mc-block2-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 24px 40px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+  }
+  .mc-block2-stat:hover {
+    transform: translateY(-4px);
+    border-color: rgba(30,144,255,0.25);
+  }
+
   /* ===== STATS + TRUST BADGES ===== */
   .mc-stats-section {
     padding: 48px 20px;
@@ -2270,6 +2374,10 @@ const styles = `
     .mc-stat-card { padding: 24px 12px; gap: 8px; }
     .mc-stat-icon { width: 44px; height: 44px; }
     .mc-stat-value { font-size: 32px; }
+    .mc-block2 { padding: 80px 24px 60px; }
+    .mc-block2-title { font-size: 36px; }
+    .mc-block2-highlight-bar { font-size: 18px; }
+    .mc-block2-stat { padding: 24px 48px; }
     .mc-hero-visual { display: block; max-width: 420px; }
     .mc-orbit-logo { width: 52px; height: 52px; font-size: 16px; }
     .mc-orbit-center { width: 72px; height: 72px; border-radius: 20px; }
@@ -2303,6 +2411,12 @@ const styles = `
     .mc-stats-inner { max-width: 1100px; }
     .mc-stat-value { font-size: 36px; }
     .mc-stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
+    .mc-block2 { padding: 100px 48px 80px; }
+    .mc-block2-title { font-size: 44px; }
+    .mc-block2-highlight-bar { font-size: 22px; padding: 12px 32px; }
+    .mc-block2-text { font-size: 18px; }
+    .mc-block2-stat { padding: 28px 56px; }
+    .mc-block2-glow { width: 800px; height: 500px; }
     .mc-section { padding: 72px 48px; }
     .mc-section-inner { max-width: 1100px; }
     .mc-section-title { font-size: 32px; }
