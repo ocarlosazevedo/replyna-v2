@@ -78,20 +78,6 @@ serve(async (req) => {
 
     const baseValue = Number(plan.price_monthly || 0);
     const normalizedEmail = user_email.toLowerCase();
-
-    // Verificar se já existe usuário ativo com este email
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id, email, status')
-      .eq('email', normalizedEmail)
-      .maybeSingle();
-
-    if (existingUser?.id && existingUser.status === 'active') {
-      return new Response(
-        JSON.stringify({ error: 'Este email já possui uma conta ativa. Faça login ou use outro email.' }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
     let finalValue = baseValue;
     let discountApplied = 0;
     let couponId: string | null = null;

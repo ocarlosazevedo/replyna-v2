@@ -114,7 +114,6 @@ Deno.serve(async (req) => {
     if (req.method === 'POST') {
       const body = await req.json();
       const { code, user_email, user_name, whatsapp_number } = body;
-      const normalizedEmail = user_email?.toLowerCase();
 
       if (!code || !user_email) {
         return new Response(
@@ -129,6 +128,8 @@ Deno.serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
+      const normalizedEmail = user_email.toLowerCase();
 
       const { data: invite, error: inviteError } = await supabase
         .from('migration_invites')
@@ -172,20 +173,6 @@ Deno.serve(async (req) => {
           .map(prefix => digitsOnly.slice(prefix))
           .filter(value => value.length === 10 || value.length === 11);
         cleanPhone = candidates[0] || digitsOnly.slice(-11);
-      }
-
-      // Verificar se já existe usuário ativo com este email
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id, email, status')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
-
-      if (existingUser?.id && existingUser.status === 'active') {
-        return new Response(
-          JSON.stringify({ error: 'Este email já possui uma conta ativa. Faça login ou use outro email.' }),
-          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
       }
 
       // Criar/buscar customer Asaas
