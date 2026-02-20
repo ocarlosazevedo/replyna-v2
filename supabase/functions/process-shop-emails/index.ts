@@ -812,8 +812,10 @@ async function processMessage(
   // 10. Crédito já foi reservado atomicamente no início (tryReserveCredit)
   // Não precisa mais chamar incrementEmailsUsed aqui
 
-  // 10.1 Verificar cobrança de extras
-  await checkAndChargeExtraEmails(user.id, shop.id);
+  // 10.1 Cobrança automática de extras DESATIVADA
+  // Quando o usuário atingir o limite, o sistema para de processar (pending_credits).
+  // Não cobra extras automaticamente.
+  // await checkAndChargeExtraEmails(user.id, shop.id);
 
   // 11. Atualizar status da conversation
   await updateConversation(conversation.id, {

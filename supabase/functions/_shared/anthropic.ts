@@ -1139,7 +1139,10 @@ function cleanAIResponse(text: string): string {
     /\[tracking[_\s]?code\]/gi,
     /\[tracking[_\s]?number\]/gi,
     /\[link[_\s]?de[_\s]?rastreio\]/gi,
+    /\[link[_\s]?de[_\s]?rastreamento\]/gi,
+    /\[lien[_\s]?de[_\s]?suivi\]/gi,
     /\[tracking[_\s]?link\]/gi,
+    /\[link\]/gi,
     /\[Assinatura\]/gi,
     /\[Signature\]/gi,
     /\[data\]/gi,
@@ -2063,7 +2066,7 @@ function extractStoreProvidedInfo(storeDescription: string | null): StoreProvide
  */
 interface LoopDetectionResult {
   detected: boolean;
-  strategy: 'regex' | 'similarity' | 'exchange_count' | null;
+  strategy: 'regex' | 'similarity' | 'exchange_count' | 'false_promise_loop' | null;
   details: string;
   assistantCount: number;
   similarityScore: number;
@@ -2146,6 +2149,41 @@ function detectConversationLoop(
       assistantCount,
       similarityScore: 0,
       regexMatchCount,
+    };
+  }
+
+  // === ESTRATÉGIA 2b: False Promise Loop Detection ===
+  // Detecta quando a IA repete "vou verificar", "entrarei em contato", "aguarde" em múltiplas respostas
+  const falsePromisePatterns = [
+    /(?:vou|irei)\s+(?:verificar|investigar|analisar|checar|contatar|resolver)/i,
+    /(?:i\s+will|i'?ll)\s+(?:check|investigate|verify|contact|resolve|look\s+into)/i,
+    /(?:entrarei\s+em\s+contato|retornarei|voltarei\s+a\s+(?:entrar|responder))/i,
+    /(?:i'?ll\s+(?:get\s+back|return|come\s+back|follow\s+up|update\s+you))/i,
+    /(?:aguarde\s+(?:enquanto|alguns|um\s+momento)|please\s+wait\s+(?:while|a\s+few))/i,
+    /(?:prometo\s+(?:dar|enviar|responder)|i\s+promise\s+to)/i,
+    /(?:acabei\s+de\s+(?:verificar|contatar|falar|entrar)|i\s+(?:just|already)\s+(?:checked|contacted|spoke))/i,
+  ];
+
+  let falsePromiseMatchCount = 0;
+  for (const resp of assistantResponses) {
+    let hasFalsePromise = false;
+    for (const pattern of falsePromisePatterns) {
+      if (pattern.test(resp)) {
+        hasFalsePromise = true;
+        break;
+      }
+    }
+    if (hasFalsePromise) falsePromiseMatchCount++;
+  }
+
+  if (falsePromiseMatchCount >= 2) {
+    return {
+      detected: true,
+      strategy: 'false_promise_loop',
+      details: `${falsePromiseMatchCount} responses contain false promises (threshold: 2)`,
+      assistantCount,
+      similarityScore: 0,
+      regexMatchCount: falsePromiseMatchCount,
     };
   }
 
@@ -2317,10 +2355,70 @@ function detectHallucinations(
     }
   }
 
+  // 7b. DETECÇÃO ESTRUTURAL: Falsas alegações no PASSADO (ações que a IA NÃO fez)
+  // "Acabei de verificar com a equipe", "I just contacted", "acabo de contactar"
+  const pastFalseClaims = [
+    // PT: "acabei de" / "acabo de" + verbo de ação
+    /(?:acabei\s+de|acabo\s+de)\s+(?:verificar|investigar|checar|contatar|consultar|entrar\s+em\s+contato|falar\s+com|enviar|encaminhar|solicitar|registrar|processar|analisar)/i,
+    // PT: "já entrei em contato" / "já verifiquei"
+    /(?:j[áa]\s+(?:entrei\s+em\s+contato|verifiquei|investiguei|chequei|contatei|consultei|enviei|encaminhei|solicitei|registrei|processei|analisei|falei\s+com))/i,
+    // PT: "Verifiquei/Contatei" STANDALONE (sem "já/acabei de" - IA alegando ter verificado algo)
+    /(?:verifiquei|investiguei|chequei|contatei|consultei)\s+(?:e\s|com\s|que\s|o\s|a\s|os\s|as\s|junto|sobre|seu|sua)/i,
+    // EN: "I just checked/contacted/spoke with"
+    /(?:i\s+(?:just|already)\s+(?:checked|contacted|reached\s+out|spoke|talked|verified|investigated|forwarded|submitted|processed|sent|emailed))/i,
+    // EN: "I have contacted/checked with"
+    /(?:i(?:'ve|\s+have)\s+(?:contacted|reached\s+out|checked\s+with|spoken|talked|verified|investigated|forwarded|submitted|sent))/i,
+    // ES: "acabo de verificar/contactar"
+    /(?:acabo\s+de)\s+(?:verificar|investigar|contactar|procesar|enviar|reenviar)/i,
+    // FR: "je viens de vérifier/contacter"
+    /(?:je\s+viens\s+de)\s+(?:v[ée]rifier|investiguer|contacter|traiter|envoyer|transmettre)/i,
+    // DE: "ich habe gerade überprüft/kontaktiert"
+    /(?:ich\s+habe\s+gerade)\s+(?:überprüft|untersucht|kontaktiert|bearbeitet|weitergeleitet|gesendet)/i,
+  ];
+  for (const pattern of pastFalseClaims) {
+    if (pattern.test(responseText)) {
+      const match = responseText.match(pattern);
+      problems.push(`PAST_FALSE_CLAIM: "${match?.[0]}"`);
+      break;
+    }
+  }
+
+  // 7c. DETECÇÃO ESTRUTURAL: Promessas de retorno/contato futuro
+  // "entrarei em contato", "retornarei", "prometo responder", "I'll get back to you"
+  const returnPromises = [
+    // PT
+    /(?:entrarei\s+em\s+contato|retornarei|voltarei\s+a\s+(?:entrar\s+em\s+contato|responder)|prometo\s+(?:dar|enviar|responder|retornar|verificar)|darei\s+(?:um\s+)?retorno)/i,
+    // PT: "nas próximas horas/minutos"
+    /(?:nas?\s+pr[oó]ximas?\s+(?:horas?|minutos?|instantes?))/i,
+    // EN
+    /(?:i'?ll\s+(?:get\s+back|return|come\s+back|reach\s+back|follow\s+up|respond|reply|update\s+you)|i\s+promise\s+to\s+(?:get|respond|reply|check|provide))/i,
+    // EN: "within the next hours/minutes"
+    /(?:within\s+the\s+next\s+(?:few\s+)?(?:hours?|minutes?))/i,
+    // ES: "volveré a contactar/responder"
+    /(?:volver[ée]\s+a\s+(?:contactar|responder|escribir)|prometo\s+(?:dar|enviar|responder))/i,
+    // FR: "je reviendrai vers vous"
+    /(?:je\s+reviendrai\s+vers\s+vous|je\s+vous\s+(?:recontacterai|r[ée]pondrai))/i,
+    // DE: "ich werde mich bei Ihnen melden"
+    /(?:ich\s+(?:werde|melde)\s+mich\s+(?:bei\s+ihnen|zurück))/i,
+  ];
+  for (const pattern of returnPromises) {
+    if (pattern.test(responseText)) {
+      const match = responseText.match(pattern);
+      problems.push(`RETURN_PROMISE: "${match?.[0]}"`);
+      break;
+    }
+  }
+
   // 8. DETECÇÃO ESTRUTURAL: "aguarde/espere enquanto eu faço X"
   if (/(?:aguarde|espere|wait|attendez|warten|aspett).{0,30}(?:enquanto|while|pendant|während|mentre)/i.test(responseText)) {
     const match = responseText.match(/(?:aguarde|espere|wait|attendez|warten|aspett).{0,30}(?:enquanto|while|pendant|während|mentre)/i);
     problems.push(`WAIT_PROMISE: "${match?.[0]}"`);
+  }
+
+  // 8b. DETECÇÃO ESTRUTURAL: "aguarde alguns minutos/instantes"
+  if (/(?:aguarde|espere|wait|attendez|warten)\s+(?:alguns?|uns?|a\s+few|quelques|einige)\s+(?:minutos?|instantes?|momentos?|minutes?|moments?|augenblicke?)/i.test(responseText)) {
+    const match = responseText.match(/(?:aguarde|espere|wait|attendez|warten)\s+(?:alguns?|uns?|a\s+few|quelques|einige)\s+(?:minutos?|instantes?|momentos?|minutes?|moments?|augenblicke?)/i);
+    problems.push(`WAIT_TIME_PROMISE: "${match?.[0]}"`);
   }
 
   // 9. DETECÇÃO ESTRUTURAL: Promessas de follow-up / manter informado
@@ -2340,6 +2438,22 @@ function detectHallucinations(
   // 11. Detectar informação contraditória com dados do pedido
   if (/(?:ainda não pagou|hasn't paid|not yet paid|n'a pas encore payé)/i.test(text)) {
     problems.push(`CONTRADICTION: claims customer hasn't paid`);
+  }
+
+  // 12. DETECÇÃO ESTRUTURAL: Frases corporativas de fechamento (todos os idiomas)
+  // Detecta fechamentos genéricos que fazem a resposta parecer automatizada
+  const corporateClosings = /(?:estaremos\s+felizes\s+em\s+ajud|we\s+(?:will|would)\s+be\s+happy\s+to\s+(?:help|assist)|wir\s+(?:würden|werden)\s+uns\s+freuen\s+ihnen\s+zu\s+helfen|saremo\s+(?:felici|lieti)\s+di\s+aiutar|estaremos\s+encantados\s+de\s+ayudar|nous\s+serons\s+heureux\s+de\s+vous\s+aider)/i;
+  if (corporateClosings.test(responseText)) {
+    const match = responseText.match(corporateClosings);
+    problems.push(`CORPORATE_CLOSING: "${match?.[0]}"`);
+  }
+
+  // 13. DETECÇÃO ESTRUTURAL: Fechamento "caso tenha dúvida + entre em contato" (todos os idiomas)
+  // Padrão: convite genérico para contato futuro que soa robótico
+  const genericContactInvite = /(?:caso\s+tenha\s+(?:qualquer|alguma)\s+(?:outra?\s+)?d[úu]vida|if\s+you\s+have\s+any\s+(?:other\s+|further\s+)?questions?\s*,?\s*(?:please\s+)?(?:feel\s+free\s+to\s+)?(?:contact|reach|email)|bei\s+(?:weiteren\s+)?fragen\s+(?:kontaktieren|erreichen|schreiben)\s+sie|pour\s+toute\s+(?:autre\s+)?question\s*,?\s*(?:n'hésitez|contactez)|per\s+qualsiasi\s+(?:altra\s+)?domanda\s*,?\s*(?:non\s+esiti|contatti)|si\s+tiene\s+(?:alguna|cualquier)\s+(?:otra\s+)?(?:pregunta|duda)\s*,?\s*(?:no\s+dude|contacte))/i;
+  if (genericContactInvite.test(responseText)) {
+    const match = responseText.match(genericContactInvite);
+    problems.push(`GENERIC_CONTACT_INVITE: "${match?.[0]}"`);
   }
 
   return problems;
@@ -2978,6 +3092,81 @@ Use the EQUIVALENT terms in ${detectedLangName} (e.g., "Shipping status", "Track
 ═══════════════════════════════════════════════════════════════════════` : ''}
 
 CATEGORIA DO EMAIL: ${category}
+${category === 'rastreio' ? `
+═══════════════════════════════════════════════════════════════════════
+⚠️⚠️⚠️ REGRA ESPECÍFICA PARA RASTREIO (PRIORIDADE MÁXIMA) ⚠️⚠️⚠️
+═══════════════════════════════════════════════════════════════════════
+O cliente perguntou sobre STATUS/RASTREIO. Sua resposta DEVE:
+1. Ser CURTA (1-3 frases) - dê a informação do rastreio e pronto
+2. NÃO mencionar NENHUM email de suporte/contato - o cliente já está falando com você
+3. NÃO usar frases de fechamento corporativas ("Caso tenha dúvidas...", "Estaremos felizes...")
+4. NÃO encaminhar para humano (a menos que o rastreio não funcione ou pacote esteja perdido)
+5. Assinar APENAS com seu nome: ${shopContext.attendant_name}
+
+⛔⛔⛔ PROIBIÇÃO ABSOLUTA - PROMESSAS FALSAS (REGRA #1 DE RASTREIO) ⛔⛔⛔
+Você NÃO PODE investigar, checar, contatar transportadoras, ou tomar qualquer ação.
+Você APENAS responde com as informações que JÁ TEM neste prompt.
+
+FRASES 100% PROIBIDAS (se usar QUALQUER uma, o email será bloqueado):
+❌ "Vou verificar/investigar/checar" → Você NÃO PODE fazer isso
+❌ "Vou entrar em contato com a transportadora/equipe" → Você NÃO PODE fazer isso
+❌ "Acabei de verificar/contatar" → Você NÃO FEZ isso, é MENTIRA
+❌ "Aguarde enquanto eu verifico" → Não há nada para aguardar
+❌ "Entrarei em contato em breve/nas próximas horas" → Você NÃO entrará
+❌ "Prometo dar um retorno" → Você NÃO dará retorno algum
+❌ "Vou garantir que o pedido chegue" → Você NÃO tem esse poder
+
+O QUE FAZER EM VEZ DISSO:
+✅ Se TEM código de rastreio → forneça o código e link de acompanhamento
+✅ Se TEM status do pedido → informe o status atual
+✅ Se o prazo de entrega NÃO expirou → diga que o pedido está dentro do prazo
+✅ Se o prazo expirou E NÃO tem solução → use [FORWARD_TO_HUMAN] para escalar
+✅ Se o cliente RECLAMA que rastreio não funciona / não aparece nada:
+   → NÃO escale imediatamente! Primeiro explique que:
+     1. O rastreio de envios internacionais pode demorar de 5 a 15 dias úteis para começar a atualizar
+     2. O código fica ativo assim que a transportadora registra o pacote no país de destino
+     3. ${shopContext.delivery_time ? `O prazo estimado de entrega é ${shopContext.delivery_time}` : 'O pedido está a caminho'}
+   → SOMENTE escale com [FORWARD_TO_HUMAN] se o cliente JÁ recebeu essa explicação antes (em mensagem anterior no histórico) E continua reclamando, OU se o prazo de entrega já expirou
+
+⚠️ REGRA SOBRE LINKS DE RASTREIO:
+- Se o "Tracking link / Link de rastreio" nos DADOS DO PEDIDO for um link real (começa com http), USE esse link exato na resposta
+- Se o link for "N/A" ou não existir, NÃO invente um link. Forneça apenas o código de rastreio e sugira que o cliente pesquise em 17track.net ou no site da transportadora
+- NUNCA escreva placeholders como [link], [link de rastreamento], [link de rastreio] - use o link REAL ou omita
+
+EXEMPLO DE RESPOSTA BOA (tracking encontrado COM link real):
+"Oi! Seu pedido #1234 foi enviado com o código de rastreio ABC123. Você pode acompanhar aqui: https://shopify.17track.net/... ${shopContext.delivery_time ? `O prazo estimado é de ${shopContext.delivery_time}.` : ''} Qualquer coisa, me chama!
+
+${shopContext.attendant_name}"
+
+EXEMPLO DE RESPOSTA BOA (tracking encontrado SEM link disponível):
+"Oi! Seu pedido #1234 foi enviado com o código de rastreio ABC123. Você pode acompanhar pesquisando esse código no site 17track.net. ${shopContext.delivery_time ? `O prazo estimado é de ${shopContext.delivery_time}.` : ''} Qualquer coisa, me chama!
+
+${shopContext.attendant_name}"
+
+EXEMPLO DE RESPOSTA BOA (tracking sem atualização mas dentro do prazo):
+"Oi! O código de rastreio do seu pedido é ABC123. Pode ser que demore alguns dias para o status atualizar no sistema da transportadora. ${shopContext.delivery_time ? `O prazo estimado de entrega é ${shopContext.delivery_time}.` : 'Assim que houver movimentação, o rastreio será atualizado.'} Qualquer coisa, me chama!
+
+${shopContext.attendant_name}"
+
+EXEMPLO DE RESPOSTA BOA (cliente diz que rastreio não funciona - PRIMEIRA VEZ):
+"Oi! Entendo sua preocupação! Com envios internacionais, é normal o código de rastreio demorar alguns dias para começar a mostrar atualizações. Isso acontece porque o código só fica ativo quando a transportadora registra o pacote no país de destino. ${shopContext.delivery_time ? `O prazo estimado de entrega é ${shopContext.delivery_time}, então seu pedido está dentro do prazo.` : 'Seu pedido está a caminho!'} Fique tranquilo que em breve o rastreio vai atualizar! Qualquer coisa, me chama.
+
+${shopContext.attendant_name}"
+
+EXEMPLO DE RESPOSTA BOA (prazo expirado, sem solução):
+"[FORWARD_TO_HUMAN]
+Oi! Verifiquei os dados do seu pedido e realmente o prazo de entrega já expirou. Vou encaminhar seu caso para que possamos resolver isso o mais rápido possível.
+
+${shopContext.attendant_name}"
+
+O QUE NÃO FAZER (PROIBIDO):
+❌ "entre em contato pelo email support@..." - NUNCA em resposta de rastreio normal
+❌ "Estaremos felizes em ajudá-lo" - corporativo demais
+❌ "Caso tenha qualquer outra dúvida" - preenchimento desnecessário
+❌ Assinar como "Support [Loja]" ou "Equipe [Loja]"
+❌ QUALQUER promessa de ação futura ou alegação de ação passada (ver lista acima)
+❌ Escalar para humano na PRIMEIRA vez que o cliente reclama que rastreio não funciona - tente explicar primeiro!
+═══════════════════════════════════════════════════════════════════════` : ''}
 ${sentiment === 'angry' || sentiment === 'frustrated' ? `
 SENTIMENTO DO CLIENTE: ${sentiment === 'angry' ? 'MUITO IRRITADO' : 'FRUSTRADO'}
 - Comece com empatia GENUÍNA - reconheça a frustração do cliente PRIMEIRO
@@ -3037,7 +3226,7 @@ FRASES PROIBIDAS (NUNCA USE - REVELA QUE É IA):
 - NUNCA diga "como um agente automatizado", "as an automated agent"
 - NUNCA diga "agente de atendimento automatizado", "automated customer service agent"
 - NUNCA use frases que indicam que você é um sistema/programa/IA com limitações de acesso
-- Se você NÃO SABE algo, diga "vou verificar" ou "deixa eu checar" - NUNCA diga que não tem acesso
+- Se você NÃO SABE algo, use os dados disponíveis ou direcione ao email de suporte - NUNCA diga que não tem acesso
 - Se você NÃO PODE fazer algo, simplesmente NÃO FAÇA - não explique por quê
 - Se precisar direcionar para outro canal, faça naturalmente sem mencionar "limitações" ou "diretrizes"
 - Se o cliente quer falar com gerente/proprietário, diga que VOCÊ pode ajudar - não mencione que não pode transferir
@@ -3219,7 +3408,7 @@ QUANDO USAR O EMAIL DE SUPORTE (${shopContext.support_email}) - SOMENTE NESSES C
 REGRAS IMPORTANTES:
 1. Responda de forma clara e objetiva
 2. Use as informações do pedido quando disponíveis
-3. Se não souber algo específico, diga que vai verificar - NUNCA diga que "não tem acesso" a dados
+3. Se não souber algo específico, use os dados disponíveis ou direcione ao email de suporte - NUNCA diga que "não tem acesso" nem prometa "vou verificar"
 4. Não invente informações - use apenas os dados fornecidos
 5. Máximo 400 palavras (mas para perguntas simples, use no máximo 50 palavras - seja DIRETO)
 
@@ -3288,16 +3477,30 @@ Sinais de rastreio quebrado (SOMENTE após você já ter fornecido o rastreio):
 - O cliente já tentou e voltou dizendo que não funciona
 
 SOMENTE NESSE CASO (cliente confirma que rastreio não funciona):
-1. RECONHEÇA o problema
-2. NÃO repita o mesmo número de rastreio
-3. [FORWARD_TO_HUMAN] + email de suporte: ${shopContext.support_email}
+1. RECONHEÇA o problema: "Entendo que o rastreio não está funcionando"
+2. NÃO repita o mesmo número de rastreio que já não funciona
+3. OFEREÇA SOLUÇÃO IMEDIATA:
+   - Se passou do prazo de entrega → [FORWARD_TO_HUMAN] + email de suporte para reenvio ou reembolso
+   - Se ainda no prazo → Informe o prazo e diga que o rastreio pode demorar a atualizar
+4. Adicione [FORWARD_TO_HUMAN] no início da resposta se o prazo expirou
+5. Forneça o email de suporte: ${shopContext.support_email}
+
+⛔ NÃO FAÇA PROMESSAS FALSAS MESMO NESTE CENÁRIO:
+- NÃO diga "vou investigar com a transportadora" - você NÃO pode fazer isso
+- NÃO diga "daremos retorno em 24h" - você NÃO pode garantir isso
+- NÃO diga "vou solicitar a análise" - você NÃO pode solicitar nada
+- Apenas RECONHEÇA o problema e DIRECIONE ao email de suporte
 
 ❌ O QUE NUNCA FAZER:
 - NUNCA encaminhe para humano na PRIMEIRA resposta quando você TEM dados de rastreio
 - NUNCA diga "não posso dar mais informações" quando você TEM informações
 - NUNCA envie o cliente para outro email se você pode responder com os dados disponíveis
+- NUNCA envie o mesmo número de rastreio novamente se o cliente já disse que não funciona
+- NUNCA peça "confirme o endereço" se o cliente já enviou screenshots mostrando o problema
+- NUNCA repita a mesma resposta genérica mais de 2 vezes
+- NUNCA diga "vou verificar/investigar/checar" - você NÃO PODE fazer isso
 
-REGRA - DETECTAR CONVERSAS EM LOOP:
+REGRA CRÍTICA - DETECTAR CONVERSAS EM LOOP (PRIORIDADE MÁXIMA):
 ⚠️ Se você está respondendo a MESMA pergunta pela 3ª VEZ sem progresso:
 
 SINAIS DE LOOP:
@@ -3364,17 +3567,20 @@ COMPORTAMENTO INTELIGENTE (REGRA CRÍTICA - SEGUIR SEMPRE):
 
 REGRA CRÍTICA - TRACKING / RASTREIO (PRIORIDADE MÁXIMA):
 - O código de rastreio é responsabilidade da LOJA, não do cliente
-- NUNCA peça ao cliente para fornecer: tracking number, tracking code, código de rastreio
+- NUNCA peça ao cliente para fornecer: tracking number, tracking code, código de rastreio, link de rastreio
 - Se você TEM tracking disponível nos DADOS DO PEDIDO → FORNEÇA IMEDIATAMENTE ao cliente
 - Se o cliente pergunta "onde está meu pedido?" e você TEM rastreio → RESPONDA com o rastreio, NÃO encaminhe
-- Se "Código de rastreio: Ainda não disponível" → diga que o pedido está sendo preparado/processado
-- Se tem tracking mas cliente diz que não funciona → forneça o código/link novamente, pergunte se tentou recentemente
-- Se "Status de envio: Enviado" mas sem tracking → diga que está verificando com a transportadora
-- Se "Status de envio: Aguardando envio" → diga que está sendo preparado e em breve será enviado
+- Se o cliente reclama que o tracking não funciona ou não tem tracking:
+  → Use os dados do pedido que você tem (DADOS DO PEDIDO DO CLIENTE acima)
+  → Se "Código de rastreio: Ainda não disponível" → diga que o pedido está sendo preparado/processado
+  → Se tem tracking mas cliente diz que não funciona → forneça o código/link que você tem
+  → Se "Status de envio: Enviado" mas sem tracking → diga que o pedido foi enviado e o código de rastreio será atualizado em breve
+  → Se "Status de envio: Aguardando envio" → diga que está sendo preparado para envio
 - NUNCA diga "não posso fornecer mais informações" quando você TEM dados de rastreio nos DADOS DO PEDIDO
 - NUNCA encaminhe para suporte humano quando a resposta está nos dados que você tem
+- NUNCA diga "Could you provide the tracking number?" - O CLIENTE não tem tracking, a LOJA tem!
 - Exemplo ERRADO: "Could you please provide the tracking number or link?"
-- Exemplo CORRETO: "I'm checking on your order status. According to our records, your order is [status]. I'll look into the tracking issue and get back to you."
+- Exemplo CORRETO: "Your order has been shipped! The tracking code is ABC123. You can follow the delivery here: https://..." (use os dados REAIS do pedido, NUNCA placeholders como [code] ou [link])
 
 REGRA CRÍTICA - AMEAÇAS DE PAYPAL/DISPUTA NÃO SÃO PEDIDOS DE REEMBOLSO:
 - Se o cliente diz "IF I don't receive... I will ask for refund" ou "I'll report to PayPal" → isso é AMEAÇA/AVISO, NÃO um pedido
@@ -3784,6 +3990,33 @@ Eles irão analisar seu caso e entrar em contato.
 
 [Assinatura]"
 
+=== CHECKLIST FINAL - VERIFIQUE ANTES DE RESPONDER ===
+Antes de escrever sua resposta, verifique CADA item. Se violar QUALQUER um, REESCREVA.
+
+⛔ NÃO INVENTE informações:
+- NUNCA inclua endereços físicos que não estão nos dados acima
+- NUNCA inclua números de telefone que não estão nos dados acima
+- NUNCA diga que "marcou", "processou", "atualizou" ou "cancelou" algo — você NÃO pode executar ações
+
+⛔ NÃO FAÇA PROMESSAS que você não pode cumprir:
+- NUNCA diga "vou verificar", "vou investigar", "vou entrar em contato", "vou checar", "vou analisar"
+- NUNCA diga "I'll check", "I'll investigate", "I'll contact", "je vais vérifier", "ich werde überprüfen"
+- NUNCA diga "aguarde enquanto eu verifico" / "wait while I check"
+- NUNCA diga "vou te manter informado" / "I'll keep you updated"
+- Em vez disso: USE os dados que você JÁ TEM, ou direcione ao email ${shopContext.support_email}
+
+⛔ NÃO USE fechamentos formais:
+- NUNCA: Atenciosamente, Sinceramente, Sincerely, Best regards, Kind regards, Cordialement, Cordiali saluti, Mit freundlichen Grüßen, Cordialmente
+- CORRETO: Assine apenas com seu nome (${shopContext.attendant_name}) ou "Abraço," / "Thanks,"
+
+⛔ NÃO USE frases vazias:
+- NUNCA: "Agradeço sua paciência" / "Thank you for your patience" / "Merci de votre patience"
+- NUNCA: "Agradeço sua compreensão" / "Thank you for your understanding"
+- NUNCA: "Não hesite em entrar em contato" / "Don't hesitate to reach out" / "N'hésitez pas"
+- NUNCA: "Assistente virtual" / "Virtual assistant"
+- NUNCA: "Suporte [Nome da Loja]" ou "Equipe [Nome da Loja]" na assinatura
+=== FIM DO CHECKLIST ===
+
 ${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.signature_html}` : ''}`;
 
   // DETECÇÃO PROGRAMÁTICA DE LOOP (multi-estratégia, antes de montar mensagens)
@@ -3947,15 +4180,17 @@ ${hallucinations.map(h => `- ${h}`).join('\n')}
 STRICT RULES FOR YOUR NEW RESPONSE:
 1. NEVER invent addresses, phone numbers, or physical locations
 2. NEVER say you "marked", "processed", "updated", or "cancelled" anything - you CANNOT do these actions
-3. NEVER use formal sign-offs: "Atenciosamente", "Sincerely", "Best regards", "Kind regards", "Cordialement", "Cordiali saluti", "Mit freundlichen Grüßen", "Cordialmente" - just sign with your name
+3. NEVER use formal sign-offs: "Atenciosamente", "Sincerely", "Best regards" - just sign with your name
 4. NEVER promise to "contact our team", "check with logistics", "keep you updated", "follow up" - you CANNOT do these things
 5. NEVER use "n'hésitez pas", "don't hesitate", "no dude en", "não hesite"
-6. NEVER use "merci de votre patience", "thank you for your patience", "obrigado pela paciência"
+6. NEVER use "obrigado pela paciência", "thank you for your patience"
 7. USE the order data provided in the prompt - do NOT ask the customer to wait while you "check"
-8. If the customer needs a return address, say: "Para obter o endereço de devolução, entre em contato pelo ${shopContext.support_email || 'nosso email de suporte'}"
-9. If the customer needs something you can't do, direct them to: ${shopContext.support_email || 'nosso email de suporte'}
+8. NEVER say "I just contacted/checked/verified" - you did NOT do any of those things
+9. NEVER promise "I'll get back to you", "I'll return soon", "within the next hours" - you WON'T
+10. NEVER say "please wait while I check" - there is nothing to wait for
+11. Only state FACTS from the data you have. If you don't have info, direct to: ${shopContext.support_email || 'nosso email de suporte'}
 
-Rewrite your response following these rules. Be helpful, direct, and ONLY use information you actually have.`,
+Rewrite your response using ONLY facts you have. Be short and direct. NO promises.`,
       }];
       const retryResponse = await callClaude(systemPrompt, hallucinationFixMessages, MAX_TOKENS);
       const retryText = retryResponse.content[0]?.text || '';
@@ -4025,8 +4260,47 @@ Rewrite your response following these rules. Be helpful, direct, and ONLY use in
         const retryClean = cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim()));
         if (retryClean && retryClean.length > 10) {
           console.log(`[generateResponse] Language retry successful, response now in ${language}`);
+          // Aplicar mesma sanitização das CAMADA 3-5 antes de retornar
+          let sanitizedRetry = retryClean;
+          // CAMADA 3: Remover support email desnecessário
+          const isEscCat = category === 'suporte_humano' || category === 'edicao_pedido';
+          const isRetEsc = category === 'troca_devolucao_reembolso' && retentionContactCount >= 3;
+          if (!forwardToHuman && !isEscCat && !isRetEsc && shopContext.support_email) {
+            const supEmailLower = shopContext.support_email.toLowerCase();
+            const mainEmlLower = (shopContext.store_email || '').toLowerCase();
+            if (supEmailLower !== mainEmlLower) {
+              const supEscaped = shopContext.support_email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              sanitizedRetry = sanitizedRetry.replace(new RegExp(`[^.!?\\n]*\\b${supEscaped}\\b[^.!?\\n]*[.!?]?\\s*`, 'gi'), '').trim();
+            }
+          }
+          // CAMADA 4: Frases corporativas
+          sanitizedRetry = sanitizedRetry
+            .replace(/\.?\s*if\s+you\s+have\s+any\s+(?:other\s+|further\s+)?questions?[^.!?\n]*[.!?]?\s*/gi, ' ')
+            .replace(/\.?\s*we\s+(?:will|would)\s+be\s+happy\s+to\s+(?:help|assist)\s+you\.?\s*/gi, '. ')
+            .replace(/\.?\s*bei\s+(?:weiteren\s+)?fragen[^.!?\n]*[.!?]?\s*/gi, ' ')
+            .replace(/\.?\s*pour\s+toute\s+(?:autre\s+)?question[^.!?\n]*[.!?]?\s*/gi, ' ')
+            .replace(/\.?\s*per\s+qualsiasi\s+(?:altra\s+)?domanda[^.!?\n]*[.!?]?\s*/gi, ' ')
+            .replace(/\.?\s*si\s+tiene\s+(?:alguna|cualquier)\s+(?:otra\s+)?(?:pregunta|duda)[^.!?\n]*[.!?]?\s*/gi, ' ')
+            .replace(/\.\s*\./g, '.').replace(/\s{2,}/g, ' ').trim();
+          // CAMADA 5: Corrigir assinatura
+          const escName = shopContext.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const sigPattern = new RegExp(`\\n\\s*(?:support|suporte|equipe|team|l'équipe|equipo)\\s+(?:de\\s+|do\\s+|da\\s+)?${escName}\\s*$`, 'i');
+          if (sigPattern.test(sanitizedRetry)) {
+            sanitizedRetry = sanitizedRetry.replace(sigPattern, `\n${shopContext.attendant_name}`);
+          }
+          // CAMADA 6: Remover promessas falsas
+          sanitizedRetry = sanitizedRetry
+            .replace(/[^.!?\n]*\b(?:vou|irei)\s+(?:verificar|investigar|analisar|averiguar|checar|contatar|consultar|processar|resolver|agilizar|encaminhar|solicitar|providenciar|entrar\s+em\s+contato)[^.!?\n]*[.!?]?\s*/gi, '')
+            .replace(/[^.!?\n]*\b(?:i\s+will|i'?ll)\s+(?:check|investigate|verify|contact|reach\s+out|process|resolve|speed\s+up|forward|request|look\s+into|get\s+(?:back|in\s+touch))[^.!?\n]*[.!?]?\s*/gi, '')
+            .replace(/[^.!?\n]*\b(?:acabei\s+de|acabo\s+de)\s+(?:verificar|investigar|checar|contatar|consultar|entrar\s+em\s+contato|falar\s+com|enviar|encaminhar|solicitar)[^.!?\n]*[.!?]?\s*/gi, '')
+            .replace(/[^.!?\n]*\bj[áa]\s+(?:entrei\s+em\s+contato|verifiquei|investiguei|chequei|contatei|consultei|enviei|encaminhei|solicitei|falei\s+com)[^.!?\n]*[.!?]?\s*/gi, '')
+            .replace(/[^.!?\n]*\bi\s+(?:just|already)\s+(?:checked|contacted|reached\s+out|spoke|talked|verified|investigated|forwarded|sent|emailed)[^.!?\n]*[.!?]?\s*/gi, '')
+            .replace(/[^.!?\n]*\b(?:entrarei\s+em\s+contato|retornarei|voltarei\s+a\s+(?:entrar\s+em\s+contato|responder)|prometo\s+(?:dar|enviar|responder|retornar|verificar)|darei\s+(?:um\s+)?retorno)[^.!?\n]*[.!?]?\s*/gi, '')
+            .replace(/[^.!?\n]*\b(?:aguarde|espere)\s+(?:enquanto|alguns?|uns?)[^.!?\n]*[.!?]?\s*/gi, '')
+            .replace(/[^.!?\n]*\bpe[çc]o\s+(?:sinceras?\s+)?desculpas?\s+pel[oa]\s+(?:demora|atraso|espera|inconveni[eê]ncia)[^.!?\n]*[.!?]?\s*/gi, '')
+            .replace(/\.\s*\./g, '.').replace(/\n\s*\n\s*\n/g, '\n\n').replace(/\s{2,}/g, ' ').trim();
           return {
-            response: retryClean,
+            response: sanitizedRetry,
             tokens_input: response.usage.input_tokens + retryResponse.usage.input_tokens,
             tokens_output: response.usage.output_tokens + retryResponse.usage.output_tokens,
             forward_to_human: forwardToHuman,
@@ -4035,6 +4309,160 @@ Rewrite your response following these rules. Be helpful, direct, and ONLY use in
       } catch (retryErr) {
         console.error(`[generateResponse] Language retry failed:`, retryErr);
       }
+    }
+  }
+
+  // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 3: Sanitização de respostas não-escalação
+  // Se a resposta NÃO é encaminhamento para humano, o email de suporte NÃO deveria aparecer
+  // (exceto em categorias que legitimamente precisam: edicao_pedido, troca_devolucao_reembolso com retention >= 3)
+  const isEscalationCategory = category === 'suporte_humano' || category === 'edicao_pedido';
+  const isRetentionEscalation = category === 'troca_devolucao_reembolso' && retentionContactCount >= 3;
+
+  if (!forwardToHuman && !isEscalationCategory && !isRetentionEscalation && shopContext.support_email) {
+    const supportEmailLower = shopContext.support_email.toLowerCase();
+    const mainEmailLower = (shopContext.store_email || '').toLowerCase();
+
+    // Só remover se o support_email é diferente do email principal (se forem iguais, é legítimo)
+    if (supportEmailLower !== mainEmailLower) {
+      const supportEmailEscaped = shopContext.support_email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Remover sentenças inteiras que mencionam o email de suporte
+      const supportEmailSentence = new RegExp(
+        `[^.!?\\n]*\\b${supportEmailEscaped}\\b[^.!?\\n]*[.!?]?\\s*`,
+        'gi'
+      );
+      const beforeSupportClean = cleanedResponse;
+      cleanedResponse = cleanedResponse.replace(supportEmailSentence, '').trim();
+      if (cleanedResponse !== beforeSupportClean) {
+        console.log(`[generateResponse] CAMADA 3: Removed unnecessary support email (${shopContext.support_email}) from ${category} response`);
+      }
+    }
+  }
+
+  // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 4: Remover frases corporativas residuais
+  // Estas frases passam despercebidas pelo hallucination detector quando sozinhas, mas pioram a qualidade
+  const beforeCorporateClean = cleanedResponse;
+  cleanedResponse = cleanedResponse
+    // PT: "Estaremos felizes em ajudá-lo/la"
+    .replace(/\.?\s*estaremos\s+felizes\s+em\s+ajud[áa][- ]?l[oa]s?\.?\s*/gi, '. ')
+    // EN: "We will/would be happy to help/assist you"
+    .replace(/\.?\s*we\s+(?:will|would)\s+be\s+happy\s+to\s+(?:help|assist)\s+you\.?\s*/gi, '. ')
+    // PT: "Caso tenha qualquer outra dúvida..." (frase inteira até o ponto)
+    .replace(/\.?\s*caso\s+tenha\s+(?:qualquer|alguma)\s+(?:outra?\s+)?d[úu]vida[^.!?\n]*[.!?]?\s*/gi, ' ')
+    // EN: "If you have any other questions..." (frase inteira até o ponto)
+    .replace(/\.?\s*if\s+you\s+have\s+any\s+(?:other\s+|further\s+)?questions?[^.!?\n]*[.!?]?\s*/gi, ' ')
+    // DE: "Bei weiteren Fragen..."
+    .replace(/\.?\s*bei\s+(?:weiteren\s+)?fragen[^.!?\n]*[.!?]?\s*/gi, ' ')
+    // FR: "Pour toute autre question..."
+    .replace(/\.?\s*pour\s+toute\s+(?:autre\s+)?question[^.!?\n]*[.!?]?\s*/gi, ' ')
+    // IT: "Per qualsiasi altra domanda..."
+    .replace(/\.?\s*per\s+qualsiasi\s+(?:altra\s+)?domanda[^.!?\n]*[.!?]?\s*/gi, ' ')
+    // ES: "Si tiene alguna otra pregunta/duda..."
+    .replace(/\.?\s*si\s+tiene\s+(?:alguna|cualquier)\s+(?:otra\s+)?(?:pregunta|duda)[^.!?\n]*[.!?]?\s*/gi, ' ')
+    // Limpar espaços múltiplos e pontos duplicados
+    .replace(/\.\s*\./g, '.')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  if (cleanedResponse !== beforeCorporateClean) {
+    console.log(`[generateResponse] CAMADA 4: Stripped corporate closing phrases from response`);
+  }
+
+  // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 5: Corrigir assinatura com nome da loja
+  // Se a resposta termina com "Support/Suporte/Equipe [NomeLoja]" ao invés do nome do atendente
+  const escapedStoreName = shopContext.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const storeNameSignatureAtEnd = new RegExp(
+    `\\n\\s*(?:support|suporte|equipe|team|l'équipe|equipo)\\s+(?:de\\s+|do\\s+|da\\s+)?${escapedStoreName}\\s*$`,
+    'i'
+  );
+  if (storeNameSignatureAtEnd.test(cleanedResponse)) {
+    cleanedResponse = cleanedResponse.replace(storeNameSignatureAtEnd, `\n${shopContext.attendant_name}`);
+    console.log(`[generateResponse] CAMADA 5: Fixed store name signature → ${shopContext.attendant_name}`);
+  }
+
+  // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 6: Remoção programática de PROMESSAS FALSAS
+  // Esta é a última linha de defesa - remove sentenças com promessas que a IA não pode cumprir
+  // Funciona removendo SENTENÇAS INTEIRAS que contêm os padrões problemáticos
+  const beforePromiseClean = cleanedResponse;
+  cleanedResponse = cleanedResponse
+    // === PROMESSAS DE AÇÃO FUTURA (primeira pessoa) ===
+    // PT: "Vou verificar/investigar/checar/contatar/entrar em contato..."
+    .replace(/[^.!?\n]*\b(?:vou|irei)\s+(?:verificar|investigar|analisar|averiguar|checar|contatar|consultar|processar|resolver|agilizar|encaminhar|solicitar|providenciar|entrar\s+em\s+contato)[^.!?\n]*[.!?]?\s*/gi, '')
+    // EN: "I will/I'll check/investigate/contact..."
+    .replace(/[^.!?\n]*\b(?:i\s+will|i'?ll)\s+(?:check|investigate|verify|contact|reach\s+out|process|resolve|speed\s+up|forward|request|look\s+into|get\s+(?:back|in\s+touch))[^.!?\n]*[.!?]?\s*/gi, '')
+    // FR: "Je vais vérifier/contacter..."
+    .replace(/[^.!?\n]*\b(?:je\s+vais)\s+(?:v[ée]rifier|investiguer|contacter|traiter|r[ée]soudre|examiner|transmettre)[^.!?\n]*[.!?]?\s*/gi, '')
+    // DE: "Ich werde überprüfen/kontaktieren..."
+    .replace(/[^.!?\n]*\b(?:ich\s+werde)\s+(?:überprüfen|untersuchen|kontaktieren|bearbeiten|lösen|weiterleiten)[^.!?\n]*[.!?]?\s*/gi, '')
+    // ES: "Voy a verificar/contactar..."
+    .replace(/[^.!?\n]*\b(?:voy\s+a)\s+(?:verificar|investigar|contactar|procesar|resolver|agilizar|reenviar)[^.!?\n]*[.!?]?\s*/gi, '')
+    // === FALSAS ALEGAÇÕES NO PASSADO ===
+    // PT: "Acabei de verificar/contatar/falar com..."
+    .replace(/[^.!?\n]*\b(?:acabei\s+de|acabo\s+de)\s+(?:verificar|investigar|checar|contatar|consultar|entrar\s+em\s+contato|falar\s+com|enviar|encaminhar|solicitar)[^.!?\n]*[.!?]?\s*/gi, '')
+    // PT: "Já verifiquei/contatei/falei..."
+    .replace(/[^.!?\n]*\bj[áa]\s+(?:entrei\s+em\s+contato|verifiquei|investiguei|chequei|contatei|consultei|enviei|encaminhei|solicitei|falei\s+com)[^.!?\n]*[.!?]?\s*/gi, '')
+    // PT: "Verifiquei/Investiguei/Contatei" STANDALONE (sem "já"/"acabei de" - também é mentira)
+    .replace(/[^.!?\n]*\b(?:verifiquei|investiguei|chequei|contatei|consultei)\s+(?:e\s|com\s|que\s|o\s|a\s|os\s|as\s|junto|sobre|seu|sua)[^.!?\n]*[.!?]?\s*/gi, '')
+    // PT: "esse atraso é inaceitável" - IA se auto-culpando prejudica a loja
+    .replace(/[^.!?\n]*\besse\s+atraso\s+[ée]\s+inaceit[áa]vel[^.!?\n]*[.!?]?\s*/gi, '')
+    // EN: "I just checked/contacted/spoke with..."
+    .replace(/[^.!?\n]*\bi\s+(?:just|already)\s+(?:checked|contacted|reached\s+out|spoke|talked|verified|investigated|forwarded|sent|emailed)[^.!?\n]*[.!?]?\s*/gi, '')
+    // EN: "I have contacted/checked..."
+    .replace(/[^.!?\n]*\bi(?:'ve|\s+have)\s+(?:contacted|reached\s+out|checked\s+with|spoken|talked|verified|investigated|forwarded|sent)[^.!?\n]*[.!?]?\s*/gi, '')
+    // === PROMESSAS DE RETORNO/FOLLOW-UP ===
+    // PT: "Entrarei em contato", "Retornarei", "Prometo..."
+    .replace(/[^.!?\n]*\b(?:entrarei\s+em\s+contato|retornarei|voltarei\s+a\s+(?:entrar\s+em\s+contato|responder)|prometo\s+(?:dar|enviar|responder|retornar|verificar)|darei\s+(?:um\s+)?retorno)[^.!?\n]*[.!?]?\s*/gi, '')
+    // EN: "I'll get back to you", "I promise to..."
+    .replace(/[^.!?\n]*\b(?:i'?ll\s+(?:get\s+back|return|come\s+back|follow\s+up|update\s+you)|i\s+promise\s+to\s+(?:get|respond|reply|check|provide))[^.!?\n]*[.!?]?\s*/gi, '')
+    // === AGUARDE ENQUANTO... ===
+    // PT: "Aguarde enquanto verifico/Por favor aguarde alguns minutos"
+    .replace(/[^.!?\n]*\b(?:aguarde|espere)\s+(?:enquanto|alguns?|uns?)[^.!?\n]*[.!?]?\s*/gi, '')
+    // EN: "Wait while I check/Please wait a few minutes"
+    .replace(/[^.!?\n]*\b(?:please\s+)?wait\s+(?:while|a\s+few)[^.!?\n]*[.!?]?\s*/gi, '')
+    // === "NAS PRÓXIMAS HORAS/MINUTOS" ===
+    .replace(/[^.!?\n]*\bnas?\s+pr[oó]ximas?\s+(?:horas?|minutos?)[^.!?\n]*[.!?]?\s*/gi, '')
+    .replace(/[^.!?\n]*\bwithin\s+the\s+next\s+(?:few\s+)?(?:hours?|minutes?)[^.!?\n]*[.!?]?\s*/gi, '')
+    // === "EM BREVE" / "SOON" ===
+    .replace(/[^.!?\n]*\b(?:entrarei|retornarei|responderei|voltarei)[^.!?\n]*\bem\s+breve\b[^.!?\n]*[.!?]?\s*/gi, '')
+    // === DESCULPAS PELA DEMORA (pattern de loop) ===
+    // Quando aparece junto com promessas de retorno, é sinal de loop
+    .replace(/[^.!?\n]*\bpe[çc]o\s+(?:sinceras?\s+)?desculpas?\s+pel[oa]\s+(?:demora|atraso|espera|inconveni[eê]ncia)[^.!?\n]*[.!?]?\s*/gi, '')
+    // EN: "I sincerely apologize for the delay"
+    .replace(/[^.!?\n]*\bi?\s*(?:sincerely\s+)?apologize\s+for\s+the\s+(?:delay|wait|inconvenience)[^.!?\n]*[.!?]?\s*/gi, '')
+    // Limpar artefatos
+    .replace(/\.\s*\./g, '.')
+    .replace(/\n\s*\n\s*\n/g, '\n\n')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  if (cleanedResponse !== beforePromiseClean) {
+    console.log(`[generateResponse] CAMADA 6: Stripped false promises from response`);
+    console.log(`[generateResponse] CAMADA 6 before: "${beforePromiseClean.substring(0, 200)}"`);
+    console.log(`[generateResponse] CAMADA 6 after: "${cleanedResponse.substring(0, 200)}"`);
+  }
+
+  // Safety check: se a CAMADA 6 removeu tanto que só sobrou a assinatura, usar fallback baseado em dados reais
+  const responseWithoutSignature = cleanedResponse.replace(new RegExp(`\\n?${shopContext.attendant_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i'), '').trim();
+  if (responseWithoutSignature.length < 20) {
+    console.warn(`[generateResponse] CAMADA 6 left response too short (${responseWithoutSignature.length} chars). Building factual fallback for category: ${category}`);
+
+    // Fallback inteligente baseado na categoria e dados disponíveis
+    if (category === 'rastreio' && shopifyData?.tracking_number) {
+      const trackingInfo = shopifyData?.tracking_url && shopifyData.tracking_url !== 'N/A'
+        ? `Você pode acompanhar pelo link: ${shopifyData.tracking_url}`
+        : 'Você pode pesquisar esse código no site 17track.net para acompanhar';
+      const deliveryInfo = shopContext.delivery_time
+        ? ` O prazo estimado de entrega é ${shopContext.delivery_time}.`
+        : ' O rastreio de envios internacionais pode demorar alguns dias para atualizar.';
+      cleanedResponse = `Olá! O código de rastreio do seu pedido${shopifyData?.order_number ? ` #${shopifyData.order_number}` : ''} é ${shopifyData.tracking_number}. ${trackingInfo}.${deliveryInfo} Qualquer coisa, me chama!\n\n${shopContext.attendant_name}`;
+    } else if (category === 'rastreio' && shopifyData?.fulfillment_status) {
+      const statusMsg = shopifyData.fulfillment_status.toLowerCase().includes('fulfilled')
+        ? 'Seu pedido já foi enviado e o código de rastreio será atualizado em breve.'
+        : 'Seu pedido está sendo preparado para envio. Assim que for enviado, você receberá o código de rastreio.';
+      cleanedResponse = `Olá! ${statusMsg}${shopContext.delivery_time ? ` O prazo estimado é ${shopContext.delivery_time}.` : ''} Qualquer coisa, me chama!\n\n${shopContext.attendant_name}`;
+    } else if (shopContext.support_email) {
+      cleanedResponse = `Olá! Para resolver sua situação da melhor forma, entre em contato pelo email ${shopContext.support_email}.\n\n${shopContext.attendant_name}`;
+    } else {
+      cleanedResponse = `Olá! Recebemos sua mensagem e estamos cuidando do seu caso. Qualquer dúvida, responda este email.\n\n${shopContext.attendant_name}`;
     }
   }
 
@@ -4149,10 +4577,10 @@ REGRA CRÍTICA - NUNCA PEÇA TRACKING AO CLIENTE (PRIORIDADE ABSOLUTA):
 - NUNCA peça ao cliente para fornecer: tracking number, tracking code, código de rastreio, número de rastreamento, link de rastreamento
 - NUNCA use frases como "Could you provide the tracking number?", "Você poderia me fornecer o código de rastreio?"
 - NUNCA peça ao cliente para fornecer link de rastreamento
-- Se o cliente reclama que tracking não funciona → diga que VOCÊ vai verificar o status internamente
+- Se o cliente reclama que tracking não funciona → peça o número do pedido para localizar o envio
 - Peça APENAS: número do pedido (order number) ou email de compra
 - Exemplo ERRADO: "Você poderia me fornecer novamente o número de rastreamento ou o número do pedido?"
-- Exemplo CORRETO: "Poderia me informar o número do seu pedido para que eu possa verificar o status?"
+- Exemplo CORRETO: "Poderia me informar o número do seu pedido para que eu possa localizar o envio?"
 
 REGRAS IMPORTANTES:
 1. NÃO use markdown (nada de **, ##, *, etc.)
@@ -4163,7 +4591,7 @@ REGRAS IMPORTANTES:
 6. Use linguagem natural: "Oi!", "Olá!", "Hey!" - não "Prezado cliente"
 7. Varie o início - não comece sempre com "Obrigado por entrar em contato"
 8. NUNCA peça tracking/rastreio/tracking number ao cliente - APENAS número do pedido ou email
-9. Se o assunto do email já indica que é sobre rastreio/entrega, diga que vai verificar o status e peça APENAS o número do pedido
+9. Se o assunto do email já indica que é sobre rastreio/entrega, peça APENAS o número do pedido para localizar o envio
 ${urgencyNote}`;
 
   const response = await callClaude(

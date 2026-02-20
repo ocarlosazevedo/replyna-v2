@@ -1247,8 +1247,8 @@ async function processMessageInternal(
       orderNumber
     );
 
-    // Se não encontrou e tem número do pedido, tentar com emails alternativos mencionados no corpo
-    if (!shopifyData && orderNumber) {
+    // Se não encontrou, tentar com emails alternativos mencionados no corpo
+    if (!shopifyData) {
       // Extrair emails mencionados no corpo da mensagem (cliente pode ter usado outro email)
       const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
       const mentionedEmails = cleanBody.match(emailPattern) || [];
@@ -1337,6 +1337,15 @@ async function processMessageInternal(
       }
       // NÃO set responseResult - vai cair no else abaixo para generateResponse
     } else if (conversation.data_request_count < MAX_DATA_REQUESTS) {
+      // CORREÇÃO: Se já pedimos dados antes e o cliente respondeu com email mas não encontramos
+      // pedido, NÃO pedir de novo — deixar cair no generateResponse() que vai informar ao cliente.
+      const customerProvidedEmail = (cleanBody.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi) || []).length > 0;
+      const alreadyAskedOnce = (conversation.data_request_count || 0) >= 1;
+
+      if (alreadyAskedOnce && customerProvidedEmail) {
+        console.log(`[process-emails] Customer provided email but order not found in Shopify. Skipping data request, proceeding to generateResponse.`);
+        // NÃO set responseResult — vai cair no generateResponse() abaixo
+      } else {
       // Sem número de pedido - pedir APENAS número do pedido (nunca tracking)
       responseResult = await generateDataRequestMessage(
         {
@@ -1353,6 +1362,7 @@ async function processMessageInternal(
       await updateConversation(conversation.id, {
         data_request_count: conversation.data_request_count + 1,
       });
+      }
     } else {
       // MAX_DATA_REQUESTS excedido sem número de pedido - escalar para humano
       responseResult = await generateHumanFallbackMessage(
@@ -1502,8 +1512,10 @@ async function processMessageInternal(
   // 10. Crédito já foi reservado atomicamente no início (tryReserveCredit)
   // Não precisa mais chamar incrementEmailsUsed aqui
 
-  // 10.1 Verificar cobrança de extras
-  await checkAndChargeExtraEmails(user.id, shop.id);
+  // 10.1 Cobrança automática de extras DESATIVADA
+  // Quando o usuário atingir o limite, o sistema para de processar (pending_credits).
+  // Não cobra extras automaticamente.
+  // await checkAndChargeExtraEmails(user.id, shop.id);
 
   // 11. Atualizar status da conversation
   await updateConversation(conversation.id, {

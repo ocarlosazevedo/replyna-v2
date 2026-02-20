@@ -599,6 +599,16 @@ async function handleSubscriptionUpdate(
     return;
   }
 
+  // Se past_due, suspender usuário mas manter plano (redundância com handlePaymentFailed)
+  if (status === 'past_due') {
+    await supabase
+      .from('users')
+      .update({ status: 'suspended' })
+      .eq('id', sub.user_id);
+    console.log('Usuário suspenso devido a subscription past_due:', sub.user_id);
+    return;
+  }
+
   // Para outros status (active, trialing, etc), sincronizar plano baseado no price_id
   if (priceId) {
     // Buscar plano pelo stripe_price_id (mensal ou anual)

@@ -680,6 +680,24 @@ async function processMessage(
           );
         }
 
+        // Se não encontrou com from_email, tentar com emails mencionados no body
+        if (!shopifyData) {
+          const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
+          const mentionedEmails = (cleanBody.match(emailPattern) || [])
+            .map((e: string) => e.toLowerCase())
+            .filter((e: string) => e !== message.from_email.toLowerCase())
+            .filter((e: string, i: number, self: string[]) => self.indexOf(e) === i);
+
+          for (const altEmail of mentionedEmails) {
+            console.log(`[Processor] Trying alternative email from body: ${altEmail}`);
+            shopifyData = await getOrderDataForAI(shopifyCredentials, altEmail, orderNumber);
+            if (shopifyData) {
+              console.log(`[Processor] Found order with alternative email: ${altEmail}`);
+              break;
+            }
+          }
+        }
+
         // RECORD SHOPIFY SUCCESS - circuit breaker will close if in half_open
         await recordShopifySuccess(shop.id);
 
@@ -785,7 +803,16 @@ async function processMessage(
   }
 
   // Só pedir dados ao cliente se NÃO temos número de pedido de NENHUMA fonte
-  if (needsOrderData && !shopifyData && !knownOrderNumber && conversation.data_request_count < MAX_DATA_REQUESTS) {
+  // CORREÇÃO: Se já pedimos dados antes (data_request_count >= 1) e o cliente respondeu
+  // com email mas não encontramos pedido, NÃO pedir de novo — informar que não encontrou.
+  const customerProvidedEmail = (cleanBody.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi) || []).length > 0;
+  const alreadyAskedOnce = (conversation.data_request_count || 0) >= 1;
+
+  if (alreadyAskedOnce && customerProvidedEmail && needsOrderData && !shopifyData && !knownOrderNumber) {
+    console.log(`[Processor] Customer provided email but order not found in Shopify. Skipping data request, proceeding to generateResponse.`);
+  }
+
+  if (needsOrderData && !shopifyData && !knownOrderNumber && conversation.data_request_count < MAX_DATA_REQUESTS && !(alreadyAskedOnce && customerProvidedEmail)) {
     // generateDataRequestMessage: (shopContext, emailSubject, emailBody, attemptNumber, language)
     const dataRequestResult = await generateDataRequestMessage(
       {
