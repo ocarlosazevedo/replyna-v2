@@ -40,7 +40,6 @@ import { supabase } from '../lib/supabase'
 const heroWords = ['chargebacks', 'disputas', 'bloqueios', 'prejuízos']
 
 const statsData = [
-  { value: '+500', label: 'Alunos', icon: <Users size={22} /> },
   { value: '47min', label: 'Conteúdo completo', icon: <Clock size={22} /> },
   { value: '100%', label: 'Gratuito', icon: <Zap size={22} /> }
 ]
@@ -426,16 +425,16 @@ export default function Masterclass() {
             </div>
 
             <h1 className="mc-headline">
-              Pare de perder dinheiro com{' '}
+              Descubra a metodologia utilizada pelos maiores players do mercado para{' '}
               <span className="mc-rotating-word" key={heroWordIndex}>
-                {heroWords[heroWordIndex]}
+                reduzir até 90%
               </span>
-              {' '}e proteja sua conta na Shopify Payments
+              {' '}do Chargeback
             </h1>
 
             <p className="mc-subheadline">
-              Masterclass gratuita de 47 minutos com o método validado para reduzir até 90% dos
-              chargebacks e evitar o bloqueio da sua conta.
+              Tenha acesso à uma masterclass completa com a metodologia detalhada utilizada para
+              reduzir o chargeback e ainda manter as contas da Shopify Payments ativas.
             </p>
 
             <button onClick={openModal} className="mc-hero-cta">
@@ -577,10 +576,20 @@ export default function Masterclass() {
         </div>
       </section>
 
-      {/* ===== STATS + TRUST BADGES ===== */}
-      <section className="mc-stats-section mc-fade-in">
-        <div className="mc-stats-inner">
-          <div className="mc-stats-grid">
+      {/* ===== HEADLINE BLOCK 2 ===== */}
+      <section className="mc-section mc-fade-in" style={{ paddingTop: '60px', paddingBottom: '20px' }}>
+        <div className="mc-section-inner" style={{ textAlign: 'center' }}>
+          <h2 className="mc-section-title" style={{ fontSize: '36px', lineHeight: 1.3 }}>
+            Dê Adeus aos Bloqueios da Shopify Payments:{' '}
+            <span className="mc-highlight">Método Ultra Validado</span>{' '}
+            para ZERAR os bloqueios!
+          </h2>
+          <p className="mc-section-text" style={{ maxWidth: '700px', margin: '20px auto 0', fontSize: '18px' }}>
+            Descubra o grande segredo dos maiores players do mercado e as estratégias para manter
+            as contas da Payments ativas por mais de 6 meses.
+          </p>
+
+          <div className="mc-stats-grid" style={{ marginTop: '40px' }}>
             {statsData.map((stat, i) => (
               <div key={i} className="mc-stat-card">
                 <div className="mc-stat-icon">{stat.icon}</div>
@@ -590,7 +599,7 @@ export default function Masterclass() {
             ))}
           </div>
 
-          <div className="mc-trust-row">
+          <div className="mc-trust-row" style={{ marginTop: '30px' }}>
             {trustBadges.map((badge, i) => (
               <div key={i} className="mc-trust-badge">
                 {badge.icon}
