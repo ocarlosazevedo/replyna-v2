@@ -22,7 +22,7 @@ interface Shop {
 }
 
 interface Subscription {
-  stripe_subscription_id: string
+  asaas_subscription_id: string
   status: string
   current_period_end: string
 }
@@ -130,7 +130,7 @@ export default function AdminClients() {
       const selectedPlan = plans.find(p => p.name.toLowerCase() === editingClient.plan)
       const planChanged = editingClient.plan !== originalClient.plan
 
-      // Se o plano mudou e o cliente tem assinatura ativa, usar Edge Function para atualizar Stripe
+      // Se o plano mudou e o cliente tem assinatura ativa, usar Edge Function para atualizar Asaas
       if (planChanged && selectedPlan && editingClient.subscription) {
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subscription`,
@@ -150,7 +150,7 @@ export default function AdminClients() {
         const result = await response.json()
 
         if (!response.ok) {
-          throw new Error(result.error || 'Erro ao atualizar plano no Stripe')
+          throw new Error(result.error || 'Erro ao atualizar plano no Asaas')
         }
 
         // Atualizar também nome e status no banco
@@ -1476,7 +1476,7 @@ export default function AdminClients() {
             </div>
 
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
-              Isso irá remover permanentemente o cliente, cancelar sua assinatura no Stripe, deletar todas as lojas, conversas e dados associados.
+              Isso irá remover permanentemente o cliente, cancelar sua assinatura no Asaas, deletar todas as lojas, conversas e dados associados.
             </p>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>

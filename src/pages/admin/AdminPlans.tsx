@@ -23,12 +23,9 @@ interface Plan {
   emails_limit: number | null  // null = ilimitado
   shops_limit: number | null   // null = ilimitado
   features: string[]
-  stripe_product_id: string | null
-  stripe_price_monthly_id: string | null
-  stripe_price_yearly_id: string | null
+  asaas_plan_id: string | null
   extra_email_price: number | null  // null = sem cobrança extra
   extra_email_package_size: number | null
-  stripe_extra_email_price_id: string | null
   is_active: boolean
   is_popular: boolean
   sort_order: number
@@ -49,12 +46,9 @@ export default function AdminPlans() {
     emails_limit: '' as string | number,  // vazio = ilimitado
     shops_limit: '' as string | number,   // vazio = ilimitado
     features: [] as string[],
-    stripe_product_id: '',
-    stripe_price_monthly_id: '',
-    stripe_price_yearly_id: '',
+    asaas_plan_id: '',
     extra_email_price: '' as string | number,  // vazio = sem cobrança
     extra_email_package_size: '' as string | number,
-    stripe_extra_email_price_id: '',
     is_active: true,
     is_popular: false,
     sort_order: 0,
@@ -94,12 +88,9 @@ export default function AdminPlans() {
         emails_limit: plan.emails_limit ?? '',  // null vira vazio (ilimitado)
         shops_limit: plan.shops_limit ?? '',    // null vira vazio (ilimitado)
         features: plan.features || [],
-        stripe_product_id: plan.stripe_product_id || '',
-        stripe_price_monthly_id: plan.stripe_price_monthly_id || '',
-        stripe_price_yearly_id: plan.stripe_price_yearly_id || '',
+        asaas_plan_id: plan.asaas_plan_id || '',
         extra_email_price: plan.extra_email_price ?? '',  // null vira vazio
         extra_email_package_size: plan.extra_email_package_size ?? '',
-        stripe_extra_email_price_id: plan.stripe_extra_email_price_id || '',
         is_active: plan.is_active,
         is_popular: plan.is_popular,
         sort_order: plan.sort_order,
@@ -114,12 +105,9 @@ export default function AdminPlans() {
         emails_limit: 100,
         shops_limit: 1,
         features: [],
-        stripe_product_id: '',
-        stripe_price_monthly_id: '',
-        stripe_price_yearly_id: '',
+        asaas_plan_id: '',
         extra_email_price: 1.0,
         extra_email_package_size: 100,
-        stripe_extra_email_price_id: '',
         is_active: true,
         is_popular: false,
         sort_order: plans.length,
@@ -157,12 +145,9 @@ export default function AdminPlans() {
         emails_limit: parseLimit(formData.emails_limit),  // null = ilimitado
         shops_limit: parseLimit(formData.shops_limit),    // null = ilimitado
         features: formData.features,
-        stripe_product_id: formData.stripe_product_id || null,
-        stripe_price_monthly_id: formData.stripe_price_monthly_id || null,
-        stripe_price_yearly_id: formData.stripe_price_yearly_id || null,
+        asaas_plan_id: formData.asaas_plan_id || null,
         extra_email_price: parsePrice(formData.extra_email_price),  // null ou 0 = sem cobrança extra
         extra_email_package_size: parseLimit(formData.extra_email_package_size),
-        stripe_extra_email_price_id: formData.stripe_extra_email_price_id || null,
         is_active: formData.is_active,
         is_popular: formData.is_popular,
         sort_order: formData.sort_order,
@@ -682,40 +667,13 @@ export default function AdminPlans() {
                   </div>
                 </div>
                 <div style={{ marginTop: '12px' }}>
-                  <label style={{ ...labelStyle, fontSize: '12px', color: 'var(--text-secondary)' }}>Stripe Price ID (Pacote Extra)</label>
+                  <label style={{ ...labelStyle, fontSize: '12px', color: 'var(--text-secondary)' }}>Asaas Plan ID (opcional)</label>
                   <input
                     type="text"
-                    value={formData.stripe_extra_email_price_id}
-                    onChange={(e) => setFormData({ ...formData, stripe_extra_email_price_id: e.target.value })}
+                    value={formData.asaas_plan_id}
+                    onChange={(e) => setFormData({ ...formData, asaas_plan_id: e.target.value })}
                     style={inputStyle}
-                    placeholder="price_..."
-                  />
-                </div>
-              </div>
-
-              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                <label style={labelStyle}>Stripe IDs - Assinatura (opcional)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '12px' }}>
-                  <input
-                    type="text"
-                    value={formData.stripe_product_id}
-                    onChange={(e) => setFormData({ ...formData, stripe_product_id: e.target.value })}
-                    style={inputStyle}
-                    placeholder="Product ID"
-                  />
-                  <input
-                    type="text"
-                    value={formData.stripe_price_monthly_id}
-                    onChange={(e) => setFormData({ ...formData, stripe_price_monthly_id: e.target.value })}
-                    style={inputStyle}
-                    placeholder="Price Mensal ID"
-                  />
-                  <input
-                    type="text"
-                    value={formData.stripe_price_yearly_id}
-                    onChange={(e) => setFormData({ ...formData, stripe_price_yearly_id: e.target.value })}
-                    style={inputStyle}
-                    placeholder="Price Anual ID"
+                    placeholder="asaas_plan_..."
                   />
                 </div>
               </div>

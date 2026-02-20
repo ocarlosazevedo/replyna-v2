@@ -10,6 +10,10 @@ verify_jwt = false
 [functions.accept-migration-invite]
 verify_jwt = false
 
+# Create Asaas Subscription - Publico (checkout)
+[functions.create-asaas-subscription]
+verify_jwt = false
+
 # Fetch Emails - Chamado via pg_cron
 [functions.fetch-emails]
 verify_jwt = false

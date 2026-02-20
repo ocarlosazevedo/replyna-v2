@@ -34,11 +34,16 @@ interface Plan {
 
 interface PendingInvoice {
   id: string
-  stripe_invoice_id: string
+  asaas_invoice_url: string | null
   package_size: number
   total_amount: number
   status: string
   created_at: string
+}
+
+interface SubscriptionInfo {
+  current_period_end: string | null
+  status: string | null
 }
 
 const formatNumber = (value: number) =>
@@ -178,8 +183,9 @@ export default function Account() {
   const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null)
   const [buyingExtras, setBuyingExtras] = useState(false)
   const [openingBillingPortal, setOpeningBillingPortal] = useState(false)
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
 
-  // Função para abrir o Stripe Billing Portal (gerenciar cartão)
+  // Função para abrir a ultima fatura do Asaas
   const handleOpenBillingPortal = async () => {
     if (!user || openingBillingPortal) return
 
@@ -202,16 +208,16 @@ export default function Account() {
       const data = await response.json()
 
       if (data.success && data.url) {
-        // Redirecionar para o Stripe Customer Portal
+        // Abrir ultima fatura
         window.location.href = data.url
       } else {
-        throw new Error(data.error || 'Erro ao abrir portal de pagamentos')
+        throw new Error(data.error || 'Nenhuma fatura encontrada')
       }
     } catch (err) {
-      console.error('Erro ao abrir billing portal:', err)
+      console.error('Erro ao abrir fatura:', err)
       setNotice({
         type: 'error',
-        message: err instanceof Error ? err.message : 'Erro ao abrir portal de pagamentos. Tente novamente.',
+        message: err instanceof Error ? err.message : 'Erro ao abrir fatura. Tente novamente.',
       })
     } finally {
       setOpeningBillingPortal(false)
@@ -253,10 +259,10 @@ export default function Account() {
       } else if (data.error) {
         // Traduzir erros comuns para mensagens amigáveis
         const errorMessages: Record<string, string> = {
-          'Usuário não encontrado': 'Não foi possível encontrar sua conta. Faça login novamente.',
-          'Usuário não possui customer_id no Stripe': 'Você precisa ter uma assinatura ativa para comprar emails extras. Entre em contato com o suporte.',
-          'Assinatura ativa não encontrada': 'Você precisa ter uma assinatura ativa para comprar emails extras.',
-          'stripe_extra_email_price_id': 'O preço de emails extras não está configurado para seu plano. Entre em contato com o suporte.',
+          'Usuario nao encontrado': 'Não foi possível encontrar sua conta. Faça login novamente.',
+          'Usuario nao possui customer_id no Asaas': 'Você precisa ter uma assinatura ativa para comprar emails extras. Entre em contato com o suporte.',
+          'Plano nao encontrado': 'Não foi possível identificar seu plano. Entre em contato com o suporte.',
+          'Plano nao possui cobranca de emails extras': 'Seu plano não permite compra de emails extras.',
         }
 
         // Verificar se o erro corresponde a alguma mensagem conhecida
@@ -280,7 +286,7 @@ export default function Account() {
     }
   }
 
-  // Detectar retorno do Stripe após adicionar método de pagamento
+  // Detectar retorno do Asaas após adicionar método de pagamento
   useEffect(() => {
     if (!user) return
 
@@ -451,13 +457,41 @@ export default function Account() {
     loadProfile()
   }, [user])
 
+  const loadSubscription = async () => {
+    if (!user) return
+    try {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('current_period_end, status')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (error) throw error
+      if (data) {
+        setSubscriptionInfo({
+          current_period_end: data.current_period_end,
+          status: data.status,
+        })
+      }
+    } catch (err) {
+      console.error('Erro ao carregar assinatura:', err)
+    }
+  }
+
+  useEffect(() => {
+    if (!user) return
+    loadSubscription()
+  }, [user])
+
   // Função para carregar invoices pendentes de emails extras
   const loadPendingInvoices = async () => {
     if (!user) return
     try {
       const { data, error } = await supabase
         .from('email_extra_purchases')
-        .select('id, stripe_invoice_id, package_size, total_amount, status, created_at')
+        .select('id, asaas_invoice_url, package_size, total_amount, status, created_at')
         .eq('user_id', user.id)
         .in('status', ['pending', 'processing'])
         .order('created_at', { ascending: false })
@@ -473,10 +507,12 @@ export default function Account() {
     loadPendingInvoices()
   }, [user])
 
-  const renewalDate = useMemo(
-    () => calculateRenewalDate(profile?.created_at ?? user?.created_at ?? null),
-    [profile?.created_at, user?.created_at]
-  )
+  const renewalDate = useMemo(() => {
+    if (subscriptionInfo?.current_period_end) {
+      return new Date(subscriptionInfo.current_period_end)
+    }
+    return calculateRenewalDate(profile?.created_at ?? user?.created_at ?? null)
+  }, [subscriptionInfo?.current_period_end, profile?.created_at, user?.created_at])
 
   const planName = profile?.plan ?? '--'
   const emailsLimit = profile?.emails_limit
@@ -582,14 +618,37 @@ export default function Account() {
     setIsEditing((prev) => !prev)
   }
 
-  const handleCancelPlan = () => {
-    const whatsappNumber = '5531973210191' // Número WhatsApp da Replyna
-    const message = encodeURIComponent(
-      `Olá! Gostaria de solicitar o cancelamento do meu plano.\n\nEmail: ${email}\nPlano atual: ${planName}${cancelReason ? `\nMotivo: ${cancelReason}` : ''}`
-    )
-    window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank')
-    setShowCancelModal(false)
-    setCancelReason('')
+  const handleCancelPlan = async () => {
+    if (!user) return
+    setNotice(null)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cancel-subscription`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ user_id: user.id, reason: cancelReason || null }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao cancelar assinatura')
+      }
+
+      setNotice({ type: 'success', message: 'Assinatura cancelada com sucesso.' })
+      setShowCancelModal(false)
+      setCancelReason('')
+      loadProfile()
+      loadSubscription()
+    } catch (err) {
+      console.error('Erro ao cancelar assinatura:', err)
+      setNotice({ type: 'error', message: err instanceof Error ? err.message : 'Erro ao cancelar assinatura.' })
+    }
   }
 
   const handleOpenPlanModal = async () => {
@@ -625,7 +684,7 @@ export default function Account() {
         throw new Error('Sessão expirada. Por favor, faça login novamente.')
       }
 
-      console.log('Pagando invoice:', { purchase_id: invoice.id, stripe_invoice_id: invoice.stripe_invoice_id })
+      console.log('Pagando invoice:', { purchase_id: invoice.id })
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pay-pending-invoice`,
@@ -636,8 +695,8 @@ export default function Account() {
             'Authorization': `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
+            user_id: user.id,
             purchase_id: invoice.id,
-            stripe_invoice_id: invoice.stripe_invoice_id,
           }),
         }
       )
@@ -650,24 +709,8 @@ export default function Account() {
         throw new Error(result.error || `Erro ${response.status}: ${response.statusText}`)
       }
 
-      if (result.success) {
-        setNotice({ type: 'success', message: 'Pagamento realizado com sucesso! Seus créditos extras foram liberados.' })
-        // Remover invoice da lista
-        setPendingInvoices(prev => prev.filter(i => i.id !== invoice.id))
-        // Recarregar profile para atualizar créditos
-        const { data: newProfile } = await supabase
-          .from('users')
-          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number')
-          .eq('id', user.id)
-          .single()
-        if (newProfile) setProfile({
-          ...newProfile,
-          extra_email_price: profile?.extra_email_price ?? null,
-          extra_email_package_size: profile?.extra_email_package_size ?? null,
-        })
-      } else if (result.checkout_url) {
-        // Redirecionar para checkout do Stripe
-        window.location.href = result.checkout_url
+      if (result.url) {
+        window.location.href = result.url
       } else {
         throw new Error(result.error || 'Erro ao processar pagamento')
       }
@@ -784,7 +827,7 @@ export default function Account() {
 
       setShowPlanModal(false)
 
-      // Verificar se houve erro parcial (Stripe atualizado mas banco falhou)
+      // Verificar se houve erro parcial (gateway atualizado mas banco falhou)
       if (result.partial_error) {
         setNotice({
           type: 'info',
@@ -793,7 +836,7 @@ export default function Account() {
         return
       }
 
-      // Verificar se foi uma sincronização (Stripe já estava no plano, banco foi atualizado)
+      // Verificar se foi uma sincronização (gateway já estava no plano, banco foi atualizado)
       if (result.synced) {
         setNotice({
           type: 'success',
@@ -1238,7 +1281,7 @@ export default function Account() {
                           <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
                           <line x1="1" y1="10" x2="23" y2="10"/>
                         </svg>
-                        Gerenciar cartão de crédito
+                        Ver última fatura
                       </>
                     )}
                   </button>

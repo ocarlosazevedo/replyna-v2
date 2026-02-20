@@ -1,19 +1,23 @@
 /**
- * Edge Function: Charge Extra Emails
+ * Edge Function: Charge Extra Emails (Asaas)
  *
- * Cobra um pacote de emails extras do usuário via Stripe
- * Chamada automaticamente quando o usuário atinge o limite do pacote
+ * Cobra um pacote de emails extras do usuario via Asaas.
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { getStripeClient } from '../_shared/stripe.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
-import { maskEmail } from '../_shared/email.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { createPayment } from '../_shared/asaas.ts';
 
 interface ChargeRequest {
   user_id: string;
-  package_size?: number; // Opcional, usa o padrão do plano se não fornecido
+}
+
+function formatDateYYYYMMDD(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 serve(async (req) => {
@@ -25,217 +29,126 @@ serve(async (req) => {
   }
 
   try {
-    const { user_id, package_size } = (await req.json()) as ChargeRequest;
+    const { user_id } = (await req.json()) as ChargeRequest;
 
     if (!user_id) {
       return new Response(
-        JSON.stringify({ error: 'user_id é obrigatório' }),
+        JSON.stringify({ error: 'user_id e obrigatorio' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const supabase = getSupabaseClient();
-    const stripe = getStripeClient();
 
-    // Buscar usuário
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, email, name, stripe_customer_id, pending_extra_emails')
+      .select('id, email, name, asaas_customer_id, emails_used, pending_extra_emails, plan')
       .eq('id', user_id)
       .single();
 
     if (userError || !user) {
-      throw new Error('Usuário não encontrado');
+      throw new Error('Usuario nao encontrado');
     }
 
-    if (!user.stripe_customer_id) {
-      throw new Error('Usuário não possui customer_id no Stripe');
+    if (!user.asaas_customer_id) {
+      throw new Error('Usuario nao possui customer_id no Asaas');
     }
 
-    // Buscar assinatura ativa e plano
-    const { data: subscription, error: subError } = await supabase
-      .from('subscriptions')
-      .select(`
-        id,
-        plan_id,
-        stripe_subscription_id,
-        plans (
-          id,
-          name,
-          extra_email_price,
-          extra_email_package_size,
-          stripe_extra_email_price_id
-        )
-      `)
-      .eq('user_id', user_id)
-      .eq('status', 'active')
+    const { data: plan, error: planError } = await supabase
+      .from('plans')
+      .select('id, name, extra_email_price, extra_email_package_size')
+      .eq('name', user.plan)
       .single();
 
-    if (subError || !subscription) {
-      throw new Error('Assinatura ativa não encontrada');
+    if (planError || !plan) {
+      throw new Error('Plano nao encontrado');
     }
 
-    const plan = subscription.plans as {
-      id: string;
-      name: string;
-      extra_email_price: number;
-      extra_email_package_size: number;
-      stripe_extra_email_price_id: string | null;
-    };
-
-    if (!plan.stripe_extra_email_price_id) {
-      throw new Error(`Plano ${plan.name} não tem preço de email extra configurado no Stripe`);
+    if (!plan.extra_email_price || plan.extra_email_price <= 0) {
+      throw new Error('Plano nao possui cobranca de emails extras');
     }
 
-    const finalPackageSize = package_size || plan.extra_email_package_size;
-    const totalAmount = finalPackageSize * plan.extra_email_price;
+    const packageSize = plan.extra_email_package_size || 100;
+    const totalAmount = Number(plan.extra_email_price) * packageSize;
 
-    console.log(`Cobrando pacote de ${finalPackageSize} emails extras para usuário ${maskEmail(user.email)}`);
-    console.log(`Valor total: R$${totalAmount.toFixed(2)}`);
+    const payment = await createPayment({
+      customer: user.asaas_customer_id,
+      billingType: 'CREDIT_CARD',
+      value: totalAmount,
+      dueDate: formatDateYYYYMMDD(new Date()),
+      description: `Replyna - Pacote extra de ${packageSize} emails`,
+    });
 
-    // Registrar compra pendente no banco
-    const { data: purchaseData, error: purchaseError } = await supabase
-      .rpc('register_extra_email_purchase', {
-        p_user_id: user_id,
-        p_package_size: finalPackageSize,
-        p_price_per_email: plan.extra_email_price,
-      });
+    const { data: purchase, error: purchaseError } = await supabase
+      .from('email_extra_purchases')
+      .insert({
+        user_id: user_id,
+        plan_id: plan.id,
+        package_size: packageSize,
+        price_per_email: plan.extra_email_price,
+        total_amount: totalAmount,
+        asaas_payment_id: payment.id,
+        asaas_invoice_url: payment.invoiceUrl || null,
+        status: 'pending',
+        triggered_at_usage: user.emails_used,
+      })
+      .select('id')
+      .single();
 
     if (purchaseError) {
       throw new Error(`Erro ao registrar compra: ${purchaseError.message}`);
     }
 
-    const purchaseId = purchaseData;
+    const now = new Date();
 
-    // Buscar método de pagamento da assinatura no Stripe
-    let defaultPaymentMethod: string | null = null;
-    if (subscription.stripe_subscription_id) {
-      try {
-        const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id);
-        defaultPaymentMethod = stripeSubscription.default_payment_method as string | null;
-        console.log('Método de pagamento da assinatura:', defaultPaymentMethod);
-      } catch (e) {
-        console.log('Não foi possível obter método de pagamento da assinatura:', e);
-      }
-    }
+    await supabase
+      .from('users')
+      .update({
+        pending_extra_emails: (user.pending_extra_emails || 0) + packageSize,
+        updated_at: now.toISOString(),
+      })
+      .eq('id', user_id);
 
-    // Criar Invoice Item no Stripe (será cobrado na próxima fatura ou imediatamente)
-    try {
-      // Criar um invoice item para o pacote de emails extras
-      const invoiceItem = await stripe.invoiceItems.create({
-        customer: user.stripe_customer_id,
-        price: plan.stripe_extra_email_price_id,
-        quantity: 1, // 1 pacote
-        description: `Pacote de ${finalPackageSize} emails extras - Plano ${plan.name}`,
-        metadata: {
-          user_id: user_id,
-          purchase_id: purchaseId,
-          package_size: finalPackageSize.toString(),
-          price_per_email: plan.extra_email_price.toString(),
-        },
-      });
+    const isPaid = payment.status === 'CONFIRMED' || payment.status === 'RECEIVED';
 
-      console.log('Invoice item criado:', invoiceItem.id);
-
-      // Criar e finalizar invoice imediatamente
-      const invoiceParams: Record<string, unknown> = {
-        customer: user.stripe_customer_id,
-        auto_advance: true, // Finaliza automaticamente
-        collection_method: 'charge_automatically',
-        pending_invoice_items_behavior: 'include', // IMPORTANTE: incluir items pendentes
-        description: `Emails extras - ${plan.name}`,
-        metadata: {
-          user_id: user_id,
-          purchase_id: purchaseId,
-          type: 'extra_emails',
-        },
-      };
-
-      // Usar método de pagamento da assinatura se disponível
-      if (defaultPaymentMethod) {
-        invoiceParams.default_payment_method = defaultPaymentMethod;
-      }
-
-      const invoice = await stripe.invoices.create(invoiceParams);
-
-      // Finalizar a invoice (isso vai cobrar automaticamente se tiver método de pagamento)
-      let finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
-
-      console.log('Invoice finalizada:', finalizedInvoice.id, 'Status:', finalizedInvoice.status);
-
-      // Se não foi paga automaticamente, tentar pagar explicitamente
-      if (finalizedInvoice.status === 'open' && defaultPaymentMethod) {
-        console.log('Tentando pagar invoice explicitamente com método:', defaultPaymentMethod);
-        try {
-          finalizedInvoice = await stripe.invoices.pay(finalizedInvoice.id, {
-            payment_method: defaultPaymentMethod,
-          });
-          console.log('Invoice paga explicitamente. Novo status:', finalizedInvoice.status);
-        } catch (payError) {
-          console.error('Erro ao pagar invoice explicitamente:', payError);
-        }
-      }
-
-      // Se a invoice foi paga
-      if (finalizedInvoice.status === 'paid') {
-        // Confirmar compra no banco
-        await supabase.rpc('confirm_extra_email_purchase', {
-          p_purchase_id: purchaseId,
-          p_stripe_invoice_id: finalizedInvoice.id,
-          p_stripe_charge_id: finalizedInvoice.charge as string,
-        });
-
-        console.log('Compra confirmada com sucesso');
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: `Pacote de ${finalPackageSize} emails extras cobrado com sucesso`,
-            invoice_id: finalizedInvoice.id,
-            amount: totalAmount,
-            purchase_id: purchaseId,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      } else {
-        // Invoice criada mas não paga - cliente não tem método de pagamento
-        // Atualizar purchase com invoice_id e URL de pagamento
-        const hostedInvoiceUrl = finalizedInvoice.hosted_invoice_url;
-
-        await supabase
-          .from('email_extra_purchases')
-          .update({
-            stripe_invoice_id: finalizedInvoice.id,
-            status: 'pending', // Cliente precisa pagar manualmente
-          })
-          .eq('id', purchaseId);
-
-        // NÃO liberar créditos - manter mensagem como pending_credits
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: 'Cliente não possui método de pagamento. Invoice criada aguardando pagamento manual.',
-            invoice_id: finalizedInvoice.id,
-            invoice_url: hostedInvoiceUrl,
-            invoice_status: finalizedInvoice.status,
-            purchase_id: purchaseId,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    } catch (stripeError: unknown) {
-      // Atualizar purchase como falha
-      const errorMessage = stripeError instanceof Error ? stripeError.message : 'Erro desconhecido';
+    if (isPaid && purchase?.id) {
       await supabase
         .from('email_extra_purchases')
         .update({
-          status: 'failed',
-          error_message: errorMessage,
+          status: 'completed',
+          completed_at: now.toISOString(),
         })
-        .eq('id', purchaseId);
+        .eq('id', purchase.id);
 
-      throw stripeError;
+      await supabase
+        .from('users')
+        .update({
+          extra_emails_purchased: (user.extra_emails_purchased || 0) + packageSize,
+          pending_extra_emails: Math.max(0, (user.pending_extra_emails || 0) - packageSize),
+          updated_at: now.toISOString(),
+        })
+        .eq('id', user_id);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          payment_id: payment.id,
+          invoice_url: payment.invoiceUrl || null,
+          purchase_id: purchase?.id,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        payment_id: payment.id,
+        invoice_url: payment.invoiceUrl || null,
+        purchase_id: purchase?.id,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
     console.error('Erro ao cobrar emails extras:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';

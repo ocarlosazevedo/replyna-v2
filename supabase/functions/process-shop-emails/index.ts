@@ -477,6 +477,7 @@ async function processMessage(
     // Outros sistemas
     '@paypal.com',
     '@stripe.com',
+    '@asaas.com.br',
   ];
   const fromLower = message.from_email.toLowerCase();
   if (systemEmailPatterns.some(pattern => fromLower.includes(pattern))) {

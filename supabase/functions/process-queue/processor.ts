@@ -88,6 +88,7 @@ const systemEmailPatterns = [
   // Outros sistemas de e-commerce
   '@paypal.com',
   '@stripe.com',
+  '@asaas.com.br',
   '@mailchimp.com',
   '@klaviyo.com',
   '@sendgrid.com',

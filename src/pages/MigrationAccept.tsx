@@ -90,8 +90,6 @@ export default function MigrationAccept() {
             code: invite.code,
             user_email: formData.email,
             user_name: formData.name,
-            success_url: `${window.location.origin}/checkout/success`,
-            cancel_url: window.location.href,
           }),
         }
       )
@@ -113,9 +111,12 @@ export default function MigrationAccept() {
         migration_invite_code: invite.code,
       }))
 
-      // Redirecionar para o Stripe Checkout
+      // Redirecionar para o pagamento do Asaas
       if (data.url) {
         window.location.href = data.url
+      } else {
+        // Pagamento confirmado instantaneamente
+        window.location.href = '/login?registered=true'
       }
     } catch (err) {
       console.error('Erro ao aceitar convite:', err)
@@ -431,7 +432,7 @@ export default function MigrationAccept() {
               textAlign: 'center',
               lineHeight: '1.6',
             }}>
-              Ao continuar, você será redirecionado para uma página segura do Stripe para adicionar seu cartão.
+              Ao continuar, você será redirecionado para uma página segura do Asaas para adicionar seu cartão.
               A cobrança só será realizada em {formatDate(invite.billing_start_date)}.
             </p>
           </form>

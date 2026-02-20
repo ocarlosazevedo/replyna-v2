@@ -28,7 +28,7 @@ interface Coupon {
   valid_from: string
   valid_until: string | null
   applicable_plan_ids: string[] | null
-  stripe_coupon_id: string | null
+  asaas_discount_id: string | null
   is_active: boolean
   created_at: string
 }
@@ -50,10 +50,9 @@ export default function AdminCoupons() {
     usage_limit_per_user: 1,
     valid_from: new Date().toISOString().split('T')[0],
     valid_until: '',
-    stripe_coupon_id: '',
+    asaas_discount_id: '',
     is_active: true,
   })
-  const [syncing, setSyncing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -91,7 +90,7 @@ export default function AdminCoupons() {
         usage_limit_per_user: coupon.usage_limit_per_user,
         valid_from: coupon.valid_from.split('T')[0],
         valid_until: coupon.valid_until?.split('T')[0] || '',
-        stripe_coupon_id: coupon.stripe_coupon_id || '',
+        asaas_discount_id: coupon.asaas_discount_id || '',
         is_active: coupon.is_active,
       })
     } else {
@@ -107,38 +106,11 @@ export default function AdminCoupons() {
         usage_limit_per_user: 1,
         valid_from: new Date().toISOString().split('T')[0],
         valid_until: '',
-        stripe_coupon_id: '',
+        asaas_discount_id: '',
         is_active: true,
       })
     }
     setShowModal(true)
-  }
-
-  const syncCouponWithStripe = async (couponId: string, action: 'create' | 'update' | 'delete') => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-coupon`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ coupon_id: couponId, action }),
-        }
-      )
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao sincronizar')
-      }
-
-      return data
-    } catch (err) {
-      console.error('Erro ao sincronizar com Stripe:', err)
-      throw err
-    }
   }
 
   const handleSaveCoupon = async () => {
@@ -156,7 +128,7 @@ export default function AdminCoupons() {
         usage_limit_per_user: formData.usage_limit_per_user,
         valid_from: formData.valid_from,
         valid_until: formData.valid_until || null,
-        stripe_coupon_id: formData.stripe_coupon_id || null,
+        asaas_discount_id: formData.asaas_discount_id || null,
         is_active: formData.is_active,
       }
 
@@ -181,16 +153,6 @@ export default function AdminCoupons() {
         couponId = data.id
       }
 
-      // Sincronizar com Stripe automaticamente
-      try {
-        await syncCouponWithStripe(
-          couponId,
-          editingCoupon ? 'update' : 'create'
-        )
-      } catch {
-        console.warn('Cupom salvo, mas erro ao sincronizar com Stripe')
-      }
-
       setShowModal(false)
       loadCoupons()
     } catch (err) {
@@ -201,21 +163,11 @@ export default function AdminCoupons() {
   }
 
   const handleDeleteCoupon = async (couponId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este cupom? Isso também vai deletar do Stripe.')) return
+    if (!confirm('Tem certeza que deseja excluir este cupom?')) return
 
     setDeleting(couponId)
 
     try {
-      // Deletar do Stripe primeiro
-      try {
-        await syncCouponWithStripe(couponId, 'delete')
-      } catch {
-        console.warn('Erro ao deletar do Stripe, continuando com exclusão local')
-      }
-
-      // Aguardar um momento para garantir que o Stripe processou
-      await new Promise(resolve => setTimeout(resolve, 300))
-
       const { error } = await supabase.from('coupons').delete().eq('id', couponId)
       if (error) throw error
 
@@ -415,43 +367,8 @@ export default function AdminCoupons() {
                   ) : (
                     <span>Sem validade</span>
                   )}
-                  {!coupon.stripe_coupon_id && (
-                    <span style={{ fontSize: '11px', color: '#f59e0b', marginLeft: 'auto' }}>
-                      Sem Stripe ID
-                    </span>
-                  )}
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  {!coupon.stripe_coupon_id && (
-                    <button
-                      onClick={async () => {
-                        setSyncing(true)
-                        try {
-                          await syncCouponWithStripe(coupon.id, 'create')
-                          loadCoupons()
-                        } catch (err) {
-                          console.error('Erro ao sincronizar:', err)
-                        } finally {
-                          setSyncing(false)
-                        }
-                      }}
-                      disabled={syncing}
-                      title="Sincronizar com Stripe"
-                      style={{
-                        padding: '8px',
-                        borderRadius: '8px',
-                        border: '1px solid #f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        color: '#f59e0b',
-                        cursor: syncing ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <RefreshCw size={14} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
-                    </button>
-                  )}
                   <button
                     onClick={() => handleToggleActive(coupon.id, coupon.is_active)}
                     style={{
@@ -601,48 +518,10 @@ export default function AdminCoupons() {
                       }}>
                         {isExpired(coupon.valid_until) ? 'Expirado' : coupon.is_active ? 'Ativo' : 'Inativo'}
                       </span>
-                      {!coupon.stripe_coupon_id && (
-                        <span style={{
-                          fontSize: '11px',
-                          color: '#f59e0b',
-                        }}>
-                          Sem Stripe ID
-                        </span>
-                      )}
                     </div>
                   </td>
                   <td style={{ padding: '16px' }}>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      {!coupon.stripe_coupon_id && (
-                        <button
-                          onClick={async () => {
-                            setSyncing(true)
-                            try {
-                              await syncCouponWithStripe(coupon.id, 'create')
-                              loadCoupons()
-                            } catch (err) {
-                              console.error('Erro ao sincronizar:', err)
-                            } finally {
-                              setSyncing(false)
-                            }
-                          }}
-                          disabled={syncing}
-                          title="Sincronizar com Stripe"
-                          style={{
-                            padding: '8px',
-                            borderRadius: '8px',
-                            border: '1px solid #f59e0b',
-                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                            color: '#f59e0b',
-                            cursor: syncing ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <RefreshCw size={14} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
-                        </button>
-                      )}
                       <button
                         onClick={() => handleToggleActive(coupon.id, coupon.is_active)}
                         style={{
@@ -830,22 +709,6 @@ export default function AdminCoupons() {
                 </div>
               </div>
 
-              {editingCoupon?.stripe_coupon_id && (
-                <div style={{
-                  padding: '12px',
-                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}>
-                  <Check size={16} style={{ color: '#22c55e' }} />
-                  <span style={{ fontSize: '13px', color: '#22c55e' }}>
-                    Sincronizado com Stripe: {editingCoupon.stripe_coupon_id}
-                  </span>
-                </div>
-              )}
-
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
@@ -867,7 +730,7 @@ export default function AdminCoupons() {
             }}>
               <RefreshCw size={14} style={{ color: 'var(--accent)' }} />
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                O cupom sera automaticamente sincronizado com o Stripe ao salvar
+                O cupom sera salvo localmente no Supabase
               </span>
             </div>
 
@@ -914,7 +777,7 @@ export default function AdminCoupons() {
                     Salvando...
                   </>
                 ) : (
-                  editingCoupon ? 'Salvar e Sincronizar' : 'Criar e Sincronizar'
+                  editingCoupon ? 'Salvar' : 'Criar'
                 )}
               </button>
             </div>

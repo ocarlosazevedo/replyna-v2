@@ -1,18 +1,17 @@
 /**
- * Edge Function: Pay Pending Invoice
+ * Edge Function: Pay Pending Invoice (Asaas)
  *
- * Permite que o usuário pague uma invoice pendente de emails extras
- * Cria uma Checkout Session do Stripe para pagamento
+ * Retorna o link de pagamento (invoiceUrl) de uma cobranca pendente.
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import { getStripeClient } from '../_shared/stripe.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { getPaymentsByCustomer } from '../_shared/asaas.ts';
 
 interface PayInvoiceRequest {
-  purchase_id: string;
-  stripe_invoice_id: string;
+  user_id: string;
+  purchase_id?: string;
 }
 
 serve(async (req) => {
@@ -24,160 +23,72 @@ serve(async (req) => {
   }
 
   try {
-    const { purchase_id, stripe_invoice_id } = (await req.json()) as PayInvoiceRequest;
+    const { user_id, purchase_id } = (await req.json()) as PayInvoiceRequest;
 
-    if (!purchase_id || !stripe_invoice_id) {
+    if (!user_id) {
       return new Response(
-        JSON.stringify({ error: 'purchase_id e stripe_invoice_id são obrigatórios' }),
+        JSON.stringify({ error: 'user_id e obrigatorio' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const supabase = getSupabaseClient();
-    const stripe = getStripeClient();
 
-    // Buscar a compra pendente
-    const { data: purchase, error: purchaseError } = await supabase
-      .from('email_extra_purchases')
-      .select('*, users!inner(id, email, name, stripe_customer_id)')
-      .eq('id', purchase_id)
-      .in('status', ['pending', 'processing'])
-      .single();
+    if (purchase_id) {
+      const { data: purchase, error: purchaseError } = await supabase
+        .from('email_extra_purchases')
+        .select('id, asaas_invoice_url, status')
+        .eq('id', purchase_id)
+        .eq('user_id', user_id)
+        .eq('status', 'pending')
+        .single();
 
-    if (purchaseError || !purchase) {
+      if (purchaseError || !purchase) {
+        return new Response(
+          JSON.stringify({ error: 'Fatura nao encontrada ou ja foi paga' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: 'Fatura não encontrada ou já foi paga' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ url: purchase.asaas_invoice_url }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const user = purchase.users as {
-      id: string;
-      email: string;
-      name: string | null;
-      stripe_customer_id: string | null;
-    };
+    const { data: user } = await supabase
+      .from('users')
+      .select('asaas_customer_id')
+      .eq('id', user_id)
+      .single();
 
-    if (!user.stripe_customer_id) {
+    if (!user?.asaas_customer_id) {
       return new Response(
-        JSON.stringify({ error: 'Usuário não possui cadastro no Stripe' }),
+        JSON.stringify({ error: 'Usuario nao possui customer_id no Asaas' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Verificar status da invoice no Stripe
-    const stripeInvoice = await stripe.invoices.retrieve(stripe_invoice_id);
+    const payments = await getPaymentsByCustomer(user.asaas_customer_id, {
+      status: 'PENDING',
+      limit: 1,
+      order: 'desc',
+    });
+    const payment = payments.data?.[0];
 
-    // Se a invoice já foi paga, confirmar no banco
-    if (stripeInvoice.status === 'paid') {
-      await supabase.rpc('confirm_extra_email_purchase', {
-        p_purchase_id: purchase_id,
-        p_stripe_invoice_id: stripe_invoice_id,
-        p_stripe_charge_id: stripeInvoice.charge as string,
-      });
-
+    if (!payment?.invoiceUrl) {
       return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Pagamento já realizado anteriormente. Créditos liberados.',
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Nenhuma cobranca pendente encontrada' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Se a invoice está aberta, tentar cobrar ou criar checkout
-    if (stripeInvoice.status === 'open') {
-      // Primeiro, tentar pegar um método de pagamento do cliente
-      const paymentMethods = await stripe.paymentMethods.list({
-        customer: user.stripe_customer_id,
-        type: 'card',
-        limit: 1,
-      });
-
-      if (paymentMethods.data.length > 0) {
-        // Cliente tem cartão salvo, tentar cobrar
-        try {
-          const paidInvoice = await stripe.invoices.pay(stripe_invoice_id, {
-            payment_method: paymentMethods.data[0].id,
-          });
-
-          if (paidInvoice.status === 'paid') {
-            // Confirmar no banco
-            await supabase.rpc('confirm_extra_email_purchase', {
-              p_purchase_id: purchase_id,
-              p_stripe_invoice_id: stripe_invoice_id,
-              p_stripe_charge_id: paidInvoice.charge as string,
-            });
-
-            return new Response(
-              JSON.stringify({
-                success: true,
-                message: 'Pagamento realizado com sucesso!',
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-        } catch (payError) {
-          console.log('Erro ao pagar com cartão salvo:', payError);
-          // Continua para criar checkout session
-        }
-      }
-
-      // Criar Checkout Session para pagamento
-      const baseUrl = Deno.env.get('FRONTEND_URL') || 'https://app.replyna.me';
-
-      const checkoutSession = await stripe.checkout.sessions.create({
-        customer: user.stripe_customer_id,
-        mode: 'payment',
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'brl',
-              product_data: {
-                name: `Pacote de ${purchase.package_size} emails extras`,
-                description: 'Créditos adicionais para respostas automáticas',
-              },
-              unit_amount: Math.round(purchase.total_amount * 100), // Em centavos
-            },
-            quantity: 1,
-          },
-        ],
-        success_url: `${baseUrl}/account?payment=success&purchase_id=${purchase_id}`,
-        cancel_url: `${baseUrl}/account?payment=cancelled`,
-        metadata: {
-          purchase_id: purchase_id,
-          user_id: user.id,
-          type: 'extra_emails_payment',
-        },
-        payment_intent_data: {
-          metadata: {
-            purchase_id: purchase_id,
-            user_id: user.id,
-            type: 'extra_emails_payment',
-          },
-        },
-      });
-
-      return new Response(
-        JSON.stringify({
-          success: false,
-          checkout_url: checkoutSession.url,
-          message: 'Redirecionando para pagamento',
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Invoice em outro status (void, uncollectible, etc)
     return new Response(
-      JSON.stringify({
-        error: `Fatura não pode ser paga. Status: ${stripeInvoice.status}`,
-      }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ url: payment.invoiceUrl }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Erro ao processar pagamento:', error);
+    console.error('Erro ao buscar invoice pendente:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return new Response(
       JSON.stringify({ error: errorMessage }),
