@@ -90,7 +90,7 @@ Deno.serve(async (req: Request) => {
       .from('subscriptions')
       .select('asaas_subscription_id, status')
       .eq('user_id', user_id)
-      .in('status', ['active', 'past_due', 'trialing'])
+      .in('status', ['active', 'past_due', 'trialing', 'incomplete'])
       .order('created_at', { ascending: false })
       .limit(1);
 

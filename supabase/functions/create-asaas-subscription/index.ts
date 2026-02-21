@@ -199,6 +199,7 @@ serve(async (req) => {
     }
 
     // Insert na tabela users (nunca upsert)
+    // Status 'inactive' ate o pagamento ser confirmado via webhook
     await supabase
       .from('users')
       .insert({
@@ -213,7 +214,7 @@ serve(async (req) => {
         extra_emails_used: 0,
         pending_extra_emails: 0,
         asaas_customer_id: customer.id,
-        status: 'active',
+        status: 'inactive',
         whatsapp_number: whatsapp_number || null,
         updated_at: new Date().toISOString(),
       });
@@ -223,12 +224,13 @@ serve(async (req) => {
     const periodEnd = new Date(now);
     periodEnd.setDate(periodEnd.getDate() + 30);
 
+    // Status 'incomplete' ate o primeiro pagamento ser confirmado via webhook
     const subscriptionData = {
       user_id: userId,
       plan_id: plan.id,
       asaas_customer_id: customer.id,
       asaas_subscription_id: subscription.id,
-      status: 'active',
+      status: 'incomplete',
       billing_cycle: 'monthly',
       current_period_start: now.toISOString(),
       current_period_end: periodEnd.toISOString(),

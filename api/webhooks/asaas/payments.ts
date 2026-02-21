@@ -196,6 +196,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           })
           .eq('id', subscriptionRow.id)
 
+        // Ativar usuario (pode estar 'inactive' se e o primeiro pagamento)
+        await supabase
+          .from('users')
+          .update({ status: 'active' })
+          .eq('id', subscriptionRow.user_id)
+
         if (shouldSendPasswordEmail) {
           const { data: user } = await supabase
             .from('users')
