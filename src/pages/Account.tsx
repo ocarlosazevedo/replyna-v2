@@ -183,6 +183,7 @@ export default function Account() {
   const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null)
   const [buyingExtras, setBuyingExtras] = useState(false)
   const [openingBillingPortal, setOpeningBillingPortal] = useState(false)
+  const [updatingPaymentMethod, setUpdatingPaymentMethod] = useState(false)
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
 
   // Função para abrir a ultima fatura do Asaas
@@ -221,6 +222,48 @@ export default function Account() {
       })
     } finally {
       setOpeningBillingPortal(false)
+    }
+  }
+
+  // Função para atualizar método de pagamento via invoice do Asaas
+  const handleUpdatePaymentMethod = async () => {
+    if (!user || updatingPaymentMethod) return
+
+    setUpdatingPaymentMethod(true)
+    setNotice(null)
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-payment-method`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ user_id: user.id }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (data.success && data.url) {
+        window.open(data.url, '_blank')
+        setNotice({
+          type: 'info',
+          message: 'Uma nova aba foi aberta para atualizar seu método de pagamento. Após o pagamento, seu cartão será atualizado automaticamente para cobranças futuras.',
+        })
+      } else {
+        throw new Error(data.error || 'Nenhuma cobrança pendente encontrada.')
+      }
+    } catch (err) {
+      console.error('Erro ao buscar link de pagamento:', err)
+      setNotice({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Erro ao buscar link de atualização de pagamento.',
+      })
+    } finally {
+      setUpdatingPaymentMethod(false)
     }
   }
 
@@ -1282,6 +1325,40 @@ export default function Account() {
                           <line x1="1" y1="10" x2="23" y2="10"/>
                         </svg>
                         Ver última fatura
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleUpdatePaymentMethod}
+                    disabled={updatingPaymentMethod}
+                    style={{
+                      marginTop: '6px',
+                      width: '100%',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-primary)',
+                      padding: '10px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      background: 'var(--bg-card)',
+                      cursor: updatingPaymentMethod ? 'not-allowed' : 'pointer',
+                      opacity: updatingPaymentMethod ? 0.7 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    {updatingPaymentMethod ? (
+                      'Buscando...'
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                        </svg>
+                        Atualizar método de pagamento
                       </>
                     )}
                   </button>
