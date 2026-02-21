@@ -142,9 +142,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .from('subscriptions')
         .update({
           status: 'canceled',
+          canceled_at: new Date().toISOString(),
         })
         .eq('id', subscriptionRow.id)
 
+      // Desativar usuario
+      await supabase
+        .from('users')
+        .update({ status: 'inactive', plan: 'free', emails_limit: 0, shops_limit: 0 })
+        .eq('id', subscriptionRow.user_id)
+
+      console.log('Usuario desativado apos SUBSCRIPTION_DELETED:', subscriptionRow.user_id)
       return respondOk({ ok: true })
     }
 
@@ -167,6 +175,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         })
         .eq('id', subscriptionRow.id)
 
+      // Suspender usuario
+      await supabase
+        .from('users')
+        .update({ status: 'suspended' })
+        .eq('id', subscriptionRow.user_id)
+
+      console.log('Usuario suspenso apos SUBSCRIPTION_INACTIVATED:', subscriptionRow.user_id)
       return respondOk({ ok: true })
     }
 

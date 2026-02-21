@@ -259,6 +259,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .from('subscriptions')
             .update({ status: 'past_due' })
             .eq('id', subscriptionRow.id)
+
+          // Suspender usuario quando pagamento atrasa ou cartao recusado
+          await supabase
+            .from('users')
+            .update({ status: 'suspended' })
+            .eq('id', subscriptionRow.user_id)
+
+          console.log('Usuario suspenso apos', payload.event, ':', subscriptionRow.user_id)
         }
       }
 
@@ -272,7 +280,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (payload.event === 'PAYMENT_REFUNDED') {
       console.log('Pagamento estornado:', payment.id)
 
-      if (!subscriptionId) {
+      if (subscriptionId) {
+        // Reembolso de assinatura: desativar usuario e cancelar subscription
+        const { data: subscriptionRow } = await supabase
+          .from('subscriptions')
+          .select('id, user_id')
+          .eq('asaas_subscription_id', subscriptionId)
+          .maybeSingle()
+
+        if (subscriptionRow?.id) {
+          await supabase
+            .from('subscriptions')
+            .update({ status: 'canceled', canceled_at: new Date().toISOString() })
+            .eq('id', subscriptionRow.id)
+
+          await supabase
+            .from('users')
+            .update({ status: 'inactive', plan: 'free', emails_limit: 0, shops_limit: 0 })
+            .eq('id', subscriptionRow.user_id)
+
+          console.log('Usuario desativado apos reembolso:', subscriptionRow.user_id)
+        }
+      } else {
+        // Reembolso de compra avulsa (email extra)
         const { data: purchase } = await supabase
           .from('email_extra_purchases')
           .select('id')
