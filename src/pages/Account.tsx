@@ -184,6 +184,18 @@ export default function Account() {
   const [buyingExtras, setBuyingExtras] = useState(false)
   const [openingBillingPortal, setOpeningBillingPortal] = useState(false)
   const [updatingPaymentMethod, setUpdatingPaymentMethod] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [cardForm, setCardForm] = useState({
+    holderName: '',
+    number: '',
+    expiryMonth: '',
+    expiryYear: '',
+    ccv: '',
+    cpfCnpj: '',
+    postalCode: '',
+    addressNumber: '',
+    phone: '',
+  })
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
 
   // Função para abrir a ultima fatura do Asaas
@@ -225,9 +237,19 @@ export default function Account() {
     }
   }
 
-  // Função para atualizar método de pagamento via invoice do Asaas
+  // Função para atualizar método de pagamento via API do Asaas
   const handleUpdatePaymentMethod = async () => {
     if (!user || updatingPaymentMethod) return
+
+    // Validar campos obrigatórios
+    if (!cardForm.holderName || !cardForm.number || !cardForm.expiryMonth || !cardForm.expiryYear || !cardForm.ccv) {
+      setNotice({ type: 'error', message: 'Preencha todos os dados do cartão.' })
+      return
+    }
+    if (!cardForm.cpfCnpj || !cardForm.postalCode || !cardForm.addressNumber || !cardForm.phone) {
+      setNotice({ type: 'error', message: 'Preencha todos os dados do titular.' })
+      return
+    }
 
     setUpdatingPaymentMethod(true)
     setNotice(null)
@@ -241,26 +263,42 @@ export default function Account() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ user_id: user.id }),
+          body: JSON.stringify({
+            user_id: user.id,
+            credit_card: {
+              holderName: cardForm.holderName,
+              number: cardForm.number,
+              expiryMonth: cardForm.expiryMonth,
+              expiryYear: cardForm.expiryYear,
+              ccv: cardForm.ccv,
+            },
+            credit_card_holder_info: {
+              cpfCnpj: cardForm.cpfCnpj,
+              postalCode: cardForm.postalCode,
+              addressNumber: cardForm.addressNumber,
+              phone: cardForm.phone,
+            },
+          }),
         }
       )
 
       const data = await response.json()
 
-      if (data.success && data.url) {
-        window.open(data.url, '_blank')
+      if (data.success) {
+        setShowPaymentModal(false)
+        setCardForm({ holderName: '', number: '', expiryMonth: '', expiryYear: '', ccv: '', cpfCnpj: '', postalCode: '', addressNumber: '', phone: '' })
         setNotice({
-          type: 'info',
-          message: 'Uma nova aba foi aberta para atualizar seu método de pagamento. Após o pagamento, seu cartão será atualizado automaticamente para cobranças futuras.',
+          type: 'success',
+          message: 'Cartão atualizado com sucesso! O novo cartão será usado nas próximas cobranças.',
         })
       } else {
-        throw new Error(data.error || 'Nenhuma cobrança pendente encontrada.')
+        throw new Error(data.error || 'Erro ao atualizar cartão.')
       }
     } catch (err) {
-      console.error('Erro ao buscar link de pagamento:', err)
+      console.error('Erro ao atualizar método de pagamento:', err)
       setNotice({
         type: 'error',
-        message: err instanceof Error ? err.message : 'Erro ao buscar link de atualização de pagamento.',
+        message: err instanceof Error ? err.message : 'Erro ao atualizar cartão. Verifique os dados e tente novamente.',
       })
     } finally {
       setUpdatingPaymentMethod(false)
@@ -1331,8 +1369,7 @@ export default function Account() {
 
                   <button
                     type="button"
-                    onClick={handleUpdatePaymentMethod}
-                    disabled={updatingPaymentMethod}
+                    onClick={() => setShowPaymentModal(true)}
                     style={{
                       marginTop: '6px',
                       width: '100%',
@@ -1343,24 +1380,17 @@ export default function Account() {
                       fontSize: '13px',
                       fontWeight: 600,
                       background: 'var(--bg-card)',
-                      cursor: updatingPaymentMethod ? 'not-allowed' : 'pointer',
-                      opacity: updatingPaymentMethod ? 0.7 : 1,
+                      cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
                     }}
                   >
-                    {updatingPaymentMethod ? (
-                      'Buscando...'
-                    ) : (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                        </svg>
-                        Atualizar método de pagamento
-                      </>
-                    )}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                    Atualizar método de pagamento
                   </button>
                 </div>
 
@@ -1930,6 +1960,281 @@ export default function Account() {
           <button
             type="button"
             onClick={() => setShowCancelModal(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(14, 23, 41, 0.35)', border: 'none', zIndex: 60 }}
+          />
+        </div>
+      )}
+
+      {showPaymentModal && (
+        <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+          <div
+            className="replyna-scrollbar"
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '16px',
+              padding: '24px',
+              border: '1px solid var(--border-color)',
+              width: 'min(480px, 94vw)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              zIndex: 61,
+            }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: '8px', color: 'var(--text-primary)' }}>Atualizar cartão de crédito</h3>
+            <p style={{ marginTop: 0, marginBottom: '20px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+              Insira os dados do novo cartão. Nenhuma cobrança será feita agora — o cartão será usado apenas nas próximas renovações.
+            </p>
+
+            <div style={{ display: 'grid', gap: '14px' }}>
+              <label style={{ display: 'grid', gap: '4px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Nome no cartão</span>
+                <input
+                  type="text"
+                  value={cardForm.holderName}
+                  onChange={(e) => setCardForm(prev => ({ ...prev, holderName: e.target.value }))}
+                  placeholder="NOME COMO ESTÁ NO CARTÃO"
+                  style={{
+                    border: '1px solid var(--input-border)',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    textTransform: 'uppercase',
+                  }}
+                />
+              </label>
+
+              <label style={{ display: 'grid', gap: '4px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Número do cartão</span>
+                <input
+                  type="text"
+                  value={cardForm.number}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '').slice(0, 16)
+                    const formatted = raw.replace(/(\d{4})(?=\d)/g, '$1 ')
+                    setCardForm(prev => ({ ...prev, number: formatted }))
+                  }}
+                  placeholder="0000 0000 0000 0000"
+                  maxLength={19}
+                  style={{
+                    border: '1px solid var(--input-border)',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    letterSpacing: '1px',
+                  }}
+                />
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <label style={{ display: 'grid', gap: '4px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Mês</span>
+                  <select
+                    value={cardForm.expiryMonth}
+                    onChange={(e) => setCardForm(prev => ({ ...prev, expiryMonth: e.target.value }))}
+                    style={{
+                      border: '1px solid var(--input-border)',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      fontSize: '14px',
+                      backgroundColor: 'var(--input-bg)',
+                      color: cardForm.expiryMonth ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    }}
+                  >
+                    <option value="">MM</option>
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </label>
+                <label style={{ display: 'grid', gap: '4px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Ano</span>
+                  <select
+                    value={cardForm.expiryYear}
+                    onChange={(e) => setCardForm(prev => ({ ...prev, expiryYear: e.target.value }))}
+                    style={{
+                      border: '1px solid var(--input-border)',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      fontSize: '14px',
+                      backgroundColor: 'var(--input-bg)',
+                      color: cardForm.expiryYear ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    }}
+                  >
+                    <option value="">AAAA</option>
+                    {Array.from({ length: 15 }, (_, i) => String(new Date().getFullYear() + i)).map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </label>
+                <label style={{ display: 'grid', gap: '4px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>CVV</span>
+                  <input
+                    type="text"
+                    value={cardForm.ccv}
+                    onChange={(e) => setCardForm(prev => ({ ...prev, ccv: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
+                    placeholder="000"
+                    maxLength={4}
+                    style={{
+                      border: '1px solid var(--input-border)',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      fontSize: '14px',
+                      backgroundColor: 'var(--input-bg)',
+                      color: 'var(--text-primary)',
+                      letterSpacing: '2px',
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '4px 0' }} />
+
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Dados do titular</p>
+
+              <label style={{ display: 'grid', gap: '4px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>CPF/CNPJ</span>
+                <input
+                  type="text"
+                  value={cardForm.cpfCnpj}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '').slice(0, 14)
+                    let formatted = raw
+                    if (raw.length <= 11) {
+                      formatted = raw.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+                    } else {
+                      formatted = raw.replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d{1,2})$/, '$1-$2')
+                    }
+                    setCardForm(prev => ({ ...prev, cpfCnpj: formatted }))
+                  }}
+                  placeholder="000.000.000-00"
+                  style={{
+                    border: '1px solid var(--input-border)',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <label style={{ display: 'grid', gap: '4px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>CEP</span>
+                  <input
+                    type="text"
+                    value={cardForm.postalCode}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '').slice(0, 8)
+                      const formatted = raw.replace(/(\d{5})(\d)/, '$1-$2')
+                      setCardForm(prev => ({ ...prev, postalCode: formatted }))
+                    }}
+                    placeholder="00000-000"
+                    maxLength={9}
+                    style={{
+                      border: '1px solid var(--input-border)',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      fontSize: '14px',
+                      backgroundColor: 'var(--input-bg)',
+                      color: 'var(--text-primary)',
+                    }}
+                  />
+                </label>
+                <label style={{ display: 'grid', gap: '4px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Número</span>
+                  <input
+                    type="text"
+                    value={cardForm.addressNumber}
+                    onChange={(e) => setCardForm(prev => ({ ...prev, addressNumber: e.target.value }))}
+                    placeholder="123"
+                    style={{
+                      border: '1px solid var(--input-border)',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      fontSize: '14px',
+                      backgroundColor: 'var(--input-bg)',
+                      color: 'var(--text-primary)',
+                    }}
+                  />
+                </label>
+              </div>
+
+              <label style={{ display: 'grid', gap: '4px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Telefone</span>
+                <input
+                  type="tel"
+                  value={cardForm.phone}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '').slice(0, 11)
+                    let formatted = raw
+                    if (raw.length > 6) {
+                      formatted = `(${raw.slice(0, 2)}) ${raw.slice(2, 7)}-${raw.slice(7)}`
+                    } else if (raw.length > 2) {
+                      formatted = `(${raw.slice(0, 2)}) ${raw.slice(2)}`
+                    }
+                    setCardForm(prev => ({ ...prev, phone: formatted }))
+                  }}
+                  placeholder="(11) 99999-9999"
+                  style={{
+                    border: '1px solid var(--input-border)',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPaymentModal(false)
+                  setCardForm({ holderName: '', number: '', expiryMonth: '', expiryYear: '', ccv: '', cpfCnpj: '', postalCode: '', addressNumber: '', phone: '' })
+                }}
+                style={{
+                  flex: 1,
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  padding: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleUpdatePaymentMethod}
+                disabled={updatingPaymentMethod}
+                style={{
+                  flex: 1,
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'var(--accent)',
+                  color: '#ffffff',
+                  padding: '12px',
+                  fontWeight: 600,
+                  cursor: updatingPaymentMethod ? 'not-allowed' : 'pointer',
+                  opacity: updatingPaymentMethod ? 0.7 : 1,
+                }}
+              >
+                {updatingPaymentMethod ? 'Atualizando...' : 'Salvar cartão'}
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowPaymentModal(false)}
             style={{ position: 'fixed', inset: 0, background: 'rgba(14, 23, 41, 0.35)', border: 'none', zIndex: 60 }}
           />
         </div>

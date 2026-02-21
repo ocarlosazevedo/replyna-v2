@@ -1,20 +1,33 @@
 /**
  * Edge Function: Update Payment Method
  *
- * Busca a proxima cobranca pendente ou vencida da assinatura do usuario
- * e retorna a invoiceUrl do Asaas para que o usuario possa pagar
- * com um novo cartao de credito.
+ * Atualiza o cartao de credito da assinatura do usuario diretamente via API do Asaas.
+ * Nao gera cobranca imediata - apenas atualiza o cartao para cobranças futuras.
  *
- * Quando o usuario paga pela pagina do Asaas com um novo cartao,
- * o Asaas automaticamente atualiza o metodo de pagamento para cobranças futuras.
+ * Requer dados do cartao: holderName, number, expiryMonth, expiryYear, ccv
+ * e dados do titular: cpfCnpj, postalCode, addressNumber, phone
  */
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
-import {
-  getPaymentsBySubscription,
-  getPaymentsByCustomer,
-} from '../_shared/asaas.ts';
+import { updateSubscription } from '../_shared/asaas.ts';
+
+interface UpdatePaymentMethodRequest {
+  user_id: string;
+  credit_card: {
+    holderName: string;
+    number: string;
+    expiryMonth: string;
+    expiryYear: string;
+    ccv: string;
+  };
+  credit_card_holder_info: {
+    cpfCnpj: string;
+    postalCode: string;
+    addressNumber: string;
+    phone: string;
+  };
+}
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin');
@@ -25,7 +38,8 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { user_id } = await req.json();
+    const body = (await req.json()) as UpdatePaymentMethodRequest;
+    const { user_id, credit_card, credit_card_holder_info } = body;
 
     if (!user_id) {
       return new Response(
@@ -34,12 +48,26 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    if (!credit_card?.number || !credit_card?.ccv || !credit_card?.expiryMonth || !credit_card?.expiryYear || !credit_card?.holderName) {
+      return new Response(
+        JSON.stringify({ error: 'Dados do cartao sao obrigatorios (holderName, number, expiryMonth, expiryYear, ccv)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!credit_card_holder_info?.cpfCnpj || !credit_card_holder_info?.postalCode || !credit_card_holder_info?.addressNumber || !credit_card_holder_info?.phone) {
+      return new Response(
+        JSON.stringify({ error: 'Dados do titular sao obrigatorios (cpfCnpj, postalCode, addressNumber, phone)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabase = getSupabaseClient();
 
-    // Buscar usuario e assinatura ativa
+    // Buscar usuario
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('asaas_customer_id')
+      .select('email, name, asaas_customer_id')
       .eq('id', user_id)
       .single();
 
@@ -68,78 +96,56 @@ Deno.serve(async (req: Request) => {
 
     const subscription = subscriptions?.[0] || null;
 
-    let invoiceUrl: string | null = null;
-
-    // Estrategia 1: Buscar cobranca pendente/vencida da assinatura
-    if (subscription?.asaas_subscription_id) {
-      // Buscar pagamentos PENDING (proxima cobranca)
-      const pendingPayments = await getPaymentsBySubscription(
-        subscription.asaas_subscription_id,
-        { status: 'PENDING', limit: 1, order: 'asc' }
-      );
-
-      if (pendingPayments.data?.length > 0 && pendingPayments.data[0].invoiceUrl) {
-        invoiceUrl = pendingPayments.data[0].invoiceUrl;
-      }
-
-      // Se nao achou PENDING, buscar OVERDUE
-      if (!invoiceUrl) {
-        const overduePayments = await getPaymentsBySubscription(
-          subscription.asaas_subscription_id,
-          { status: 'OVERDUE', limit: 1, order: 'desc' }
-        );
-
-        if (overduePayments.data?.length > 0 && overduePayments.data[0].invoiceUrl) {
-          invoiceUrl = overduePayments.data[0].invoiceUrl;
-        }
-      }
-    }
-
-    // Estrategia 2: Buscar qualquer cobranca pendente do cliente
-    if (!invoiceUrl) {
-      const customerPayments = await getPaymentsByCustomer(
-        user.asaas_customer_id,
-        { status: 'PENDING', limit: 1, order: 'asc' }
-      );
-
-      if (customerPayments.data?.length > 0 && customerPayments.data[0].invoiceUrl) {
-        invoiceUrl = customerPayments.data[0].invoiceUrl;
-      }
-    }
-
-    if (!invoiceUrl) {
-      const customerOverdue = await getPaymentsByCustomer(
-        user.asaas_customer_id,
-        { status: 'OVERDUE', limit: 1, order: 'desc' }
-      );
-
-      if (customerOverdue.data?.length > 0 && customerOverdue.data[0].invoiceUrl) {
-        invoiceUrl = customerOverdue.data[0].invoiceUrl;
-      }
-    }
-
-    if (!invoiceUrl) {
+    if (!subscription?.asaas_subscription_id) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Nenhuma cobranca pendente encontrada. O metodo de pagamento sera atualizado automaticamente na proxima cobranca.',
-        }),
+        JSON.stringify({ error: 'Assinatura ativa nao encontrada' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Atualizar assinatura com novo cartao no Asaas
+    await updateSubscription(subscription.asaas_subscription_id, {
+      billingType: 'CREDIT_CARD',
+      creditCard: {
+        holderName: credit_card.holderName,
+        number: credit_card.number.replace(/\s/g, ''),
+        expiryMonth: credit_card.expiryMonth,
+        expiryYear: credit_card.expiryYear,
+        ccv: credit_card.ccv,
+      },
+      creditCardHolderInfo: {
+        name: credit_card.holderName,
+        email: user.email,
+        cpfCnpj: credit_card_holder_info.cpfCnpj.replace(/\D/g, ''),
+        postalCode: credit_card_holder_info.postalCode.replace(/\D/g, ''),
+        addressNumber: credit_card_holder_info.addressNumber,
+        phone: credit_card_holder_info.phone.replace(/\D/g, ''),
+      },
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
-        url: invoiceUrl,
+        message: 'Metodo de pagamento atualizado com sucesso. O novo cartao sera usado nas proximas cobranças.',
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Erro ao buscar link de atualizacao de pagamento:', error);
+    console.error('Erro ao atualizar metodo de pagamento:', error);
+
+    // Tentar extrair mensagem de erro do Asaas
+    const errorMessage = error instanceof Error ? error.message : 'Erro interno';
+    let friendlyMessage = 'Erro ao atualizar cartao. Verifique os dados e tente novamente.';
+
+    if (errorMessage.includes('invalid') || errorMessage.includes('creditCard')) {
+      friendlyMessage = 'Dados do cartao invalidos. Verifique numero, validade e CVV.';
+    } else if (errorMessage.includes('cpfCnpj')) {
+      friendlyMessage = 'CPF/CNPJ invalido.';
+    }
+
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Erro interno' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: friendlyMessage }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
