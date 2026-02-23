@@ -215,21 +215,28 @@ export default function MasterclassWatch() {
         </div>
       </header>
 
-      {/* Área de membros */}
+      {/* Wrapper vertical center */}
       <div
         style={{
           flex: 1,
           display: 'flex',
-          flexDirection: isDesktop ? 'row' as const : 'column' as const,
-          alignItems: isDesktop ? 'flex-start' : 'stretch',
+          alignItems: 'center',
           justifyContent: 'center',
-          gap: '24px',
-          maxWidth: '1400px',
           width: '100%',
-          margin: '0 auto',
-          padding: isDesktop ? '24px 32px 48px' : '24px 20px 48px',
         }}
       >
+        {/* Área de membros */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: isDesktop ? 'row' as const : 'column' as const,
+            alignItems: isDesktop ? 'flex-start' : 'stretch',
+            gap: '24px',
+            maxWidth: '1400px',
+            width: '100%',
+            padding: isDesktop ? '24px 32px 48px' : '24px 20px 48px',
+          }}
+        >
         {/* Video Player - flex: 3 (~75%) */}
         <div
           style={isDesktop ? {
@@ -334,6 +341,7 @@ export default function MasterclassWatch() {
               </p>
             </div>
           )}
+        </div>
         </div>
       </div>
 
