@@ -658,21 +658,32 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     setReplySuccess(false)
 
     try {
-      const { data, error } = await supabase.functions.invoke('send-reply', {
-        body: {
-          conversation_id: conversation.id,
-          shop_id: conversation.shop_id,
-          reply_text: replyText.trim(),
-        },
-      })
+      const session = await supabase.auth.getSession()
+      const token = session.data.session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY
 
-      if (error) throw error
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-reply`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            conversation_id: conversation.id,
+            shop_id: conversation.shop_id,
+            reply_text: replyText.trim(),
+          }),
+        }
+      )
+
+      const data = await response.json()
 
       if (data?.success) {
         setReplySuccess(true)
         setReplyText('')
       } else {
-        throw new Error(data?.error || 'Erro desconhecido')
+        throw new Error(data?.error || `Erro ${response.status}: ${response.statusText}`)
       }
     } catch (err) {
       console.error('Erro ao enviar resposta:', err)
