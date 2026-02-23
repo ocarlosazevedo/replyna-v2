@@ -219,9 +219,9 @@ export default function MasterclassWatch() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: isDesktop ? '1fr 340px' : '1fr',
-          gap: isDesktop ? '32px' : '24px',
-          maxWidth: '1000px',
+          gridTemplateColumns: isDesktop ? '1fr 300px' : '1fr',
+          gap: isDesktop ? '28px' : '24px',
+          maxWidth: '1100px',
           margin: '0 auto',
           padding: isDesktop ? '24px 24px 48px' : '24px 20px 48px',
         }}
