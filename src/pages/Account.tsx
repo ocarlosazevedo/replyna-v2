@@ -649,10 +649,15 @@ export default function Account() {
     setResetLoading(true)
     setNotice(null)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      })
-      if (error) throw error
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/request-password-reset`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: targetEmail }),
+        }
+      )
+      if (!response.ok) throw new Error('Erro ao enviar email')
       setNotice({ type: 'success', message: 'Link de redefinição enviado para seu email!' })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro ao enviar link. Tente novamente.'

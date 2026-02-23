@@ -52,10 +52,17 @@ export function useAuth() {
   }
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`
-    })
-    if (error) throw error
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/request-password-reset`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }
+    )
+    if (!response.ok) {
+      throw new Error('Erro ao enviar email de redefinição')
+    }
   }
 
   return {

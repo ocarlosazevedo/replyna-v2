@@ -161,22 +161,25 @@ Deno.serve(async (req) => {
           console.log(`Convite marcado como aceito`);
         }
 
-        // 6. Enviar email de reset de senha
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: 'https://app.replyna.me/reset-password',
+        // 6. Enviar email de reset de senha via Resend
+        const { sendPasswordResetViaResend } = await import('../_shared/resend.ts');
+        const resetResult = await sendPasswordResetViaResend({
+          supabase,
+          email,
+          name: invite.name,
         });
 
-        if (resetError) {
-          console.error(`Erro ao enviar email de reset:`, resetError);
+        if (!resetResult.success) {
+          console.error(`Erro ao enviar email via Resend:`, resetResult.error);
           results.push({
             email,
             status: 'partial',
-            message: `Conta criada, mas erro ao enviar email: ${resetError.message}`,
+            message: `Conta criada, mas erro ao enviar email: ${resetResult.error}`,
           });
           continue;
         }
 
-        console.log(`Email de reset enviado com sucesso!`);
+        console.log(`Email de reset enviado via Resend com sucesso!`);
         results.push({
           email,
           status: 'success',

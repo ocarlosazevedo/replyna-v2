@@ -1,7 +1,7 @@
 /**
  * Edge Function: Admin Send Reset Password
  *
- * Envia email de reset de senha para um usuário.
+ * Envia email de reset de senha para um usuário via Resend.
  * Usa service role key para poder gerar o link.
  */
 
@@ -10,6 +10,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { maskEmail } from '../_shared/email.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { isValidEmail } from '../_shared/validation.ts';
+import { sendPasswordResetViaResend } from '../_shared/resend.ts';
 
 serve(async (req) => {
   const origin = req.headers.get('origin');
@@ -49,30 +50,21 @@ serve(async (req) => {
 
     console.log('Enviando email de reset para:', maskEmail(email));
 
-    // Gerar link de recuperação
-    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email: email,
-      options: {
-        redirectTo: 'https://app.replyna.me/reset-password',
-      },
+    // Buscar nome do usuário
+    const { data: userData } = await supabaseAdmin
+      .from('users')
+      .select('name')
+      .eq('email', email.toLowerCase())
+      .single();
+
+    const result = await sendPasswordResetViaResend({
+      supabase: supabaseAdmin,
+      email,
+      name: userData?.name,
     });
 
-    if (error) {
-      console.error('Erro ao gerar link:', error);
-      throw new Error(`Erro ao gerar link: ${error.message}`);
-    }
-
-    console.log('Link gerado com sucesso');
-
-    // Também podemos usar o método resetPasswordForEmail que envia o email automaticamente
-    const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://app.replyna.me/reset-password',
-    });
-
-    if (resetError) {
-      console.error('Erro ao enviar email:', resetError);
-      throw new Error(`Erro ao enviar email: ${resetError.message}`);
+    if (!result.success) {
+      throw new Error(result.error || 'Erro ao enviar email');
     }
 
     return new Response(

@@ -9,6 +9,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { maskEmail } from '../_shared/email.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { isValidEmail } from '../_shared/validation.ts';
+import { sendPasswordResetViaResend } from '../_shared/resend.ts';
 
 interface CreateClientRequest {
   email: string;
@@ -147,15 +148,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Enviar email de reset de senha para o usuário definir sua senha
-    const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(
-      email.toLowerCase(),
-      { redirectTo: 'https://app.replyna.me/reset-password' }
-    );
-
-    if (resetError) {
-      console.error('Erro ao enviar email de reset:', resetError);
-      // Não retorna erro porque o usuário foi criado com sucesso
+    // Enviar email de definição de senha via Resend
+    const resetResult = await sendPasswordResetViaResend({
+      supabase: supabaseAdmin,
+      email: email.toLowerCase(),
+      name: name.trim(),
+    });
+    if (!resetResult.success) {
+      console.error('Erro ao enviar email via Resend:', resetResult.error);
     }
 
     console.log('Cliente VIP criado com sucesso:', userId, maskEmail(email));

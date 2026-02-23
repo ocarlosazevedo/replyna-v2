@@ -298,14 +298,13 @@ async function handleCheckoutCompleted(
       if (metadata.migration_invite_id) {
         const supabaseAdmin = getSupabaseAdminClient();
         try {
-          console.log('Enviando email de reset de senha para usuário existente (migração):', maskEmail(email));
-          const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-            redirectTo: 'https://app.replyna.me/reset-password',
-          });
-          if (resetError) {
-            console.error('Erro ao enviar email de reset:', resetError);
+          console.log('Enviando email de reset de senha via Resend para usuário existente (migração):', maskEmail(email));
+          const { sendPasswordResetViaResend } = await import('../_shared/resend.ts');
+          const resetResult = await sendPasswordResetViaResend({ supabase: supabaseAdmin, email, name });
+          if (!resetResult.success) {
+            console.error('Erro ao enviar email via Resend:', resetResult.error);
           } else {
-            console.log('Email de definição de senha enviado com sucesso para:', maskEmail(email));
+            console.log('Email de definição de senha enviado via Resend para:', maskEmail(email));
           }
         } catch (resetErr) {
           console.error('Exceção ao enviar email de reset:', resetErr);
@@ -346,17 +345,15 @@ async function handleCheckoutCompleted(
         console.log('Usuário criado no Auth:', newUserId);
       }
 
-      // Enviar email de reset de senha para o usuário definir sua senha
-      // Envia sempre (seja usuário novo ou existente no Auth)
+      // Enviar email de reset de senha via Resend
       try {
-        console.log('Enviando email de reset de senha para:', maskEmail(email));
-        const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-          redirectTo: 'https://app.replyna.me/reset-password',
-        });
-        if (resetError) {
-          console.error('Erro ao enviar email de reset:', resetError);
+        console.log('Enviando email de reset de senha via Resend para:', maskEmail(email));
+        const { sendPasswordResetViaResend } = await import('../_shared/resend.ts');
+        const resetResult = await sendPasswordResetViaResend({ supabase: supabaseAdmin, email, name });
+        if (!resetResult.success) {
+          console.error('Erro ao enviar email via Resend:', resetResult.error);
         } else {
-          console.log('Email de definição de senha enviado com sucesso para:', maskEmail(email));
+          console.log('Email de definição de senha enviado via Resend para:', maskEmail(email));
         }
       } catch (resetErr) {
         console.error('Exceção ao enviar email de reset:', resetErr);
