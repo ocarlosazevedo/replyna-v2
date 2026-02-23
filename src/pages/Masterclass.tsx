@@ -899,11 +899,11 @@ export default function Masterclass() {
 
             <form onSubmit={handleSubmit} className="mc-form">
               <div className="mc-field">
-                <label htmlFor="modal-name">Seu nome</label>
+                <label htmlFor="modal-name">Nome e Sobrenome</label>
                 <input
                   id="modal-name"
                   type="text"
-                  placeholder="Ex: João"
+                  placeholder="Ex: João Silva"
                   value={formData.name}
                   onChange={e => {
                     setFormData(prev => ({ ...prev, name: e.target.value }))
