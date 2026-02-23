@@ -227,49 +227,37 @@ export default function MasterclassWatch() {
         }}
       >
         {/* Video Player */}
-        <div>
-          <div style={{ marginBottom: '24px', width: '100%' }}>
-            <div
-              style={{
-                position: 'relative',
-                width: '100%',
-                paddingBottom: '56.25%',
-                background: '#111827',
-                borderRadius: '16px',
-                overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.1)',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-              }}
-            >
-              <iframe
-                src="https://www.youtube.com/embed/CkH8LC9DTSw?rel=0&modestbranding=1"
-                title="Masterclass Anti-Chargeback"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                }}
-              ></iframe>
-            </div>
-          </div>
+        <div style={{ minWidth: 0 }}>
+          <iframe
+            src="https://www.youtube.com/embed/CkH8LC9DTSw?rel=0&modestbranding=1"
+            title="Masterclass Anti-Chargeback"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+            style={{
+              display: 'block',
+              width: '100%',
+              aspectRatio: '16 / 9',
+              borderRadius: '16px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+              background: '#111827',
+            }}
+          ></iframe>
 
           {/* CTA Mobile (aparece abaixo do vídeo no mobile) */}
-          <div className="mcw-mobile-cta" style={{ display: isDesktop ? 'none' : 'flex' }}>
-            <a href="https://app.replyna.me/register" className="mcw-cta-btn">
-              Quero testar a Replyna
-              <ChevronRight size={18} />
-            </a>
-            <p className="mcw-cta-coupon">
-              Cupom <strong>LIVE30</strong> = 30% off
-            </p>
-          </div>
+          {!isDesktop && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginTop: '24px' }}>
+              <a href="https://app.replyna.me/register" className="mcw-cta-btn">
+                Quero testar a Replyna
+                <ChevronRight size={18} />
+              </a>
+              <p className="mcw-cta-coupon">
+                Cupom <strong>LIVE30</strong> = 30% off
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Sidebar / Info */}
