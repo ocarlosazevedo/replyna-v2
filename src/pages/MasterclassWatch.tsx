@@ -217,22 +217,17 @@ export default function MasterclassWatch() {
 
       {/* Área de membros */}
       <div
-        className="mcw-members"
         style={{
-          maxWidth: isDesktop ? '1000px' : undefined,
+          display: 'grid',
+          gridTemplateColumns: isDesktop ? '1fr 340px' : '1fr',
+          gap: isDesktop ? '32px' : '24px',
+          maxWidth: '1000px',
           margin: '0 auto',
           padding: isDesktop ? '24px 24px 48px' : '24px 20px 48px',
-          display: 'flex',
-          flexDirection: isDesktop ? 'row' : 'column',
-          alignItems: isDesktop ? 'flex-start' : undefined,
-          gap: isDesktop ? '32px' : '24px',
         }}
       >
         {/* Video Player */}
-        <main
-          className="mcw-main"
-          style={{ width: isDesktop ? 'calc(100% - 372px)' : '100%', flexShrink: 0 }}
-        >
+        <div>
           <div style={{ marginBottom: '24px', width: '100%' }}>
             <div
               style={{
@@ -275,12 +270,12 @@ export default function MasterclassWatch() {
               Cupom <strong>LIVE30</strong> = 30% off
             </p>
           </div>
-        </main>
+        </div>
 
         {/* Sidebar / Info */}
-        <aside
+        <div
           className="mcw-sidebar"
-          style={isDesktop ? { width: '340px', flexShrink: 0, position: 'sticky' as const, top: '24px' } : { width: '100%' }}
+          style={isDesktop ? { position: 'sticky' as const, top: '24px' } : undefined}
         >
           <div className="mcw-sidebar-badge">
             <Play size={14} />
@@ -315,7 +310,7 @@ export default function MasterclassWatch() {
               Cupom <strong>LIVE30</strong> = 30% off
             </p>
           </div>
-        </aside>
+        </div>
       </div>
 
       <footer className="mcw-footer">
