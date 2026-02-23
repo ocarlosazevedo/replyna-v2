@@ -658,15 +658,12 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     setReplySuccess(false)
 
     try {
-      const session = await supabase.auth.getSession()
-      const token = session.data.session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY
-
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-reply`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
