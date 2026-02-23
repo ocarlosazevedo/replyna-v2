@@ -659,14 +659,11 @@ export default function Dashboard() {
     [categoryStats]
   )
 
-  // Categorias que precisam de atendimento humano
-  const humanHelpCategories = ['edicao_pedido', 'troca_devolucao_reembolso', 'suporte_humano']
-
   // Memoizar conversas filtradas para evitar recálculo a cada render
   const filteredConversations = useMemo(() => {
     return conversations.filter((c) => {
       if (categoryFilter === 'spam') return c.category === 'spam'
-      if (categoryFilter === 'human_help') return humanHelpCategories.includes(c.category || '')
+      if (categoryFilter === 'human_help') return c.status === 'pending_human'
       if (categoryFilter === 'all') return c.category !== 'spam'
       return c.category === categoryFilter
     })
@@ -675,7 +672,7 @@ export default function Dashboard() {
   // Memoizar contadores para o header do Inbox
   const conversationCounts = useMemo(() => {
     const spamCount = conversations.filter(c => c.category === 'spam').length
-    const humanHelpCount = conversations.filter(c => humanHelpCategories.includes(c.category || '')).length
+    const humanHelpCount = conversations.filter(c => c.status === 'pending_human').length
     const nonSpamCount = conversations.filter(c => c.category !== 'spam').length
     const filteredCount = filteredConversations.length
     return { spamCount, humanHelpCount, nonSpamCount, filteredCount }
