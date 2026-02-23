@@ -7,7 +7,7 @@
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
-import { getPaymentsByCustomer } from '../_shared/asaas.ts';
+import { getPaymentsByCustomer, getCustomerByEmail, createCustomer } from '../_shared/asaas.ts';
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin');
@@ -31,7 +31,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('asaas_customer_id')
+      .select('asaas_customer_id, email, name')
       .eq('id', user_id)
       .single();
 
@@ -43,10 +43,33 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!user.asaas_customer_id) {
-      return new Response(JSON.stringify({ error: 'Usuario nao possui cadastro no Asaas' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      // Auto-criar cliente no Asaas se não existe
+      console.log(`[BillingPortal] Usuário ${user_id} sem asaas_customer_id, criando automaticamente...`);
+      try {
+        let customer = await getCustomerByEmail(user.email);
+        if (!customer) {
+          customer = await createCustomer({
+            name: user.name || user.email,
+            email: user.email,
+          });
+          console.log(`[BillingPortal] Cliente Asaas criado: ${customer.id}`);
+        } else {
+          console.log(`[BillingPortal] Cliente Asaas encontrado por email: ${customer.id}`);
+        }
+
+        await supabase
+          .from('users')
+          .update({ asaas_customer_id: customer.id })
+          .eq('id', user_id);
+
+        user.asaas_customer_id = customer.id;
+      } catch (asaasError) {
+        console.error(`[BillingPortal] Erro ao criar cliente Asaas:`, asaasError);
+        return new Response(
+          JSON.stringify({ error: 'Erro ao criar cadastro no gateway de pagamento.' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const payments = await getPaymentsByCustomer(user.asaas_customer_id, { limit: 1, order: 'desc' });

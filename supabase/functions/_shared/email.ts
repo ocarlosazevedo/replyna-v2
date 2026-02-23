@@ -260,16 +260,35 @@ class SimpleImapClient {
     let references = '';
     let body = '';
 
-    // Extrair headers
-    const headerMatch = response.match(/BODY\[HEADER\.FIELDS[^\]]*\]\s*\{(\d+)\}\r\n([\s\S]*?)(?=BODY\[TEXT\]|\)\r\n)/i);
+    // Extrair headers - tentar múltiplos formatos de resposta IMAP
+    // Formato 1: BODY[HEADER.FIELDS ...] {N}\r\n<headers> (padrão)
+    // Formato 2: Sem \r, apenas \n (alguns servidores como Zoho)
+    // Formato 3: Sem literal {N}, headers direto após ]
+    let headerMatch = response.match(/BODY\[HEADER\.FIELDS[^\]]*\]\s*\{(\d+)\}\r?\n([\s\S]*?)(?=BODY\[TEXT\]|\)\r?\n)/i);
+    if (!headerMatch) {
+      // Fallback: tentar sem literal size {N} - alguns servidores retornam headers diretamente
+      headerMatch = response.match(/BODY\[HEADER\.FIELDS[^\]]*\]\s*\r?\n?([\s\S]*?)(?=BODY\[TEXT\]|\)\r?\n)/i);
+      if (headerMatch && !headerMatch[2]) {
+        // Ajustar grupos de captura - neste regex, grupo 1 é o conteúdo
+        headerMatch = [headerMatch[0], '0', headerMatch[1]] as unknown as RegExpMatchArray;
+      }
+    }
+    if (!headerMatch) {
+      // Último fallback: procurar headers diretamente no response
+      console.log('[IMAP] Header regex falhou, tentando fallback direto no response');
+      // Criar um "headerMatch" fake com o response inteiro para parsing de headers
+      headerMatch = [response, '0', response] as unknown as RegExpMatchArray;
+    }
     if (headerMatch) {
-      const headers = headerMatch[2];
-      console.log('Headers extraídos:', headers);
+      const headers = headerMatch[2] || response;
+      console.log('Headers extraídos:', headers.substring(0, 500));
 
       // From: "Name" <email@domain.com> ou From: email@domain.com
-      const fromHeaderMatch = headers.match(/^From:\s*(.+?)(?:\r?\n(?!\s)|\r?\n$)/im);
+      // Suporte a headers multi-linha (folded) onde continuação começa com espaço/tab
+      const fromHeaderMatch = headers.match(/^From:\s*((?:.+?)(?:\r?\n[ \t]+.+?)*)\s*(?:\r?\n(?![ \t])|\r?\n?$)/im);
       if (fromHeaderMatch) {
-        const fromValue = fromHeaderMatch[1].trim();
+        // Unfoldar header multi-linha: remover quebras seguidas de espaço
+        const fromValue = fromHeaderMatch[1].replace(/\r?\n[ \t]+/g, ' ').trim();
         // Extrair email do formato "Name" <email> ou apenas email
         const emailMatch = fromValue.match(/<([^>]+)>/) || fromValue.match(/([^\s<>]+@[^\s<>]+)/);
         if (emailMatch) {
@@ -283,6 +302,14 @@ class SimpleImapClient {
           fromName = this.decodeSubject(nameMatch[1].trim());
         }
         console.log('From extraído:', from, 'Nome:', fromName, 'do valor:', fromValue);
+      } else {
+        // Fallback: procurar qualquer email no response associado ao From
+        console.log('[IMAP] From header regex falhou, tentando fallback...');
+        const fallbackFrom = response.match(/From:\s*(?:"[^"]*"\s*)?<?([^\s<>@]+@[^\s<>]+)>?/i);
+        if (fallbackFrom) {
+          from = fallbackFrom[1].toLowerCase();
+          console.log('From extraído via fallback:', from);
+        }
       }
 
       // To
@@ -295,22 +322,42 @@ class SimpleImapClient {
         }
       }
 
-      // Subject (pode ter encoding)
-      const subjectHeaderMatch = headers.match(/^Subject:\s*(.+?)(?:\r?\n(?!\s)|\r?\n$)/im);
+      // Subject (pode ter encoding, pode ser multi-linha)
+      const subjectHeaderMatch = headers.match(/^Subject:\s*((?:.+?)(?:\r?\n[ \t]+.+?)*)\s*(?:\r?\n(?![ \t])|\r?\n?$)/im);
       if (subjectHeaderMatch) {
-        subject = this.decodeSubject(subjectHeaderMatch[1].trim());
+        subject = this.decodeSubject(subjectHeaderMatch[1].replace(/\r?\n[ \t]+/g, ' ').trim());
+      } else {
+        // Fallback: procurar Subject diretamente no response
+        const fallbackSubject = response.match(/Subject:\s*(.+)/i);
+        if (fallbackSubject) {
+          subject = this.decodeSubject(fallbackSubject[1].trim());
+          console.log('Subject extraído via fallback:', subject);
+        }
       }
 
       // Message-ID
       const msgIdHeaderMatch = headers.match(/^Message-ID:\s*(<[^>]+>)/im);
       if (msgIdHeaderMatch) {
         messageId = msgIdHeaderMatch[1];
+      } else {
+        // Fallback: procurar Message-ID diretamente no response
+        const fallbackMsgId = response.match(/Message-ID:\s*(<[^>]+>)/i);
+        if (fallbackMsgId) {
+          messageId = fallbackMsgId[1];
+          console.log('Message-ID extraído via fallback:', messageId);
+        }
       }
 
       // Date
-      const dateHeaderMatch = headers.match(/^Date:\s*(.+?)(?:\r?\n(?!\s)|\r?\n$)/im);
+      const dateHeaderMatch = headers.match(/^Date:\s*((?:.+?)(?:\r?\n[ \t]+.+?)*)\s*(?:\r?\n(?![ \t])|\r?\n?$)/im);
       if (dateHeaderMatch) {
-        date = dateHeaderMatch[1].trim();
+        date = dateHeaderMatch[1].replace(/\r?\n[ \t]+/g, ' ').trim();
+      } else {
+        // Fallback: procurar Date diretamente no response
+        const fallbackDate = response.match(/Date:\s*([A-Za-z]{3},\s.+)/i);
+        if (fallbackDate) {
+          date = fallbackDate[1].trim();
+        }
       }
 
       // In-Reply-To
@@ -337,10 +384,14 @@ class SimpleImapClient {
       }
     }
 
-    // Extrair corpo
-    const bodyMatch = response.match(/BODY\[TEXT\]\s*\{(\d+)\}\r\n([\s\S]*?)(?=\)\r\n|\r\n\))/);
+    // Extrair corpo - formatos flexíveis (CRLF e LF)
+    let bodyMatch = response.match(/BODY\[TEXT\]\s*\{(\d+)\}\r?\n([\s\S]*?)(?=\)\r?\n|\r?\n\))/);
+    if (!bodyMatch) {
+      // Fallback: extrair tudo após BODY[TEXT] {N}\n até o final da resposta IMAP
+      bodyMatch = response.match(/BODY\[TEXT\]\s*(?:\{(\d+)\}\r?\n)?([\s\S]*?)(?=\)\s*$|\n\))/);
+    }
     if (bodyMatch) {
-      body = bodyMatch[2];
+      body = bodyMatch[2] || '';
     }
 
     return {

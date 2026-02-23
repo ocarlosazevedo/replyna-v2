@@ -291,6 +291,15 @@ export default function Account() {
           type: 'success',
           message: 'Cartão atualizado com sucesso! O novo cartão será usado nas próximas cobranças.',
         })
+      } else if (data.no_subscription) {
+        // Usuario sem assinatura ativa - direcionar para selecionar um plano
+        setShowPaymentModal(false)
+        setCardForm({ holderName: '', number: '', expiryMonth: '', expiryYear: '', ccv: '', cpfCnpj: '', postalCode: '', addressNumber: '', phone: '' })
+        setShowPlanModal(true)
+        setNotice({
+          type: 'info',
+          message: 'Você não possui uma assinatura ativa. Selecione um plano para assinar.',
+        })
       } else {
         throw new Error(data.error || 'Erro ao atualizar cartão.')
       }
