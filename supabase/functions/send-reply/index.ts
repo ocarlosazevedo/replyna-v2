@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     if (!conversation_id || !shop_id || !reply_text) {
       return new Response(
         JSON.stringify({ success: false, error: 'conversation_id, shop_id e reply_text são obrigatórios' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -61,14 +61,14 @@ Deno.serve(async (req) => {
     if (!trimmedText) {
       return new Response(
         JSON.stringify({ success: false, error: 'O texto da resposta não pode estar vazio' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (trimmedText.length > MAX_REPLY_LENGTH) {
       return new Response(
         JSON.stringify({ success: false, error: `O texto não pode exceder ${MAX_REPLY_LENGTH} caracteres` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     if (shopError || !shop) {
       return new Response(
         JSON.stringify({ success: false, error: 'Loja não encontrada' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
     if (convError || !conversation) {
       return new Response(
         JSON.stringify({ success: false, error: 'Conversa não encontrada' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
     if (!emailCredentials) {
       return new Response(
         JSON.stringify({ success: false, error: 'Credenciais de email não configuradas para esta loja' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
     if (!sendResult.success) {
       return new Response(
         JSON.stringify({ success: false, error: `Erro ao enviar email: ${sendResult.error}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
     console.error('[send-reply] Erro:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message || 'Erro interno do servidor' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
