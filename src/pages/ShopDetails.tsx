@@ -10,7 +10,6 @@ interface ShopData {
   id: string
   name: string
   attendant_name: string
-  support_email: string
   shopify_domain: string
   shopify_client_id: string
   shopify_client_secret: string
@@ -594,19 +593,6 @@ export default function ShopDetails() {
               />
             ) : (
               <div style={valueStyle}>{shop.attendant_name || '-'}</div>
-            )}
-          </div>
-          <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
-            <label style={labelStyle}>Email para escalonamento humano</label>
-            {editingSection === 'basic' ? (
-              <input
-                type="email"
-                value={editData.support_email || ''}
-                onChange={(e) => updateEditField('support_email', e.target.value)}
-                style={inputStyle}
-              />
-            ) : (
-              <div style={valueStyle}>{shop.support_email || '-'}</div>
             )}
           </div>
         </div>

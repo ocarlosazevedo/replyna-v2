@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, User, Store, Plus, Snowflake } from 'lucide-react'
+import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, Store, Plus, Snowflake } from 'lucide-react'
 
 // Componente Skeleton para loading animado
 const Skeleton = ({ height = 16, width = '100%' }: { height?: number | string; width?: number | string }) => (
@@ -20,7 +20,6 @@ interface Shop {
   id: string
   name: string
   attendant_name: string
-  support_email: string
   imap_user: string
   mail_status: string
   shopify_status: string
@@ -698,30 +697,6 @@ export default function Shops() {
                     </div>
                   )}
 
-                  {/* Email Humano (Escalonamento) */}
-                  {shop.support_email && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '10px',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        <User size={18} style={{ color: '#f59e0b' }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
-                          Email humano (escalonamento)
-                        </div>
-                        <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '500' }}>
-                          {shop.support_email}
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Status das integrações */}

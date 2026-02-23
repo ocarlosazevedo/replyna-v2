@@ -50,7 +50,6 @@ import {
 import {
   generateResponse,
   generateDataRequestMessage,
-  generateHumanFallbackMessage,
 } from '../_shared/anthropic.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
@@ -219,18 +218,28 @@ Deno.serve(async (req) => {
     const needsOrderData = !categoriesWithoutOrderData.includes(category);
 
     if (category === 'suporte_humano') {
-      responseResult = await generateHumanFallbackMessage(
-        {
-          name: shop.name,
-          attendant_name: shop.attendant_name,
-          support_email: shop.support_email,
-          tone_of_voice: shop.tone_of_voice,
-          fallback_message_template: shop.fallback_message_template,
-        },
-        shopifyData?.customer_name || conversation.customer_name,
-        conversation.language || 'pt-BR'
+      // Apenas marca como pending_human, sem enviar resposta
+      await updateMessage(message.id, {
+        status: 'pending_human',
+        processed_at: new Date().toISOString(),
+      });
+      await updateConversation(conversation.id, {
+        status: 'pending_human',
+        category: category,
+        last_message_at: new Date().toISOString(),
+      });
+      await logProcessingEvent({
+        shop_id: shop.id,
+        message_id: message.id,
+        conversation_id: conversation.id,
+        event_type: 'forwarded_to_human',
+        event_data: { reason: 'suporte_humano_category', reprocessed: true },
+      });
+      console.log(`[Reprocess] Mensagem ${message.id} marcada como pending_human (suporte_humano)`);
+      return new Response(
+        JSON.stringify({ success: true, message: 'Marcado para atendimento humano', category, status: 'pending_human' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-      finalStatus = 'pending_human';
     } else if (!shopifyData && needsOrderData) {
       // CORREÇÃO: Verificar se já temos número de pedido antes de pedir ao cliente
       const knownOrderNumber = conversation.shopify_order_id
@@ -269,18 +278,28 @@ Deno.serve(async (req) => {
           data_request_count: conversation.data_request_count + 1,
         });
       } else {
-        responseResult = await generateHumanFallbackMessage(
-          {
-            name: shop.name,
-            attendant_name: shop.attendant_name,
-            support_email: shop.support_email,
-            tone_of_voice: shop.tone_of_voice,
-            fallback_message_template: shop.fallback_message_template,
-          },
-          null,
-          conversation.language || 'pt-BR'
+        // MAX_DATA_REQUESTS excedido - marcar como pending_human sem enviar nada
+        await updateMessage(message.id, {
+          status: 'pending_human',
+          processed_at: new Date().toISOString(),
+        });
+        await updateConversation(conversation.id, {
+          status: 'pending_human',
+          category: category,
+          last_message_at: new Date().toISOString(),
+        });
+        await logProcessingEvent({
+          shop_id: shop.id,
+          message_id: message.id,
+          conversation_id: conversation.id,
+          event_type: 'forwarded_to_human',
+          event_data: { reason: 'max_data_requests_exceeded', reprocessed: true },
+        });
+        console.log(`[Reprocess] Mensagem ${message.id} marcada como pending_human (max data requests)`);
+        return new Response(
+          JSON.stringify({ success: true, message: 'Marcado para atendimento humano', category, status: 'pending_human' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
-        finalStatus = 'pending_human';
       }
     }
 

@@ -20,6 +20,7 @@ import {
   getSupabaseClient,
   getUserById,
   tryReserveCredit,
+  releaseCredit,
   checkCreditsAvailable,  // Mantido para verificações não-atômicas
   incrementEmailsUsed,  // Mantido para compatibilidade
   getOrCreateConversation,
@@ -59,7 +60,6 @@ import {
   classifyEmail,
   generateResponse,
   generateDataRequestMessage,
-  generateHumanFallbackMessage,
   isSpamByPattern,
 } from '../_shared/anthropic.ts';
 
@@ -674,19 +674,29 @@ async function processMessage(
   const needsOrderData = !categoriesWithoutOrderData.includes(classification.category);
 
   if (classification.category === 'suporte_humano') {
-    responseResult = await generateHumanFallbackMessage(
-      {
-        name: shop.name,
-        attendant_name: shop.attendant_name,
-        support_email: shop.support_email,
-        tone_of_voice: shop.tone_of_voice,
-        fallback_message_template: shop.fallback_message_template,
-      },
-      shopifyData?.customer_name || conversation.customer_name,
-      classification.language
-    );
-    finalStatus = 'pending_human';
-    await forwardToHuman(shop, message, emailCredentials);
+    // Apenas marca como pending_human, sem enviar resposta nem encaminhar
+    await releaseCredit(user.id);
+    await updateMessage(message.id, {
+      status: 'pending_human',
+      category: classification.category,
+      category_confidence: classification.confidence,
+      processed_at: new Date().toISOString(),
+    });
+    await updateConversation(conversation.id, {
+      status: 'pending_human',
+      category: classification.category,
+      language: classification.language,
+      last_message_at: new Date().toISOString(),
+    });
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'forwarded_to_human',
+      event_data: { reason: 'suporte_humano_category' },
+    });
+    console.log(`[process-shop-emails] Message ${message.id} marked as pending_human (no auto-reply)`);
+    return 'forwarded_human';
   } else if (!shopifyData && needsOrderData && conversation.data_request_count < MAX_DATA_REQUESTS) {
     responseResult = await generateDataRequestMessage(
       {
@@ -704,19 +714,29 @@ async function processMessage(
       data_request_count: conversation.data_request_count + 1,
     });
   } else if (!shopifyData && needsOrderData && conversation.data_request_count >= MAX_DATA_REQUESTS) {
-    responseResult = await generateHumanFallbackMessage(
-      {
-        name: shop.name,
-        attendant_name: shop.attendant_name,
-        support_email: shop.support_email,
-        tone_of_voice: shop.tone_of_voice,
-        fallback_message_template: shop.fallback_message_template,
-      },
-      null,
-      classification.language
-    );
-    finalStatus = 'pending_human';
-    await forwardToHuman(shop, message, emailCredentials);
+    // MAX_DATA_REQUESTS excedido - marcar como pending_human
+    await releaseCredit(user.id);
+    await updateMessage(message.id, {
+      status: 'pending_human',
+      category: classification.category,
+      category_confidence: classification.confidence,
+      processed_at: new Date().toISOString(),
+    });
+    await updateConversation(conversation.id, {
+      status: 'pending_human',
+      category: classification.category,
+      language: classification.language,
+      last_message_at: new Date().toISOString(),
+    });
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'forwarded_to_human',
+      event_data: { reason: 'max_data_requests_exceeded' },
+    });
+    console.log(`[process-shop-emails] Message ${message.id} marked as pending_human (max data requests exceeded)`);
+    return 'forwarded_human';
   } else {
     responseResult = await generateResponse(
       {
@@ -744,10 +764,9 @@ async function processMessage(
       conversation.status, // para loop detection pular exchange_count se pending_human
     );
 
-    // Se a IA detectou que é terceiro contato de cancelamento, encaminhar para humano
+    // Se a IA detectou que é terceiro contato de cancelamento, marcar para humano
     if (responseResult.forward_to_human) {
       finalStatus = 'pending_human';
-      await forwardToHuman(shop, message, emailCredentials);
     }
   }
 
@@ -837,54 +856,6 @@ async function processMessage(
   return finalStatus === 'pending_human' ? 'forwarded_human' : 'replied';
 }
 
-/**
- * Encaminha email para suporte humano
- */
-async function forwardToHuman(
-  shop: Shop,
-  message: Message,
-  emailCredentials: NonNullable<Awaited<ReturnType<typeof decryptEmailCredentials>>>
-): Promise<void> {
-  const forwardSubject = `[ENCAMINHADO] ${message.subject || 'Sem assunto'} - De: ${message.from_email}`;
-
-  const forwardBody = `
-Este email foi encaminhado automaticamente pelo Replyna porque requer atendimento humano.
-
-═══════════════════════════════════════
-DADOS DO CLIENTE
-═══════════════════════════════════════
-Email: ${message.from_email}
-Nome: ${message.from_name || 'Não informado'}
-
-═══════════════════════════════════════
-MENSAGEM ORIGINAL
-═══════════════════════════════════════
-Assunto: ${message.subject || 'Sem assunto'}
-Data: ${message.received_at || message.created_at}
-
-${message.body_text || message.body_html || '(Sem conteúdo)'}
-
-═══════════════════════════════════════
-Responda diretamente ao cliente em: ${message.from_email}
-`;
-
-  await sendEmail(emailCredentials, {
-    to: shop.support_email,
-    subject: forwardSubject,
-    body_text: forwardBody,
-    from_name: 'Replyna Bot',
-  });
-
-  await logProcessingEvent({
-    shop_id: shop.id,
-    message_id: message.id,
-    event_type: 'forwarded_to_human',
-    event_data: {
-      forwarded_to: shop.support_email,
-      reason: 'suporte_humano',
-    },
-  });
-}
 
 /**
  * Lida com créditos esgotados

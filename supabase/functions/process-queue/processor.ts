@@ -50,7 +50,6 @@ import {
   classifyEmail,
   generateResponse,
   generateDataRequestMessage,
-  generateHumanFallbackMessage,
 } from '../_shared/anthropic.ts';
 
 const MAX_DATA_REQUESTS = 3;
@@ -844,32 +843,28 @@ async function processMessage(
     return true; // Success - marked as processing before
   }
 
-  // 12. Escalate para humano se MAX_DATA_REQUESTS excedido ou categoria suporte_humano
+  // 12. Marcar como pendente humano se categoria suporte_humano ou MAX_DATA_REQUESTS excedido
+  // Não envia resposta automática nem encaminha — humano responde pela plataforma
   if (
     classification.category === 'suporte_humano' ||
     (needsOrderData && !shopifyData && !knownOrderNumber && conversation.data_request_count >= MAX_DATA_REQUESTS)
   ) {
-    // generateHumanFallbackMessage: (shopContext, customerName, language)
-    const humanFallbackResult = await generateHumanFallbackMessage(
-      {
-        name: shop.name,
-        attendant_name: shop.attendant_name,
-        support_email: shop.support_email,
-        tone_of_voice: shop.tone_of_voice || 'friendly',
-        fallback_message_template: shop.fallback_message_template,
-      },
-      shopifyData?.customer_name || conversation.customer_name || message.from_name || null,
-      classification.language || 'en'
-    );
+    // Liberar crédito (não consome crédito para suporte humano)
+    await releaseCredit(user.id);
 
-    await sendReply(message, conversation, shop, humanFallbackResult.response, 'forwarded_to_human', 'pending_human');
+    await updateMessage(message.id, {
+      status: 'pending_human',
+      category: classification.category,
+      category_confidence: classification.confidence,
+      processed_at: new Date().toISOString(),
+    });
 
-    // Forward to human support
-    try {
-      await forwardToHuman(shop, message);
-    } catch (fwdError) {
-      console.error(`[Processor] Erro ao encaminhar para humano (msg ${message.id}), resposta já enviada ao cliente:`, fwdError);
-    }
+    await updateConversation(conversation.id, {
+      status: 'pending_human',
+      category: classification.category,
+      language: classification.language,
+      last_message_at: new Date().toISOString(),
+    });
 
     await logProcessingEvent({
       shop_id: shop.id,
@@ -883,7 +878,8 @@ async function processMessage(
       },
     });
 
-    return true; // Success - marked as processing before
+    console.log(`[Processor] Message ${message.id} marked as pending_human (no auto-reply, no forwarding)`);
+    return true;
   }
 
   // 12.5 Incrementar contador de retenção se for cancelamento/reembolso
@@ -1108,63 +1104,6 @@ async function sendReply(
   });
 }
 
-/**
- * Encaminha email para suporte humano
- */
-async function forwardToHuman(shop: Shop, message: Message): Promise<void> {
-  if (!shop.support_email) {
-    console.warn(`[Processor] Shop ${shop.name || shop.id} não tem support_email configurado, não é possível encaminhar msg ${message.id}`);
-    return;
-  }
-
-  const emailCredentials = await decryptEmailCredentials(shop);
-  if (!emailCredentials) return;
-
-  const forwardSubject = `[ENCAMINHADO] ${message.subject || 'Sem assunto'} - De: ${message.from_email}`;
-
-  const forwardBody = `
-Este email foi encaminhado automaticamente pelo Replyna porque requer atendimento humano.
-
-═══════════════════════════════════════
-DADOS DO CLIENTE
-═══════════════════════════════════════
-Email: ${message.from_email}
-Nome: ${message.from_name || 'Não informado'}
-
-═══════════════════════════════════════
-MENSAGEM ORIGINAL
-═══════════════════════════════════════
-Assunto: ${message.subject || 'Sem assunto'}
-Data: ${message.received_at || message.created_at}
-
-${message.body_text || message.body_html || '(Sem conteúdo)'}
-
-═══════════════════════════════════════
-Responda diretamente ao cliente em: ${message.from_email}
-`;
-
-  try {
-    await sendEmail(emailCredentials, {
-      to: shop.support_email,
-      subject: forwardSubject,
-      body_text: forwardBody,
-      from_name: 'Replyna Bot',
-    });
-
-    await logProcessingEvent({
-      shop_id: shop.id,
-      message_id: message.id,
-      event_type: 'forwarded_to_human',
-      event_data: {
-        forwarded_to: shop.support_email,
-        reason: 'email_forwarded',
-      },
-    });
-  } catch (error: any) {
-    console.error(`[Processor] Failed to forward to human:`, error.message);
-    // Don't throw - this is not critical
-  }
-}
 
 /**
  * Verifica se mensagem é apenas agradecimento

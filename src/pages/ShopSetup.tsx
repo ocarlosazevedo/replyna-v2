@@ -20,7 +20,6 @@ interface ShopData {
   // Step 1 - Basic Info
   name: string
   attendant_name: string
-  support_email: string
   is_cod: boolean
 
   // Step 2 - Shopify
@@ -54,7 +53,6 @@ interface ShopData {
 const initialShopData: ShopData = {
   name: '',
   attendant_name: '',
-  support_email: '',
   is_cod: false,
   shopify_domain: '',
   shopify_client_id: '',
@@ -187,7 +185,6 @@ export default function ShopSetup() {
         setShopData({
           name: shop.name || '',
           attendant_name: shop.attendant_name || '',
-          support_email: shop.support_email || '',
           is_cod: shop.is_cod || false,
           shopify_domain: shop.shopify_domain || '',
           shopify_client_id: shop.shopify_client_id || '',
@@ -233,14 +230,6 @@ export default function ShopSetup() {
         }
         if (!shopData.attendant_name.trim()) {
           setError('Nome do atendente é obrigatório')
-          return false
-        }
-        if (!shopData.support_email.trim()) {
-          setError('Email de suporte é obrigatório')
-          return false
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shopData.support_email)) {
-          setError('Email inválido')
           return false
         }
         return true
@@ -378,7 +367,6 @@ export default function ShopSetup() {
         user_id: user.id,
         name: shopData.name,
         attendant_name: shopData.attendant_name,
-        support_email: shopData.support_email,
         is_cod: shopData.is_cod,
         shopify_domain: shopData.shopify_domain || null,
         shopify_client_id: shopData.shopify_client_id || null,
@@ -533,7 +521,6 @@ export default function ShopSetup() {
             user_id: user.id,
             name: shopData.name || 'Nova Loja',
             attendant_name: shopData.attendant_name || 'Suporte',
-            support_email: shopData.support_email || user.email || '',
             shopify_domain: shopData.shopify_domain,
             shopify_client_id: shopData.shopify_client_id,
             shopify_client_secret: shopData.shopify_client_secret,
@@ -768,29 +755,6 @@ export default function ShopSetup() {
         </p>
       </div>
 
-      <div>
-        <label style={labelStyle}>Email para escalonamento humano *</label>
-        <input
-          type="email"
-          value={shopData.support_email}
-          onChange={(e) => updateField('support_email', e.target.value)}
-          style={inputStyle}
-          placeholder="suporte@minhaloja.com"
-        />
-        <div style={{
-          backgroundColor: 'rgba(70, 114, 236, 0.08)',
-          padding: '12px 16px',
-          borderRadius: '10px',
-          marginTop: '10px',
-          border: '1px solid rgba(70, 114, 236, 0.15)'
-        }}>
-          <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: 0, lineHeight: '1.5' }}>
-            <strong>Quando a IA não conseguir resolver</strong> uma solicitação do cliente
-            (casos complexos, reclamações graves, pedidos especiais), o email será
-            automaticamente encaminhado para este endereço para atendimento humano.
-          </p>
-        </div>
-      </div>
 
       {/* Cash on Delivery Option */}
       <div style={{
@@ -1773,10 +1737,6 @@ export default function ShopSetup() {
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-secondary)' }}>Atendente</span>
             <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{shopData.attendant_name || '—'}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>Email suporte</span>
-            <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{shopData.support_email || '—'}</span>
           </div>
         </div>
       </div>
