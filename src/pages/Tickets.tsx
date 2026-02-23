@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Ticket, Store, Eye, EyeOff } from 'lucide-react'
+import type { DateRange } from 'react-day-picker'
+import { Ticket, Store, Eye, EyeOff, Headphones, MessageSquare } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile } from '../hooks/useUserProfile'
 import { supabase } from '../lib/supabase'
 import ConversationModal from '../components/ConversationModal'
+import DateRangePicker from '../components/DateRangePicker'
 import { getCategoryBadgeStyle, getCategoryLabel } from '../constants/categories'
 
 interface TicketRow {
@@ -17,6 +19,26 @@ interface TicketRow {
   status: string | null
   created_at: string
   shop_name?: string
+}
+
+const getDefaultRange = (): DateRange => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const thirtyDaysAgo = new Date(today)
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  return { from: thirtyDaysAgo, to: today }
+}
+
+const startOfDay = (date: Date) => {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+const endOfDay = (date: Date) => {
+  const d = new Date(date)
+  d.setHours(23, 59, 59, 999)
+  return d
 }
 
 const formatDateTime = (date: Date) =>
@@ -50,10 +72,13 @@ export default function Tickets() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [privacyMode, setPrivacyMode] = useState(false)
   const [selectedShopId, setSelectedShopId] = useState<string>('all')
+  const [range, setRange] = useState<DateRange>(getDefaultRange())
 
   const shopIds = useMemo(() => shops.map((s) => s.id), [shops])
 
-  // Map shop_id -> shop name for display
+  const dateStart = useMemo(() => (range?.from ? startOfDay(range.from) : null), [range])
+  const dateEnd = useMemo(() => (range?.to ? endOfDay(range.to) : null), [range])
+
   const shopNameMap = useMemo(() => {
     const map: Record<string, string> = {}
     shops.forEach((s) => { map[s.id] = s.name })
@@ -61,7 +86,7 @@ export default function Tickets() {
   }, [shops])
 
   const loadTickets = useCallback(async () => {
-    if (!user || shopIds.length === 0) {
+    if (!user || shopIds.length === 0 || !dateStart || !dateEnd) {
       setTickets([])
       setLoading(false)
       return
@@ -74,6 +99,8 @@ export default function Tickets() {
         .select('id, shop_id, customer_email, customer_name, subject, category, status, created_at')
         .eq('status', 'pending_human')
         .in('shop_id', shopIds)
+        .gte('created_at', dateStart.toISOString())
+        .lte('created_at', dateEnd.toISOString())
         .order('created_at', { ascending: false })
         .limit(200)
 
@@ -90,9 +117,8 @@ export default function Tickets() {
     } finally {
       setLoading(false)
     }
-  }, [user, shopIds, shopNameMap])
+  }, [user, shopIds, shopNameMap, dateStart, dateEnd])
 
-  // Load tickets when shops are ready
   useEffect(() => {
     if (!loadingShops && shopIds.length > 0) {
       loadTickets()
@@ -126,7 +152,6 @@ export default function Tickets() {
           if (!shopIds.includes(updated.shop_id)) return
 
           if (updated.status === 'pending_human') {
-            // Add or update
             setTickets((prev) => {
               const exists = prev.find((t) => t.id === updated.id)
               if (exists) {
@@ -135,7 +160,6 @@ export default function Tickets() {
               return [{ ...updated, shop_name: shopNameMap[updated.shop_id] || 'Loja' }, ...prev]
             })
           } else {
-            // Remove from tickets if status changed away from pending_human
             setTickets((prev) => prev.filter((t) => t.id !== updated.id))
           }
         }
@@ -147,7 +171,6 @@ export default function Tickets() {
     }
   }, [user, shopIds, shopNameMap])
 
-  // Filter by selected shop
   const filteredTickets = useMemo(() => {
     if (selectedShopId === 'all') return tickets
     return tickets.filter((t) => t.shop_id === selectedShopId)
@@ -170,21 +193,131 @@ export default function Tickets() {
         }}
       />
 
-      {/* Card principal */}
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '12px' : '16px',
+          alignItems: isMobile ? 'stretch' : 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Tickets
+            </div>
+            {!loading && (
+              <span style={{
+                backgroundColor: 'rgba(236, 72, 153, 0.15)',
+                color: '#be185d',
+                padding: '3px 10px',
+                borderRadius: '999px',
+                fontSize: '13px',
+                fontWeight: 700,
+              }}>
+                {filteredTickets.length}
+              </span>
+            )}
+          </div>
+          {!isMobile && (
+            <div style={{ color: 'var(--text-secondary)', marginTop: '6px', fontSize: '14px' }}>
+              Conversas que precisam de atendimento humano
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <select
+            value={selectedShopId}
+            onChange={(e) => setSelectedShopId(e.target.value)}
+            className="replyna-select"
+            style={{ minWidth: isMobile ? '120px' : '180px', flex: isMobile ? 1 : 'none' }}
+            disabled={loadingShops}
+          >
+            <option value="all">Todas as lojas</option>
+            {shops.map((shop) => (
+              <option key={shop.id} value={shop.id}>
+                {privacyMode ? '••••••' : shop.name}
+              </option>
+            ))}
+          </select>
+
+          <DateRangePicker value={range} onChange={setRange} />
+
+          {/* Toggle Privacidade */}
+          <button
+            type="button"
+            onClick={() => setPrivacyMode(!privacyMode)}
+            title={privacyMode ? 'Mostrar dados' : 'Ocultar dados para screenshot'}
+            style={{
+              padding: isMobile ? '5px 8px' : '6px 10px',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              backgroundColor: privacyMode ? 'rgba(139, 92, 246, 0.15)' : 'var(--bg-card)',
+              color: privacyMode ? '#8b5cf6' : 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
+              fontSize: isMobile ? '12px' : '13px',
+              fontWeight: 600,
+            }}
+          >
+            {privacyMode ? <EyeOff size={isMobile ? 14 : 16} /> : <Eye size={isMobile ? 14 : 16} />}
+            {!isMobile && (privacyMode ? 'Oculto' : 'Ocultar')}
+          </button>
+        </div>
+      </div>
+
+      {/* Explicação */}
+      <div style={{
+        backgroundColor: 'var(--bg-card)',
+        borderRadius: isMobile ? '12px' : '16px',
+        padding: isMobile ? '14px' : '18px 20px',
+        border: '1px solid var(--border-color)',
+        display: 'flex',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        gap: isMobile ? '12px' : '16px',
+        flexDirection: isMobile ? 'column' : 'row',
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          borderRadius: '10px',
+          backgroundColor: 'rgba(236, 72, 153, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <Headphones size={20} style={{ color: '#ec4899' }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>
+            O que são tickets?
+          </div>
+          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+            Tickets são conversas que a IA identificou como necessitando de atendimento humano — como edições de pedidos, suporte especializado ou situações após o fluxo de retenção. Clique em uma conversa para visualizar e responder manualmente.
+          </div>
+        </div>
+      </div>
+
+      {/* Card da tabela */}
       <div style={{
         backgroundColor: 'var(--bg-card)',
         borderRadius: isMobile ? '12px' : '16px',
         padding: isMobile ? '14px' : '20px',
         border: '1px solid var(--border-color)',
       }}>
-        {/* Header */}
+        {/* Subheader com ícone */}
         <div style={{
           display: 'flex',
-          alignItems: isMobile ? 'flex-start' : 'center',
+          alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: isMobile ? '12px' : '16px',
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: isMobile ? '12px' : '0',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
@@ -196,63 +329,17 @@ export default function Tickets() {
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <Ticket size={isMobile ? 16 : 18} style={{ color: '#ec4899' }} />
+              <MessageSquare size={isMobile ? 16 : 18} style={{ color: '#ec4899' }} />
             </div>
             <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Tickets
+              Conversas pendentes
             </div>
-            {!loading && (
-              <span style={{
-                backgroundColor: 'rgba(236, 72, 153, 0.15)',
-                color: '#be185d',
-                padding: '2px 8px',
-                borderRadius: '999px',
-                fontSize: '12px',
-                fontWeight: 700,
-              }}>
-                {filteredTickets.length}
-              </span>
-            )}
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {/* Filtro por loja */}
-            <select
-              value={selectedShopId}
-              onChange={(e) => setSelectedShopId(e.target.value)}
-              className="replyna-select"
-              style={{ flex: isMobile ? 1 : 'none', minWidth: isMobile ? '0' : 'auto' }}
-            >
-              <option value="all">Todas as lojas</option>
-              {shops.map((shop) => (
-                <option key={shop.id} value={shop.id}>{shop.name}</option>
-              ))}
-            </select>
-
-            {/* Toggle Privacidade */}
-            <button
-              type="button"
-              onClick={() => setPrivacyMode(!privacyMode)}
-              title={privacyMode ? 'Mostrar dados' : 'Ocultar dados para screenshot'}
-              style={{
-                padding: isMobile ? '5px 8px' : '6px 10px',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                backgroundColor: privacyMode ? 'rgba(139, 92, 246, 0.15)' : 'var(--bg-card)',
-                color: privacyMode ? '#8b5cf6' : 'var(--text-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease',
-                fontSize: isMobile ? '12px' : '13px',
-                fontWeight: 600,
-              }}
-            >
-              {privacyMode ? <EyeOff size={isMobile ? 14 : 16} /> : <Eye size={isMobile ? 14 : 16} />}
-              {!isMobile && (privacyMode ? 'Oculto' : 'Ocultar')}
-            </button>
-          </div>
+          {!loading && !isMobile && filteredTickets.length > 0 && (
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+              {filteredTickets.length} {filteredTickets.length === 1 ? 'ticket' : 'tickets'}
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -261,19 +348,30 @@ export default function Tickets() {
             <Skeleton height={36} />
             <Skeleton height={36} />
             <Skeleton height={36} />
+            <Skeleton height={36} />
           </div>
         ) : filteredTickets.length === 0 ? (
           <div style={{
-            padding: isMobile ? '32px 16px' : '48px 24px',
+            padding: isMobile ? '40px 16px' : '56px 24px',
             textAlign: 'center',
-            color: 'var(--text-secondary)',
           }}>
-            <Ticket size={40} style={{ color: 'var(--border-color)', marginBottom: '12px' }} />
-            <div style={{ fontWeight: 600, fontSize: '15px', marginBottom: '4px' }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(236, 72, 153, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}>
+              <Ticket size={28} style={{ color: '#ec4899', opacity: 0.6 }} />
+            </div>
+            <div style={{ fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '6px' }}>
               Nenhum ticket pendente
             </div>
-            <div style={{ fontSize: '13px' }}>
-              Conversas que precisam de atendimento humano aparecerão aqui.
+            <div style={{ fontSize: '14px', color: 'var(--text-secondary)', maxWidth: '380px', margin: '0 auto', lineHeight: '1.5' }}>
+              Quando uma conversa precisar de atenção humana, ela aparecerá aqui automaticamente.
             </div>
           </div>
         ) : (
