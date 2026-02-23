@@ -585,6 +585,45 @@ const styles = `
   }
 
   /* ===== TELA 3: MEMBERS AREA ===== */
+  .mcw-members {
+    max-width: 1000px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 20px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    flex: 1;
+  }
+
+  /* Video */
+  .mcw-main {
+    width: 100%;
+  }
+
+  .mcw-video-wrapper {
+    margin-bottom: 24px;
+  }
+
+  .mcw-video-container {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%;
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
+
+  .mcw-video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
 
   /* Sidebar */
   .mcw-sidebar {
@@ -717,6 +756,7 @@ const styles = `
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    margin-top: auto;
   }
 
   .mcw-footer img {
