@@ -3120,13 +3120,13 @@ O QUE FAZER EM VEZ DISSO:
 ✅ Se TEM código de rastreio → forneça o código e link de acompanhamento
 ✅ Se TEM status do pedido → informe o status atual
 ✅ Se o prazo de entrega NÃO expirou → diga que o pedido está dentro do prazo
-✅ Se o prazo expirou E NÃO tem solução → use [FORWARD_TO_HUMAN] para escalar
+✅ Se o prazo expirou → TRANQUILIZE o cliente dizendo que o pedido está a caminho e pode haver pequenos atrasos logísticos, mas que vai chegar. NÃO encaminhe para humano. NÃO use [FORWARD_TO_HUMAN] por causa de prazo expirado.
 ✅ Se o cliente RECLAMA que rastreio não funciona / não aparece nada:
    → NÃO escale imediatamente! Primeiro explique que:
      1. O rastreio de envios internacionais pode demorar de 5 a 15 dias úteis para começar a atualizar
      2. O código fica ativo assim que a transportadora registra o pacote no país de destino
      3. ${shopContext.delivery_time ? `O prazo estimado de entrega é ${shopContext.delivery_time}` : 'O pedido está a caminho'}
-   → SOMENTE escale com [FORWARD_TO_HUMAN] se o cliente JÁ recebeu essa explicação antes (em mensagem anterior no histórico) E continua reclamando, OU se o prazo de entrega já expirou
+   → Se o cliente JÁ recebeu essa explicação antes E continua reclamando, reforce que o pedido está a caminho e que atrasos podem ocorrer. NÃO use [FORWARD_TO_HUMAN] apenas por prazo expirado.
 
 ⚠️ REGRA SOBRE LINKS DE RASTREIO:
 - Se o "Tracking link / Link de rastreio" nos DADOS DO PEDIDO for um link real (começa com http), USE esse link exato na resposta
@@ -3154,8 +3154,7 @@ EXEMPLO DE RESPOSTA BOA (cliente diz que rastreio não funciona - PRIMEIRA VEZ):
 ${shopContext.attendant_name}"
 
 EXEMPLO DE RESPOSTA BOA (prazo expirado, sem solução):
-"[FORWARD_TO_HUMAN]
-Oi! Verifiquei os dados do seu pedido e realmente o prazo de entrega já expirou. Vou encaminhar seu caso para que possamos resolver isso o mais rápido possível.
+"Oi! Verifiquei os dados do seu pedido e entendo sua preocupação com o prazo. Envios internacionais podem sofrer pequenos atrasos por questões logísticas ou alfandegárias, mas seu pedido está a caminho! Na grande maioria dos casos, a entrega acontece poucos dias após o prazo estimado. Fique tranquilo(a) que vai chegar! Qualquer novidade, me chama.
 
 ${shopContext.attendant_name}"
 
@@ -3480,10 +3479,9 @@ SOMENTE NESSE CASO (cliente confirma que rastreio não funciona):
 1. RECONHEÇA o problema: "Entendo que o rastreio não está funcionando"
 2. NÃO repita o mesmo número de rastreio que já não funciona
 3. OFEREÇA SOLUÇÃO IMEDIATA:
-   - Se passou do prazo de entrega → [FORWARD_TO_HUMAN] + email de suporte para reenvio ou reembolso
+   - Se passou do prazo de entrega → Tranquilize o cliente dizendo que o pedido está a caminho e que atrasos logísticos são comuns em envios internacionais. NÃO use [FORWARD_TO_HUMAN] apenas por prazo expirado.
    - Se ainda no prazo → Informe o prazo e diga que o rastreio pode demorar a atualizar
-4. Adicione [FORWARD_TO_HUMAN] no início da resposta se o prazo expirou
-5. Forneça o email de suporte: ${shopContext.support_email}
+4. Forneça o email de suporte: ${shopContext.support_email} caso o cliente queira entrar em contato diretamente
 
 ⛔ NÃO FAÇA PROMESSAS FALSAS MESMO NESTE CENÁRIO:
 - NÃO diga "vou investigar com a transportadora" - você NÃO pode fazer isso
