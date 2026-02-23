@@ -1303,6 +1303,7 @@ async function processMessageInternal(
       category: classification.category,
       language: classification.language,
       last_message_at: new Date().toISOString(),
+      ticket_status: 'pending',
     });
     await logProcessingEvent({
       shop_id: shop.id,
@@ -1383,6 +1384,7 @@ async function processMessageInternal(
         category: classification.category,
         language: classification.language,
         last_message_at: new Date().toISOString(),
+        ticket_status: 'pending',
       });
       await logProcessingEvent({
         shop_id: shop.id,

@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { DateRange } from 'react-day-picker'
-import { Ticket, Store, Eye, EyeOff, Headphones, MessageSquare } from 'lucide-react'
+import { Ticket, Store, Headphones, MessageSquare } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile } from '../hooks/useUserProfile'
 import { supabase } from '../lib/supabase'
 import ConversationModal from '../components/ConversationModal'
-import DateRangePicker from '../components/DateRangePicker'
 import { getCategoryBadgeStyle, getCategoryLabel } from '../constants/categories'
 
 interface TicketRow {
@@ -17,28 +15,15 @@ interface TicketRow {
   subject: string | null
   category: string | null
   status: string | null
+  ticket_status: string | null
   created_at: string
   shop_name?: string
 }
 
-const getDefaultRange = (): DateRange => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const thirtyDaysAgo = new Date(today)
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  return { from: thirtyDaysAgo, to: today }
-}
-
-const startOfDay = (date: Date) => {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-const endOfDay = (date: Date) => {
-  const d = new Date(date)
-  d.setHours(23, 59, 59, 999)
-  return d
+const TICKET_STATUS: Record<string, { label: string; bg: string; color: string }> = {
+  pending:  { label: 'Pendente',   bg: 'rgba(234,179,8,0.15)',   color: '#ca8a04' },
+  answered: { label: 'Respondido', bg: 'rgba(34,197,94,0.15)',   color: '#16a34a' },
+  closed:   { label: 'Fechado',    bg: 'rgba(107,114,128,0.15)', color: '#6b7280' },
 }
 
 const formatDateTime = (date: Date) =>
@@ -70,14 +55,9 @@ export default function Tickets() {
   const [tickets, setTickets] = useState<TicketRow[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
-  const [privacyMode, setPrivacyMode] = useState(false)
   const [selectedShopId, setSelectedShopId] = useState<string>('all')
-  const [range, setRange] = useState<DateRange>(getDefaultRange())
 
   const shopIds = useMemo(() => shops.map((s) => s.id), [shops])
-
-  const dateStart = useMemo(() => (range?.from ? startOfDay(range.from) : null), [range])
-  const dateEnd = useMemo(() => (range?.to ? endOfDay(range.to) : null), [range])
 
   const shopNameMap = useMemo(() => {
     const map: Record<string, string> = {}
@@ -86,7 +66,7 @@ export default function Tickets() {
   }, [shops])
 
   const loadTickets = useCallback(async () => {
-    if (!user || shopIds.length === 0 || !dateStart || !dateEnd) {
+    if (!user || shopIds.length === 0) {
       setTickets([])
       setLoading(false)
       return
@@ -96,14 +76,12 @@ export default function Tickets() {
     try {
       const { data, error } = await supabase
         .from('conversations')
-        .select('id, shop_id, customer_email, customer_name, subject, category, status, created_at')
+        .select('id, shop_id, customer_email, customer_name, subject, category, status, ticket_status, created_at')
         .eq('status', 'pending_human')
+        .eq('archived', false)
         .in('shop_id', shopIds)
         .in('category', ['suporte_humano', 'edicao_pedido', 'troca_devolucao_reembolso'])
-        .gte('created_at', dateStart.toISOString())
-        .lte('created_at', dateEnd.toISOString())
         .order('created_at', { ascending: false })
-        .limit(200)
 
       if (error) throw error
 
@@ -118,7 +96,7 @@ export default function Tickets() {
     } finally {
       setLoading(false)
     }
-  }, [user, shopIds, shopNameMap, dateStart, dateEnd])
+  }, [user, shopIds, shopNameMap])
 
   useEffect(() => {
     if (!loadingShops && shopIds.length > 0) {
@@ -242,40 +220,14 @@ export default function Tickets() {
             <option value="all">Todas as lojas</option>
             {shops.map((shop) => (
               <option key={shop.id} value={shop.id}>
-                {privacyMode ? '••••••' : shop.name}
+                {shop.name}
               </option>
             ))}
           </select>
-
-          <DateRangePicker value={range} onChange={setRange} />
-
-          {/* Toggle Privacidade */}
-          <button
-            type="button"
-            onClick={() => setPrivacyMode(!privacyMode)}
-            title={privacyMode ? 'Mostrar dados' : 'Ocultar dados para screenshot'}
-            style={{
-              padding: isMobile ? '5px 8px' : '6px 10px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              backgroundColor: privacyMode ? 'rgba(139, 92, 246, 0.15)' : 'var(--bg-card)',
-              color: privacyMode ? '#8b5cf6' : 'var(--text-secondary)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease',
-              fontSize: isMobile ? '12px' : '13px',
-              fontWeight: 600,
-            }}
-          >
-            {privacyMode ? <EyeOff size={isMobile ? 14 : 16} /> : <Eye size={isMobile ? 14 : 16} />}
-            {!isMobile && (privacyMode ? 'Oculto' : 'Ocultar')}
-          </button>
         </div>
       </div>
 
-      {/* Explicação */}
+      {/* Explicacao */}
       <div style={{
         backgroundColor: 'var(--bg-card)',
         borderRadius: isMobile ? '12px' : '16px',
@@ -315,7 +267,7 @@ export default function Tickets() {
         padding: isMobile ? '14px' : '20px',
         border: '1px solid var(--border-color)',
       }}>
-        {/* Subheader com ícone */}
+        {/* Subheader com icone */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -379,104 +331,121 @@ export default function Tickets() {
           </div>
         ) : (
           <div className="replyna-scrollbar" style={{ maxHeight: isMobile ? '500px' : '600px', overflowY: 'auto', overflowX: 'auto', scrollBehavior: 'smooth' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? '280px' : '520px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? '280px' : '620px' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                 <tr style={{ textAlign: 'left', backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', fontSize: isMobile ? '11px' : '12px' }}>
                   {!isMobile && <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Loja</th>}
                   <th style={{ padding: isMobile ? '8px 10px' : '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Cliente</th>
                   {!isMobile && <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Assunto</th>}
                   <th style={{ padding: isMobile ? '8px 10px' : '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Categoria</th>
+                  <th style={{ padding: isMobile ? '8px 10px' : '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Status</th>
                   <th style={{ padding: isMobile ? '8px 10px' : '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Data</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredTickets.map((ticket) => (
-                  <tr
-                    key={ticket.id}
-                    onClick={() => handleConversationClick(ticket.id)}
-                    style={{
-                      borderBottom: '1px solid var(--border-color)',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-primary)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                    {!isMobile && (
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div
-                            style={{
-                              width: '28px',
-                              height: '28px',
-                              borderRadius: '6px',
-                              backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Store size={14} style={{ color: '#8b5cf6' }} />
+                {filteredTickets.map((ticket) => {
+                  const statusInfo = TICKET_STATUS[ticket.ticket_status || 'pending'] || TICKET_STATUS.pending
+                  return (
+                    <tr
+                      key={ticket.id}
+                      onClick={() => handleConversationClick(ticket.id)}
+                      style={{
+                        borderBottom: '1px solid var(--border-color)',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-primary)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      {!isMobile && (
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div
+                              style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '6px',
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Store size={14} style={{ color: '#8b5cf6' }} />
+                            </div>
+                            <span
+                              style={{
+                                maxWidth: '120px',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                color: 'var(--text-primary)',
+                                fontWeight: 500,
+                                fontSize: '13px',
+                              }}
+                            >
+                              {ticket.shop_name || 'Loja'}
+                            </span>
                           </div>
-                          <span
-                            style={{
-                              maxWidth: '120px',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              color: 'var(--text-primary)',
-                              fontWeight: 500,
-                              fontSize: '13px',
-                            }}
-                          >
-                            {privacyMode ? '••••••' : (ticket.shop_name || 'Loja')}
-                          </span>
-                        </div>
-                      </td>
-                    )}
-                    <td style={{ padding: isMobile ? '10px' : '12px' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          maxWidth: isMobile ? '100px' : '140px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          color: 'var(--text-primary)',
-                          fontWeight: 600,
-                          fontSize: isMobile ? '12px' : '14px',
-                        }}
-                      >
-                        {privacyMode ? '••••••' : (ticket.customer_name || ticket.customer_email)}
-                      </span>
-                    </td>
-                    {!isMobile && (
-                      <td style={{ padding: '12px' }}>
+                        </td>
+                      )}
+                      <td style={{ padding: isMobile ? '10px' : '12px' }}>
                         <span
                           style={{
                             display: 'inline-block',
-                            maxWidth: '200px',
+                            maxWidth: isMobile ? '100px' : '140px',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            color: 'var(--text-secondary)',
+                            color: 'var(--text-primary)',
+                            fontWeight: 600,
+                            fontSize: isMobile ? '12px' : '14px',
                           }}
                         >
-                          {privacyMode ? '••••••' : (ticket.subject || 'Sem assunto')}
+                          {ticket.customer_name || ticket.customer_email}
                         </span>
                       </td>
-                    )}
-                    <td style={{ padding: isMobile ? '10px' : '12px' }}>
-                      <span style={{ ...getCategoryBadgeStyle(ticket.category), fontSize: isMobile ? '10px' : '12px', padding: isMobile ? '3px 6px' : '4px 8px' }}>
-                        {getCategoryLabel(ticket.category)}
-                      </span>
-                    </td>
-                    <td style={{ padding: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', fontSize: isMobile ? '11px' : '13px', whiteSpace: 'nowrap' }}>
-                      {formatDateTime(new Date(ticket.created_at))}
-                    </td>
-                  </tr>
-                ))}
+                      {!isMobile && (
+                        <td style={{ padding: '12px' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              maxWidth: '200px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            {ticket.subject || 'Sem assunto'}
+                          </span>
+                        </td>
+                      )}
+                      <td style={{ padding: isMobile ? '10px' : '12px' }}>
+                        <span style={{ ...getCategoryBadgeStyle(ticket.category), fontSize: isMobile ? '10px' : '12px', padding: isMobile ? '3px 6px' : '4px 8px' }}>
+                          {getCategoryLabel(ticket.category)}
+                        </span>
+                      </td>
+                      <td style={{ padding: isMobile ? '10px' : '12px' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: isMobile ? '3px 6px' : '4px 10px',
+                          borderRadius: '999px',
+                          fontSize: isMobile ? '10px' : '12px',
+                          fontWeight: 600,
+                          backgroundColor: statusInfo.bg,
+                          color: statusInfo.color,
+                        }}>
+                          {statusInfo.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', fontSize: isMobile ? '11px' : '13px', whiteSpace: 'nowrap' }}>
+                        {formatDateTime(new Date(ticket.created_at))}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

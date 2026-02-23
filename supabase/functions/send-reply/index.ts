@@ -193,6 +193,7 @@ Deno.serve(async (req) => {
     // 11. Atualizar conversa
     await updateConversation(conversation.id, {
       last_message_at: new Date().toISOString(),
+      ticket_status: 'answered',
     } as any);
 
     // 12. Registrar log

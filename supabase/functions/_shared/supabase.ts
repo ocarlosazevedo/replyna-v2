@@ -85,6 +85,8 @@ export interface Conversation {
   subject: string | null;
   category: string | null;
   status: 'open' | 'resolved' | 'pending_human' | 'closed';
+  ticket_status: 'pending' | 'answered' | 'closed' | null;
+  archived: boolean;
   data_request_count: number;
   retention_contact_count: number;
   language: string;

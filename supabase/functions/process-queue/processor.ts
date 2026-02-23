@@ -865,6 +865,7 @@ async function processMessage(
       category: classification.category,
       language: classification.language,
       last_message_at: new Date().toISOString(),
+      ticket_status: 'pending',
     });
 
     await logProcessingEvent({
@@ -1090,6 +1091,7 @@ async function sendReply(
   await updateConversation(conversation.id, {
     status: messageStatus,
     last_message_at: new Date().toISOString(),
+    ...(messageStatus === 'pending_human' ? { ticket_status: 'pending' } : {}),
   });
 
   // Log event
