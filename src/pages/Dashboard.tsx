@@ -1075,7 +1075,7 @@ export default function Dashboard() {
                   <option value="rastreio">Rastreio</option>
                   <option value="troca_devolucao_reembolso">Troca/Devolução</option>
                   <option value="edicao_pedido">Edição de pedido</option>
-                  <option value="suporte_humano">Suporte humano</option>
+                  <option value="suporte_humano">Ticket</option>
                 </select>
               )}
               {!loadingConversations && conversations.length > 0 && !isMobile && (

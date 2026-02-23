@@ -34,7 +34,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   rastreio: 'Rastreio',
   troca_devolucao_reembolso: 'Troca/Devolução/Reembolso',
   edicao_pedido: 'Edição de pedido',
-  suporte_humano: 'Suporte humano',
+  suporte_humano: 'Ticket',
   acknowledgment: 'Confirmação',
 }
 

@@ -39,7 +39,7 @@ const categoryLabelMap: Record<string, string> = {
   rastreio: 'Rastreio',
   troca_devolucao_reembolso: 'Troca/Devolução/Reembolso',
   edicao_pedido: 'Edição de pedido',
-  suporte_humano: 'Suporte humano',
+  suporte_humano: 'Ticket',
 }
 
 // Categorias disponíveis para seleção
@@ -48,7 +48,7 @@ const availableCategories = [
   { value: 'rastreio', label: 'Rastreio' },
   { value: 'troca_devolucao_reembolso', label: 'Troca/Devolução/Reembolso' },
   { value: 'edicao_pedido', label: 'Edição de pedido' },
-  { value: 'suporte_humano', label: 'Suporte humano' },
+  { value: 'suporte_humano', label: 'Ticket' },
   { value: 'spam', label: 'Spam' },
 ]
 
