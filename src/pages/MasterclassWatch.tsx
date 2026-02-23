@@ -232,7 +232,9 @@ export default function MasterclassWatch() {
             flexDirection: isDesktop ? 'row' as const : 'column' as const,
             alignItems: isDesktop ? 'flex-start' : 'stretch',
             gap: '24px',
+            maxWidth: '1600px',
             width: '100%',
+            margin: '0 auto',
             padding: isDesktop ? '24px 40px 48px' : '24px 20px 48px',
           }}
         >
