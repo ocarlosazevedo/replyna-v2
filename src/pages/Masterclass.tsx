@@ -1324,7 +1324,6 @@ const styles = `
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: wordFadeIn 2.5s ease-in-out;
     font-weight: 800;
   }
   .mc-headline {
