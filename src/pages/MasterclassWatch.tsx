@@ -231,7 +231,7 @@ export default function MasterclassWatch() {
         {/* Video Player */}
         <main
           className="mcw-main"
-          style={{ flex: isDesktop ? '1 1 0%' : undefined, minWidth: 0, width: isDesktop ? undefined : '100%' }}
+          style={{ width: isDesktop ? 'calc(100% - 372px)' : '100%', flexShrink: 0 }}
         >
           <div style={{ marginBottom: '24px', width: '100%' }}>
             <div
