@@ -218,10 +218,14 @@ export default function MasterclassWatch() {
       {/* Área de membros */}
       <div
         style={{
-          display: isDesktop ? 'flex' : 'block',
-          alignItems: 'flex-start',
+          flex: 1,
+          display: 'flex',
+          flexDirection: isDesktop ? 'row' as const : 'column' as const,
+          alignItems: isDesktop ? 'flex-start' : 'stretch',
+          justifyContent: 'center',
           gap: '24px',
           maxWidth: '1400px',
+          width: '100%',
           margin: '0 auto',
           padding: isDesktop ? '24px 32px 48px' : '24px 20px 48px',
         }}
