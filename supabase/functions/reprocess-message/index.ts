@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
     const categoriesWithoutOrderData = ['duvidas_gerais'];
     const needsOrderData = !categoriesWithoutOrderData.includes(category);
 
-    if (category === 'suporte_humano') {
+    if (category === 'suporte_humano' || category === 'edicao_pedido') {
       // Apenas marca como pending_human, sem enviar resposta
       await updateMessage(message.id, {
         status: 'pending_human',
@@ -233,9 +233,9 @@ Deno.serve(async (req) => {
         message_id: message.id,
         conversation_id: conversation.id,
         event_type: 'forwarded_to_human',
-        event_data: { reason: 'suporte_humano_category', reprocessed: true },
+        event_data: { reason: category === 'edicao_pedido' ? 'edicao_pedido_category' : 'suporte_humano_category', reprocessed: true },
       });
-      console.log(`[Reprocess] Mensagem ${message.id} marcada como pending_human (suporte_humano)`);
+      console.log(`[Reprocess] Mensagem ${message.id} marcada como pending_human (${category})`);
       return new Response(
         JSON.stringify({ success: true, message: 'Marcado para atendimento humano', category, status: 'pending_human' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

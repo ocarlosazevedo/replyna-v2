@@ -847,6 +847,7 @@ async function processMessage(
   // Não envia resposta automática nem encaminha — humano responde pela plataforma
   if (
     classification.category === 'suporte_humano' ||
+    classification.category === 'edicao_pedido' ||
     (needsOrderData && !shopifyData && !knownOrderNumber && conversation.data_request_count >= MAX_DATA_REQUESTS)
   ) {
     // Liberar crédito (não consome crédito para suporte humano)
@@ -874,6 +875,8 @@ async function processMessage(
       event_data: {
         reason: classification.category === 'suporte_humano'
           ? 'suporte_humano_category'
+          : classification.category === 'edicao_pedido'
+          ? 'edicao_pedido_category'
           : 'max_data_requests_exceeded'
       },
     });
@@ -963,12 +966,7 @@ async function processMessage(
 
   if (aiResponse.forward_to_human) {
     finalStatus = 'pending_human';
-    try {
-      await forwardToHuman(shop, message);
-    } catch (fwdError) {
-      console.error(`[Processor] Erro ao encaminhar para humano (msg ${message.id}), resposta já será enviada ao cliente:`, fwdError);
-    }
-    console.log(`[Processor] Forwarding to human - ai_forward: true`);
+    console.log(`[Processor] Marked as pending_human - ai_forward: true`);
   } else if (classification.category === 'troca_devolucao_reembolso' && currentRetentionCount >= 3) {
     // Só marca como pending_human APÓS 3 contatos de retenção
     // Nos contatos 1 e 2, a IA tenta reter o cliente

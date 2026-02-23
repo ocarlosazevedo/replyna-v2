@@ -673,7 +673,7 @@ async function processMessage(
   const categoriesWithoutOrderData = ['duvidas_gerais'];
   const needsOrderData = !categoriesWithoutOrderData.includes(classification.category);
 
-  if (classification.category === 'suporte_humano') {
+  if (classification.category === 'suporte_humano' || classification.category === 'edicao_pedido') {
     // Apenas marca como pending_human, sem enviar resposta nem encaminhar
     await releaseCredit(user.id);
     await updateMessage(message.id, {
@@ -693,9 +693,9 @@ async function processMessage(
       message_id: message.id,
       conversation_id: conversation.id,
       event_type: 'forwarded_to_human',
-      event_data: { reason: 'suporte_humano_category' },
+      event_data: { reason: classification.category === 'edicao_pedido' ? 'edicao_pedido_category' : 'suporte_humano_category' },
     });
-    console.log(`[process-shop-emails] Message ${message.id} marked as pending_human (no auto-reply)`);
+    console.log(`[process-shop-emails] Message ${message.id} marked as pending_human (${classification.category})`);
     return 'forwarded_human';
   } else if (!shopifyData && needsOrderData && conversation.data_request_count < MAX_DATA_REQUESTS) {
     responseResult = await generateDataRequestMessage(

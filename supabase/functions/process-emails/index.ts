@@ -1289,7 +1289,7 @@ async function processMessageInternal(
   const categoriesWithoutOrderData = ['duvidas_gerais'];
   const needsOrderData = !categoriesWithoutOrderData.includes(classification.category);
 
-  if (classification.category === 'suporte_humano') {
+  if (classification.category === 'suporte_humano' || classification.category === 'edicao_pedido') {
     // Apenas marca como pending_human, sem enviar resposta nem encaminhar
     await releaseCredit(user.id);
     await updateMessage(message.id, {
@@ -1309,7 +1309,7 @@ async function processMessageInternal(
       message_id: message.id,
       conversation_id: conversation.id,
       event_type: 'forwarded_to_human',
-      event_data: { reason: 'suporte_humano_category' },
+      event_data: { reason: classification.category === 'edicao_pedido' ? 'edicao_pedido_category' : 'suporte_humano_category' },
     });
     console.log(`[processMessage] Message ${message.id} marked as pending_human (no auto-reply)`);
     return 'forwarded_human';
@@ -1445,14 +1445,10 @@ async function processMessageInternal(
       conversation.status, // para loop detection pular exchange_count se pending_human
     );
 
-    // Se a IA detectou que é terceiro contato de cancelamento, encaminhar para humano
+    // Se a IA detectou que deve encaminhar para humano, marcar como pending_human
     if (responseResult.forward_to_human) {
       finalStatus = 'pending_human';
-      try {
-        await forwardToHuman(shop, message, emailCredentials);
-      } catch (fwdError) {
-        console.error(`[processMessage] Erro ao encaminhar para humano (msg ${message.id}), mas resposta ao cliente será enviada:`, fwdError);
-      }
+      console.log(`[processMessage] Marked as pending_human - ai_forward: true`);
     }
 
     // Limpar imagens do cache após processamento
