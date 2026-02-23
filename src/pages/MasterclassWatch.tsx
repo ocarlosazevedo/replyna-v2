@@ -210,18 +210,35 @@ export default function MasterclassWatch() {
       {/* Área de membros */}
       <div className="mcw-members">
         {/* Video Player */}
-        <main className="mcw-main">
-          <div className="mcw-video-wrapper">
-            <div className="mcw-video-container">
+        <main className="mcw-main" style={{ width: '100%', display: 'block' }}>
+          <div className="mcw-video-wrapper" style={{ marginBottom: '24px', width: '100%' }}>
+            <div
+              className="mcw-video-container"
+              style={{
+                position: 'relative',
+                width: '100%',
+                paddingBottom: '56.25%',
+                background: '#111827',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                border: '1px solid rgba(255,255,255,0.1)',
+              }}
+            >
               <iframe
                 src="https://www.youtube.com/embed/CkH8LC9DTSw?rel=0&modestbranding=1"
                 title="Masterclass Anti-Chargeback"
-                width="100%"
-                height="100%"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                }}
               ></iframe>
             </div>
           </div>
