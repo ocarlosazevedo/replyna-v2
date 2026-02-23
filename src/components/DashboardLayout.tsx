@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Store, User, LogOut, Menu, X } from 'lucide-react'
+import { LayoutGrid, Store, Ticket, User, LogOut, Menu, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { useUserProfile } from '../hooks/useUserProfile'
+import { supabase } from '../lib/supabase'
 import WhatsAppButton from './WhatsAppButton'
 
 interface DashboardLayoutProps {
@@ -10,9 +12,11 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, signOut } = useAuth()
+  const { shops } = useUserProfile()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [ticketCount, setTicketCount] = useState(0)
 
   // Detectar se é mobile
   useEffect(() => {
@@ -23,6 +27,34 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  // Buscar contagem de tickets e manter real-time
+  useEffect(() => {
+    const shopIds = shops.map((s) => s.id)
+    if (shopIds.length === 0) return
+
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from('conversations')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending_human')
+        .in('shop_id', shopIds)
+      setTicketCount(count ?? 0)
+    }
+
+    fetchCount()
+
+    const channel = supabase
+      .channel('sidebar-ticket-count')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversations' },
+        () => { fetchCount() }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [shops])
 
   // Fechar menu ao mudar de página
   useEffect(() => {
@@ -43,6 +75,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const menuItems = [
     { path: '/dashboard', label: 'Painel de controle', icon: LayoutGrid },
+    { path: '/tickets', label: 'Tickets', icon: Ticket, badge: ticketCount },
     { path: '/shops', label: 'Minhas lojas', icon: Store },
   ]
 
@@ -106,6 +139,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               >
                 <item.icon size={18} />
                 <span style={{ flex: 1 }}>{item.label}</span>
+                {'badge' in item && (item.badge ?? 0) > 0 && (
+                  <span style={{
+                    backgroundColor: 'rgba(236, 72, 153, 0.2)',
+                    color: '#f472b6',
+                    padding: '1px 7px',
+                    borderRadius: '999px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    minWidth: '20px',
+                    textAlign: 'center',
+                  }}>
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             </li>
           ))}

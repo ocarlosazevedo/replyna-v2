@@ -20,6 +20,7 @@ import ChargebackPage from './pages/ChargebackPage'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import Masterclass from './pages/Masterclass'
 import MasterclassWatch from './pages/MasterclassWatch'
+import Tickets from './pages/Tickets'
 import Migrate from './pages/Migrate'
 
 // Verifica se estamos no domínio da Landing Page (replyna.me sem subdomain)
@@ -199,6 +200,13 @@ function App() {
             <PrivateRoute>
               <DashboardLayout>
                 <Dashboard />
+              </DashboardLayout>
+            </PrivateRoute>
+          } />
+          <Route path="/tickets" element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Tickets />
               </DashboardLayout>
             </PrivateRoute>
           } />

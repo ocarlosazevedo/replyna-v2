@@ -663,7 +663,6 @@ export default function Dashboard() {
   const filteredConversations = useMemo(() => {
     return conversations.filter((c) => {
       if (categoryFilter === 'spam') return c.category === 'spam'
-      if (categoryFilter === 'human_help') return c.status === 'pending_human'
       if (categoryFilter === 'all') return c.category !== 'spam'
       return c.category === categoryFilter
     })
@@ -672,10 +671,9 @@ export default function Dashboard() {
   // Memoizar contadores para o header do Inbox
   const conversationCounts = useMemo(() => {
     const spamCount = conversations.filter(c => c.category === 'spam').length
-    const humanHelpCount = conversations.filter(c => c.status === 'pending_human').length
     const nonSpamCount = conversations.filter(c => c.category !== 'spam').length
     const filteredCount = filteredConversations.length
-    return { spamCount, humanHelpCount, nonSpamCount, filteredCount }
+    return { spamCount, nonSpamCount, filteredCount }
   }, [conversations, filteredConversations])
 
   // Memoizar valores derivados do perfil
@@ -1003,7 +1001,7 @@ export default function Dashboard() {
                   Inbox
                 </div>
               </div>
-              {/* Toggle Conversas / Ajuda Humana / Spam */}
+              {/* Toggle Conversas / Spam */}
               <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                 <button
                   type="button"
@@ -1014,29 +1012,12 @@ export default function Dashboard() {
                     fontWeight: 600,
                     border: 'none',
                     cursor: 'pointer',
-                    backgroundColor: categoryFilter !== 'spam' && categoryFilter !== 'human_help' ? 'var(--accent)' : 'var(--bg-card)',
-                    color: categoryFilter !== 'spam' && categoryFilter !== 'human_help' ? '#fff' : 'var(--text-secondary)',
+                    backgroundColor: categoryFilter !== 'spam' ? 'var(--accent)' : 'var(--bg-card)',
+                    color: categoryFilter !== 'spam' ? '#fff' : 'var(--text-secondary)',
                     transition: 'all 0.15s ease',
                   }}
                 >
                   Conversas
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCategoryFilter('human_help')}
-                  style={{
-                    padding: isMobile ? '5px 10px' : '6px 12px',
-                    fontSize: isMobile ? '12px' : '13px',
-                    fontWeight: 600,
-                    border: 'none',
-                    borderLeft: '1px solid var(--border-color)',
-                    cursor: 'pointer',
-                    backgroundColor: categoryFilter === 'human_help' ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-card)',
-                    color: categoryFilter === 'human_help' ? '#be185d' : 'var(--text-secondary)',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  Ajuda Humana ({conversationCounts.humanHelpCount})
                 </button>
                 <button
                   type="button"
@@ -1081,8 +1062,8 @@ export default function Dashboard() {
               </button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
-              {/* Filtro por categoria (só aparece quando não está em Spam nem Ajuda Humana) */}
-              {categoryFilter !== 'spam' && categoryFilter !== 'human_help' && (
+              {/* Filtro por categoria (só aparece quando não está em Spam) */}
+              {categoryFilter !== 'spam' && (
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
@@ -1101,11 +1082,9 @@ export default function Dashboard() {
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
                   {categoryFilter === 'spam'
                     ? `${conversationCounts.spamCount} spam`
-                    : categoryFilter === 'human_help'
-                      ? `${conversationCounts.humanHelpCount} aguardando humano`
-                      : categoryFilter === 'all'
-                        ? `${conversationCounts.nonSpamCount} emails`
-                        : `${conversationCounts.filteredCount} de ${conversationCounts.nonSpamCount}`}
+                    : categoryFilter === 'all'
+                      ? `${conversationCounts.nonSpamCount} emails`
+                      : `${conversationCounts.filteredCount} de ${conversationCounts.nonSpamCount}`}
                 </div>
               )}
             </div>
