@@ -13,7 +13,6 @@ import NotificationCenter from '../components/NotificationCenter'
 import CreditsWarningBanner from '../components/CreditsWarningBanner'
 import ShopifyErrorBanner from '../components/ShopifyErrorBanner'
 import EmailErrorBanner from '../components/EmailErrorBanner'
-import PaymentGatewayBanner from '../components/PaymentGatewayBanner'
 import { getCategoryBadgeStyle, getCategoryLabel, CATEGORY_COLORS, CATEGORY_LABELS } from '../constants/categories'
 
 const VolumeChart = lazy(() => import('../components/VolumeChart'))
@@ -750,9 +749,6 @@ export default function Dashboard() {
           }
         }}
       />
-
-      {/* Banner de migração do gateway de pagamento */}
-      <PaymentGatewayBanner />
 
       {/* Banners de erro crítico - ACIMA DE TUDO */}
       {!loadingProfile && profile && (

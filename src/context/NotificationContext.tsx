@@ -30,7 +30,20 @@ const NotificationContext = createContext<NotificationContextType | null>(null)
 const STORAGE_KEY_PREFIX = 'replyna_notifications_seen_'
 
 // Notificações estáticas de funcionalidades (ordenadas da mais recente para mais antiga)
-const FEATURE_NOTIFICATIONS: Omit<Notification, 'actionLink'>[] = [
+const FEATURE_NOTIFICATIONS: (Omit<Notification, 'actionLink'> & { fixedActionLink?: string })[] = [
+  {
+    id: 'payment-gateway-migration-v1',
+    type: 'alert',
+    priority: 'high',
+    title: 'Ação necessária: atualize seu método de pagamento',
+    description: 'Alteramos nosso gateway de pagamento para melhorar sua experiência. Para que sua Replyna continue funcionando normalmente, é necessário adicionar seu cartão novamente.',
+    icon: 'AlertTriangle',
+    color: '#f59e0b',
+    actionLabel: 'Atualizar cartão',
+    fixedActionLink: '/account',
+    createdAt: '2026-02-23',
+    persistent: true,
+  },
   {
     id: 'notification-center-v1',
     type: 'feature',
@@ -116,11 +129,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     // Adicionar notificações de funcionalidades
     // Apenas notificações com actionLabel recebem link
-    FEATURE_NOTIFICATIONS.forEach(n => {
+    FEATURE_NOTIFICATIONS.forEach(({ fixedActionLink, ...n }) => {
       all.push({
         ...n,
-        // Só adiciona link se tiver actionLabel (é uma feature configurável)
-        actionLink: n.actionLabel ? (shopId ? `/shops/${shopId}` : '/shops') : undefined,
+        // Usa link fixo se definido, senão calcula baseado na shop selecionada
+        actionLink: fixedActionLink
+          ? fixedActionLink
+          : n.actionLabel ? (shopId ? `/shops/${shopId}` : '/shops') : undefined,
       })
     })
 
