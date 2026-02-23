@@ -9,6 +9,14 @@ export default function MasterclassWatch() {
   const [isVerifying, setIsVerifying] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [initialLoading, setInitialLoading] = useState(true)
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   // Meta Pixel
   useEffect(() => {
@@ -211,18 +219,19 @@ export default function MasterclassWatch() {
       <div
         className="mcw-members"
         style={{
-          maxWidth: '1000px',
+          maxWidth: isDesktop ? '1000px' : undefined,
           margin: '0 auto',
-          padding: '24px 20px 48px',
+          padding: isDesktop ? '24px 24px 48px' : '24px 20px 48px',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '24px',
+          flexDirection: isDesktop ? 'row' : 'column',
+          alignItems: isDesktop ? 'flex-start' : undefined,
+          gap: isDesktop ? '32px' : '24px',
         }}
       >
         {/* Video Player */}
         <main
           className="mcw-main"
-          style={{ flex: '1 1 0%', minWidth: 0, width: '100%' }}
+          style={{ flex: isDesktop ? '1 1 0%' : undefined, minWidth: 0, width: isDesktop ? undefined : '100%' }}
         >
           <div style={{ marginBottom: '24px', width: '100%' }}>
             <div
@@ -269,7 +278,10 @@ export default function MasterclassWatch() {
         </main>
 
         {/* Sidebar / Info */}
-        <aside className="mcw-sidebar">
+        <aside
+          className="mcw-sidebar"
+          style={isDesktop ? { width: '340px', flexShrink: 0, position: 'sticky' as const, top: '24px' } : { width: '100%' }}
+        >
           <div className="mcw-sidebar-badge">
             <Play size={14} />
             <span>Masterclass</span>
