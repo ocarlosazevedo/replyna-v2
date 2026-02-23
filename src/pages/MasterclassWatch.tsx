@@ -208,12 +208,24 @@ export default function MasterclassWatch() {
       </header>
 
       {/* Área de membros */}
-      <div className="mcw-members">
+      <div
+        className="mcw-members"
+        style={{
+          maxWidth: '1000px',
+          margin: '0 auto',
+          padding: '24px 20px 48px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '24px',
+        }}
+      >
         {/* Video Player */}
-        <main className="mcw-main" style={{ width: '100%', display: 'block' }}>
-          <div className="mcw-video-wrapper" style={{ marginBottom: '24px', width: '100%' }}>
+        <main
+          className="mcw-main"
+          style={{ flex: '1 1 0%', minWidth: 0, width: '100%' }}
+        >
+          <div style={{ marginBottom: '24px', width: '100%' }}>
             <div
-              className="mcw-video-container"
               style={{
                 position: 'relative',
                 width: '100%',
@@ -222,6 +234,7 @@ export default function MasterclassWatch() {
                 borderRadius: '16px',
                 overflow: 'hidden',
                 border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
               }}
             >
               <iframe
