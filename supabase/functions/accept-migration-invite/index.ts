@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
       .insert({
         user_id: user.id,
         plan_id: plan.id,
-        status: 'pending',
+        status: 'incomplete',
         asaas_subscription_id: asaasSubscription.id,
         asaas_customer_id: asaasCustomer.id,
         billing_cycle: 'monthly',
