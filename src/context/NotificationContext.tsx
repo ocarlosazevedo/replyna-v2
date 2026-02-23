@@ -145,13 +145,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     })
   }, [shopId])
 
-  // Calcular não lidas (excluindo persistentes que são sempre "ativas")
+  // Calcular não lidas (persistentes sempre contam como não lidas)
   const unreadCount = useMemo(() => {
-    return notifications.filter(n => !n.persistent && !seenIds.has(n.id)).length
+    return notifications.filter(n => n.persistent || !seenIds.has(n.id)).length
   }, [notifications, seenIds])
 
-  // Não há mais alertas críticos no sino (erros são exibidos como banners)
-  const hasCriticalAlert = false
+  // Alertas críticos: há notificações persistentes de alta prioridade
+  const hasCriticalAlert = useMemo(() => {
+    return notifications.some(n => n.persistent && n.priority === 'high')
+  }, [notifications])
 
   // Marcar uma notificação como lida
   const markAsRead = useCallback((notificationId: string) => {
