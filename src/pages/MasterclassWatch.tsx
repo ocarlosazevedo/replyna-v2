@@ -219,17 +219,17 @@ export default function MasterclassWatch() {
       <div
         style={{
           display: isDesktop ? 'flex' : 'block',
-          alignItems: 'stretch',
+          alignItems: 'flex-start',
           gap: '24px',
-          maxWidth: '1200px',
+          maxWidth: '1400px',
           margin: '0 auto',
           padding: isDesktop ? '24px 32px 48px' : '24px 20px 48px',
         }}
       >
-        {/* Video Player - flex: 2 (~67%) */}
+        {/* Video Player - flex: 3 (~75%) */}
         <div
           style={isDesktop ? {
-            flex: '2 0 0%',
+            flex: '3 0 0%',
             position: 'relative' as const,
             aspectRatio: '16 / 9',
             borderRadius: '16px',
@@ -281,7 +281,7 @@ export default function MasterclassWatch() {
           </div>
         )}
 
-        {/* Painel lateral - flex: 1 (~33%) */}
+        {/* Painel lateral - flex: 1 (~25%) */}
         <div
           className="mcw-sidebar"
           style={isDesktop ? {
@@ -290,6 +290,7 @@ export default function MasterclassWatch() {
             display: 'flex',
             flexDirection: 'column' as const,
             justifyContent: 'center',
+            fontSize: '0.9rem',
           } : {
             width: '100%',
           }}
@@ -299,7 +300,7 @@ export default function MasterclassWatch() {
             <span>Masterclass</span>
           </div>
 
-          <h2 className="mcw-sidebar-title">
+          <h2 className="mcw-sidebar-title" style={isDesktop ? { fontSize: '1.2rem' } : undefined}>
             Como Reduzir 90% dos Chargebacks e Proteger sua Conta
           </h2>
 
@@ -311,7 +312,7 @@ export default function MasterclassWatch() {
             </div>
           </div>
 
-          <p className="mcw-sidebar-desc">
+          <p className="mcw-sidebar-desc" style={isDesktop ? { fontSize: '0.85rem' } : undefined}>
             {userName ? `Olá, ${userName}! ` : ''}Empresário com mais de 6 anos no mercado de e-commerce global.
             Pioneiro em dropshipping global, Google Ads e Shopify Payments.
             Compartilho as estratégias que uso para faturar +$500K/mês com margem de até 40%.
