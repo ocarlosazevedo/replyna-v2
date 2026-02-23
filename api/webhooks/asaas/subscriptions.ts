@@ -86,17 +86,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const now = new Date()
       const periodEnd = addDays(now, 30)
+      const updatePayload = {
+        asaas_subscription_id: subscriptionId,
+        asaas_customer_id: customerId,
+        status: 'active',
+        current_period_start: now.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+      }
 
-      await supabase
+      const { data: existingSub } = await supabase
         .from('subscriptions')
-        .update({
-          asaas_subscription_id: subscriptionId,
-          asaas_customer_id: customerId,
-          status: 'active',
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-        })
-        .eq('user_id', user.id)
+        .select('id')
+        .eq('asaas_subscription_id', subscriptionId)
+        .maybeSingle()
+
+      if (existingSub?.id) {
+        await supabase
+          .from('subscriptions')
+          .update(updatePayload)
+          .eq('id', existingSub.id)
+      } else {
+        const { data: pendingSub } = await supabase
+          .from('subscriptions')
+          .select('id')
+          .eq('user_id', user.id)
+          .is('asaas_subscription_id', null)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (!pendingSub?.id) {
+          console.warn('[ASAAS][WEBHOOK] Nenhuma subscription pendente para atualizar:', subscriptionId)
+          return respondOk({ ok: true, warning: 'Pending subscription not found' })
+        }
+
+        await supabase
+          .from('subscriptions')
+          .update(updatePayload)
+          .eq('id', pendingSub.id)
+      }
 
       console.log('SUBSCRIPTION_CREATED processado:', subscriptionId)
       return respondOk({ ok: true })

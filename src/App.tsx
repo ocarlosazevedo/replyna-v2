@@ -20,6 +20,7 @@ import ChargebackPage from './pages/ChargebackPage'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import Masterclass from './pages/Masterclass'
 import MasterclassWatch from './pages/MasterclassWatch'
+import Migrate from './pages/Migrate'
 
 // Verifica se estamos no domínio da Landing Page (replyna.me sem subdomain)
 const isLandingDomain = () => {
@@ -189,6 +190,7 @@ function App() {
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
+          <Route path="/migrate" element={<Migrate />} />
           <Route path="/migrate/:code" element={<MigrationAccept />} />
           <Route path="/auth/confirm" element={<AuthConfirm />} />
 
