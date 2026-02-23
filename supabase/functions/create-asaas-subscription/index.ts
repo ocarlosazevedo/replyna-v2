@@ -12,7 +12,6 @@ import {
   getCustomerByEmail,
   createSubscription,
   getPaymentsBySubscription,
-  AsaasDiscount,
 } from '../_shared/asaas.ts';
 
 interface CreateSubscriptionRequest {
@@ -81,7 +80,6 @@ serve(async (req) => {
     let finalValue = baseValue;
     let discountApplied = 0;
     let couponId: string | null = null;
-    let asaasDiscount: AsaasDiscount | undefined = undefined;
 
     if (coupon_code) {
       const upper = coupon_code.toUpperCase();
@@ -110,24 +108,13 @@ serve(async (req) => {
             if (coupon.max_discount_amount) {
               discountApplied = Math.min(discountApplied, Number(coupon.max_discount_amount));
             }
-            finalValue = Math.max(0, baseValue - discountApplied);
-            asaasDiscount = {
-              value: Number(coupon.discount_value || 0),
-              dueDateLimitDays: 0,
-              type: 'PERCENTAGE',
-            };
           } else {
             discountApplied = Number(coupon.discount_value || 0);
             if (coupon.max_discount_amount) {
               discountApplied = Math.min(discountApplied, Number(coupon.max_discount_amount));
             }
-            finalValue = Math.max(0, baseValue - discountApplied);
-            asaasDiscount = {
-              value: discountApplied,
-              dueDateLimitDays: 0,
-              type: 'FIXED',
-            };
           }
+          finalValue = Math.max(0, baseValue - discountApplied);
         }
       }
     }
@@ -154,19 +141,20 @@ serve(async (req) => {
 
     const nextDueDate = formatDateYYYYMMDD(new Date());
 
-    // Criar assinatura
+    // Criar assinatura (valor ja com desconto aplicado, sem usar discount do Asaas para evitar desconto duplicado)
     const subscription = await createSubscription({
       customer: customer.id,
       billingType: 'CREDIT_CARD',
       value: finalValue,
       cycle: 'MONTHLY',
-      description: `Replyna - Plano ${plan.name}`,
+      description: couponId
+        ? `Replyna - Plano ${plan.name} (Cupom aplicado: -${discountApplied.toFixed(2)})`
+        : `Replyna - Plano ${plan.name}`,
       nextDueDate,
       callback: {
         successUrl: 'https://app.replyna.me/checkout/success',
         autoRedirect: true,
       },
-      discount: asaasDiscount,
     });
 
     // Buscar primeira cobranca
