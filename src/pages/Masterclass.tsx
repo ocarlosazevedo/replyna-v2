@@ -580,43 +580,48 @@ export default function Masterclass() {
       <section className="mc-block2 mc-fade-in">
         <div className="mc-block2-glow" />
         <div className="mc-block2-inner">
-          <div className="mc-block2-shopify-icon">
-            <svg width="32" height="36" viewBox="0 0 256 292" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M223.774 57.34c-.201-1.46-1.48-2.268-2.537-2.357-1.055-.088-23.383-1.743-23.383-1.743s-15.507-15.395-17.209-17.099c-1.703-1.703-5.029-1.185-6.32-.828-.183.05-3.37 1.034-8.59 2.646-5.146-14.86-14.235-28.498-30.197-28.498h-1.384C129.373 3.296 123.072 0 117.655 0 80.558 0 62.551 46.814 56.896 70.637c-14.652 4.51-25.085 7.727-26.353 8.12-8.202 2.556-8.452 2.808-9.523 10.555C19.986 96.258 0 249.088 0 249.088l177.707 30.96 96.293-24.36S223.977 58.8 223.774 57.34zM168.4 41.312c-4.025 1.238-8.636 2.655-13.69 4.21v-3.04c0-9.142-1.274-16.523-3.354-22.26 8.34 1.1 13.894 10.462 17.044 21.09zm-30.957-18.28c2.328 5.748 3.823 13.954 3.823 25.142v1.564c-8.895 2.73-18.608 5.72-28.378 8.727C119.283 33.87 130.521 19.7 140.37 19.7c1.037 0 1.99.1 2.877.3l-5.803 3.032zm-14.768-9.542c.96 0 1.932.204 2.908.61-11.92 5.594-24.692 19.694-30.063 47.87l-22.32 6.876C80.688 47.31 95.855 10.46 117.655 10.46l5.02 3.03z" fill="white"/>
-              <path d="M221.237 54.983c-1.055-.088-23.383-1.743-23.383-1.743s-15.507-15.395-17.209-17.099c-.637-.634-1.496-.956-2.394-1.06l-1.544 267.017 96.293-24.36S223.977 58.8 223.774 57.34c-.201-1.46-1.48-2.268-2.537-2.357z" fill="rgba(255,255,255,0.15)"/>
-              <path d="M135.372 104.473l-11.008 32.637s-9.667-5.146-21.489-5.146c-17.384 0-18.256 10.907-18.256 13.664 0 15.004 39.108 20.762 39.108 55.904 0 27.66-17.534 45.472-41.198 45.472-28.386 0-42.876-17.649-42.876-17.649l7.594-25.086s14.908 12.806 27.473 12.806c8.202 0 11.571-6.458 11.571-11.171 0-19.588-32.088-20.459-32.088-52.6 0-27.06 19.42-53.244 58.6-53.244 15.122 0 22.569 4.413 22.569 4.413z" fill="white"/>
-            </svg>
+          {/* Coluna esquerda - conteúdo textual */}
+          <div className="mc-block2-left">
+            <div className="mc-block2-toprow">
+              <div className="mc-block2-shopify-icon">
+                <svg width="24" height="28" viewBox="0 0 256 292" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M223.774 57.34c-.201-1.46-1.48-2.268-2.537-2.357-1.055-.088-23.383-1.743-23.383-1.743s-15.507-15.395-17.209-17.099c-1.703-1.703-5.029-1.185-6.32-.828-.183.05-3.37 1.034-8.59 2.646-5.146-14.86-14.235-28.498-30.197-28.498h-1.384C129.373 3.296 123.072 0 117.655 0 80.558 0 62.551 46.814 56.896 70.637c-14.652 4.51-25.085 7.727-26.353 8.12-8.202 2.556-8.452 2.808-9.523 10.555C19.986 96.258 0 249.088 0 249.088l177.707 30.96 96.293-24.36S223.977 58.8 223.774 57.34zM168.4 41.312c-4.025 1.238-8.636 2.655-13.69 4.21v-3.04c0-9.142-1.274-16.523-3.354-22.26 8.34 1.1 13.894 10.462 17.044 21.09zm-30.957-18.28c2.328 5.748 3.823 13.954 3.823 25.142v1.564c-8.895 2.73-18.608 5.72-28.378 8.727C119.283 33.87 130.521 19.7 140.37 19.7c1.037 0 1.99.1 2.877.3l-5.803 3.032zm-14.768-9.542c.96 0 1.932.204 2.908.61-11.92 5.594-24.692 19.694-30.063 47.87l-22.32 6.876C80.688 47.31 95.855 10.46 117.655 10.46l5.02 3.03z" fill="white"/>
+                  <path d="M221.237 54.983c-1.055-.088-23.383-1.743-23.383-1.743s-15.507-15.395-17.209-17.099c-.637-.634-1.496-.956-2.394-1.06l-1.544 267.017 96.293-24.36S223.977 58.8 223.774 57.34c-.201-1.46-1.48-2.268-2.537-2.357z" fill="rgba(255,255,255,0.15)"/>
+                  <path d="M135.372 104.473l-11.008 32.637s-9.667-5.146-21.489-5.146c-17.384 0-18.256 10.907-18.256 13.664 0 15.004 39.108 20.762 39.108 55.904 0 27.66-17.534 45.472-41.198 45.472-28.386 0-42.876-17.649-42.876-17.649l7.594-25.086s14.908 12.806 27.473 12.806c8.202 0 11.571-6.458 11.571-11.171 0-19.588-32.088-20.459-32.088-52.6 0-27.06 19.42-53.244 58.6-53.244 15.122 0 22.569 4.413 22.569 4.413z" fill="white"/>
+                </svg>
+              </div>
+              <div className="mc-block2-badge">
+                <Shield size={14} />
+                <span>PROTEÇÃO MÁXIMA</span>
+              </div>
+            </div>
+            <h2 className="mc-block2-title">
+              Dê Adeus aos Bloqueios da<br />Shopify Payments
+            </h2>
+            <div className="mc-block2-highlight-bar">
+              <span>Método Ultra Validado para <strong>ZERAR</strong> os bloqueios!</span>
+            </div>
+            <p className="mc-block2-text">
+              Descubra o grande segredo dos maiores players do mercado e as estratégias
+              para manter as contas da Payments ativas por mais de 6 meses.
+            </p>
+            <div className="mc-trust-row">
+              {trustBadges.map((badge, i) => (
+                <div key={i} className="mc-trust-badge">
+                  {badge.icon}
+                  <span>{badge.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="mc-block2-badge">
-            <Shield size={14} />
-            <span>PROTEÇÃO MÁXIMA</span>
-          </div>
-          <h2 className="mc-block2-title">
-            Dê Adeus aos Bloqueios da<br />Shopify Payments
-          </h2>
-          <div className="mc-block2-highlight-bar">
-            <span>Método Ultra Validado para <strong>ZERAR</strong> os bloqueios!</span>
-          </div>
-          <p className="mc-block2-text">
-            Descubra o grande segredo dos maiores players do mercado e as estratégias
-            para manter as contas da Payments ativas por mais de 6 meses.
-          </p>
 
-          <div className="mc-block2-stats">
+          {/* Coluna direita - stats */}
+          <div className="mc-block2-right">
             {statsData.map((stat, i) => (
               <div key={i} className="mc-block2-stat">
                 <div className="mc-stat-icon">{stat.icon}</div>
                 <span className="mc-stat-value">{stat.value}</span>
                 <span className="mc-stat-label">{stat.label}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mc-trust-row">
-            {trustBadges.map((badge, i) => (
-              <div key={i} className="mc-trust-badge">
-                {badge.icon}
-                <span>{badge.label}</span>
               </div>
             ))}
           </div>
@@ -1520,55 +1525,11 @@ const styles = `
     margin: 0;
   }
 
-  /* ===== BLOCK 2 - HEADLINE IMPACT ===== */
+  /* ===== BLOCK 2 - HEADLINE IMPACT (SPLIT LAYOUT) ===== */
   .mc-block2 {
     position: relative;
-    padding: 80px 20px 60px;
-    text-align: center;
+    padding: 64px 20px;
     overflow: hidden;
-  }
-  .mc-block2-shopify-icon {
-    width: 72px;
-    height: 72px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 20px;
-    background: linear-gradient(135deg, #96bf48 0%, #5e8e3e 100%);
-    box-shadow: 0 0 30px rgba(150,191,72,0.3), 0 0 60px rgba(150,191,72,0.1);
-    margin-bottom: 28px;
-    position: relative;
-    animation: shopifyFloat 3s ease-in-out infinite;
-  }
-  .mc-block2-shopify-icon::before {
-    content: '';
-    position: absolute;
-    inset: -4px;
-    border-radius: 24px;
-    background: linear-gradient(135deg, rgba(150,191,72,0.4), rgba(94,142,62,0.2));
-    z-index: -1;
-    animation: shopifyPulse 2s ease-in-out infinite;
-  }
-  .mc-block2-shopify-icon::after {
-    content: '';
-    position: absolute;
-    inset: -12px;
-    border-radius: 28px;
-    border: 1px solid rgba(150,191,72,0.15);
-    animation: shopifyRing 3s ease-in-out infinite;
-  }
-  .mc-block2-shopify-icon svg { color: #fff; }
-  @keyframes shopifyFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
-  }
-  @keyframes shopifyPulse {
-    0%, 100% { opacity: 0.6; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.08); }
-  }
-  @keyframes shopifyRing {
-    0%, 100% { opacity: 0.3; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.12); }
   }
   .mc-block2-glow {
     position: absolute;
@@ -1584,12 +1545,44 @@ const styles = `
   .mc-block2-inner {
     position: relative;
     z-index: 1;
-    max-width: 760px;
+    max-width: 1200px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
+    text-align: center;
+    gap: 40px;
   }
+  .mc-block2-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .mc-block2-right {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    justify-content: center;
+  }
+  .mc-block2-toprow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .mc-block2-shopify-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #96bf48 0%, #5e8e3e 100%);
+    box-shadow: 0 0 20px rgba(150,191,72,0.3);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .mc-block2-shopify-icon svg { color: #fff; }
   .mc-block2-badge {
     display: inline-flex;
     align-items: center;
@@ -1603,15 +1596,14 @@ const styles = `
     letter-spacing: 0.1em;
     color: #5ba8ff;
     text-transform: uppercase;
-    margin-bottom: 24px;
   }
   .mc-block2-badge svg { color: #5ba8ff; }
   .mc-block2-title {
-    font-size: 40px;
+    font-size: 32px;
     font-weight: 800;
     line-height: 1.2;
     color: #fff;
-    margin: 0 0 24px;
+    margin: 0 0 20px;
     letter-spacing: -0.02em;
   }
   .mc-block2-highlight-bar {
@@ -1620,39 +1612,33 @@ const styles = `
     background: linear-gradient(135deg, rgba(30,144,255,0.18), rgba(32,178,170,0.12));
     border: 1px solid rgba(30,144,255,0.3);
     border-radius: 12px;
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 600;
     color: #fff;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
   }
   .mc-block2-highlight-bar strong {
     color: #5bf5a0;
     font-weight: 800;
   }
   .mc-block2-text {
-    font-size: 17px;
+    font-size: 16px;
     line-height: 1.7;
     color: rgba(255,255,255,0.65);
     max-width: 500px;
-    margin: 0 0 40px;
-    text-align: center;
-  }
-  .mc-block2-stats {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin-bottom: 32px;
+    margin: 0 0 32px;
   }
   .mc-block2-stat {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    padding: 24px 40px;
+    padding: 24px 32px;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     transition: transform 0.3s ease, border-color 0.3s ease;
+    flex: 1;
   }
   .mc-block2-stat:hover {
     transform: translateY(-4px);
@@ -2448,7 +2434,7 @@ const styles = `
     .mc-block2 { padding: 80px 24px 60px; }
     .mc-block2-title { font-size: 36px; }
     .mc-block2-highlight-bar { font-size: 18px; }
-    .mc-block2-stat { padding: 24px 48px; }
+    .mc-block2-stat { padding: 24px 40px; }
     .mc-hero-visual { display: block; max-width: 420px; }
     .mc-orbit-logo { width: 52px; height: 52px; font-size: 16px; }
     .mc-orbit-center { width: 72px; height: 72px; border-radius: 20px; }
@@ -2483,11 +2469,27 @@ const styles = `
     .mc-stat-value { font-size: 36px; }
     .mc-stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
     .mc-block2 { padding: 100px 48px 80px; }
+    .mc-block2-inner {
+      flex-direction: row;
+      align-items: center;
+      text-align: left;
+      gap: 48px;
+    }
+    .mc-block2-left {
+      flex: 3;
+      align-items: flex-start;
+    }
+    .mc-block2-right {
+      flex: 2;
+      flex-direction: column;
+      gap: 16px;
+    }
     .mc-block2-title { font-size: 44px; }
-    .mc-block2-highlight-bar { font-size: 22px; padding: 12px 32px; }
-    .mc-block2-text { font-size: 18px; }
-    .mc-block2-stat { padding: 28px 56px; }
+    .mc-block2-highlight-bar { font-size: 20px; padding: 12px 32px; }
+    .mc-block2-text { font-size: 17px; max-width: none; }
+    .mc-block2-stat { padding: 28px 32px; }
     .mc-block2-glow { width: 800px; height: 500px; }
+    .mc-trust-row { justify-content: flex-start; }
     .mc-section { padding: 72px 48px; }
     .mc-section-inner { max-width: 1100px; }
     .mc-section-title { font-size: 32px; }
