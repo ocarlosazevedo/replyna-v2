@@ -216,9 +216,13 @@ export default function MasterclassWatch() {
               <iframe
                 src="https://www.youtube.com/embed/CkH8LC9DTSw?rel=0&modestbranding=1"
                 title="Masterclass Anti-Chargeback"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
-              />
+              ></iframe>
             </div>
           </div>
 
@@ -545,10 +549,10 @@ const styles = `
   .mcw-video-container {
     position: relative;
     width: 100%;
-    padding-bottom: 56.25%;
+    aspect-ratio: 16 / 9;
     border-radius: 16px;
     overflow: hidden;
-    background: rgba(255,255,255,0.03);
+    background: #111827;
     border: 1px solid rgba(255,255,255,0.1);
     box-shadow: 0 4px 24px rgba(0,0,0,0.3);
   }
