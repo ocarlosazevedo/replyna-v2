@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { getCategoryBadgeStyle, getCategoryColor } from '../constants/categories'
 
@@ -393,6 +393,11 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
   const [reprocessSuccess, setReprocessSuccess] = useState(false)
   const [translations, setTranslations] = useState<Record<string, string>>({})
   const [translatingId, setTranslatingId] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const [sendingReply, setSendingReply] = useState(false)
+  const [replyError, setReplyError] = useState<string | null>(null)
+  const [replySuccess, setReplySuccess] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const loadConversation = useCallback(async () => {
     if (!conversationId) return
@@ -487,6 +492,9 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
         },
         (payload) => {
           setMessages((prev) => [...prev, payload.new as Message])
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+          }, 100)
         }
       )
       .subscribe()
@@ -631,6 +639,46 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
       alert('Erro ao traduzir mensagem. Tente novamente.')
     } finally {
       setTranslatingId(null)
+    }
+  }
+
+  // Auto-hide do feedback de sucesso
+  useEffect(() => {
+    if (replySuccess) {
+      const timer = setTimeout(() => setReplySuccess(false), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [replySuccess])
+
+  const handleSendReply = async () => {
+    if (!conversation || !replyText.trim() || sendingReply) return
+
+    setSendingReply(true)
+    setReplyError(null)
+    setReplySuccess(false)
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-reply', {
+        body: {
+          conversation_id: conversation.id,
+          shop_id: conversation.shop_id,
+          reply_text: replyText.trim(),
+        },
+      })
+
+      if (error) throw error
+
+      if (data?.success) {
+        setReplySuccess(true)
+        setReplyText('')
+      } else {
+        throw new Error(data?.error || 'Erro desconhecido')
+      }
+    } catch (err) {
+      console.error('Erro ao enviar resposta:', err)
+      setReplyError(err instanceof Error ? err.message : 'Erro ao enviar resposta. Tente novamente.')
+    } finally {
+      setSendingReply(false)
     }
   }
 
@@ -971,6 +1019,21 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                         Automatica
                       </span>
                     )}
+                    {message.direction === 'outbound' && !message.was_auto_replied && (
+                      <span
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                          backgroundColor: 'rgba(59, 130, 246, 0.16)',
+                          color: '#3b82f6',
+                        }}
+                      >
+                        Manual
+                      </span>
+                    )}
                   </div>
                   <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                     {formatDateTime(new Date(message.created_at))}
@@ -1107,7 +1170,126 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
               </div>
             ))
           )}
+          <div ref={messagesEndRef} />
         </div>
+
+        {/* Seção de Resposta Manual */}
+        {!isAdmin && !loading && conversation && (
+          <div style={{
+            padding: '12px 20px 16px',
+            borderTop: '1px solid var(--border-color)',
+            backgroundColor: 'var(--bg-card)',
+          }}>
+            {replySuccess && (
+              <div style={{
+                padding: '8px 12px',
+                marginBottom: '10px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                color: '#15803d',
+                fontSize: '13px',
+                fontWeight: 600,
+              }}>
+                Resposta enviada com sucesso
+              </div>
+            )}
+            {replyError && (
+              <div style={{
+                padding: '8px 12px',
+                marginBottom: '10px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                color: '#dc2626',
+                fontSize: '13px',
+              }}>
+                {replyError}
+              </div>
+            )}
+            <textarea
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                  e.preventDefault()
+                  handleSendReply()
+                }
+              }}
+              placeholder="Digite sua resposta..."
+              disabled={sendingReply}
+              style={{
+                width: '100%',
+                minHeight: '80px',
+                maxHeight: '160px',
+                resize: 'vertical',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--input-border)',
+                backgroundColor: 'var(--input-bg)',
+                color: 'var(--text-primary)',
+                fontSize: '14px',
+                fontFamily: 'inherit',
+                lineHeight: '1.5',
+                outline: 'none',
+                boxSizing: 'border-box',
+                opacity: sendingReply ? 0.6 : 1,
+                transition: 'border-color 0.15s ease',
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--input-border)' }}
+            />
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: '8px',
+            }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7 }}>
+                Ctrl+Enter para enviar
+              </span>
+              <button
+                onClick={handleSendReply}
+                disabled={sendingReply || !replyText.trim()}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: 'var(--accent)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: sendingReply || !replyText.trim() ? 'not-allowed' : 'pointer',
+                  opacity: sendingReply || !replyText.trim() ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'opacity 0.15s ease',
+                }}
+              >
+                {sendingReply ? (
+                  <>
+                    <div style={{
+                      width: '14px',
+                      height: '14px',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      borderTopColor: 'white',
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite',
+                    }} />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13" />
+                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                    </svg>
+                    Enviar Resposta
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* CSS para animação do spinner e conteúdo HTML de email */}
