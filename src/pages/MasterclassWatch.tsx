@@ -266,7 +266,7 @@ export default function MasterclassWatch() {
           </div>
 
           {/* CTA Mobile (aparece abaixo do vídeo no mobile) */}
-          <div className="mcw-mobile-cta">
+          <div className="mcw-mobile-cta" style={{ display: isDesktop ? 'none' : 'flex' }}>
             <a href="https://app.replyna.me/register" className="mcw-cta-btn">
               Quero testar a Replyna
               <ChevronRight size={18} />
@@ -306,7 +306,7 @@ export default function MasterclassWatch() {
           </p>
 
           {/* CTA */}
-          <div className="mcw-sidebar-cta">
+          <div className="mcw-sidebar-cta" style={{ display: isDesktop ? 'flex' : 'none' }}>
             <a href="https://app.replyna.me/register" className="mcw-cta-btn">
               Quero testar a Replyna
               <ChevronRight size={18} />
@@ -570,43 +570,6 @@ const styles = `
   }
 
   /* ===== TELA 3: MEMBERS AREA ===== */
-  .mcw-members {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 24px 20px 48px;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  /* Video */
-  .mcw-main {
-    width: 100%;
-  }
-
-  .mcw-video-wrapper {
-    margin-bottom: 24px;
-  }
-
-  .mcw-video-container {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    border-radius: 16px;
-    overflow: hidden;
-    background: #111827;
-    border: 1px solid rgba(255,255,255,0.1);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-  }
-
-  .mcw-video-container iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border: none;
-  }
 
   /* Sidebar */
   .mcw-sidebar {
@@ -769,26 +732,6 @@ const styles = `
       font-size: 22px;
     }
 
-    /* Members area: side-by-side layout */
-    .mcw-members {
-      flex-direction: row;
-      align-items: flex-start;
-      gap: 24px;
-      padding: 24px 24px 48px;
-    }
-
-    .mcw-sidebar {
-      width: 300px;
-      flex-shrink: 0;
-      position: sticky;
-      top: 24px;
-    }
-
-    .mcw-main {
-      flex: 1;
-      min-width: 0;
-    }
-
     /* Swap CTAs: hide mobile, show sidebar */
     .mcw-mobile-cta {
       display: none;
@@ -822,13 +765,8 @@ const styles = `
       border-color: rgba(255,255,255,0.2);
     }
 
-    .mcw-members {
-      gap: 32px;
-      padding: 32px 40px 64px;
-    }
-
-    .mcw-sidebar {
-      width: 340px;
+    .mcw-cta-btn {
+      /* hover handled below */
     }
 
     .mcw-cta-btn:hover {
@@ -840,16 +778,6 @@ const styles = `
 
   /* ===== LARGE DESKTOP (1280px) ===== */
   @media (min-width: 1280px) {
-    .mcw-members {
-      max-width: 1100px;
-      gap: 40px;
-    }
-
-    .mcw-sidebar {
-      width: 380px;
-      padding: 28px;
-    }
-
     .mcw-sidebar-title {
       font-size: 24px;
     }
