@@ -1,20 +1,53 @@
 /**
  * Edge Function: Accept Migration Invite (Asaas)
  *
- * GET - valida convite
- * POST - cria assinatura no Asaas com nextDueDate futuro
+ * Fluxo TEMPORARIO para migracao de usuarios existentes.
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { isValidEmail } from '../_shared/validation.ts';
-import { createCustomer, getCustomerByEmail, createSubscription, getPaymentsBySubscription } from '../_shared/asaas.ts';
+import { createSubscription, getPaymentsBySubscription } from '../_shared/asaas.ts';
 
-function formatDateYYYYMMDD(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+interface AcceptMigrationRequest {
+  token: string;
+}
+
+interface AsaasCustomer {
+  id: string;
+}
+
+const ASAAS_BASE_URL = Deno.env.get('ASAAS_BASE_URL') || 'https://api.asaas.com/v3';
+const ASAAS_API_KEY = Deno.env.get('ASAAS_API_KEY');
+
+async function createAsaasCustomer(input: {
+  name: string | null;
+  email: string;
+  phone?: string;
+}): Promise<AsaasCustomer> {
+  if (!ASAAS_API_KEY) {
+    throw new Error('ASAAS_API_KEY nao configurada');
+  }
+
+  const response = await fetch(`${ASAAS_BASE_URL}/customers`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'access_token': ASAAS_API_KEY,
+    },
+    body: JSON.stringify({
+      name: input.name || input.email,
+      email: input.email,
+      phone: input.phone,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(`Erro ao criar customer no Asaas: ${response.status} - ${JSON.stringify(data)}`);
+  }
+
+  return data as AsaasCustomer;
 }
 
 Deno.serve(async (req) => {
@@ -23,6 +56,13 @@ Deno.serve(async (req) => {
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Metodo nao permitido' }),
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
@@ -36,262 +76,157 @@ Deno.serve(async (req) => {
       },
     });
 
-    // GET - Validar codigo e retornar dados do convite
-    if (req.method === 'GET') {
-      const url = new URL(req.url);
-      const code = url.searchParams.get('code');
+    const body = (await req.json()) as AcceptMigrationRequest;
+    const { token } = body;
 
-      if (!code) {
-        return new Response(
-          JSON.stringify({ error: 'Codigo do convite e obrigatorio' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const { data: invite, error } = await supabase
-        .from('migration_invites')
-        .select(`*, plan:plans(id, name, price_monthly, shops_limit, emails_limit)`)
-        .eq('code', code.toUpperCase())
-        .single();
-
-      if (error || !invite) {
-        return new Response(
-          JSON.stringify({ error: 'Convite nao encontrado', valid: false }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      if (invite.status !== 'pending') {
-        return new Response(
-          JSON.stringify({
-            error: invite.status === 'accepted'
-              ? 'Este convite ja foi utilizado'
-              : invite.status === 'expired'
-                ? 'Este convite expirou'
-                : 'Este convite foi cancelado',
-            valid: false,
-            status: invite.status,
-          }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      if (new Date(invite.expires_at) < new Date()) {
-        await supabase
-          .from('migration_invites')
-          .update({ status: 'expired' })
-          .eq('id', invite.id);
-
-        return new Response(
-          JSON.stringify({ error: 'Este convite expirou', valid: false }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const billingDate = new Date(invite.billing_start_date);
-      const todayUTC = new Date();
-      const billingUTC = Date.UTC(billingDate.getUTCFullYear(), billingDate.getUTCMonth(), billingDate.getUTCDate());
-      const nowUTC = Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate());
-      const trialDays = Math.max(0, Math.floor((billingUTC - nowUTC) / (1000 * 60 * 60 * 24)));
-
+    if (!token) {
       return new Response(
-        JSON.stringify({
-          valid: true,
-          invite: {
-            code: invite.code,
-            customer_email: invite.customer_email,
-            customer_name: invite.customer_name,
-            plan: invite.plan,
-            billing_start_date: invite.billing_start_date,
-            trial_days: trialDays,
-          },
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Token invalido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // POST - Aceitar convite e criar assinatura no Asaas
-    if (req.method === 'POST') {
-      const body = await req.json();
-      const { code, user_email, user_name, whatsapp_number } = body;
+    const { data: tokenData } = await supabase
+      .from('migration_tokens')
+      .select('id, user_id, used')
+      .eq('token', token)
+      .maybeSingle();
 
-      if (!code || !user_email) {
-        return new Response(
-          JSON.stringify({ error: 'Campos obrigatorios: code, user_email' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      if (!isValidEmail(user_email)) {
-        return new Response(
-          JSON.stringify({ error: 'Email invalido' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const normalizedEmail = user_email.toLowerCase();
-
-      const { data: invite, error: inviteError } = await supabase
-        .from('migration_invites')
-        .select(`*, plan:plans(*)`)
-        .eq('code', code.toUpperCase())
-        .eq('status', 'pending')
-        .single();
-
-      if (inviteError || !invite) {
-        return new Response(
-          JSON.stringify({ error: 'Convite nao encontrado ou ja utilizado' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      if (new Date(invite.expires_at) < new Date()) {
-        await supabase
-          .from('migration_invites')
-          .update({ status: 'expired' })
-          .eq('id', invite.id);
-
-        return new Response(
-          JSON.stringify({ error: 'Este convite expirou' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const plan = invite.plan;
-      if (!plan) {
-        return new Response(
-          JSON.stringify({ error: 'Plano do convite nao encontrado' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Limpar telefone: remover caracteres e codigo do pais (fica apenas DDD + numero)
-      const digitsOnly = (whatsapp_number || '').replace(/\D/g, '');
-      let cleanPhone = digitsOnly;
-      if (digitsOnly.length > 11) {
-        const candidates = [3, 2, 1]
-          .map(prefix => digitsOnly.slice(prefix))
-          .filter(value => value.length === 10 || value.length === 11);
-        cleanPhone = candidates[0] || digitsOnly.slice(-11);
-      }
-
-      // Criar/buscar customer Asaas
-      let customer = await getCustomerByEmail(normalizedEmail);
-      if (!customer) {
-        customer = await createCustomer({
-          name: user_name || invite.customer_name || user_email,
-          email: normalizedEmail,
-          mobilePhone: cleanPhone || undefined,
-        });
-      }
-
-      const nextDueDate = formatDateYYYYMMDD(new Date(invite.billing_start_date));
-
-      const subscription = await createSubscription({
-        customer: customer.id,
-        billingType: 'CREDIT_CARD',
-        value: Number(plan.price_monthly || 0),
-        cycle: 'MONTHLY',
-        description: `Replyna - Plano ${plan.name} (migracao)`,
-        nextDueDate,
-        callback: {
-          successUrl: 'https://app.replyna.me/checkout/success',
-          autoRedirect: true,
-        },
-      });
-
-      const payments = await getPaymentsBySubscription(subscription.id, { limit: 1, order: 'desc' });
-      const firstPayment = payments.data?.[0];
-      const invoiceUrl = firstPayment?.invoiceUrl || null;
-
-      // Criar usuario no Auth (nunca reutilizar)
-      const tempPassword = crypto.randomUUID().slice(0, 12) + 'Aa1!';
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: normalizedEmail,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { name: user_name || invite.customer_name || '' },
-      });
-      if (authError) {
-        const message = authError.message?.toLowerCase() || '';
-        if (message.includes('already') || message.includes('exists') || message.includes('registered')) {
-          return new Response(
-            JSON.stringify({ error: 'Este email já possui uma conta ativa. Faça login ou use outro email.' }),
-            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        throw new Error(`Erro ao criar usuario no Auth: ${authError.message}`);
-      }
-
-      const userId = authData?.user?.id;
-      if (!userId) {
-        throw new Error('Erro ao criar usuario no Auth: ID ausente');
-      }
-
-      // Insert user (nunca upsert)
-      await supabase
-        .from('users')
-        .insert({
-          id: userId,
-          email: normalizedEmail,
-          name: user_name || invite.customer_name || null,
-          plan: plan.name,
-          emails_limit: plan.emails_limit,
-          shops_limit: plan.shops_limit,
-          emails_used: 0,
-          extra_emails_purchased: 0,
-          extra_emails_used: 0,
-          pending_extra_emails: 0,
-          asaas_customer_id: customer.id,
-          status: 'active',
-          updated_at: new Date().toISOString(),
-        });
-
-      const now = new Date();
-      const periodEnd = new Date(now);
-      periodEnd.setDate(periodEnd.getDate() + 30);
-
-      await supabase
-        .from('subscriptions')
-        .insert({
-          user_id: userId,
-          plan_id: plan.id,
-          asaas_customer_id: customer.id,
-          asaas_subscription_id: subscription.id,
-          status: 'active',
-          billing_cycle: 'monthly',
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-          cancel_at_period_end: false,
-        });
-
-      await supabase
-        .from('migration_invites')
-        .update({
-          status: 'accepted',
-          accepted_by_user_id: userId,
-          accepted_at: now.toISOString(),
-        })
-        .eq('id', invite.id);
-
+    if (!tokenData?.id) {
       return new Response(
-        JSON.stringify({
-          subscription_id: subscription.id,
-          url: invoiceUrl,
-          next_due_date: invite.billing_start_date,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Token invalido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (tokenData.used) {
+      return new Response(
+        JSON.stringify({ error: 'Token ja utilizado' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, email, name, whatsapp_number, plan')
+      .eq('id', tokenData.user_id)
+      .maybeSingle();
+
+    if (!user?.id) {
+      return new Response(
+        JSON.stringify({ error: 'Usuario nao encontrado' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: plan } = await supabase
+      .from('plans')
+      .select('id, name, price_monthly, emails_limit, shops_limit')
+      .ilike('name', user.plan)
+      .maybeSingle();
+
+    if (!plan?.id) {
+      return new Response(
+        JSON.stringify({ error: 'Plano nao encontrado' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const cleanPhone = (user.whatsapp_number || '')
+      .replace(/^\+?55\s?/, '')
+      .replace(/[\s\-\(\)]/g, '');
+
+    const asaasCustomer = await createAsaasCustomer({
+      name: user.name,
+      email: user.email,
+      phone: cleanPhone || undefined,
+    });
+
+    const nowIso = new Date().toISOString();
+
+    const { error: cancelStripeError } = await supabase
+      .from('subscriptions')
+      .update({ status: 'canceled', canceled_at: nowIso })
+      .eq('user_id', user.id)
+      .is('asaas_subscription_id', null);
+
+    if (cancelStripeError) {
+      console.error('[SUPABASE] Cancel Stripe subscriptions error:', JSON.stringify(cancelStripeError));
+      return new Response(
+        JSON.stringify({ error: 'Erro ao cancelar subscriptions antigas', details: cancelStripeError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const asaasSubscription = await createSubscription({
+      customer: asaasCustomer.id,
+      billingType: 'CREDIT_CARD',
+      value: parseFloat(String(plan.price_monthly || 0)),
+      cycle: 'MONTHLY',
+      description: `Replyna - Plano ${plan.name}`,
+      nextDueDate: nowIso.split('T')[0],
+    });
+
+    const payments = await getPaymentsBySubscription(asaasSubscription.id, { limit: 1, order: 'desc' });
+    const invoiceUrl = payments.data?.[0]?.invoiceUrl || null;
+
+    const { error: updateUserError } = await supabase
+      .from('users')
+      .update({ asaas_customer_id: asaasCustomer.id })
+      .eq('id', user.id);
+
+    if (updateUserError) {
+      console.error('[SUPABASE] Update user error:', JSON.stringify(updateUserError));
+      return new Response(
+        JSON.stringify({ error: 'Erro ao atualizar usuario', details: updateUserError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { error: insertSubError } = await supabase
+      .from('subscriptions')
+      .insert({
+        user_id: user.id,
+        plan_id: plan.id,
+        status: 'pending',
+        asaas_subscription_id: asaasSubscription.id,
+        asaas_customer_id: asaasCustomer.id,
+        billing_cycle: 'monthly',
+        current_period_start: nowIso,
+        current_period_end: periodEnd,
+      });
+
+    if (insertSubError) {
+      console.error('[SUPABASE] Insert subscription error:', JSON.stringify(insertSubError));
+      return new Response(
+        JSON.stringify({ error: 'Erro ao criar subscription', details: insertSubError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { error: updateTokenError } = await supabase
+      .from('migration_tokens')
+      .update({ used: true, used_at: nowIso })
+      .eq('id', tokenData.id);
+
+    if (updateTokenError) {
+      console.error('[SUPABASE] Update token error:', JSON.stringify(updateTokenError));
+      return new Response(
+        JSON.stringify({ error: 'Erro ao marcar token como usado', details: updateTokenError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     return new Response(
-      JSON.stringify({ error: 'Metodo nao permitido' }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: true, invoiceUrl }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Erro:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message || 'Erro interno' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
