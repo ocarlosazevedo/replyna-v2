@@ -410,6 +410,7 @@ export default function Masterclass() {
             <a href="#conteudo" className="mc-nav-link">Conteúdo</a>
             <a href="#instrutor" className="mc-nav-link">Instrutor</a>
             <a href="#faq" className="mc-nav-link">FAQ</a>
+            <a href="/masterclass/assistir" className="mc-nav-login">Já tenho acesso</a>
             <button onClick={openModal} className="mc-nav-cta">Acesso Gratuito</button>
           </nav>
         </div>
@@ -960,6 +961,7 @@ export default function Masterclass() {
           <Play size={16} fill="#fff" />
           QUERO ACESSO GRATUITO
         </button>
+        <a href="/masterclass/assistir" className="mc-sticky-login">Já tenho acesso</a>
       </div>
 
       {/* ===== FOOTER ===== */}
@@ -1094,6 +1096,17 @@ const styles = `
     font-family: inherit;
   }
   .mc-nav-cta:hover { background: #0C7CD5; transform: scale(1.03); }
+  .mc-nav-login {
+    padding: 10px 22px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.25s ease-in-out;
+  }
+  .mc-nav-login:hover { border-color: rgba(255,255,255,0.5); color: #fff; transform: scale(1.03); }
 
   /* ===== HERO ===== */
   .mc-hero {
@@ -2322,6 +2335,16 @@ const styles = `
     font-family: inherit;
   }
   .mc-sticky-btn:active { transform: scale(0.97); }
+  .mc-sticky-login {
+    display: block;
+    text-align: center;
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 4px 0;
+  }
+  .mc-sticky-login:hover { color: rgba(255,255,255,0.8); }
 
   /* ===== FOOTER ===== */
   .mc-footer {
