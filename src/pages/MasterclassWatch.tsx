@@ -232,15 +232,14 @@ export default function MasterclassWatch() {
             flexDirection: isDesktop ? 'row' as const : 'column' as const,
             alignItems: isDesktop ? 'flex-start' : 'stretch',
             gap: '24px',
-            maxWidth: '1400px',
             width: '100%',
-            padding: isDesktop ? '24px 32px 48px' : '24px 20px 48px',
+            padding: isDesktop ? '24px 40px 48px' : '24px 20px 48px',
           }}
         >
-        {/* Video Player - flex: 3 (~75%) */}
+        {/* Video Player */}
         <div
           style={isDesktop ? {
-            flex: '3 0 0%',
+            flex: '1 1 0%',
             position: 'relative' as const,
             aspectRatio: '16 / 9',
             borderRadius: '16px',
@@ -292,11 +291,11 @@ export default function MasterclassWatch() {
           </div>
         )}
 
-        {/* Painel lateral - flex: 1 (~25%) */}
+        {/* Painel lateral */}
         <div
           className="mcw-sidebar"
           style={isDesktop ? {
-            flex: '1 0 0%',
+            flex: '0 0 320px',
             overflowY: 'auto' as const,
             display: 'flex',
             flexDirection: 'column' as const,
