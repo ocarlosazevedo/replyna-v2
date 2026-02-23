@@ -853,6 +853,30 @@ export default function Dashboard() {
 
           <DateRangePicker value={range} onChange={setRange} />
 
+          {/* Toggle Privacidade - ocultar dados sensíveis para screenshots */}
+          <button
+            type="button"
+            onClick={() => setPrivacyMode(!privacyMode)}
+            title={privacyMode ? 'Mostrar dados' : 'Ocultar dados para screenshot'}
+            style={{
+              padding: '6px 10px',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              backgroundColor: privacyMode ? 'rgba(139, 92, 246, 0.15)' : 'var(--bg-card)',
+              color: privacyMode ? '#8b5cf6' : 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
+              fontSize: '13px',
+              fontWeight: 600,
+            }}
+          >
+            {privacyMode ? <EyeOff size={16} /> : <Eye size={16} />}
+            {!isMobile && (privacyMode ? 'Oculto' : 'Ocultar')}
+          </button>
+
           {/* Notification Bell - apenas desktop */}
           {!isMobile && <NotificationCenter {...notificationContext} />}
         </div>
@@ -946,7 +970,7 @@ export default function Dashboard() {
                 <Headphones size={isMobile ? 18 : 24} style={{ color: '#f59e0b' }} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '2px' }}>Humano</div>
+                <div style={{ fontSize: isMobile ? '11px' : '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '2px' }}>Ticket</div>
                 <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {renderValue(metrics.pendingHuman)}
                 </div>
@@ -1037,29 +1061,6 @@ export default function Dashboard() {
                   Spam ({conversationCounts.spamCount})
                 </button>
               </div>
-              {/* Toggle Privacidade - ocultar dados sensíveis para screenshots */}
-              <button
-                type="button"
-                onClick={() => setPrivacyMode(!privacyMode)}
-                title={privacyMode ? 'Mostrar dados' : 'Ocultar dados para screenshot'}
-                style={{
-                  padding: isMobile ? '5px 8px' : '6px 10px',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  backgroundColor: privacyMode ? 'rgba(139, 92, 246, 0.15)' : 'var(--bg-card)',
-                  color: privacyMode ? '#8b5cf6' : 'var(--text-secondary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease',
-                  fontSize: isMobile ? '12px' : '13px',
-                  fontWeight: 600,
-                }}
-              >
-                {privacyMode ? <EyeOff size={isMobile ? 14 : 16} /> : <Eye size={isMobile ? 14 : 16} />}
-                {!isMobile && (privacyMode ? 'Oculto' : 'Ocultar')}
-              </button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
               {/* Filtro por categoria (só aparece quando não está em Spam) */}
@@ -1077,15 +1078,6 @@ export default function Dashboard() {
                   <option value="edicao_pedido">Edição de pedido</option>
                   <option value="suporte_humano">Ticket</option>
                 </select>
-              )}
-              {!loadingConversations && conversations.length > 0 && !isMobile && (
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                  {categoryFilter === 'spam'
-                    ? `${conversationCounts.spamCount} spam`
-                    : categoryFilter === 'all'
-                      ? `${conversationCounts.nonSpamCount} emails`
-                      : `${conversationCounts.filteredCount} de ${conversationCounts.nonSpamCount}`}
-                </div>
               )}
             </div>
           </div>
