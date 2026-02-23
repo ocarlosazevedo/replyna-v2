@@ -99,6 +99,7 @@ export default function Tickets() {
         .select('id, shop_id, customer_email, customer_name, subject, category, status, created_at')
         .eq('status', 'pending_human')
         .in('shop_id', shopIds)
+        .in('category', ['suporte_humano', 'edicao_pedido', 'troca_devolucao_reembolso'])
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
         .order('created_at', { ascending: false })
@@ -136,7 +137,8 @@ export default function Tickets() {
         { event: 'INSERT', schema: 'public', table: 'conversations' },
         (payload) => {
           const newConv = payload.new as TicketRow
-          if (newConv.status === 'pending_human' && shopIds.includes(newConv.shop_id)) {
+          const ticketCategories = ['suporte_humano', 'edicao_pedido', 'troca_devolucao_reembolso']
+          if (newConv.status === 'pending_human' && shopIds.includes(newConv.shop_id) && ticketCategories.includes(newConv.category || '')) {
             setTickets((prev) => [
               { ...newConv, shop_name: shopNameMap[newConv.shop_id] || 'Loja' },
               ...prev.filter((t) => t.id !== newConv.id),
@@ -151,7 +153,8 @@ export default function Tickets() {
           const updated = payload.new as TicketRow
           if (!shopIds.includes(updated.shop_id)) return
 
-          if (updated.status === 'pending_human') {
+          const ticketCats = ['suporte_humano', 'edicao_pedido', 'troca_devolucao_reembolso']
+          if (updated.status === 'pending_human' && ticketCats.includes(updated.category || '')) {
             setTickets((prev) => {
               const exists = prev.find((t) => t.id === updated.id)
               if (exists) {

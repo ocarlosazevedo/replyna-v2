@@ -39,6 +39,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         .select('id', { count: 'exact', head: true })
         .eq('status', 'pending_human')
         .in('shop_id', shopIds)
+        .in('category', ['suporte_humano', 'edicao_pedido', 'troca_devolucao_reembolso'])
       setTicketCount(count ?? 0)
     }
 
