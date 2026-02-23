@@ -266,8 +266,8 @@ export default function Register() {
       if (data.url) {
         window.location.href = data.url
       } else {
-        // Pagamento confirmado instantaneamente, redirecionar para login
-        window.location.href = '/login?registered=true'
+        // Pagamento confirmado instantaneamente, redirecionar para sucesso
+        window.location.href = '/checkout/success'
       }
 
     } catch (err: unknown) {

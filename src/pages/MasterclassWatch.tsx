@@ -9,6 +9,14 @@ export default function MasterclassWatch() {
   const [isVerifying, setIsVerifying] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [initialLoading, setInitialLoading] = useState(true)
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   // Meta Pixel
   useEffect(() => {
@@ -207,23 +215,74 @@ export default function MasterclassWatch() {
         </div>
       </header>
 
-      {/* Área de membros */}
-      <div className="mcw-members">
+      {/* Wrapper vertical center */}
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+        }}
+      >
+        {/* Área de membros */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: isDesktop ? 'row' as const : 'column' as const,
+            alignItems: isDesktop ? 'flex-start' : 'stretch',
+            gap: '24px',
+            maxWidth: '1600px',
+            width: '100%',
+            margin: '0 auto',
+            padding: isDesktop ? '24px 40px 48px' : '24px 20px 48px',
+          }}
+        >
         {/* Video Player */}
-        <main className="mcw-main">
-          <div className="mcw-video-wrapper">
-            <div className="mcw-video-container">
-              <iframe
-                src="https://www.youtube.com/embed/VIDEO_ID_AQUI?rel=0&modestbranding=1"
-                title="Masterclass Anti-Chargeback"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
+        <div
+          style={isDesktop ? {
+            flex: '1 1 0%',
+            position: 'relative' as const,
+            aspectRatio: '16 / 9',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            background: '#111827',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+          } : {
+            width: '100%',
+            position: 'relative' as const,
+            aspectRatio: '16 / 9',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            background: '#111827',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+            marginBottom: '24px',
+          }}
+        >
+          <iframe
+            src="https://www.youtube.com/embed/CkH8LC9DTSw?rel=0&modestbranding=1"
+            title="Masterclass Anti-Chargeback"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              display: 'block',
+            }}
+          ></iframe>
+        </div>
 
-          {/* CTA Mobile (aparece abaixo do vídeo no mobile) */}
-          <div className="mcw-mobile-cta">
+        {/* CTA Mobile */}
+        {!isDesktop && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
             <a href="https://app.replyna.me/register" className="mcw-cta-btn">
               Quero testar a Replyna
               <ChevronRight size={18} />
@@ -232,16 +291,28 @@ export default function MasterclassWatch() {
               Cupom <strong>LIVE30</strong> = 30% off
             </p>
           </div>
-        </main>
+        )}
 
-        {/* Sidebar / Info */}
-        <aside className="mcw-sidebar">
+        {/* Painel lateral */}
+        <div
+          className="mcw-sidebar"
+          style={isDesktop ? {
+            flex: '0 0 320px',
+            overflowY: 'auto' as const,
+            display: 'flex',
+            flexDirection: 'column' as const,
+            justifyContent: 'center',
+            fontSize: '0.9rem',
+          } : {
+            width: '100%',
+          }}
+        >
           <div className="mcw-sidebar-badge">
             <Play size={14} />
             <span>Masterclass</span>
           </div>
 
-          <h2 className="mcw-sidebar-title">
+          <h2 className="mcw-sidebar-title" style={isDesktop ? { fontSize: '1.2rem' } : undefined}>
             Como Reduzir 90% dos Chargebacks e Proteger sua Conta
           </h2>
 
@@ -253,23 +324,26 @@ export default function MasterclassWatch() {
             </div>
           </div>
 
-          <p className="mcw-sidebar-desc">
+          <p className="mcw-sidebar-desc" style={isDesktop ? { fontSize: '0.85rem' } : undefined}>
             {userName ? `Olá, ${userName}! ` : ''}Empresário com mais de 6 anos no mercado de e-commerce global.
             Pioneiro em dropshipping global, Google Ads e Shopify Payments.
             Compartilho as estratégias que uso para faturar +$500K/mês com margem de até 40%.
           </p>
 
           {/* CTA */}
-          <div className="mcw-sidebar-cta">
-            <a href="https://app.replyna.me/register" className="mcw-cta-btn">
-              Quero testar a Replyna
-              <ChevronRight size={18} />
-            </a>
-            <p className="mcw-cta-coupon">
-              Cupom <strong>LIVE30</strong> = 30% off
-            </p>
-          </div>
-        </aside>
+          {isDesktop && (
+            <div className="mcw-sidebar-cta" style={{ display: 'flex' }}>
+              <a href="https://app.replyna.me/register" className="mcw-cta-btn">
+                Quero testar a Replyna
+                <ChevronRight size={18} />
+              </a>
+              <p className="mcw-cta-coupon">
+                Cupom <strong>LIVE30</strong> = 30% off
+              </p>
+            </div>
+          )}
+        </div>
+        </div>
       </div>
 
       <footer className="mcw-footer">
@@ -526,11 +600,13 @@ const styles = `
   /* ===== TELA 3: MEMBERS AREA ===== */
   .mcw-members {
     max-width: 1000px;
+    width: 100%;
     margin: 0 auto;
     padding: 24px 20px 48px;
     display: flex;
     flex-direction: column;
     gap: 24px;
+    flex: 1;
   }
 
   /* Video */
@@ -693,6 +769,7 @@ const styles = `
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    margin-top: auto;
   }
 
   .mcw-footer img {
@@ -721,26 +798,6 @@ const styles = `
 
     .mcw-sidebar-title {
       font-size: 22px;
-    }
-
-    /* Members area: side-by-side layout */
-    .mcw-members {
-      flex-direction: row;
-      align-items: flex-start;
-      gap: 24px;
-      padding: 24px 24px 48px;
-    }
-
-    .mcw-sidebar {
-      width: 300px;
-      flex-shrink: 0;
-      position: sticky;
-      top: 24px;
-    }
-
-    .mcw-main {
-      flex: 1;
-      min-width: 0;
     }
 
     /* Swap CTAs: hide mobile, show sidebar */
@@ -776,13 +833,8 @@ const styles = `
       border-color: rgba(255,255,255,0.2);
     }
 
-    .mcw-members {
-      gap: 32px;
-      padding: 32px 40px 64px;
-    }
-
-    .mcw-sidebar {
-      width: 340px;
+    .mcw-cta-btn {
+      /* hover handled below */
     }
 
     .mcw-cta-btn:hover {
@@ -794,16 +846,6 @@ const styles = `
 
   /* ===== LARGE DESKTOP (1280px) ===== */
   @media (min-width: 1280px) {
-    .mcw-members {
-      max-width: 1100px;
-      gap: 40px;
-    }
-
-    .mcw-sidebar {
-      width: 380px;
-      padding: 28px;
-    }
-
     .mcw-sidebar-title {
       font-size: 24px;
     }

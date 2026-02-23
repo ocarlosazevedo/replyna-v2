@@ -212,6 +212,24 @@ export async function updateSubscription(id: string, input: {
   cycle?: 'MONTHLY' | 'WEEKLY' | 'YEARLY';
   discount?: AsaasDiscount;
   updatePendingPayments?: boolean;
+  billingType?: 'CREDIT_CARD' | 'BOLETO' | 'PIX';
+  creditCard?: {
+    holderName: string;
+    number: string;
+    expiryMonth: string;
+    expiryYear: string;
+    ccv: string;
+  };
+  creditCardHolderInfo?: {
+    name: string;
+    email: string;
+    cpfCnpj: string;
+    postalCode: string;
+    addressNumber: string;
+    phone: string;
+    mobilePhone?: string;
+    addressComplement?: string;
+  };
 }): Promise<AsaasSubscription> {
   return await asaasRequest<AsaasSubscription>('PUT', `/subscriptions/${id}`, input);
 }

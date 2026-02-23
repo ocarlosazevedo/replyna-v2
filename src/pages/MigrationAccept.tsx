@@ -116,7 +116,7 @@ export default function MigrationAccept() {
         window.location.href = data.url
       } else {
         // Pagamento confirmado instantaneamente
-        window.location.href = '/login?registered=true'
+        window.location.href = '/checkout/success'
       }
     } catch (err) {
       console.error('Erro ao aceitar convite:', err)
