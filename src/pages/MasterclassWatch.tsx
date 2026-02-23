@@ -221,78 +221,72 @@ export default function MasterclassWatch() {
           display: isDesktop ? 'flex' : 'block',
           alignItems: 'stretch',
           gap: '24px',
-          maxWidth: '1100px',
+          maxWidth: '1200px',
           margin: '0 auto',
-          padding: isDesktop ? '24px 24px 48px' : '24px 20px 48px',
+          padding: isDesktop ? '24px 32px 48px' : '24px 20px 48px',
         }}
       >
-        {/* Video Player - 50% */}
+        {/* Video Player - flex: 2 (~67%) */}
         <div
           style={isDesktop ? {
-            width: '50%',
-            flexShrink: 0,
-            flexGrow: 0,
-            display: 'flex',
-            flexDirection: 'column' as const,
+            flex: '2 0 0%',
+            position: 'relative' as const,
+            aspectRatio: '16 / 9',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            background: '#111827',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
           } : {
             width: '100%',
+            position: 'relative' as const,
+            aspectRatio: '16 / 9',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            background: '#111827',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
             marginBottom: '24px',
           }}
         >
-          <div
+          <iframe
+            src="https://www.youtube.com/embed/CkH8LC9DTSw?rel=0&modestbranding=1"
+            title="Masterclass Anti-Chargeback"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
             style={{
-              position: 'relative',
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: '100%',
-              flexGrow: 1,
-              minHeight: isDesktop ? undefined : 0,
-              aspectRatio: isDesktop ? undefined : '16 / 9',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              background: '#111827',
-              border: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+              height: '100%',
+              border: 'none',
+              display: 'block',
             }}
-          >
-            <iframe
-              src="https://www.youtube.com/embed/CkH8LC9DTSw?rel=0&modestbranding=1"
-              title="Masterclass Anti-Chargeback"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                display: 'block',
-              }}
-            ></iframe>
-          </div>
-
-          {/* CTA Mobile */}
-          {!isDesktop && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginTop: '24px' }}>
-              <a href="https://app.replyna.me/register" className="mcw-cta-btn">
-                Quero testar a Replyna
-                <ChevronRight size={18} />
-              </a>
-              <p className="mcw-cta-coupon">
-                Cupom <strong>LIVE30</strong> = 30% off
-              </p>
-            </div>
-          )}
+          ></iframe>
         </div>
 
-        {/* Painel / Info - 50% */}
+        {/* CTA Mobile */}
+        {!isDesktop && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+            <a href="https://app.replyna.me/register" className="mcw-cta-btn">
+              Quero testar a Replyna
+              <ChevronRight size={18} />
+            </a>
+            <p className="mcw-cta-coupon">
+              Cupom <strong>LIVE30</strong> = 30% off
+            </p>
+          </div>
+        )}
+
+        {/* Painel lateral - flex: 1 (~33%) */}
         <div
           className="mcw-sidebar"
           style={isDesktop ? {
-            width: '50%',
-            flexShrink: 0,
-            flexGrow: 0,
+            flex: '1 0 0%',
+            overflowY: 'auto' as const,
             display: 'flex',
             flexDirection: 'column' as const,
             justifyContent: 'center',
