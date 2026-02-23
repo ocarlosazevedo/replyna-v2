@@ -29,7 +29,8 @@ import {
   Calendar,
   PlayCircle,
   TrendingUp,
-  X
+  X,
+  Menu
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -218,10 +219,10 @@ export default function Masterclass() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const [showSticky, setShowSticky] = useState(false)
   const [heroWordIndex, setHeroWordIndex] = useState(0)
   const [showModal, setShowModal] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
   const countdown = useCountdown()
 
@@ -275,17 +276,6 @@ export default function Masterclass() {
     const handleScroll = () => setScrolled(window.scrollY > 50)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  // Sticky CTA: show when hero scrolls out of view
-  useEffect(() => {
-    if (!heroRef.current) return
-    const observer = new IntersectionObserver(
-      ([entry]) => setShowSticky(!entry.isIntersecting),
-      { threshold: 0 }
-    )
-    observer.observe(heroRef.current)
-    return () => observer.disconnect()
   }, [])
 
   // Scroll fade-in animation
@@ -413,6 +403,9 @@ export default function Masterclass() {
       <header className={`mc-header ${scrolled ? 'mc-header-scrolled' : ''}`}>
         <div className="mc-header-inner">
           <img src="/replyna-logo.webp" alt="Replyna" className="mc-logo" />
+          <button className="mc-hamburger" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
+            {menuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
           <nav className="mc-nav">
             <a href="#conteudo" className="mc-nav-link">Conteúdo</a>
             <a href="#instrutor" className="mc-nav-link">Instrutor</a>
@@ -421,6 +414,18 @@ export default function Masterclass() {
             <button onClick={openModal} className="mc-nav-cta">Acesso Gratuito</button>
           </nav>
         </div>
+        {menuOpen && (
+          <div className="mc-mobile-menu">
+            <a href="#conteudo" className="mc-mobile-link" onClick={() => setMenuOpen(false)}>Conteúdo</a>
+            <a href="#instrutor" className="mc-mobile-link" onClick={() => setMenuOpen(false)}>Instrutor</a>
+            <a href="#faq" className="mc-mobile-link" onClick={() => setMenuOpen(false)}>FAQ</a>
+            <a href="/masterclass/assistir" className="mc-mobile-link" onClick={() => setMenuOpen(false)}>Já tenho acesso</a>
+            <button onClick={() => { setMenuOpen(false); openModal() }} className="mc-mobile-cta">
+              <Play size={16} fill="#fff" />
+              QUERO ACESSO GRATUITO
+            </button>
+          </div>
+        )}
       </header>
 
       {/* ===== HERO + ORBIT ===== */}
@@ -971,15 +976,6 @@ export default function Masterclass() {
         </div>
       )}
 
-      {/* ===== STICKY CTA (mobile) ===== */}
-      <div className={`mc-sticky-cta ${showSticky ? 'mc-sticky-visible' : ''}`}>
-        <button onClick={openModal} className="mc-sticky-btn">
-          <Play size={16} fill="#fff" />
-          QUERO ACESSO GRATUITO
-        </button>
-        <a href="/masterclass/assistir" className="mc-sticky-login">Já tenho acesso</a>
-      </div>
-
       {/* ===== FOOTER ===== */}
       <footer className="mc-footer">
         <div className="mc-footer-content">
@@ -1123,6 +1119,58 @@ const styles = `
     transition: all 0.25s ease-in-out;
   }
   .mc-nav-login:hover { border-color: rgba(255,255,255,0.5); color: #fff; transform: scale(1.03); }
+
+  /* ===== HAMBURGER & MOBILE MENU ===== */
+  .mc-hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.8);
+    cursor: pointer;
+    padding: 4px;
+    z-index: 51;
+  }
+  .mc-hamburger:hover { color: #fff; }
+  .mc-mobile-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 20px 20px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    background: rgba(10, 22, 40, 0.95);
+  }
+  .mc-mobile-link {
+    display: block;
+    padding: 12px 0;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    transition: color 0.2s;
+  }
+  .mc-mobile-link:hover { color: #fff; }
+  .mc-mobile-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 14px;
+    background: #1E90FF;
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .mc-mobile-cta:active { transform: scale(0.97); }
 
   /* ===== HERO ===== */
   .mc-hero {
@@ -2296,53 +2344,6 @@ const styles = `
   .mc-final-btn:hover { background: #0C7CD5; transform: scale(1.03); }
   .mc-final-btn:active { transform: scale(0.97); }
 
-  /* ===== STICKY CTA (mobile) ===== */
-  .mc-sticky-cta {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 12px 16px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
-    background: rgba(10, 22, 40, 0.95);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid rgba(255,255,255,0.1);
-    z-index: 100;
-    transform: translateY(100%);
-    transition: transform 0.3s ease;
-  }
-  .mc-sticky-visible { transform: translateY(0); }
-  .mc-sticky-btn {
-    width: 100%;
-    padding: 16px;
-    background: #1E90FF;
-    border: none;
-    border-radius: 14px;
-    color: #fff;
-    font-size: 15px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    cursor: pointer;
-    box-shadow: 0 4px 20px rgba(30,144,255,0.3);
-    letter-spacing: 0.02em;
-    font-family: inherit;
-  }
-  .mc-sticky-btn:active { transform: scale(0.97); }
-  .mc-sticky-login {
-    display: block;
-    text-align: center;
-    color: rgba(255,255,255,0.5);
-    font-size: 13px;
-    font-weight: 600;
-    text-decoration: none;
-    padding: 4px 0;
-  }
-  .mc-sticky-login:hover { color: rgba(255,255,255,0.8); }
-
   /* ===== FOOTER ===== */
   .mc-footer {
     padding: 56px 20px 24px;
@@ -2452,6 +2453,8 @@ const styles = `
     .mc-header { padding: 16px 48px; }
     .mc-logo { height: 30px; }
     .mc-nav { display: flex; }
+    .mc-hamburger { display: none; }
+    .mc-mobile-menu { display: none; }
     .mc-hero { padding: 72px 48px; }
     .mc-hero-inner {
       max-width: 1100px;
@@ -2518,7 +2521,6 @@ const styles = `
     .mc-testimonials-grid { grid-template-columns: 1fr 1fr; gap: 20px; max-width: 800px; margin-left: auto; margin-right: auto; }
     .mc-testimonial-card:hover { border-color: rgba(30,144,255,0.2); background: rgba(255,255,255,0.05); transform: translateY(-2px); }
     .mc-final-title { font-size: 36px; }
-    .mc-sticky-cta { display: none; }
     .mc-footer { padding: 64px 48px 24px; }
     .mc-field input:hover { border-color: rgba(255,255,255,0.2); }
     .mc-faq-item:hover .mc-faq-arrow { color: rgba(255,255,255,0.5); }
