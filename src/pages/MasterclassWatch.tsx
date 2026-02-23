@@ -214,7 +214,7 @@ export default function MasterclassWatch() {
           <div className="mcw-video-wrapper">
             <div className="mcw-video-container">
               <iframe
-                src="https://www.youtube.com/embed/VIDEO_ID_AQUI?rel=0&modestbranding=1"
+                src="https://www.youtube.com/embed/CkH8LC9DTSw?rel=0&modestbranding=1"
                 title="Masterclass Anti-Chargeback"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
