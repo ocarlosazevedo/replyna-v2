@@ -909,7 +909,7 @@ async function processMessage(
       signature_html: shop.signature_html,
       is_cod: shop.is_cod,
       store_email: shop.imap_user || shop.support_email,
-      support_email: shop.support_email,
+      support_email: shop.support_email || shop.imap_user,
       retention_coupon_code: shop.retention_coupon_code,
       retention_coupon_type: shop.retention_coupon_type,
       retention_coupon_value: shop.retention_coupon_value,

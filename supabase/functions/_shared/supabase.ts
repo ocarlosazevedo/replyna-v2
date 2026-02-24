@@ -11,7 +11,7 @@ export interface Shop {
   user_id: string;
   name: string;
   attendant_name: string;
-  support_email: string;
+  support_email: string | null;
   is_active: boolean;
   is_cod: boolean;
 
