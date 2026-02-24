@@ -184,12 +184,32 @@ function detectLanguageFromText(text: string): string | null {
     }
   }
 
+  // POLONÊS (Polish) - Palavras ÚNICAS (verificar ANTES do francês para evitar falsos positivos com nomes de produtos)
+  const polishUniquePatterns = [
+    /^dzień dobry\b/i, /^cześć\b/i, /^witam\b/i,
+    /\b(zamówienie|zamówienia|zamówiłam|zamówiłem|zamówiłam)\b/i, // order, I ordered
+    /\b(przesyłka|przesyłki|przyszło|przyszła)\b/i, // shipment, arrived
+    /\b(dziękuję|proszę|potrzebuję)\b/i, // thank you, please, I need
+    /\b(zwrot|reklamacja|wymiana)\b/i, // return, complaint, exchange
+    /\b(państwa|odesłać|odesłac|adres)\b/i, // your (formal), send back, address
+    /\b(paragon|faktura|faktury|paragonu)\b/i, // receipt, invoice
+    /\b(brak|zupełnie|innego|coś)\b/i, // lack, completely, different, something
+  ];
+
+  for (const pattern of polishUniquePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log(`[detectLanguage] Polish detected by UNIQUE word: ${pattern}`);
+      return 'pl';
+    }
+  }
+
   // FRANCÊS - Palavras ÚNICAS (verificar ANTES de ambíguas PT/ES)
+  // NOTA: Evitar palavras curtas como "je", "mon", "ma" que causam falsos positivos com nomes de produtos (ex: "Mon Paris" perfume)
   const frenchUniquePatterns = [
     /^bonjour\b/i, /^bonsoir\b/i, /^salut\b/i,
-    /\b(je|mon|ma|mes|voudrais|besoin|reçu|acheté)\b/i,
-    /\b(commande|livraison|remboursement|retour)\b/i,
-    /\b(merci|s'il vous plaît)\b/i,
+    /\b(voudrais|besoin|reçu|acheté|j'ai|j'avais|c'est)\b/i,
+    /\b(commande|livraison|remboursement)\b/i,
+    /\b(merci|s'il vous plaît|aussi|mais|avec|pour)\b/i,
   ];
 
   for (const pattern of frenchUniquePatterns) {
@@ -250,21 +270,6 @@ function detectLanguageFromText(text: string): string | null {
     if (pattern.test(lowerText)) {
       console.log(`[detectLanguage] Dutch detected by UNIQUE word: ${pattern}`);
       return 'nl';
-    }
-  }
-
-  // POLONÊS (Polish) - Palavras ÚNICAS
-  const polishUniquePatterns = [
-    /^dzień dobry\b/i, /^cześć\b/i, /^witam\b/i,
-    /\b(zamówienie|zamówienia|przesyłka|przesyłki)\b/i,
-    /\b(dziękuję|proszę|potrzebuję)\b/i,
-    /\b(zwrot|reklamacja|wymiana)\b/i,
-  ];
-
-  for (const pattern of polishUniquePatterns) {
-    if (pattern.test(lowerText)) {
-      console.log(`[detectLanguage] Polish detected by UNIQUE word: ${pattern}`);
-      return 'pl';
     }
   }
 
