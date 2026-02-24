@@ -21,7 +21,7 @@ interface TicketRow {
 }
 
 const TICKET_STATUS: Record<string, { label: string; bg: string; color: string }> = {
-  pending:  { label: 'Pendente',   bg: 'rgba(234,179,8,0.15)',   color: '#ca8a04' },
+  pending:  { label: 'Pendente',   bg: 'rgba(239,68,68,0.15)',   color: '#ef4444' },
   answered: { label: 'Respondido', bg: 'rgba(34,197,94,0.15)',   color: '#16a34a' },
   closed:   { label: 'Fechado',    bg: 'rgba(107,114,128,0.15)', color: '#6b7280' },
 }
