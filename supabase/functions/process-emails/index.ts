@@ -1433,7 +1433,6 @@ async function processMessageInternal(
         retention_coupon_code: shop.retention_coupon_code,
         retention_coupon_type: shop.retention_coupon_type,
         retention_coupon_value: shop.retention_coupon_value,
-        currency: shop.currency,
       },
       message.subject || '',
       cleanBody,

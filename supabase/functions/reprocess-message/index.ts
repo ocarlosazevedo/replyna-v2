@@ -318,7 +318,6 @@ Deno.serve(async (req) => {
           signature_html: shop.signature_html,
           is_cod: shop.is_cod,
           store_email: shop.imap_user || shop.support_email,
-          currency: shop.currency,
         },
         message.subject || '',
         cleanBody,

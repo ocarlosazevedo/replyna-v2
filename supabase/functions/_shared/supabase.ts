@@ -48,7 +48,6 @@ export interface Shop {
   retention_coupon_code: string | null;
   retention_coupon_type: 'percentage' | 'fixed';
   retention_coupon_value: number | null;
-  currency: string;
 
   // Email processing options
   email_start_mode: 'all_unread' | 'from_integration_date';
