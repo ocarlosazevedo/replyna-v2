@@ -87,6 +87,78 @@
   .node-group:hover .node-card {
     filter: brightness(1.15);
   }
+
+  /* Clickable result circles */
+  .clickable-circle { cursor: pointer; }
+  .clickable-circle:hover { filter: brightness(1.25); }
+
+  /* Modal styles */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .modal-overlay.active {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+  }
+  .modal-card {
+    background: #0f0f1e;
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 420px;
+    width: 90%;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.08);
+    animation: modalSlideUp 0.3s ease;
+  }
+  .modal-close {
+    position: absolute;
+    top: 12px; right: 16px;
+    background: none;
+    border: none;
+    color: #808098;
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: #e8e8ef; }
+  .modal-icon {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .modal-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .modal-desc {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.6;
+    color: #808098;
+  }
+  .modal-desc + .modal-desc { margin-top: 12px; }
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+  @keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 </style>
 </head>
 <body>
@@ -203,7 +275,7 @@
 
   <!-- Ambient glows -->
   <ellipse cx="170" cy="360" rx="280" ry="220" fill="url(#glow-purple)"/>
-  <ellipse cx="460" cy="360" rx="200" ry="180" fill="url(#glow-purple)" opacity="0.4"/>
+  <ellipse cx="510" cy="360" rx="220" ry="200" fill="url(#glow-purple)" opacity="0.4"/>
   <ellipse cx="950" cy="190" rx="220" ry="180" fill="url(#glow-green)"/>
   <ellipse cx="950" cy="360" rx="180" ry="150" fill="url(#glow-amber)"/>
   <ellipse cx="950" cy="530" rx="200" ry="160" fill="url(#glow-red)"/>
@@ -228,23 +300,23 @@
   <!-- ========== CONNECTORS (drawn behind nodes) ========== -->
 
   <!-- C1: Email -> Categorize -->
-  <path id="c1" class="connector-line" d="M 258 360 C 300 360, 330 360, 362 360"
+  <path id="c1" class="connector-line" d="M 258 360 C 285 360, 305 360, 328 360"
         stroke="url(#grad-purple)" stroke-width="2.5" fill="none" marker-end="url(#arr-purple)" data-delay="500"/>
 
   <!-- C2: Categorize -> Demais Categorias (top) -->
-  <path id="c2" class="connector-line" d="M 624 320 C 656 300, 678 210, 710 195"
+  <path id="c2" class="connector-line" d="M 692 310 C 700 280, 708 220, 716 195"
         stroke="url(#grad-green-up)" stroke-width="2.5" fill="none" marker-end="url(#arr-green)" data-delay="1100"/>
 
   <!-- C3: Categorize -> Ticket (middle) -->
-  <path id="c3" class="connector-line" d="M 624 362 C 656 362, 684 362, 700 362"
+  <path id="c3" class="connector-line" d="M 692 360 C 696 360, 700 360, 704 360"
         stroke="#f0b429" stroke-opacity="0.7" stroke-width="2.5" fill="none" data-delay="1200"/>
   <!-- Explicit amber arrow triangle -->
   <g class="node-group" data-delay="1600">
-    <polygon points="700,354 716,362 700,370" fill="#f0b429" opacity="0.9"/>
+    <polygon points="704,352 718,360 704,368" fill="#f0b429" opacity="0.9"/>
   </g>
 
   <!-- C4: Categorize -> Spam (bottom) -->
-  <path id="c4" class="connector-line" d="M 624 400 C 656 420, 678 510, 710 525"
+  <path id="c4" class="connector-line" d="M 692 410 C 700 440, 708 500, 716 525"
         stroke="url(#grad-red-down)" stroke-width="2.5" fill="none" marker-end="url(#arr-red)" data-delay="1300"/>
 
   <!-- C5: Demais -> Replyna Responde -->
@@ -261,16 +333,16 @@
 
   <!-- ========== FLOW DOTS ========== -->
   <circle class="flow-dot" r="3" fill="#7c6cf0" filter="url(#softglow)" data-dot-delay="2000">
-    <animateMotion dur="1.8s" repeatCount="indefinite"><mpath href="#c1"/></animateMotion>
+    <animateMotion dur="1.4s" repeatCount="indefinite"><mpath href="#c1"/></animateMotion>
   </circle>
   <circle class="flow-dot" r="3" fill="#00d2a0" filter="url(#softglow)" data-dot-delay="2600">
-    <animateMotion dur="1.8s" repeatCount="indefinite"><mpath href="#c2"/></animateMotion>
+    <animateMotion dur="1.4s" repeatCount="indefinite"><mpath href="#c2"/></animateMotion>
   </circle>
   <circle class="flow-dot" r="3" fill="#f0b429" filter="url(#softglow)" data-dot-delay="2800">
-    <animateMotion dur="1.8s" repeatCount="indefinite"><mpath href="#c3"/></animateMotion>
+    <animateMotion dur="0.8s" repeatCount="indefinite"><mpath href="#c3"/></animateMotion>
   </circle>
   <circle class="flow-dot" r="3" fill="#ff5c5c" filter="url(#softglow)" data-dot-delay="3000">
-    <animateMotion dur="1.8s" repeatCount="indefinite"><mpath href="#c4"/></animateMotion>
+    <animateMotion dur="1.4s" repeatCount="indefinite"><mpath href="#c4"/></animateMotion>
   </circle>
   <circle class="flow-dot" r="3" fill="#00d2a0" filter="url(#softglow)" data-dot-delay="3200">
     <animateMotion dur="1.4s" repeatCount="indefinite"><mpath href="#c5"/></animateMotion>
@@ -325,8 +397,8 @@
   <!-- ========== NODE 2: Replyna Categoriza ========== -->
   <g class="node-group" data-delay="700">
     <!-- Step badge -->
-    <circle cx="392" cy="264" r="14" fill="rgba(124,108,240,0.12)" stroke="rgba(124,108,240,0.3)" stroke-width="1"/>
-    <text x="392" y="268" text-anchor="middle" fill="#7c6cf0" font-family="'Inter', sans-serif" font-size="10" font-weight="700">02</text>
+    <circle cx="392" cy="254" r="14" fill="rgba(124,108,240,0.12)" stroke="rgba(124,108,240,0.3)" stroke-width="1"/>
+    <text x="392" y="258" text-anchor="middle" fill="#7c6cf0" font-family="'Inter', sans-serif" font-size="10" font-weight="700">02</text>
 
     <!-- Card -->
     <rect class="node-card" x="368" y="270" width="254" height="186" rx="16" fill="#0c0c1a" stroke="rgba(124,108,240,0.2)" stroke-width="1.5" filter="url(#cardShadow)"/>
