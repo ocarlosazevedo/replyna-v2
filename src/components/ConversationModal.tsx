@@ -379,6 +379,8 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     customer_name: string | null
     subject: string | null
     category: string | null
+    status?: string | null
+    ticket_status?: string | null
     created_at: string
     shop_id: string
     shop_email?: string | null
@@ -431,7 +433,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
         // Carregar conversa com dados da loja
         const { data: convData, error: convError } = await supabase
           .from('conversations')
-          .select('id, customer_email, customer_name, subject, category, created_at, shop_id, shops(name, imap_user)')
+          .select('id, customer_email, customer_name, subject, category, status, ticket_status, created_at, shop_id, shops(name, imap_user)')
           .eq('id', conversationId)
           .single()
 
@@ -446,6 +448,8 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
           customer_name: convData.customer_name,
           subject: convData.subject,
           category: convData.category,
+          status: convData.status,
+          ticket_status: convData.ticket_status,
           created_at: convData.created_at,
           shop_id: convData.shop_id,
           shop_email: shopData?.imap_user || (Array.isArray(shopData) ? shopData[0]?.imap_user : null),
@@ -534,11 +538,27 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     setReprocessError(null)
     setReprocessSuccess(false)
 
+    const ticketCategories = ['suporte_humano', 'edicao_pedido', 'troca_devolucao_reembolso']
+    const isMovingToTicket = ticketCategories.includes(newCategory)
+    const isMovingFromTicket = ticketCategories.includes(conversation.category || '')
+
     try {
-      // Atualizar categoria da conversa
+      // Atualizar categoria e status da conversa
+      const convUpdate: Record<string, unknown> = { category: newCategory }
+
+      if (isMovingToTicket) {
+        // Ao mover para ticket, definir status como pending_human para aparecer na tela de tickets
+        convUpdate.status = 'pending_human'
+        convUpdate.ticket_status = 'pending'
+      } else if (isMovingFromTicket) {
+        // Ao sair de ticket, remover status pending_human
+        convUpdate.status = 'open'
+        convUpdate.ticket_status = null
+      }
+
       const { error: convError } = await supabase
         .from('conversations')
-        .update({ category: newCategory })
+        .update(convUpdate)
         .eq('id', conversation.id)
 
       if (convError) throw convError
@@ -546,19 +566,26 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
       // Atualizar categoria da última mensagem inbound
       const lastInboundMessage = [...messages].reverse().find(m => m.direction === 'inbound')
       if (lastInboundMessage) {
+        const msgUpdate: Record<string, unknown> = {
+          category: newCategory,
+          status: isMovingToTicket ? 'pending_human' : 'pending'
+        }
+
         const { error: msgError } = await supabase
           .from('messages')
-          .update({
-            category: newCategory,
-            status: 'pending' // Voltar para pending para ser reprocessado
-          })
+          .update(msgUpdate)
           .eq('id', lastInboundMessage.id)
 
         if (msgError) throw msgError
       }
 
       // Atualizar estado local
-      setConversation(prev => prev ? { ...prev, category: newCategory } : null)
+      setConversation(prev => prev ? {
+        ...prev,
+        category: newCategory,
+        status: isMovingToTicket ? 'pending_human' : (isMovingFromTicket ? 'open' : prev.status),
+        ticket_status: isMovingToTicket ? 'pending' : (isMovingFromTicket ? null : prev.ticket_status),
+      } : null)
       setShowCategoryDropdown(false)
 
       // Notificar parent component
