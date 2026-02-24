@@ -254,6 +254,7 @@ Deno.serve(async (req) => {
           order_date: '',
           order_status: '',
           order_total: '',
+          currency: 'BRL',
           tracking_number: null,
           tracking_url: null,
           fulfillment_status: null,

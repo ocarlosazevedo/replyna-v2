@@ -190,6 +190,7 @@ export interface OrderSummary {
   order_date: string;
   order_status: string;
   order_total: string;
+  currency: string;
   tracking_number: string | null;
   tracking_url: string | null;
   fulfillment_status: string | null;
@@ -510,6 +511,7 @@ export function orderToSummary(order: ShopifyOrder): OrderSummary {
     order_date: formatDate(order.created_at),
     order_status: financialStatusMap[order.financial_status] || order.financial_status,
     order_total: formatCurrency(order.total_price, order.currency),
+    currency: order.currency || 'BRL',
     tracking_number: latestFulfillment?.tracking_number || null,
     tracking_url: latestFulfillment?.tracking_url || null,
     fulfillment_status:

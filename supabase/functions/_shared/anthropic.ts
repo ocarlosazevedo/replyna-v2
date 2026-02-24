@@ -2459,6 +2459,18 @@ function detectHallucinations(
   return problems;
 }
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  BRL: 'R$', USD: '$', EUR: '€', GBP: '£', CAD: 'CA$', AUD: 'A$',
+  JPY: '¥', MXN: 'MX$', ARS: 'ARS$', COP: 'COP$', CLP: 'CLP$',
+  INR: '₹', CHF: 'CHF', SEK: 'kr', NOK: 'kr', DKK: 'kr',
+  PLN: 'zł', CZK: 'Kč', TRY: '₺', ZAR: 'R', ILS: '₪',
+};
+
+function getCurrencySymbol(currency?: string | null): string {
+  const code = (currency || 'BRL').toUpperCase();
+  return CURRENCY_SYMBOLS[code] || code;
+}
+
 /**
  * Gera uma resposta para o cliente
  */
@@ -2488,6 +2500,7 @@ export async function generateResponse(
     order_date: string | null;
     order_status: string | null;
     order_total: string | null;
+    currency: string | null;
     tracking_number: string | null;
     tracking_url: string | null;
     fulfillment_status: string | null;
@@ -2969,26 +2982,26 @@ COD PRE-DELIVERY SCRIPT (ZERO RISK + BENEFIT):
 YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
 1. Reinforce ZERO RISK - "you haven't paid anything!" / Reforce ZERO RISCO
 2. Emphasize "just try it when it arrives, refuse if you don't like it" / "Experimente, recuse se não gostar"
-3. Offer a BENEFIT or DISCOUNT${shopContext.retention_coupon_code ? `: USE COUPON ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} OFF` : `${shopContext.retention_coupon_value}% OFF`})` : ''}` : ' (mention you are looking for coupons)'}
+3. Offer a BENEFIT or DISCOUNT${shopContext.retention_coupon_code ? `: USE COUPON ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)}${shopContext.retention_coupon_value} OFF` : `${shopContext.retention_coupon_value}% OFF`})` : ''}` : ' (mention you are looking for coupons)'}
 4. Say the product is WORTH trying risk-free / Diga que vale a pena experimentar sem risco
 5. ⛔ DO NOT mention ANY email address / NÃO mencionar NENHUM email
 
 EXAMPLE RESPONSE:
 "Hello! I checked and everything is PERFECT with your order!
 Remember: you don't pay anything until delivery. You can see the product, touch it, and only pay if you're happy with it. If not, refuse at the door - zero cost!
-${shopContext.retention_coupon_code ? `Plus, I have a special surprise: use coupon ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` for ${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} off` : `${shopContext.retention_coupon_value}% off`}` : ''} on your next purchase!` : 'I am looking for a special discount for you!'}
+${shopContext.retention_coupon_code ? `Plus, I have a special surprise: use coupon ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` for ${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)}${shopContext.retention_coupon_value} off` : `${shopContext.retention_coupon_value}% off`}` : ''} on your next purchase!` : 'I am looking for a special discount for you!'}
 It's completely risk-free to wait and try it. Can I count on you?"
 ` : `
 STANDARD SCRIPT:
 YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
 1. Reassure everything is configured for success / Tranquilizar que está tudo certo
-2. Offer a BENEFIT or DISCOUNT${shopContext.retention_coupon_code ? `: USE COUPON ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} OFF` : `${shopContext.retention_coupon_value}% OFF`})` : ''}` : ' (mention you are looking for coupons)'}
+2. Offer a BENEFIT or DISCOUNT${shopContext.retention_coupon_code ? `: USE COUPON ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)}${shopContext.retention_coupon_value} OFF` : `${shopContext.retention_coupon_value}% OFF`})` : ''}` : ' (mention you are looking for coupons)'}
 3. Ask for one more chance / Pedir mais uma chance
 4. DO NOT mention support email / NÃO mencionar email de suporte
 
 EXAMPLE RESPONSE:
 "Hello! I've checked and EVERYTHING IS SET for your delivery!
-${shopContext.retention_coupon_code ? `I have a surprise: use coupon ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` for ${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} off` : `${shopContext.retention_coupon_value}% off`}` : ''} on your next purchase!` : 'I am looking for a special discount code for you!'}
+${shopContext.retention_coupon_code ? `I have a surprise: use coupon ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` for ${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)}${shopContext.retention_coupon_value} off` : `${shopContext.retention_coupon_value}% off`}` : ''} on your next purchase!` : 'I am looking for a special discount code for you!'}
 Can I count on your trust a little longer?"
 `}
 ` : ''}
@@ -3002,7 +3015,7 @@ YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
 1. Final appeal: "This is our last effort to keep you happy" / Último esforço
 2. Remind them ONE MORE TIME: zero risk, refuse at delivery costs nothing / Lembrar: zero risco
 3. Offer the BEST possible deal (coupon + any additional benefit)
-${shopContext.retention_coupon_code ? `4. OFFER COUPON AGAIN: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} OFF` : `${shopContext.retention_coupon_value}% OFF`})` : ''}` : '4. Mention you are working to get a special discount'}
+${shopContext.retention_coupon_code ? `4. OFFER COUPON AGAIN: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)}${shopContext.retention_coupon_value} OFF` : `${shopContext.retention_coupon_value}% OFF`})` : ''}` : '4. Mention you are working to get a special discount'}
 5. Ask if there is ANY specific concern you can address / Pergunte se há algo específico
 6. ⛔ DO NOT mention ANY email address yet / NÃO mencionar NENHUM email
 7. ⛔ DO NOT add [FORWARD_TO_HUMAN]
@@ -3012,7 +3025,7 @@ EXAMPLE RESPONSE:
 I understand your concern, and I want to make one final effort:
 - You pay NOTHING until delivery
 - If you don't like it, refuse at the door - zero cost
-${shopContext.retention_coupon_code ? `- Plus you get ${shopContext.retention_coupon_type === 'fixed' ? `$${shopContext.retention_coupon_value} off` : `${shopContext.retention_coupon_value}% off`} on your next order with code ${shopContext.retention_coupon_code}` : '- I am arranging a special discount for you'}
+${shopContext.retention_coupon_code ? `- Plus you get ${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)}${shopContext.retention_coupon_value} off` : `${shopContext.retention_coupon_value}% off`} on your next order with code ${shopContext.retention_coupon_code}` : '- I am arranging a special discount for you'}
 Is there something specific about the order that concerns you? I really want to help resolve this!"
 ` : ''}
 
@@ -3801,12 +3814,12 @@ Posso saber se há algo específico que te preocupa? Quero muito ajudar a resolv
 --- SE CONTADOR = 2 (Segundo contato) ---
 ${codPreDelivery ? `Objetivo: Reforçar ZERO RISCO + oferecer desconto
 
-${shopContext.retention_coupon_code ? `CUPOM DISPONÍVEL: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`})` : ''}` : 'NOTA: Não há cupom configurado. Mencione que está buscando benefícios.'}
+${shopContext.retention_coupon_code ? `CUPOM DISPONÍVEL: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)} ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`})` : ''}` : 'NOTA: Não há cupom configurado. Mencione que está buscando benefícios.'}
 
 O que fazer:
 - Reforce que NÃO PAGOU NADA e pode recusar na entrega
 - Diga que pode experimentar o produto SEM COMPROMISSO
-${shopContext.retention_coupon_code ? `- OFEREÇA o cupom: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` com ${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''}` : '- Mencione que vai procurar cupons'}
+${shopContext.retention_coupon_code ? `- OFEREÇA o cupom: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` com ${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)} ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''}` : '- Mencione que vai procurar cupons'}
 - Mostre que está tudo configurado para sucesso
 - NÃO mencione o email de atendimento
 - NÃO adicione [FORWARD_TO_HUMAN]
@@ -3818,19 +3831,19 @@ Verifiquei seu pedido e está TUDO CERTO para a entrega!
 
 Lembre-se: você não paga nada até receber. Pode ver o produto, tocar, conferir a qualidade, e só paga se ficar satisfeito. Se não gostar, recuse na porta - simples assim, sem custo nenhum!
 
-${shopContext.retention_coupon_code ? `E tenho uma surpresa: use o cupom ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` e ganhe ${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''} na sua próxima compra!` : 'Estou buscando um desconto especial para você!'}
+${shopContext.retention_coupon_code ? `E tenho uma surpresa: use o cupom ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` e ganhe ${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)} ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''} na sua próxima compra!` : 'Estou buscando um desconto especial para você!'}
 
 É totalmente sem risco esperar e experimentar. Posso contar com sua confiança?
 
 [Assinatura]"` : `Objetivo: Mostrar que está tudo preparado + oferecer BENEFÍCIO
 
-${shopContext.retention_coupon_code ? `CUPOM DE DESCONTO DISPONÍVEL: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`})` : ''}
+${shopContext.retention_coupon_code ? `CUPOM DE DESCONTO DISPONÍVEL: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` (${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)} ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`})` : ''}
 Use este cupom REAL na sua resposta para convencer o cliente a não cancelar. MENCIONE O VALOR DO DESCONTO!` : 'NOTA: Não há cupom configurado pela loja. Mencione que está buscando cupons/benefícios.'}
 
 O que fazer:
 - Reforce que já está TUDO CONFIGURADO no sistema para sucesso
 - Diga que a entrega será feita com sucesso
-${shopContext.retention_coupon_code ? `- OFEREÇA o cupom de desconto: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` com ${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''} para a próxima compra` : '- Mencione que vai PROCURAR CUPONS DE DESCONTO especiais para ele'}
+${shopContext.retention_coupon_code ? `- OFEREÇA o cupom de desconto: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` com ${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)} ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''} para a próxima compra` : '- Mencione que vai PROCURAR CUPONS DE DESCONTO especiais para ele'}
 - Ofereça um benefício/desconto para a próxima compra
 - Mostre comprometimento total em resolver
 - NÃO mencione o email de atendimento
@@ -3841,7 +3854,7 @@ Exemplo (CONTADOR = 2):
 
 Quero te tranquilizar: já verifiquei seu pedido #[número] e está TUDO CERTO no sistema para que a entrega seja realizada com sucesso!
 
-${shopContext.retention_coupon_code ? `E tenho uma surpresa especial para você: use o cupom ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` e ganhe ${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''} na sua próxima compra como forma de agradecimento pela sua paciência e confiança!` : 'Inclusive, estou buscando cupons de desconto especiais para você utilizar em uma próxima compra como forma de agradecimento pela sua paciência e confiança.'}
+${shopContext.retention_coupon_code ? `E tenho uma surpresa especial para você: use o cupom ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` e ganhe ${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)} ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''} na sua próxima compra como forma de agradecimento pela sua paciência e confiança!` : 'Inclusive, estou buscando cupons de desconto especiais para você utilizar em uma próxima compra como forma de agradecimento pela sua paciência e confiança.'}
 
 Tenho certeza de que você vai adorar o produto quando receber! Posso contar com sua confiança mais um pouquinho?
 
@@ -3853,7 +3866,7 @@ Objetivo: Último apelo antes de encaminhar - argumento final de zero risco
 O que fazer:
 - Último esforço de retenção com argumento zero risco
 - Reforce pela última vez: "você não pagou nada, pode recusar na entrega"
-${shopContext.retention_coupon_code ? `- Ofereça o cupom novamente: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` com ${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''}` : '- Tente oferecer um benefício adicional'}
+${shopContext.retention_coupon_code ? `- Ofereça o cupom novamente: ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` com ${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)} ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''}` : '- Tente oferecer um benefício adicional'}
 - Pergunte se há algo ESPECÍFICO que possa resolver
 - Tom de "último esforço" mas ainda positivo
 - NÃO mencione o email de atendimento
@@ -3869,7 +3882,7 @@ Quero fazer um último apelo: lembre-se que o pagamento só acontece NA ENTREGA.
 2. Conferir a qualidade
 3. Se não gostar, recusar na porta - custo ZERO
 
-${shopContext.retention_coupon_code ? `Além disso, o cupom ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` de ${shopContext.retention_coupon_type === 'fixed' ? `R$ ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''} continua válido para sua próxima compra!` : 'Estou trabalhando para conseguir um desconto especial para você!'}
+${shopContext.retention_coupon_code ? `Além disso, o cupom ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` de ${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)} ${shopContext.retention_coupon_value} de desconto` : `${shopContext.retention_coupon_value}% de desconto`}` : ''} continua válido para sua próxima compra!` : 'Estou trabalhando para conseguir um desconto especial para você!'}
 
 Há algo específico sobre o pedido que te preocupa? Quero muito ajudar a resolver qualquer questão!
 
