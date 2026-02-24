@@ -2684,6 +2684,13 @@ IMPORTANT: Customer mentioned MULTIPLE orders. Provide info about ALL relevant o
 
   // Montar informações da loja
   const mainStoreEmail = shopContext.store_email || shopContext.support_email || '';
+  // Se support_email não foi definido ou é igual ao store_email, não há email separado para escalação
+  // Neste caso, a IA não deve direcionar o cliente para "outro email" pois ele já está falando pelo único email
+  const hasSeparateSupportEmail = !!shopContext.support_email && shopContext.support_email !== mainStoreEmail;
+  const escalationEmail = hasSeparateSupportEmail ? shopContext.support_email : mainStoreEmail;
+  const escalationInstruction = hasSeparateSupportEmail
+    ? `entre em contato pelo email ${escalationEmail}`
+    : 'responda este email que nossa equipe irá atendê-lo';
   let storeInfo = `
 INFORMAÇÕES DA LOJA:
 - Nome: ${shopContext.name}
@@ -3018,7 +3025,7 @@ Is there something specific about the order that concerns you? I really want to 
 
 ${retentionContactCount >= forwardThreshold ? `
 ***** CONTACT ${retentionContactCount} (COUNTER >= ${forwardThreshold}) - ESCALATION *****
-NOW you CAN provide the support email: ${shopContext.support_email}
+NOW you CAN provide the support email: ${escalationEmail}
 Add [FORWARD_TO_HUMAN] at the beginning of your response.
 ` : ''}
 
@@ -3056,7 +3063,7 @@ O QUE VOCÊ TEM (pode usar):
 ✅ Seu nome: ${shopContext.attendant_name}
 ✅ Nome da loja: ${shopContext.name}
 ✅ Email principal: ${mainStoreEmail}
-✅ Email de escalação: ${shopContext.support_email}
+✅ Email de escalação: ${escalationEmail}
 ✅ Dados do pedido (se fornecidos abaixo em "DADOS DO PEDIDO DO CLIENTE")
 ✅ Informações da loja: descrição, prazo de entrega, garantia (se fornecidos)
 ${storeProvidedInfo.hasReturnAddress ? `✅ Endereço de devolução da loja: ${storeProvidedInfo.returnAddress} (fornecido pelo dono da loja - USE quando o cliente perguntar sobre devolução)` : ''}
@@ -3064,7 +3071,7 @@ ${storeProvidedInfo.hasPhone ? `✅ Telefone/WhatsApp da loja: ${storeProvidedIn
 ${storeProvidedInfo.hasCustomTrackingUrl ? `✅ Link de rastreio personalizado: ${storeProvidedInfo.customTrackingUrl} (USE este link em vez do tracking_url do Shopify quando o cliente perguntar sobre rastreio)` : ''}
 
 O QUE VOCÊ NÃO TEM (NUNCA invente):
-${storeProvidedInfo.hasReturnAddress ? '' : `❌ Endereço de devolução → Diga: "Para obter o endereço de devolução, entre em contato pelo ${shopContext.support_email}"`}
+${storeProvidedInfo.hasReturnAddress ? '' : `❌ Endereço de devolução → Diga: "Para obter o endereço de devolução, entre em contato pelo ${escalationEmail}"`}
 ❌ Endereço físico da loja (a menos que fornecido nas instruções da loja acima)
 ${storeProvidedInfo.hasPhone ? '' : `❌ Números de telefone → NÃO EXISTEM. Diga: "Nosso atendimento é feito por email"`}
 ${storeProvidedInfo.hasPhone ? '' : '❌ WhatsApp, redes sociais → NÃO EXISTEM'}
@@ -3072,7 +3079,7 @@ ${storeProvidedInfo.hasPhone ? '' : '❌ WhatsApp, redes sociais → NÃO EXISTE
 ❌ Capacidade de cancelar, reembolsar, alterar pedidos → Você só RESPONDE, não executa ações no sistema
 ❌ Capacidade de verificar com equipes internas, processar solicitações → Diga que o cliente deve entrar em contato por email
 
-REGRA DE OURO: Se você não tem uma informação neste prompt, a resposta correta é DIRECIONAR o cliente para ${shopContext.support_email}. NUNCA INVENTE dados, endereços, nomes, telefones ou funcionalidades que não existem.
+REGRA DE OURO: Se você não tem uma informação neste prompt, a resposta correta é DIRECIONAR o cliente para ${escalationEmail}. NUNCA INVENTE dados, endereços, nomes, telefones ou funcionalidades que não existem.
 </knowledge_boundary>
 
 Você é ${shopContext.attendant_name}, uma pessoa REAL que trabalha no atendimento da loja ${shopContext.name}.
@@ -3187,7 +3194,7 @@ REGRA CRÍTICA - CONTEÚDO CITADO NO EMAIL (PRIORIDADE MÁXIMA):
 - O email do cliente pode conter RESPOSTAS CITADAS de conversas anteriores, possivelmente com OUTRAS lojas, OUTROS atendentes ou OUTROS emails de suporte
 - IGNORE COMPLETAMENTE qualquer nome, email, assinatura, nome de loja ou identidade encontrada NO CORPO do email
 - Sua identidade é EXCLUSIVAMENTE: ${shopContext.attendant_name} da ${shopContext.name}
-- O ÚNICO email de suporte que você pode mencionar é: ${shopContext.support_email || shopContext.store_email}
+- O ÚNICO email de suporte que você pode mencionar é: ${escalationEmail}
 - Se o corpo do email mencionar nomes como "Emily", "John", etc. de outras lojas, IGNORE - você é ${shopContext.attendant_name}
 - NUNCA copie ou adote nomes, emails ou identidades que apareçam no texto citado do email do cliente
 
@@ -3272,7 +3279,7 @@ PROMESSAS DE REEMBOLSO (PROIBIDO - VOCÊ NÃO PODE PROCESSAR REEMBOLSOS):
 - Espanhol: "Voy a procesar tu reembolso", "Tu reembolso ha sido aprobado", "El reembolso está siendo procesado"
 - Francês: "Je vais traiter votre remboursement", "Votre remboursement a été approuvé", "Le remboursement est en cours"
 - Italiano: "Elaborerò il tuo rimborso", "Il tuo rimborso è stato approvato", "Il rimborso è in corso"
-→ O QUE FAZER: NUNCA prometa reembolso - encaminhe para ${shopContext.support_email} após 3 contatos de retenção
+→ O QUE FAZER: NUNCA prometa reembolso - encaminhe para ${escalationEmail} após 3 contatos de retenção
 
 PROMESSAS DE CANCELAMENTO (PROIBIDO - VOCÊ NÃO PODE CANCELAR PEDIDOS):
 - Português: "cancelei seu pedido", "o pedido foi cancelado", "vou cancelar agora", "garantirei que o pedido não seja enviado", "vou garantir que não seja enviado"
@@ -3281,7 +3288,7 @@ PROMESSAS DE CANCELAMENTO (PROIBIDO - VOCÊ NÃO PODE CANCELAR PEDIDOS):
 - Espanhol: "Cancelé tu pedido", "El pedido ha sido cancelado", "Me aseguraré de que no se envíe"
 - Francês: "J'ai annulé votre commande", "La commande a été annulée", "Je vais m'assurer qu'elle ne soit pas expédiée"
 - Italiano: "Ho cancellato il tuo ordine", "L'ordine è stato cancellato", "Mi assicurerò che non venga spedito"
-→ O QUE FAZER: Se a categoria for "troca_devolucao_reembolso", SIGA O FLUXO DE RETENÇÃO (seção abaixo). SÓ encaminhe para ${shopContext.support_email} quando o contador de retenção atingir o limite (${forwardThreshold}). NÃO encaminhe imediatamente.
+→ O QUE FAZER: Se a categoria for "troca_devolucao_reembolso", SIGA O FLUXO DE RETENÇÃO (seção abaixo). SÓ encaminhe para ${escalationEmail} quando o contador de retenção atingir o limite (${forwardThreshold}). NÃO encaminhe imediatamente.
 
 REGRA ESPECIAL - CANCELAMENTO URGENTE (CRÍTICO):
 Se o cliente diz que cancelou dentro do prazo (12 horas, 24 horas, etc.) e pede para NÃO ENVIAR:
@@ -3311,9 +3318,14 @@ REGRA DE EMAILS DA LOJA (MUITO IMPORTANTE):
   → Se o cliente perguntar "este é o email correto?", "qual o email de contato?", "como entro em contato?" → CONFIRME que ${mainStoreEmail} é o email principal
 ${storeProvidedInfo.hasPhone ? `  → Se o cliente pedir telefone: forneça ${storeProvidedInfo.phone}` : `  → Se o cliente pedir telefone e não existe: "No momento, nosso atendimento é feito por email: ${mainStoreEmail}"`}
   → Se o cliente pedir outro canal: "Por favor, entre em contato pelo email ${mainStoreEmail}"
-- EMAIL DE ESCALAÇÃO HUMANA: ${shopContext.support_email}
+${hasSeparateSupportEmail
+  ? `- EMAIL DE ESCALAÇÃO HUMANA: ${escalationEmail}
   → Use este email APENAS para casos que precisam de atendimento humano (cancelamentos, reembolsos, produto errado, etc.)
-  → NUNCA forneça este email para perguntas gerais de contato
+  → NUNCA forneça este email para perguntas gerais de contato`
+  : `- ESCALAÇÃO HUMANA: O cliente JÁ está se comunicando pelo email correto (${mainStoreEmail}).
+  → NUNCA diga "entre em contato pelo email ${mainStoreEmail}" - isso seria circular pois ele JÁ está nesse email!
+  → Em vez disso, diga: "responda este email que nossa equipe irá atendê-lo" ou "por favor, responda aqui mesmo"
+  → Para [FORWARD_TO_HUMAN], basta encaminhar sem mencionar email específico`}
 
 ${storeProvidedInfo.hasReturnAddress ? `ENDEREÇO DE DEVOLUÇÃO DA LOJA (FORNECIDO PELO DONO - USE QUANDO NECESSÁRIO):
 - Endereço de devolução: ${storeProvidedInfo.returnAddress}
@@ -3322,7 +3334,7 @@ ${storeProvidedInfo.hasReturnAddress ? `ENDEREÇO DE DEVOLUÇÃO DA LOJA (FORNEC
 - NUNCA invente endereços para devolução de produtos
 - NUNCA crie endereços fictícios como "123 Return Street", "Rua das Devoluções", etc.
 - NUNCA forneça endereços genéricos como "Anytown, US 12345" ou similares
-- Se o cliente perguntar onde devolver um produto: "Para obter o endereço de devolução, entre em contato pelo email ${shopContext.support_email}"
+- Se o cliente perguntar onde devolver um produto: "${hasSeparateSupportEmail ? `Para obter o endereço de devolução, entre em contato pelo email ${escalationEmail}` : 'Para obter o endereço de devolução, por favor responda este email que nossa equipe irá ajudá-lo'}"
 - Você NÃO TEM acesso ao endereço de devolução da loja - NUNCA invente um
 - Quando o cliente precisar devolver algo, SEMPRE direcione para o email de suporte`}
 
@@ -3331,15 +3343,15 @@ CASOS DE PRODUTO ERRADO/DEFEITUOSO/DANIFICADO (REGRA ESPECIAL):
   → NÃO prometa reembolso ou troca
   → NÃO diga "vou processar o reembolso"
   → NÃO diga que o cliente não precisa devolver
-  → ENCAMINHE DIRETAMENTE para o email de suporte: ${shopContext.support_email}
-  → Use [FORWARD_TO_HUMAN] e peça ao cliente entrar em contato para resolver
+  → ENCAMINHE DIRETAMENTE para atendimento humano
+  → Use [FORWARD_TO_HUMAN] e ${hasSeparateSupportEmail ? `peça ao cliente entrar em contato pelo email ${escalationEmail}` : 'diga que nossa equipe irá atendê-lo por este mesmo email'}
 - Exemplo de resposta CORRETA para produto errado:
-  "[FORWARD_TO_HUMAN] Olá! Lamento muito pelo inconveniente com seu pedido. Para resolver essa situação da melhor forma, entre em contato pelo email ${shopContext.support_email} que vamos resolver isso pra você! ${shopContext.attendant_name}"
+  "[FORWARD_TO_HUMAN] Olá! Lamento muito pelo inconveniente com seu pedido. ${hasSeparateSupportEmail ? `Para resolver essa situação da melhor forma, entre em contato pelo email ${escalationEmail}` : 'Vamos resolver isso para você por aqui mesmo'} que vamos resolver isso pra você! ${shopContext.attendant_name}"
 
 QUANDO O CLIENTE QUER CANCELAR (SOMENTE APÓS FLUXO DE RETENÇÃO COMPLETO - contador >= ${forwardThreshold}):
 - NUNCA diga "cancelei seu pedido" ou "pedido foi cancelado"
 - NUNCA diga "encaminhei sua solicitação" ou "registrei no sistema"
-- DIGA: "Para prosseguir com o cancelamento, entre em contato pelo email ${shopContext.support_email}"
+- DIGA: "${hasSeparateSupportEmail ? `Para prosseguir com o cancelamento, entre em contato pelo email ${escalationEmail}` : 'Para prosseguir com o cancelamento, por favor responda este email que nossa equipe irá processar sua solicitação'}"
 - OU: "Sua solicitação será processada pela equipe"
 - Forneça o email de suporte e adicione [FORWARD_TO_HUMAN]
 - ⚠️ Se o contador de retenção AINDA NÃO atingiu ${forwardThreshold}, NÃO forneça o email — siga o fluxo de retenção!
@@ -3357,10 +3369,10 @@ VOCÊ DEVE:
 3. NUNCA dizer "enviei solicitação para a equipe de expedição"
 4. SEMPRE coletar as informações do cliente (novo endereço, novos dados)
 5. SEMPRE encaminhar para suporte humano com [FORWARD_TO_HUMAN]
-6. SEMPRE fornecer o email de suporte: ${shopContext.support_email}
+6. ${hasSeparateSupportEmail ? `SEMPRE fornecer o email de suporte: ${escalationEmail}` : 'Diga para o cliente responder este mesmo email'}
 
 Exemplo de resposta CORRETA para alteração de endereço:
-"[FORWARD_TO_HUMAN] Olá! Entendi que você precisa alterar o endereço de entrega do pedido. Para que a alteração seja processada corretamente, por favor entre em contato pelo email ${shopContext.support_email} informando:
+"[FORWARD_TO_HUMAN] Olá! Entendi que você precisa alterar o endereço de entrega do pedido. ${hasSeparateSupportEmail ? `Para que a alteração seja processada corretamente, por favor entre em contato pelo email ${escalationEmail} informando:` : 'Para que a alteração seja processada corretamente, por favor responda este email informando:'}
 - Número do pedido
 - Novo endereço completo
 Nossa equipe fará a alteração assim que possível. ${shopContext.attendant_name}"
@@ -3381,7 +3393,7 @@ Você é o atendente principal. Sua função é RESOLVER os problemas do cliente
 - Encaminhar para humano é o ÚLTIMO recurso, não o primeiro
 ═══════════════════════════════════════════════════════
 
-QUANDO USAR O EMAIL DE SUPORTE (${shopContext.support_email}) - SOMENTE NESSES CASOS:
+QUANDO ${hasSeparateSupportEmail ? `USAR O EMAIL DE SUPORTE (${escalationEmail})` : 'ENCAMINHAR PARA SUPORTE HUMANO'} - SOMENTE NESSES CASOS:
 1. Cancelamento/reembolso: APÓS as 3 tentativas de retenção (não antes)
 2. Devolução de produto já recebido: APÓS as 3 tentativas de retenção (não antes)
 3. Cliente JÁ ENVIOU produto de volta (precisa de processamento manual)
@@ -3469,7 +3481,7 @@ SOMENTE NESSE CASO (cliente confirma que rastreio não funciona):
 3. OFEREÇA SOLUÇÃO IMEDIATA:
    - Se passou do prazo de entrega → Tranquilize o cliente dizendo que o pedido está a caminho e que atrasos logísticos são comuns em envios internacionais. NÃO use [FORWARD_TO_HUMAN] apenas por prazo expirado.
    - Se ainda no prazo → Informe o prazo e diga que o rastreio pode demorar a atualizar
-4. Forneça o email de suporte: ${shopContext.support_email} caso o cliente queira entrar em contato diretamente
+4. Forneça o email de suporte: ${escalationEmail} caso o cliente queira entrar em contato diretamente
 
 ⛔ NÃO FAÇA PROMESSAS FALSAS MESMO NESTE CENÁRIO:
 - NÃO diga "vou investigar com a transportadora" - você NÃO pode fazer isso
@@ -3538,7 +3550,7 @@ REGRA CRÍTICA - ALFÂNDEGA, FATURAS E DOCUMENTOS:
 - Se o cliente pede FATURA, INVOICE, NOTA FISCAL, ou documentos para ALFÂNDEGA/CUSTOMS:
   → Você NÃO pode gerar esses documentos
   → [FORWARD_TO_HUMAN] Diga que vai encaminhar para a equipe que pode fornecer a documentação necessária
-  → Inclua o email de suporte: ${shopContext.support_email || 'nossa equipe'}
+  → Inclua o email de suporte: ${escalationEmail || 'nossa equipe'}
   → Exemplo: "Entendo que você precisa da fatura para liberar na alfândega. Vou encaminhar seu caso para nossa equipe que poderá fornecer a documentação necessária."
   → NUNCA peça mais detalhes sobre a alfândega ao cliente - ele já disse o que precisa
 
@@ -3613,7 +3625,7 @@ ${retentionContactCount < forwardThreshold ? `
 O CONTADOR DE RETENÇÃO (${retentionContactCount}) é MENOR que o limite (${forwardThreshold}).
 Você NÃO tem permissão para mencionar NENHUM email de suporte/atendimento.
 ${codPreDelivery ? 'MODO COD PRÉ-ENTREGA: O cliente NÃO pagou nada! Use argumento ZERO RISCO!' : ''}
-` : `IMPORTANTE: O email de atendimento é: ${shopContext.support_email}`}
+` : `IMPORTANTE: ${hasSeparateSupportEmail ? `O email de atendimento é: ${escalationEmail}` : 'Diga para o cliente responder este mesmo email para ser atendido'}`}
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║  VERIFICAÇÃO OBRIGATÓRIA #1: CONTADOR DE RETENÇÃO (VERIFICAR PRIMEIRO!)      ║
@@ -3708,10 +3720,10 @@ QUANDO FOR EXCEÇÃO GRAVE (ameaça legal, produto já devolvido, dano físico):
 ${codPreDelivery ? `⚠️ COD PRÉ-ENTREGA: Exceções graves são MUITO RARAS porque o cliente NÃO PAGOU.
 Produto errado, recusa de pacote, insatisfação = NÃO são exceções graves para COD pré-entrega!
 APENAS use exceção grave para: ameaça legal explícita, produto já devolvido, ou dano físico real.
-` : ''}- Forneça o email: ${shopContext.support_email}
+` : ''}- ${hasSeparateSupportEmail ? `Forneça o email: ${escalationEmail}` : 'Diga para responder este email'}
 - Peça para O CLIENTE entrar em contato
 - SEMPRE adicione [FORWARD_TO_HUMAN] no início
-- Exemplo: "[FORWARD_TO_HUMAN] Entendo sua situação. Entre em contato: ${shopContext.support_email}"
+- Exemplo: "[FORWARD_TO_HUMAN] Entendo sua situação. ${hasSeparateSupportEmail ? `Entre em contato: ${escalationEmail}` : 'Responda este email que nossa equipe irá atendê-lo'}"
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║  PRIORIDADE 3: FLUXO DE RETENÇÃO - ${forwardThreshold} CONTATOS (OBRIGATÓRIO)                  ║
@@ -3878,9 +3890,9 @@ Objetivo: Aceitar a decisão e direcionar para atendimento
 
 O que fazer:
 - Aceite que o cliente realmente quer desistir
-- Forneça o email: ${shopContext.support_email}
-- Peça para O CLIENTE entrar em contato através desse email
-- NÃO diga "email humano" ou "atendimento humano" - apenas forneça o email naturalmente
+- ${hasSeparateSupportEmail ? `Forneça o email: ${escalationEmail}` : 'Diga para o cliente responder este mesmo email'}
+- Peça para O CLIENTE entrar em contato ${hasSeparateSupportEmail ? 'através desse email' : 'respondendo aqui'}
+- NÃO diga "email humano" ou "atendimento humano" - ${hasSeparateSupportEmail ? 'apenas forneça o email naturalmente' : 'apenas diga para responder este email'}
 - NÃO diga "entraremos em contato" - o CLIENTE deve entrar em contato
 - SEMPRE adicione [FORWARD_TO_HUMAN] no início
 
@@ -3889,7 +3901,7 @@ Exemplo (CONTADOR >= ${forwardThreshold}):
 
 Entendo sua decisão referente ao pedido #[número].
 
-Para prosseguir com sua solicitação, por favor entre em contato através do email: ${shopContext.support_email}
+${hasSeparateSupportEmail ? `Para prosseguir com sua solicitação, por favor entre em contato através do email: ${escalationEmail}` : 'Para prosseguir com sua solicitação, por favor responda este email que nossa equipe irá processar seu pedido.'}
 
 Aguardamos seu contato!
 
@@ -3918,7 +3930,7 @@ Exemplo de resposta para EDIÇÃO de pedido (aguardando envio):
 
 Recebi sua solicitação para alterar o pedido #[número].
 
-O pedido ainda está sendo preparado, então é possível fazer alterações! Para prosseguir, por favor entre em contato diretamente com nossa equipe através do email: ${shopContext.support_email}
+O pedido ainda está sendo preparado, então é possível fazer alterações! ${hasSeparateSupportEmail ? `Para prosseguir, por favor entre em contato diretamente com nossa equipe através do email: ${escalationEmail}` : 'Para prosseguir, por favor responda este email com os detalhes da alteração que nossa equipe irá processar.'}
 
 Assim conseguiremos processar sua alteração da melhor forma!
 
@@ -3970,7 +3982,7 @@ Exemplo de resposta ERRADA (NÃO FAÇA ISSO):
 Exemplo de resposta CORRETA:
 "[FORWARD_TO_HUMAN] Olá!
 
-Lamento pelo transtorno. Para resolver sua situação, por favor entre em contato diretamente com nossa equipe através do email: ${shopContext.support_email}
+${hasSeparateSupportEmail ? `Lamento pelo transtorno. Para resolver sua situação, por favor entre em contato diretamente com nossa equipe através do email: ${escalationEmail}` : 'Lamento pelo transtorno. Para resolver sua situação, por favor responda este email que nossa equipe irá analisar seu caso.'}
 
 Eles irão analisar seu caso e entrar em contato.
 
@@ -3989,7 +4001,7 @@ Antes de escrever sua resposta, verifique CADA item. Se violar QUALQUER um, REES
 - NUNCA diga "I'll check", "I'll investigate", "I'll contact", "je vais vérifier", "ich werde überprüfen"
 - NUNCA diga "aguarde enquanto eu verifico" / "wait while I check"
 - NUNCA diga "vou te manter informado" / "I'll keep you updated"
-- Em vez disso: USE os dados que você JÁ TEM, ou direcione ao email ${shopContext.support_email}
+- Em vez disso: USE os dados que você JÁ TEM, ou direcione ao email ${escalationEmail}
 
 ⛔ NÃO USE fechamentos formais:
 - NUNCA: Atenciosamente, Sinceramente, Sincerely, Best regards, Kind regards, Cordialement, Cordiali saluti, Mit freundlichen Grüßen, Cordialmente
@@ -4023,7 +4035,7 @@ REGRAS OBRIGATÓRIAS:
 2. NÃO repita a mesma resposta ou pergunta de antes
 3. Use os DADOS que já tem disponíveis (dados do pedido, email do cliente, histórico)
 4. Se você TEM dados do pedido: responda com eles (rastreio, status, etc.)
-5. Se você NÃO TEM dados do pedido: peça desculpas pela dificuldade e forneça o email ${shopContext.support_email} para o cliente entrar em contato diretamente
+5. Se você NÃO TEM dados do pedido: peça desculpas pela dificuldade e forneça o email ${escalationEmail} para o cliente entrar em contato diretamente
 6. Seja empático e reconheça que o cliente já tentou várias vezes
 ⚠️⚠️⚠️ FIM DO ALERTA ⚠️⚠️⚠️`;
   }
@@ -4174,7 +4186,7 @@ STRICT RULES FOR YOUR NEW RESPONSE:
 8. NEVER say "I just contacted/checked/verified" - you did NOT do any of those things
 9. NEVER promise "I'll get back to you", "I'll return soon", "within the next hours" - you WON'T
 10. NEVER say "please wait while I check" - there is nothing to wait for
-11. Only state FACTS from the data you have. If you don't have info, direct to: ${shopContext.support_email || 'nosso email de suporte'}
+11. Only state FACTS from the data you have. If you don't have info, direct to: ${escalationEmail || 'nosso email de suporte'}
 
 Rewrite your response using ONLY facts you have. Be short and direct. NO promises.`,
       }];
@@ -4251,13 +4263,9 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
           // CAMADA 3: Remover support email desnecessário
           const isEscCat = category === 'suporte_humano' || category === 'edicao_pedido';
           const isRetEsc = category === 'troca_devolucao_reembolso' && retentionContactCount >= 3;
-          if (!forwardToHuman && !isEscCat && !isRetEsc && shopContext.support_email) {
-            const supEmailLower = shopContext.support_email.toLowerCase();
-            const mainEmlLower = (shopContext.store_email || '').toLowerCase();
-            if (supEmailLower !== mainEmlLower) {
-              const supEscaped = shopContext.support_email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              sanitizedRetry = sanitizedRetry.replace(new RegExp(`[^.!?\\n]*\\b${supEscaped}\\b[^.!?\\n]*[.!?]?\\s*`, 'gi'), '').trim();
-            }
+          if (!forwardToHuman && !isEscCat && !isRetEsc && escalationEmail) {
+            const supEscaped = escalationEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            sanitizedRetry = sanitizedRetry.replace(new RegExp(`[^.!?\\n]*\\b${supEscaped}\\b[^.!?\\n]*[.!?]?\\s*`, 'gi'), '').trim();
           }
           // CAMADA 4: Frases corporativas
           sanitizedRetry = sanitizedRetry
@@ -4304,23 +4312,17 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
   const isEscalationCategory = category === 'suporte_humano' || category === 'edicao_pedido';
   const isRetentionEscalation = category === 'troca_devolucao_reembolso' && retentionContactCount >= 3;
 
-  if (!forwardToHuman && !isEscalationCategory && !isRetentionEscalation && shopContext.support_email) {
-    const supportEmailLower = shopContext.support_email.toLowerCase();
-    const mainEmailLower = (shopContext.store_email || '').toLowerCase();
-
-    // Só remover se o support_email é diferente do email principal (se forem iguais, é legítimo)
-    if (supportEmailLower !== mainEmailLower) {
-      const supportEmailEscaped = shopContext.support_email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      // Remover sentenças inteiras que mencionam o email de suporte
-      const supportEmailSentence = new RegExp(
-        `[^.!?\\n]*\\b${supportEmailEscaped}\\b[^.!?\\n]*[.!?]?\\s*`,
-        'gi'
-      );
-      const beforeSupportClean = cleanedResponse;
-      cleanedResponse = cleanedResponse.replace(supportEmailSentence, '').trim();
-      if (cleanedResponse !== beforeSupportClean) {
-        console.log(`[generateResponse] CAMADA 3: Removed unnecessary support email (${shopContext.support_email}) from ${category} response`);
-      }
+  if (!forwardToHuman && !isEscalationCategory && !isRetentionEscalation && escalationEmail) {
+    const supportEmailEscaped = escalationEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Remover sentenças inteiras que mencionam o email de suporte
+    const supportEmailSentence = new RegExp(
+      `[^.!?\\n]*\\b${supportEmailEscaped}\\b[^.!?\\n]*[.!?]?\\s*`,
+      'gi'
+    );
+    const beforeSupportClean = cleanedResponse;
+    cleanedResponse = cleanedResponse.replace(supportEmailSentence, '').trim();
+    if (cleanedResponse !== beforeSupportClean) {
+      console.log(`[generateResponse] CAMADA 3: Removed unnecessary support email (${escalationEmail}) from ${category} response`);
     }
   }
 
@@ -4445,8 +4447,10 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
         ? 'Seu pedido já foi enviado e o código de rastreio será atualizado em breve.'
         : 'Seu pedido está sendo preparado para envio. Assim que for enviado, você receberá o código de rastreio.';
       cleanedResponse = `Olá! ${statusMsg}${shopContext.delivery_time ? ` O prazo estimado é ${shopContext.delivery_time}.` : ''} Qualquer coisa, me chama!\n\n${shopContext.attendant_name}`;
-    } else if (shopContext.support_email) {
-      cleanedResponse = `Olá! Para resolver sua situação da melhor forma, entre em contato pelo email ${shopContext.support_email}.\n\n${shopContext.attendant_name}`;
+    } else if (escalationEmail) {
+      cleanedResponse = hasSeparateSupportEmail
+        ? `Olá! Para resolver sua situação da melhor forma, entre em contato pelo email ${escalationEmail}.\n\n${shopContext.attendant_name}`
+        : `Olá! Para resolver sua situação da melhor forma, responda este email que nossa equipe irá atendê-lo.\n\n${shopContext.attendant_name}`;
     } else {
       cleanedResponse = `Olá! Recebemos sua mensagem e estamos cuidando do seu caso. Qualquer dúvida, responda este email.\n\n${shopContext.attendant_name}`;
     }
@@ -4640,12 +4644,18 @@ export async function generateHumanFallbackMessage(
     name: string;
     attendant_name: string;
     support_email: string;
+    store_email?: string;
     tone_of_voice: string;
     fallback_message_template: string | null;
   },
   customerName: string | null,
   language: string = 'en'
 ): Promise<ResponseGenerationResult> {
+  // Calcular email de escalação (mesma lógica do generateResponse)
+  const mainStoreEmail = shopContext.store_email || shopContext.support_email || '';
+  const hasSeparateSupportEmail = !!shopContext.support_email && shopContext.support_email !== mainStoreEmail;
+  const escalationEmail = hasSeparateSupportEmail ? shopContext.support_email : mainStoreEmail;
+
   // Se tem template configurado, usar ele
   if (shopContext.fallback_message_template) {
     // Remove "{customer_name}" patterns (with optional comma/space) when no name is available
@@ -4658,7 +4668,7 @@ export async function generateHumanFallbackMessage(
     }
     message = message
       .replace('{attendant_name}', shopContext.attendant_name)
-      .replace('{support_email}', shopContext.support_email)
+      .replace('{support_email}', escalationEmail || shopContext.support_email || '')
       .replace('{store_name}', shopContext.name);
 
     return {
@@ -4736,7 +4746,7 @@ YOUR TASK:
 Write a short customer service response (maximum 80 words) that:
 1. ${customerName ? `Greet the customer by name (${customerName})` : 'Start with a friendly greeting (do NOT use "Customer" as a name)'}
 2. Acknowledge you received their message
-3. Ask the customer to contact ${shopContext.support_email} for further assistance
+3. ${hasSeparateSupportEmail ? `Ask the customer to contact ${escalationEmail} for further assistance` : 'Ask the customer to reply to this email for further assistance (do NOT mention any specific email address)'}
 4. Sign with your name: ${shopContext.attendant_name}
 
 RULES:
@@ -4767,7 +4777,7 @@ LANGUAGE: ${languageInstruction}`;
         const langStr = retryLangNames[language] || language;
         const retryResponse = await callClaude(
           systemPrompt,
-          [{ role: 'user', content: `CRITICAL: Write ONLY in ${langStr}. NOT Portuguese. Ask the customer to contact ${shopContext.support_email}. Respond ENTIRELY in ${langStr}.` }],
+          [{ role: 'user', content: `CRITICAL: Write ONLY in ${langStr}. NOT Portuguese. ${hasSeparateSupportEmail ? `Ask the customer to contact ${escalationEmail}.` : 'Ask the customer to reply to this email for assistance.'} Respond ENTIRELY in ${langStr}.` }],
           150
         );
         const retryText = cleanAIResponse(stripMarkdown(retryResponse.content[0]?.text || ''));
