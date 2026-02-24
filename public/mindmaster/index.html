@@ -228,15 +228,15 @@
   <!-- ========== CONNECTORS (drawn behind nodes) ========== -->
 
   <!-- C1: Email -> Categorize -->
-  <path id="c1" class="connector-line" d="M 258 360 C 280 360, 305 360, 326 360"
+  <path id="c1" class="connector-line" d="M 258 360 C 300 360, 330 360, 362 360"
         stroke="url(#grad-purple)" stroke-width="2.5" fill="none" marker-end="url(#arr-purple)" data-delay="500"/>
 
   <!-- C2: Categorize -> Demais Categorias (top) -->
-  <path id="c2" class="connector-line" d="M 682 320 C 694 298, 704 230, 710 195"
+  <path id="c2" class="connector-line" d="M 624 320 C 656 300, 678 210, 710 195"
         stroke="url(#grad-green-up)" stroke-width="2.5" fill="none" marker-end="url(#arr-green)" data-delay="1100"/>
 
   <!-- C3: Categorize -> Ticket (middle) -->
-  <path id="c3" class="connector-line" d="M 682 362 C 690 362, 698 362, 700 362"
+  <path id="c3" class="connector-line" d="M 624 362 C 656 362, 684 362, 700 362"
         stroke="#f0b429" stroke-opacity="0.7" stroke-width="2.5" fill="none" data-delay="1200"/>
   <!-- Explicit amber arrow triangle -->
   <g class="node-group" data-delay="1600">
@@ -244,7 +244,7 @@
   </g>
 
   <!-- C4: Categorize -> Spam (bottom) -->
-  <path id="c4" class="connector-line" d="M 682 400 C 694 422, 704 500, 710 525"
+  <path id="c4" class="connector-line" d="M 624 400 C 656 420, 678 510, 710 525"
         stroke="url(#grad-red-down)" stroke-width="2.5" fill="none" marker-end="url(#arr-red)" data-delay="1300"/>
 
   <!-- C5: Demais -> Replyna Responde -->
@@ -325,20 +325,20 @@
   <!-- ========== NODE 2: Replyna Categoriza ========== -->
   <g class="node-group" data-delay="700">
     <!-- Step badge -->
-    <circle cx="362" cy="260" r="14" fill="rgba(124,108,240,0.12)" stroke="rgba(124,108,240,0.3)" stroke-width="1"/>
-    <text x="362" y="264" text-anchor="middle" fill="#7c6cf0" font-family="'Inter', sans-serif" font-size="10" font-weight="700">02</text>
+    <circle cx="392" cy="264" r="14" fill="rgba(124,108,240,0.12)" stroke="rgba(124,108,240,0.3)" stroke-width="1"/>
+    <text x="392" y="268" text-anchor="middle" fill="#7c6cf0" font-family="'Inter', sans-serif" font-size="10" font-weight="700">02</text>
 
     <!-- Card -->
-    <rect class="node-card" x="330" y="266" width="350" height="204" rx="16" fill="#0c0c1a" stroke="rgba(124,108,240,0.2)" stroke-width="1.5" filter="url(#cardShadow)"/>
-    <rect x="330" y="266" width="350" height="204" rx="16" fill="url(#card-inner)" pointer-events="none"/>
-    <rect x="330" y="266" width="350" height="1.5" rx="0.75" fill="url(#card-top-purple)"/>
+    <rect class="node-card" x="368" y="270" width="254" height="186" rx="16" fill="#0c0c1a" stroke="rgba(124,108,240,0.2)" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect x="368" y="270" width="254" height="186" rx="16" fill="url(#card-inner)" pointer-events="none"/>
+    <rect x="368" y="270" width="254" height="1.5" rx="0.75" fill="url(#card-top-purple)"/>
     <!-- Left accent -->
-    <rect x="330" y="288" width="3" height="40" rx="1.5" fill="#7c6cf0" opacity="0.6"/>
+    <rect x="368" y="292" width="3" height="40" rx="1.5" fill="#7c6cf0" opacity="0.6"/>
 
     <!-- Icon background circle -->
-    <circle cx="378" cy="302" r="14" fill="rgba(124,108,240,0.08)" stroke="rgba(124,108,240,0.12)" stroke-width="0.5"/>
-    <!-- Cpu icon (Lucide) - center at (378,302), scale 0.5 -->
-    <g transform="translate(372, 296) scale(0.5)" fill="none" stroke="#e8e8ef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="416" cy="306" r="14" fill="rgba(124,108,240,0.08)" stroke="rgba(124,108,240,0.12)" stroke-width="0.5"/>
+    <!-- Cpu icon (Lucide) - center at (416,306), scale 0.5 => translate = (410,300) -->
+    <g transform="translate(410, 300) scale(0.5)" fill="none" stroke="#e8e8ef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="4" y="4" width="16" height="16" rx="2"/>
       <rect x="9" y="9" width="6" height="6" rx="1"/>
       <path d="M15 2v2"/><path d="M15 20v2"/>
@@ -348,49 +348,73 @@
     </g>
 
     <!-- Title text -->
-    <text x="398" y="306" fill="#e8e8ef" font-family="'Inter', sans-serif" font-size="15" font-weight="700">Replyna Categoriza</text>
-    <text x="366" y="324" fill="#808098" font-family="'Inter', sans-serif" font-size="10" font-weight="500">IA classifica automaticamente</text>
+    <text x="436" y="310" fill="#e8e8ef" font-family="'Inter', sans-serif" font-size="15" font-weight="700">Replyna Categoriza</text>
+    <text x="404" y="330" fill="#808098" font-family="'Inter', sans-serif" font-size="10" font-weight="500">IA classifica automaticamente</text>
 
-    <!-- Category tags with flex-wrap via foreignObject -->
-    <foreignObject x="340" y="334" width="330" height="130">
-      <div xmlns="http://www.w3.org/1999/xhtml">
-        <style>.mm-tag{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;line-height:1;white-space:nowrap;}</style>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          <span class="mm-tag" style="background:rgba(124,108,240,0.08);border:1px solid rgba(124,108,240,0.15);color:#a0a0b8;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4l-9-5.19"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-            Rastreio
-          </span>
-          <span class="mm-tag" style="background:rgba(124,108,240,0.08);border:1px solid rgba(124,108,240,0.15);color:#a0a0b8;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            Duvidas
-          </span>
-          <span class="mm-tag" style="background:rgba(124,108,240,0.08);border:1px solid rgba(124,108,240,0.15);color:#a0a0b8;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
-            Troca
-          </span>
-          <span class="mm-tag" style="background:rgba(124,108,240,0.08);border:1px solid rgba(124,108,240,0.15);color:#a0a0b8;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
-            Devolucao
-          </span>
-          <span class="mm-tag" style="background:rgba(124,108,240,0.08);border:1px solid rgba(124,108,240,0.15);color:#a0a0b8;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-            Canc.
-          </span>
-          <span class="mm-tag" style="background:rgba(124,108,240,0.08);border:1px solid rgba(124,108,240,0.15);color:#a0a0b8;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-            Edicao
-          </span>
-          <span class="mm-tag" style="background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.2);color:#f0b429;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>
-            Ticket
-          </span>
-          <span class="mm-tag" style="background:rgba(255,92,92,0.08);border:1px solid rgba(255,92,92,0.2);color:#ff5c5c;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
-            Spam
-          </span>
-        </div>
-      </div>
-    </foreignObject>
+    <!-- Category pills - Row 1 -->
+    <rect x="398" y="344" width="62" height="22" rx="7" fill="rgba(124,108,240,0.08)" stroke="rgba(124,108,240,0.15)" stroke-width="0.5"/>
+    <g transform="translate(403, 349) scale(0.42)" fill="none" stroke="#a0a0b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16.5 9.4l-9-5.19"/>
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+      <line x1="12" y1="22.08" x2="12" y2="12"/>
+    </g>
+    <text x="417" y="359" fill="#a0a0b8" font-family="'Inter', sans-serif" font-size="9.5" font-weight="500">Rastreio</text>
+
+    <rect x="466" y="344" width="58" height="22" rx="7" fill="rgba(124,108,240,0.08)" stroke="rgba(124,108,240,0.15)" stroke-width="0.5"/>
+    <g transform="translate(471, 349) scale(0.42)" fill="none" stroke="#a0a0b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </g>
+    <text x="485" y="359" fill="#a0a0b8" font-family="'Inter', sans-serif" font-size="9.5" font-weight="500">Duvidas</text>
+
+    <rect x="530" y="344" width="50" height="22" rx="7" fill="rgba(124,108,240,0.08)" stroke="rgba(124,108,240,0.15)" stroke-width="0.5"/>
+    <g transform="translate(535, 349) scale(0.42)" fill="none" stroke="#a0a0b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+      <path d="M21 3v5h-5"/>
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+      <path d="M3 21v-5h5"/>
+    </g>
+    <text x="549" y="359" fill="#a0a0b8" font-family="'Inter', sans-serif" font-size="9.5" font-weight="500">Troca</text>
+
+    <!-- Category pills - Row 2 -->
+    <rect x="398" y="374" width="78" height="22" rx="7" fill="rgba(124,108,240,0.08)" stroke="rgba(124,108,240,0.15)" stroke-width="0.5"/>
+    <g transform="translate(403, 379) scale(0.42)" fill="none" stroke="#a0a0b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 10 4 15 9 20"/>
+      <path d="M20 4v7a4 4 0 0 1-4 4H4"/>
+    </g>
+    <text x="417" y="389" fill="#a0a0b8" font-family="'Inter', sans-serif" font-size="9.5" font-weight="500">Devolucao</text>
+
+    <rect x="482" y="374" width="88" height="22" rx="7" fill="rgba(124,108,240,0.08)" stroke="rgba(124,108,240,0.15)" stroke-width="0.5"/>
+    <g transform="translate(487, 379) scale(0.42)" fill="none" stroke="#a0a0b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="15" y1="9" x2="9" y2="15"/>
+      <line x1="9" y1="9" x2="15" y2="15"/>
+    </g>
+    <text x="501" y="389" fill="#a0a0b8" font-family="'Inter', sans-serif" font-size="9.5" font-weight="500">Cancelamento</text>
+
+    <!-- Category pills - Row 3 -->
+    <rect x="398" y="404" width="54" height="22" rx="7" fill="rgba(124,108,240,0.08)" stroke="rgba(124,108,240,0.15)" stroke-width="0.5"/>
+    <g transform="translate(403, 409) scale(0.42)" fill="none" stroke="#a0a0b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+      <path d="m15 5 4 4"/>
+    </g>
+    <text x="417" y="419" fill="#a0a0b8" font-family="'Inter', sans-serif" font-size="9.5" font-weight="500">Edicao</text>
+
+    <rect x="458" y="404" width="54" height="22" rx="7" fill="rgba(240,180,41,0.08)" stroke="rgba(240,180,41,0.2)" stroke-width="0.5"/>
+    <g transform="translate(463, 409) scale(0.42)" fill="none" stroke="#f0b429" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
+      <path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>
+    </g>
+    <text x="477" y="419" fill="#f0b429" font-family="'Inter', sans-serif" font-size="9.5" font-weight="500">Ticket</text>
+
+    <rect x="518" y="404" width="52" height="22" rx="7" fill="rgba(255,92,92,0.08)" stroke="rgba(255,92,92,0.2)" stroke-width="0.5"/>
+    <g transform="translate(523, 409) scale(0.42)" fill="none" stroke="#ff5c5c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="m4.9 4.9 14.2 14.2"/>
+    </g>
+    <text x="537" y="419" fill="#ff5c5c" font-family="'Inter', sans-serif" font-size="9.5" font-weight="500">Spam</text>
   </g>
 
 
