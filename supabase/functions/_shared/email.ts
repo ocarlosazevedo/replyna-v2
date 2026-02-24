@@ -385,13 +385,45 @@ class SimpleImapClient {
     }
 
     // Extrair corpo - formatos flexíveis (CRLF e LF)
-    let bodyMatch = response.match(/BODY\[TEXT\]\s*\{(\d+)\}\r?\n([\s\S]*?)(?=\)\r?\n|\r?\n\))/);
-    if (!bodyMatch) {
-      // Fallback: extrair tudo após BODY[TEXT] {N}\n até o final da resposta IMAP
-      bodyMatch = response.match(/BODY\[TEXT\]\s*(?:\{(\d+)\}\r?\n)?([\s\S]*?)(?=\)\s*$|\n\))/);
+    // Estratégia 1: Usar literal size {N} para extrair exatamente N bytes
+    const literalMatch = response.match(/BODY\[TEXT\]\s*\{(\d+)\}\r?\n/);
+    if (literalMatch) {
+      const literalSize = parseInt(literalMatch[1], 10);
+      const startIndex = (literalMatch.index ?? 0) + literalMatch[0].length;
+      body = response.substring(startIndex, startIndex + literalSize);
+      console.log(`[IMAP] Body extraído via literal size {${literalSize}}, resultado: ${body.length} chars`);
     }
-    if (bodyMatch) {
-      body = bodyMatch[2] || '';
+
+    // Estratégia 2: Regex padrão com terminador IMAP
+    if (!body) {
+      const bodyMatch = response.match(/BODY\[TEXT\]\s*\{(\d+)\}\r?\n([\s\S]*?)(?=\)\r?\n|\r?\n\))/);
+      if (bodyMatch) {
+        body = bodyMatch[2] || '';
+        console.log(`[IMAP] Body extraído via regex padrão: ${body.length} chars`);
+      }
+    }
+
+    // Estratégia 3: Sem literal size, regex mais flexível
+    if (!body) {
+      const bodyMatch2 = response.match(/BODY\[TEXT\]\s*(?:\{(\d+)\}\r?\n)?([\s\S]*?)(?=\)\s*$|\n\))/);
+      if (bodyMatch2) {
+        body = bodyMatch2[2] || '';
+        console.log(`[IMAP] Body extraído via regex flexível: ${body.length} chars`);
+      }
+    }
+
+    // Estratégia 4: Extrair tudo após BODY[TEXT] até o final (último recurso)
+    if (!body) {
+      const lastResort = response.match(/BODY\[TEXT\]\s*(?:\{?\d*\}?\r?\n)?([\s\S]+)/);
+      if (lastResort) {
+        // Remover trailing IMAP response (última linha com tag ou ")")
+        body = lastResort[1].replace(/\)\s*$/, '').replace(/\r?\n[A-Z0-9]+ OK .*$/m, '').trim();
+        console.log(`[IMAP] Body extraído via último recurso: ${body.length} chars`);
+      }
+    }
+
+    if (!body) {
+      console.error(`[IMAP] FALHA ao extrair body da mensagem UID ${uid}. Response (2000 chars):`, response.substring(0, 2000));
     }
 
     return {
@@ -592,6 +624,10 @@ export async function fetchUnreadEmails(
         const limitedImages = decodedBody.images.slice(0, 5);
         if (decodedBody.images.length > 5) {
           console.log(`Limitando imagens de ${decodedBody.images.length} para 5`);
+        }
+
+        if (!bodyText && !decodedBody.html) {
+          console.warn(`[fetchUnreadEmails] AVISO: Mensagem ${uid} (${msg.envelope.subject}) tem body_text e body_html vazios! msg.body length: ${msg.body?.length ?? 0}`);
         }
 
         emails.push({
