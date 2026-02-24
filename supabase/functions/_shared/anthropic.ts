@@ -956,21 +956,22 @@ function formatEmailResponse(text: string): string {
     startIdx = 1;
   }
 
-  // Identificar assinatura (últimas 1-2 frases que são nomes curtos sem pontuação ou frase + nome)
+  // Identificar assinatura: última "frase" que NÃO termina com pontuação de frase (.!?)
+  // Cobre: "Emily Carter", "Leonardo - Cronos Luxury", "Sarah\nWarScapes", etc.
   let signature = '';
   let endIdx = sentences.length;
   const lastSentence = sentences[sentences.length - 1].trim();
 
-  // Se a última "frase" é só um nome (1-4 palavras, sem pontuação final exceto ponto)
-  if (/^[A-ZÀ-Ú][a-zà-ú]+(\s+[A-ZÀ-Ú][a-zà-ú]+){0,3}\.?$/.test(lastSentence)) {
+  // Se a última "frase" NÃO termina com .!? → é assinatura (nome, nome - loja, etc.)
+  if (!/[.!?]\s*$/.test(lastSentence)) {
     signature = lastSentence;
     endIdx = sentences.length - 1;
   } else {
-    // Tentar extrair nome do fim da última frase: "...let me know. Sarah Connolly"
-    const nameAtEnd = lastSentence.match(/^(.+[.!?])\s+((?:[A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+){0,3}))$/);
-    if (nameAtEnd) {
+    // Tentar extrair nome colado ao fim: "...let me know. Sarah Connolly"
+    const nameAtEnd = lastSentence.match(/^(.+[.!?])\s+([A-ZÀ-Ú][\w\s\-]+?)$/);
+    if (nameAtEnd && nameAtEnd[2].split(/\s+/).length <= 5) {
       sentences[sentences.length - 1] = nameAtEnd[1];
-      signature = nameAtEnd[2];
+      signature = nameAtEnd[2].trim();
     }
   }
 
