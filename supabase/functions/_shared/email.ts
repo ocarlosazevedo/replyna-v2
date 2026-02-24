@@ -1233,6 +1233,16 @@ export async function sendEmail(
 
     if (email.body_html) {
       mailOptions.html = email.body_html;
+    } else if (email.body_text) {
+      // Auto-gerar HTML a partir do texto puro para preservar formatação
+      const escaped = email.body_text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      mailOptions.html = escaped
+        .split('\n\n')
+        .map((para: string) => `<p style="margin:0 0 12px 0">${para.replace(/\n/g, '<br>')}</p>`)
+        .join('');
     }
 
     // Headers para manter thread
