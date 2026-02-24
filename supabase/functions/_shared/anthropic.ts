@@ -3665,6 +3665,7 @@ SINAIS DE LOOP:
       * Sem nome do cliente → Use saudação genérica: "Olá!", "Hola!", "Hello!", "Guten Tag!"
       * NUNCA use "Estimado Sr. [Cliente]" ou "Dear Mr. [Customer]"
       * Se não sabe o nome, use: "Estimado/a,", "Dear Customer,", "Hola,"
+      * Sem número do pedido → PEÇA ao cliente: "Poderia me informar o número do seu pedido?" / "Could you provide your order number?" - NUNCA use #[número] ou #[number]
       * Sem rastreio → "o código de rastreio ainda não está disponível"
       * Sem link → não mencione o link
     - SEMPRE use os DADOS REAIS fornecidos em "DADOS DO PEDIDO DO CLIENTE"
@@ -3898,6 +3899,14 @@ ${codPreDelivery ? `- Se contador = 3 → TERCEIRO CONTATO COD: Último apelo ze
 - Se contador >= 4 → QUARTO CONTATO: Agora sim, forneça o email de suporte` : `- Se contador >= 3 → TERCEIRO CONTATO: Agora sim, forneça o email de suporte`}
 
 IMPORTANTE: NUNCA forneça o email de suporte se contador < ${forwardThreshold} (exceto em casos de PRIORIDADE 2).
+
+IMPORTANTE SOBRE OS EXEMPLOS ABAIXO:
+- Os exemplos usam [Nome], [número] e [Assinatura] como PLACEHOLDERS ILUSTRATIVOS
+- Na sua resposta REAL, SUBSTITUA:
+  * [Nome] → pelo nome real do cliente (dos DADOS DO PEDIDO) ou saudação genérica se não tiver
+  * [número] → pelo número real do pedido (dos DADOS DO PEDIDO) ou PEÇA ao cliente se não tiver (ex: "Poderia me informar o número do seu pedido?")
+  * [Assinatura] → pelo nome real: ${shopContext.attendant_name}
+- NUNCA copie [Nome], [número] ou [Assinatura] literalmente na resposta!
 
 --- SE CONTADOR = 1 (Primeiro contato) ---
 ${codPreDelivery ? `Objetivo: Mostrar que o cliente tem ZERO RISCO com COD
