@@ -906,6 +906,42 @@ function stripMarkdown(text: string): string {
 }
 
 /**
+ * Pós-processamento de formatação: adiciona quebras de linha em pontos lógicos
+ * quando a IA gera tudo num bloco só (comum com Haiku)
+ */
+function formatEmailResponse(text: string): string {
+  // Se já tem múltiplas quebras de linha, não precisa reformatar
+  if ((text.match(/\n/g) || []).length >= 3) return text;
+
+  let result = text;
+
+  // 1. Quebra de linha após saudação inicial (Hello!, Hi!, Olá!, Hey!, etc.)
+  result = result.replace(
+    /^((?:Hello|Hi|Hey|Olá|Oi|Bonjour|Hallo|Ciao|Hej|Cześć|Dobrý den|Witam)[\s!,.].*?[!.])\s+/i,
+    '$1\n\n'
+  );
+
+  // 2. Quebra de linha antes de URLs (links de rastreio, etc.)
+  result = result.replace(/\s+(https?:\/\/\S+)/g, '\n\n$1');
+
+  // 3. Quebra de linha depois de URLs seguidos de texto
+  result = result.replace(/(https?:\/\/\S+)\.?\s+(?=[A-ZÀ-Ú])/g, '$1\n\n');
+
+  // 4. Quebra de linha antes da assinatura (nome no final - última palavra/nome após última frase)
+  // Detecta padrões como ". Name" ou "! Name" no final
+  result = result.replace(/([.!?])\s+([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)?)$/, '$1\n\n$2');
+
+  // 5. Quebra de linha entre bullet points/itens de lista que ficaram juntos
+  result = result.replace(/([.!])(\s+)(•\s)/g, '$1\n$3');
+  result = result.replace(/([.!])(\s+)(\d+[\.\)]\s)/g, '$1\n$3');
+
+  // Limpar espaços extras
+  result = result.replace(/\n{3,}/g, '\n\n').trim();
+
+  return result;
+}
+
+/**
  * Remove pensamentos internos, formatação incorreta e identificação de IA da resposta
  */
 function cleanAIResponse(text: string): string {
@@ -4182,7 +4218,7 @@ Se a imagem mostrar algo grave (produto claramente errado, danificado, etc.):
   }
 
   // Aplicar limpeza de pensamentos internos e formatação
-  let cleanedResponse = cleanAIResponse(stripMarkdown(responseText));
+  let cleanedResponse = formatEmailResponse(cleanAIResponse(stripMarkdown(responseText)));
 
   // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 1: Detectar alucinações (endereços, telefones, ações falsas)
   const hallucinations = detectHallucinations(cleanedResponse, shopContext, storeProvidedInfo);
@@ -4211,7 +4247,7 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
       }];
       const retryResponse = await callClaude(systemPrompt, hallucinationFixMessages, MAX_TOKENS);
       const retryText = retryResponse.content[0]?.text || '';
-      const retryClean = cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim()));
+      const retryClean = formatEmailResponse(cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim())));
 
       // Verificar se o retry também tem alucinações
       const retryHallucinations = detectHallucinations(retryClean, shopContext, storeProvidedInfo);
@@ -4274,7 +4310,7 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
         }];
         const retryResponse = await callClaude(systemPrompt, retryMessages, MAX_TOKENS);
         const retryText = retryResponse.content[0]?.text || '';
-        const retryClean = cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim()));
+        const retryClean = formatEmailResponse(cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim())));
         if (retryClean && retryClean.length > 10) {
           console.log(`[generateResponse] Language retry successful, response now in ${language}`);
           // Aplicar mesma sanitização das CAMADA 3-5 antes de retornar
@@ -4616,7 +4652,7 @@ ${urgencyNote}`;
     200
   );
 
-  const dataReqResponse = cleanAIResponse(stripMarkdown(response.content[0]?.text || ''));
+  const dataReqResponse = formatEmailResponse(cleanAIResponse(stripMarkdown(response.content[0]?.text || '')));
 
   // VALIDAÇÃO PÓS-GERAÇÃO: Detectar se a resposta está no idioma errado
   if (language && language !== 'pt' && language !== 'pt-BR') {
@@ -4635,7 +4671,7 @@ ${urgencyNote}`;
           }],
           200
         );
-        const retryText = cleanAIResponse(stripMarkdown(retryResponse.content[0]?.text || ''));
+        const retryText = formatEmailResponse(cleanAIResponse(stripMarkdown(retryResponse.content[0]?.text || '')));
         if (retryText && retryText.length > 10) {
           console.log(`[generateDataRequestMessage] Language retry successful`);
           return {
@@ -4779,7 +4815,7 @@ LANGUAGE: ${languageInstruction}`;
     150
   );
 
-  const fallbackResponse = cleanAIResponse(stripMarkdown(response.content[0]?.text || ''));
+  const fallbackResponse = formatEmailResponse(cleanAIResponse(stripMarkdown(response.content[0]?.text || '')));
 
   // VALIDAÇÃO PÓS-GERAÇÃO: Detectar se a resposta está no idioma errado
   if (language && language !== 'pt' && language !== 'pt-BR') {
@@ -4795,7 +4831,7 @@ LANGUAGE: ${languageInstruction}`;
           [{ role: 'user', content: `CRITICAL: Write ONLY in ${langStr}. NOT Portuguese. Tell the customer the team will review their case and respond through this same email. Do NOT provide any different email address. Respond ENTIRELY in ${langStr}.` }],
           150
         );
-        const retryText = cleanAIResponse(stripMarkdown(retryResponse.content[0]?.text || ''));
+        const retryText = formatEmailResponse(cleanAIResponse(stripMarkdown(retryResponse.content[0]?.text || '')));
         if (retryText && retryText.length > 10) {
           return {
             response: retryText,
