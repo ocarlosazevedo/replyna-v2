@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -6,11 +6,9 @@
 <title>Replyna - Como Funciona | Atendimento Automatico com IA</title>
 <meta name="description" content="Descubra como a Replyna automatiza o atendimento da sua loja com IA. E-mails categorizados e respondidos automaticamente.">
 <meta property="og:title" content="Replyna - Como Funciona">
-<meta property="og:description" content="IA que responde e-mails da sua loja automaticamente. Categorização inteligente, resposta automática e gestão de tickets.">
+<meta property="og:description" content="IA que responde e-mails da sua loja automaticamente. Categoriza&#xE7;&#xE3;o inteligente, resposta autom&#xE1;tica e gest&#xE3;o de tickets.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://www.replyna.me/mindmaster">
 <meta name="theme-color" content="#07070e">
-<link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -32,7 +30,6 @@
   }
   svg { width: 100%; height: auto; display: block; }
 
-  /* Background particles */
   .particle {
     position: fixed;
     width: 2px;
@@ -50,15 +47,12 @@
     100% { transform: translateY(-10vh) scale(1); opacity: 0; }
   }
 
-  /* Node animations */
   .node-group { opacity: 0; transform-origin: center; }
   .node-group.show { animation: nodeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-  /* Connector animations */
   .connector-line { stroke-dasharray: 800; stroke-dashoffset: 800; opacity: 0; }
   .connector-line.draw { animation: drawPath 1s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
 
-  /* Flow dots */
   .flow-dot { opacity: 0; }
   .flow-dot.active { opacity: 0.9; }
 
@@ -79,7 +73,6 @@
     50%      { r: 5; }
   }
 
-  /* Hover effects */
   .node-card {
     transition: filter 0.3s ease;
   }
@@ -93,12 +86,10 @@
 <div class="canvas">
 <svg viewBox="0 0 1200 720" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Grid pattern -->
     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
       <circle cx="20" cy="20" r="0.6" fill="rgba(124,108,240,0.08)"/>
     </pattern>
 
-    <!-- Gradient glows -->
     <radialGradient id="glow-purple" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#7c6cf0" stop-opacity="0.12"/>
       <stop offset="100%" stop-color="#7c6cf0" stop-opacity="0"/>
@@ -116,7 +107,6 @@
       <stop offset="100%" stop-color="#f0b429" stop-opacity="0"/>
     </radialGradient>
 
-    <!-- Connector gradients -->
     <linearGradient id="grad-purple" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#7c6cf0" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#7c6cf0" stop-opacity="0.7"/>
@@ -146,27 +136,23 @@
       <stop offset="100%" stop-color="#ff5c5c" stop-opacity="0.8"/>
     </linearGradient>
 
-    <!-- Title gradient -->
     <linearGradient id="title-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#9d91f8"/>
       <stop offset="50%" stop-color="#e8e8ef"/>
       <stop offset="100%" stop-color="#9d91f8"/>
     </linearGradient>
 
-    <!-- Card top highlight gradients -->
     <linearGradient id="card-top-purple" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#7c6cf0" stop-opacity="0"/>
       <stop offset="50%" stop-color="#7c6cf0" stop-opacity="0.5"/>
       <stop offset="100%" stop-color="#7c6cf0" stop-opacity="0"/>
     </linearGradient>
 
-    <!-- Card inner gradient overlay -->
     <linearGradient id="card-inner" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#ffffff" stop-opacity="0.03"/>
       <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
 
-    <!-- Arrow markers -->
     <marker id="arr-purple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
       <polygon points="0 0, 8 3, 0 6" fill="#7c6cf0" opacity="0.8"/>
     </marker>
@@ -180,7 +166,6 @@
       <polygon points="0 0, 8 3, 0 6" fill="#ff5c5c" opacity="0.8"/>
     </marker>
 
-    <!-- Soft glow filter -->
     <filter id="softglow" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur stdDeviation="4" result="blur"/>
       <feMerge>
@@ -189,29 +174,25 @@
       </feMerge>
     </filter>
 
-    <!-- Card shadow (enhanced double shadow) -->
     <filter id="cardShadow" x="-15%" y="-10%" width="130%" height="140%">
       <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.2"/>
       <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000" flood-opacity="0.25"/>
     </filter>
   </defs>
 
-  <!-- ========== BACKGROUND ========== -->
+  <!-- BACKGROUND -->
   <rect width="1200" height="720" fill="#07070e"/>
   <rect width="1200" height="720" fill="url(#grid)"/>
 
-  <!-- Ambient glows -->
   <ellipse cx="170" cy="360" rx="280" ry="220" fill="url(#glow-purple)"/>
   <ellipse cx="460" cy="360" rx="200" ry="180" fill="url(#glow-purple)" opacity="0.4"/>
   <ellipse cx="950" cy="190" rx="220" ry="180" fill="url(#glow-green)"/>
   <ellipse cx="950" cy="360" rx="180" ry="150" fill="url(#glow-amber)"/>
   <ellipse cx="950" cy="530" rx="200" ry="160" fill="url(#glow-red)"/>
 
-  <!-- ========== TITLE ========== -->
+  <!-- TITLE -->
   <g class="node-group" data-delay="0">
-    <!-- Title background pill -->
     <rect x="370" y="18" width="460" height="54" rx="27" fill="rgba(124,108,240,0.06)" stroke="rgba(124,108,240,0.15)" stroke-width="1"/>
-    <!-- Status dot -->
     <circle cx="400" cy="45" r="4" fill="#7c6cf0">
       <animate attributeName="opacity" values="1;0.3;1" dur="2.5s" repeatCount="indefinite"/>
     </circle>
@@ -219,42 +200,27 @@
       <animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/>
       <animate attributeName="opacity" values="0.3;0;0.3" dur="2.5s" repeatCount="indefinite"/>
     </circle>
-    <!-- Title text with gradient -->
     <text x="600" y="42" text-anchor="middle" fill="url(#title-gradient)" font-family="'Inter', sans-serif" font-size="17" font-weight="800" letter-spacing="3">REPLYNA</text>
     <text x="600" y="60" text-anchor="middle" fill="#6b6b80" font-family="'Inter', sans-serif" font-size="11" font-weight="500" letter-spacing="5">COMO FUNCIONA</text>
   </g>
 
-  <!-- ========== CONNECTORS (drawn behind nodes) ========== -->
-
-  <!-- C1: Email -> Categorize -->
+  <!-- CONNECTORS -->
   <path id="c1" class="connector-line" d="M 258 360 C 310 360, 340 360, 380 360"
         stroke="url(#grad-purple)" stroke-width="2.5" fill="none" marker-end="url(#arr-purple)" data-delay="500"/>
-
-  <!-- C2: Categorize -> Demais Categorias (top) -->
   <path id="c2" class="connector-line" d="M 594 320 C 634 300, 664 210, 715 195"
         stroke="url(#grad-green-up)" stroke-width="2.5" fill="none" marker-end="url(#arr-green)" data-delay="1100"/>
-
-  <!-- C3: Categorize -> Ticket (middle) -->
   <path id="c3" class="connector-line" d="M 594 360 C 644 360, 674 360, 715 360"
         stroke="url(#grad-amber)" stroke-width="2.5" fill="none" marker-end="url(#arr-amber)" data-delay="1200"/>
-
-  <!-- C4: Categorize -> Spam (bottom) -->
   <path id="c4" class="connector-line" d="M 594 400 C 634 420, 664 510, 715 525"
         stroke="url(#grad-red-down)" stroke-width="2.5" fill="none" marker-end="url(#arr-red)" data-delay="1300"/>
-
-  <!-- C5: Demais -> Replyna Responde -->
   <path id="c5" class="connector-line" d="M 855 195 C 890 195, 910 195, 940 195"
         stroke="url(#grad-green-h)" stroke-width="2.5" fill="none" marker-end="url(#arr-green)" data-delay="1700"/>
-
-  <!-- C6: Ticket -> Cria Ticket -->
   <path id="c6" class="connector-line" d="M 855 360 C 890 360, 910 360, 940 360"
         stroke="url(#grad-amber-h)" stroke-width="2.5" fill="none" marker-end="url(#arr-amber)" data-delay="1800"/>
-
-  <!-- C7: Spam -> Move Spam -->
   <path id="c7" class="connector-line" d="M 855 525 C 890 525, 910 525, 940 525"
         stroke="url(#grad-red-h)" stroke-width="2.5" fill="none" marker-end="url(#arr-red)" data-delay="1900"/>
 
-  <!-- ========== FLOW DOTS ========== -->
+  <!-- FLOW DOTS -->
   <circle class="flow-dot" r="3" fill="#7c6cf0" filter="url(#softglow)" data-dot-delay="2000">
     <animateMotion dur="1.8s" repeatCount="indefinite"><mpath href="#c1"/></animateMotion>
   </circle>
@@ -278,13 +244,11 @@
   </circle>
 
 
-  <!-- ========== NODE 1: E-mail Recebido ========== -->
+  <!-- NODE 1: E-mail Recebido -->
   <g class="node-group" data-delay="200">
-    <!-- Step badge -->
     <circle cx="80" cy="296" r="14" fill="rgba(124,108,240,0.12)" stroke="rgba(124,108,240,0.3)" stroke-width="1"/>
     <text x="80" y="300" text-anchor="middle" fill="#7c6cf0" font-family="'Inter', sans-serif" font-size="10" font-weight="700">01</text>
 
-    <!-- Pulse ring -->
     <rect x="72" y="308" width="186" height="106" rx="18" fill="none" stroke="#7c6cf0" stroke-width="1" opacity="0.2">
       <animate attributeName="opacity" values="0;0.25;0" dur="3s" repeatCount="indefinite"/>
       <animate attributeName="x" values="72;68;72" dur="3s" repeatCount="indefinite"/>
@@ -293,46 +257,34 @@
       <animate attributeName="height" values="106;114;106" dur="3s" repeatCount="indefinite"/>
     </rect>
 
-    <!-- Card -->
     <rect class="node-card" x="76" y="312" width="180" height="100" rx="16" fill="#0c0c1a" stroke="rgba(124,108,240,0.25)" stroke-width="1.5" filter="url(#cardShadow)"/>
-    <!-- Inner gradient overlay -->
     <rect x="76" y="312" width="180" height="100" rx="16" fill="url(#card-inner)" pointer-events="none"/>
-    <!-- Top highlight gradient -->
     <rect x="76" y="312" width="180" height="1.5" rx="0.75" fill="url(#card-top-purple)"/>
-    <!-- Left accent -->
     <rect x="76" y="326" width="3" height="40" rx="1.5" fill="#7c6cf0" opacity="0.6"/>
 
-    <!-- Icon background circle -->
     <circle cx="108" cy="340" r="14" fill="rgba(124,108,240,0.08)" stroke="rgba(124,108,240,0.12)" stroke-width="0.5"/>
-    <!-- Mail icon (Lucide) -->
     <g transform="translate(96, 328) scale(0.5)" fill="none" stroke="#e8e8ef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="2" y="4" width="20" height="16" rx="2"/>
       <path d="M22 7l-10 7L2 7"/>
     </g>
 
-    <!-- Text -->
     <text x="128" y="344" fill="#e8e8ef" font-family="'Inter', sans-serif" font-size="15" font-weight="700">E-mail Recebido</text>
     <text x="96" y="370" fill="#808098" font-family="'Inter', sans-serif" font-size="11" font-weight="500">Cliente envia mensagem</text>
     <text x="96" y="386" fill="#808098" font-family="'Inter', sans-serif" font-size="11" font-weight="500">para sua loja</text>
   </g>
 
 
-  <!-- ========== NODE 2: Replyna Categoriza ========== -->
+  <!-- NODE 2: Replyna Categoriza -->
   <g class="node-group" data-delay="700">
-    <!-- Step badge -->
     <circle cx="392" cy="264" r="14" fill="rgba(124,108,240,0.12)" stroke="rgba(124,108,240,0.3)" stroke-width="1"/>
     <text x="392" y="268" text-anchor="middle" fill="#7c6cf0" font-family="'Inter', sans-serif" font-size="10" font-weight="700">02</text>
 
-    <!-- Card -->
     <rect class="node-card" x="386" y="280" width="206" height="162" rx="16" fill="#0c0c1a" stroke="rgba(124,108,240,0.2)" stroke-width="1.5" filter="url(#cardShadow)"/>
     <rect x="386" y="280" width="206" height="162" rx="16" fill="url(#card-inner)" pointer-events="none"/>
     <rect x="386" y="280" width="206" height="1.5" rx="0.75" fill="url(#card-top-purple)"/>
-    <!-- Left accent -->
     <rect x="386" y="296" width="3" height="40" rx="1.5" fill="#7c6cf0" opacity="0.6"/>
 
-    <!-- Icon background circle -->
     <circle cx="416" cy="306" r="14" fill="rgba(124,108,240,0.08)" stroke="rgba(124,108,240,0.12)" stroke-width="0.5"/>
-    <!-- Cpu icon (Lucide) -->
     <g transform="translate(404, 294) scale(0.5)" fill="none" stroke="#e8e8ef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="4" y="4" width="16" height="16" rx="2"/>
       <rect x="9" y="9" width="6" height="6" rx="1"/>
@@ -342,7 +294,6 @@
       <path d="M9 2v2"/><path d="M9 20v2"/>
     </g>
 
-    <!-- Title text -->
     <text x="436" y="310" fill="#e8e8ef" font-family="'Inter', sans-serif" font-size="15" font-weight="700">Replyna Categoriza</text>
     <text x="404" y="330" fill="#808098" font-family="'Inter', sans-serif" font-size="10" font-weight="500">IA classifica automaticamente</text>
 
@@ -413,16 +364,13 @@
   </g>
 
 
-  <!-- ========== NODE 3a: Demais Categorias (diamond) ========== -->
+  <!-- NODE 3a: Demais Categorias -->
   <g class="node-group" data-delay="1400">
-    <!-- Step badge -->
     <circle cx="730" cy="140" r="14" fill="rgba(0,210,160,0.1)" stroke="rgba(0,210,160,0.3)" stroke-width="1"/>
     <text x="730" y="144" text-anchor="middle" fill="#00d2a0" font-family="'Inter', sans-serif" font-size="10" font-weight="700">03</text>
 
     <g transform="translate(785, 195)">
-      <!-- Diamond shape -->
       <rect x="-49" y="-49" width="98" height="98" rx="12" transform="rotate(45)" fill="rgba(0,210,160,0.04)" stroke="rgba(0,210,160,0.2)" stroke-width="1.5"/>
-      <!-- Subtle glow ring -->
       <rect x="-49" y="-49" width="98" height="98" rx="12" transform="rotate(45)" fill="none" stroke="rgba(0,210,160,0.06)" stroke-width="1">
         <animate attributeName="opacity" values="0;0.4;0" dur="3s" repeatCount="indefinite"/>
       </rect>
@@ -431,7 +379,7 @@
     </g>
   </g>
 
-  <!-- ========== NODE 3b: Ticket (diamond) ========== -->
+  <!-- NODE 3b: Ticket -->
   <g class="node-group" data-delay="1500">
     <g transform="translate(785, 360)">
       <rect x="-49" y="-49" width="98" height="98" rx="12" transform="rotate(45)" fill="rgba(240,180,41,0.04)" stroke="rgba(240,180,41,0.2)" stroke-width="1.5"/>
@@ -442,7 +390,7 @@
     </g>
   </g>
 
-  <!-- ========== NODE 3c: Spam (diamond) ========== -->
+  <!-- NODE 3c: Spam -->
   <g class="node-group" data-delay="1600">
     <g transform="translate(785, 525)">
       <rect x="-49" y="-49" width="98" height="98" rx="12" transform="rotate(45)" fill="rgba(255,92,92,0.04)" stroke="rgba(255,92,92,0.2)" stroke-width="1.5"/>
@@ -454,38 +402,32 @@
   </g>
 
 
-  <!-- ========== NODE 4a: Replyna Responde (circle) ========== -->
+  <!-- NODE 4a: Replyna Responde -->
   <g class="node-group" data-delay="1900">
-    <!-- Outer pulse ring 1 -->
     <circle cx="1030" cy="195" r="66" fill="none" stroke="rgba(0,210,160,0.15)" stroke-width="1">
       <animate attributeName="r" values="66;76;66" dur="3s" repeatCount="indefinite"/>
       <animate attributeName="opacity" values="0.4;0;0.4" dur="3s" repeatCount="indefinite"/>
     </circle>
-    <!-- Outer pulse ring 2 (layered ripple) -->
     <circle cx="1030" cy="195" r="66" fill="none" stroke="rgba(0,210,160,0.1)" stroke-width="1">
       <animate attributeName="r" values="66;82;66" dur="4s" repeatCount="indefinite" begin="1.5s"/>
       <animate attributeName="opacity" values="0.3;0;0.3" dur="4s" repeatCount="indefinite" begin="1.5s"/>
     </circle>
-    <!-- Main circle -->
     <circle cx="1030" cy="195" r="66" fill="rgba(0,210,160,0.04)" stroke="rgba(0,210,160,0.2)" stroke-width="1.5"/>
 
-    <!-- Zap icon (Lucide) -->
     <g transform="translate(1019, 164) scale(0.7)" fill="none" stroke="#00d2a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
     </g>
 
     <text x="1030" y="198" text-anchor="middle" fill="#00d2a0" font-family="'Inter', sans-serif" font-size="12" font-weight="700">Replyna</text>
     <text x="1030" y="214" text-anchor="middle" fill="#00d2a0" font-family="'Inter', sans-serif" font-size="12" font-weight="700">Responde</text>
-    <!-- Badge -->
     <rect x="993" y="226" width="74" height="18" rx="9" fill="rgba(0,210,160,0.1)" stroke="rgba(0,210,160,0.2)" stroke-width="0.5"/>
     <text x="1030" y="238" text-anchor="middle" fill="rgba(0,210,160,0.7)" font-family="'Inter', sans-serif" font-size="8" font-weight="700" letter-spacing="1.5">AUTOMATICO</text>
   </g>
 
-  <!-- ========== NODE 4b: Cria Ticket (circle) ========== -->
+  <!-- NODE 4b: Cria Ticket -->
   <g class="node-group" data-delay="2000">
     <circle cx="1030" cy="360" r="66" fill="rgba(240,180,41,0.04)" stroke="rgba(240,180,41,0.2)" stroke-width="1.5"/>
 
-    <!-- Ticket icon (Lucide) -->
     <g transform="translate(1019, 329) scale(0.7)" fill="none" stroke="#f0b429" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
       <path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>
@@ -493,16 +435,14 @@
 
     <text x="1030" y="363" text-anchor="middle" fill="#f0b429" font-family="'Inter', sans-serif" font-size="12" font-weight="700">Cria Ticket</text>
     <text x="1030" y="379" text-anchor="middle" fill="#f0b429" font-family="'Inter', sans-serif" font-size="12" font-weight="700">pra Voce</text>
-    <!-- Badge -->
     <rect x="1005" y="391" width="50" height="18" rx="9" fill="rgba(240,180,41,0.1)" stroke="rgba(240,180,41,0.2)" stroke-width="0.5"/>
     <text x="1030" y="403" text-anchor="middle" fill="rgba(240,180,41,0.7)" font-family="'Inter', sans-serif" font-size="8" font-weight="700" letter-spacing="1.5">MANUAL</text>
   </g>
 
-  <!-- ========== NODE 4c: Move p/ Spam (circle) ========== -->
+  <!-- NODE 4c: Move p/ Spam -->
   <g class="node-group" data-delay="2100">
     <circle cx="1030" cy="525" r="66" fill="rgba(255,92,92,0.04)" stroke="rgba(255,92,92,0.2)" stroke-width="1.5"/>
 
-    <!-- Ban icon (Lucide) -->
     <g transform="translate(1019, 494) scale(0.7)" fill="none" stroke="#ff5c5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"/>
       <path d="m4.9 4.9 14.2 14.2"/>
@@ -510,44 +450,36 @@
 
     <text x="1030" y="528" text-anchor="middle" fill="#ff5c5c" font-family="'Inter', sans-serif" font-size="12" font-weight="700">Move p/ Spam</text>
     <text x="1030" y="544" text-anchor="middle" fill="#ff5c5c" font-family="'Inter', sans-serif" font-size="12" font-weight="700">Nao Responde</text>
-    <!-- Badge -->
     <rect x="992" y="556" width="76" height="18" rx="9" fill="rgba(255,92,92,0.1)" stroke="rgba(255,92,92,0.2)" stroke-width="0.5"/>
     <text x="1030" y="568" text-anchor="middle" fill="rgba(255,92,92,0.7)" font-family="'Inter', sans-serif" font-size="8" font-weight="700" letter-spacing="1.5">DESCARTADO</text>
   </g>
 
 
-  <!-- ========== LEGEND ========== -->
+  <!-- LEGEND -->
   <g class="node-group" data-delay="2500">
-    <!-- Legend background -->
     <rect x="280" y="646" width="640" height="44" rx="22" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
 
-    <!-- Auto - Zap mini icon -->
     <g transform="translate(315, 660) scale(0.5)" fill="none" stroke="#00d2a0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
     </g>
     <text x="332" y="672" fill="#808098" font-family="'Inter', sans-serif" font-size="10.5" font-weight="500" letter-spacing="0.3">Resposta Automatica</text>
 
-    <!-- Separator -->
     <line x1="480" y1="656" x2="480" y2="678" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
 
-    <!-- Manual - Ticket mini icon -->
     <g transform="translate(500, 660) scale(0.5)" fill="none" stroke="#f0b429" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
       <path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>
     </g>
     <text x="517" y="672" fill="#808098" font-family="'Inter', sans-serif" font-size="10.5" font-weight="500" letter-spacing="0.3">Acao Manual</text>
 
-    <!-- Separator -->
     <line x1="630" y1="656" x2="630" y2="678" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
 
-    <!-- Descartado - Ban mini icon -->
     <g transform="translate(650, 660) scale(0.5)" fill="none" stroke="#ff5c5c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"/>
       <path d="m4.9 4.9 14.2 14.2"/>
     </g>
     <text x="667" y="672" fill="#808098" font-family="'Inter', sans-serif" font-size="10.5" font-weight="500" letter-spacing="0.3">Descartado</text>
 
-    <!-- Replyna branding -->
     <text x="600" y="710" text-anchor="middle" fill="rgba(124,108,240,0.3)" font-family="'Inter', sans-serif" font-size="9" font-weight="600" letter-spacing="2">REPLYNA.ME</text>
   </g>
 
@@ -555,25 +487,21 @@
 </div>
 
 <script>
-  // ===== Animate nodes =====
   document.querySelectorAll('.node-group').forEach(g => {
     const delay = parseInt(g.dataset.delay || 0);
     setTimeout(() => g.classList.add('show'), delay);
   });
 
-  // ===== Animate connectors =====
   document.querySelectorAll('.connector-line').forEach(path => {
     const delay = parseInt(path.dataset.delay || 0);
     setTimeout(() => path.classList.add('draw'), delay);
   });
 
-  // ===== Activate flow dots =====
   document.querySelectorAll('.flow-dot').forEach(dot => {
     const delay = parseInt(dot.dataset.dotDelay || 0);
     setTimeout(() => dot.classList.add('active'), delay);
   });
 
-  // ===== Floating background particles =====
   function createParticles() {
     const colors = ['#7c6cf0', '#00d2a0', '#f0b429', '#ff5c5c'];
     const body = document.body;
@@ -589,9 +517,17 @@
       body.appendChild(p);
     }
   }
-  // Start particles after main animation finishes
   setTimeout(createParticles, 3000);
 </script>
 
 </body>
-</html>
+</html>`;
+
+Deno.serve((_req) => {
+  return new Response(html, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "public, max-age=3600",
+    },
+  });
+});
