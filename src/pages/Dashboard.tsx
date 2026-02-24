@@ -861,20 +861,20 @@ export default function Dashboard() {
             style={{
               padding: '6px 10px',
               border: '1px solid var(--border-color)',
-              borderRadius: '8px',
+              borderRadius: '10px',
               cursor: 'pointer',
               backgroundColor: privacyMode ? 'rgba(139, 92, 246, 0.15)' : 'var(--bg-card)',
               color: privacyMode ? '#8b5cf6' : 'var(--text-secondary)',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              justifyContent: 'center',
+              height: '40px',
+              width: '40px',
+              boxSizing: 'border-box',
               transition: 'all 0.15s ease',
-              fontSize: '13px',
-              fontWeight: 600,
             }}
           >
             {privacyMode ? <EyeOff size={16} /> : <Eye size={16} />}
-            {!isMobile && (privacyMode ? 'Oculto' : 'Ocultar')}
           </button>
 
           {/* Notification Bell - apenas desktop */}
