@@ -4409,7 +4409,7 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
             .replace(/\.?\s*pour\s+toute\s+(?:autre\s+)?question[^.!?\n]*[.!?]?\s*/gi, ' ')
             .replace(/\.?\s*per\s+qualsiasi\s+(?:altra\s+)?domanda[^.!?\n]*[.!?]?\s*/gi, ' ')
             .replace(/\.?\s*si\s+tiene\s+(?:alguna|cualquier)\s+(?:otra\s+)?(?:pregunta|duda)[^.!?\n]*[.!?]?\s*/gi, ' ')
-            .replace(/\.\s*\./g, '.').replace(/\s{2,}/g, ' ').trim();
+            .replace(/\.\s*\./g, '.').replace(/[^\S\n]{2,}/g, ' ').trim();
           // CAMADA 5: Corrigir assinatura
           const escName = shopContext.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const sigPattern = new RegExp(`\\n\\s*(?:support|suporte|equipe|team|l'équipe|equipo)\\s+(?:de\\s+|do\\s+|da\\s+)?${escName}\\s*$`, 'i');
@@ -4426,7 +4426,7 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
             .replace(/[^.!?\n]*\b(?:entrarei\s+em\s+contato|retornarei|voltarei\s+a\s+(?:entrar\s+em\s+contato|responder)|prometo\s+(?:dar|enviar|responder|retornar|verificar)|darei\s+(?:um\s+)?retorno)[^.!?\n]*[.!?]?\s*/gi, '')
             .replace(/[^.!?\n]*\b(?:aguarde|espere)\s+(?:enquanto|alguns?|uns?)[^.!?\n]*[.!?]?\s*/gi, '')
             .replace(/[^.!?\n]*\bpe[çc]o\s+(?:sinceras?\s+)?desculpas?\s+pel[oa]\s+(?:demora|atraso|espera|inconveni[eê]ncia)[^.!?\n]*[.!?]?\s*/gi, '')
-            .replace(/\.\s*\./g, '.').replace(/\n\s*\n\s*\n/g, '\n\n').replace(/\s{2,}/g, ' ').trim();
+            .replace(/\.\s*\./g, '.').replace(/\n\s*\n\s*\n/g, '\n\n').replace(/[^\S\n]{2,}/g, ' ').trim();
           return {
             response: sanitizedRetry,
             tokens_input: response.usage.input_tokens + retryResponse.usage.input_tokens,
@@ -4482,9 +4482,9 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
     .replace(/\.?\s*per\s+qualsiasi\s+(?:altra\s+)?domanda[^.!?\n]*[.!?]?\s*/gi, ' ')
     // ES: "Si tiene alguna otra pregunta/duda..."
     .replace(/\.?\s*si\s+tiene\s+(?:alguna|cualquier)\s+(?:otra\s+)?(?:pregunta|duda)[^.!?\n]*[.!?]?\s*/gi, ' ')
-    // Limpar espaços múltiplos e pontos duplicados
+    // Limpar pontos duplicados e espaços múltiplos (preservando quebras de linha)
     .replace(/\.\s*\./g, '.')
-    .replace(/\s{2,}/g, ' ')
+    .replace(/[^\S\n]{2,}/g, ' ')
     .trim();
 
   if (cleanedResponse !== beforeCorporateClean) {
@@ -4552,10 +4552,10 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
     .replace(/[^.!?\n]*\bpe[çc]o\s+(?:sinceras?\s+)?desculpas?\s+pel[oa]\s+(?:demora|atraso|espera|inconveni[eê]ncia)[^.!?\n]*[.!?]?\s*/gi, '')
     // EN: "I sincerely apologize for the delay"
     .replace(/[^.!?\n]*\bi?\s*(?:sincerely\s+)?apologize\s+for\s+the\s+(?:delay|wait|inconvenience)[^.!?\n]*[.!?]?\s*/gi, '')
-    // Limpar artefatos
+    // Limpar artefatos (preservando quebras de linha)
     .replace(/\.\s*\./g, '.')
     .replace(/\n\s*\n\s*\n/g, '\n\n')
-    .replace(/\s{2,}/g, ' ')
+    .replace(/[^\S\n]{2,}/g, ' ')
     .trim();
 
   if (cleanedResponse !== beforePromiseClean) {
