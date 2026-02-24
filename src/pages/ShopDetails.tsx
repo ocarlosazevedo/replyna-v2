@@ -32,8 +32,16 @@ interface ShopData {
   retention_coupon_code: string
   retention_coupon_type: 'percentage' | 'fixed'
   retention_coupon_value: number | null
+  currency: string
   is_active: boolean
 }
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  BRL: 'R$', USD: '$', EUR: '€', GBP: '£', CAD: 'CA$', AUD: 'A$',
+  JPY: '¥', MXN: 'MX$', ARS: 'ARS$', COP: 'COP$', CLP: 'CLP$',
+  INR: '₹', CHF: 'CHF', SEK: 'kr', NOK: 'kr', DKK: 'kr',
+  PLN: 'zł', CZK: 'Kč', TRY: '₺', ZAR: 'R', ILS: '₪',
+};
 
 const toneOptions = [
   { value: 'professional', label: 'Profissional' },
@@ -1003,7 +1011,7 @@ export default function ShopDetails() {
                 placeholder="Ex: FICA10, DESC20"
               />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Tipo de desconto</label>
                 <select
@@ -1012,7 +1020,37 @@ export default function ShopDetails() {
                   className="replyna-select form-input"
                 >
                   <option value="percentage">Porcentagem (%)</option>
-                  <option value="fixed">Valor fixo (R$)</option>
+                  <option value="fixed">Valor fixo</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Moeda</label>
+                <select
+                  value={editData.currency || 'BRL'}
+                  onChange={(e) => updateEditField('currency', e.target.value)}
+                  className="replyna-select form-input"
+                >
+                  <option value="BRL">BRL (R$)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="CAD">CAD (CA$)</option>
+                  <option value="AUD">AUD (A$)</option>
+                  <option value="JPY">JPY (¥)</option>
+                  <option value="MXN">MXN (MX$)</option>
+                  <option value="ARS">ARS (ARS$)</option>
+                  <option value="COP">COP (COP$)</option>
+                  <option value="CLP">CLP (CLP$)</option>
+                  <option value="INR">INR (₹)</option>
+                  <option value="CHF">CHF (CHF)</option>
+                  <option value="SEK">SEK (kr)</option>
+                  <option value="NOK">NOK (kr)</option>
+                  <option value="DKK">DKK (kr)</option>
+                  <option value="PLN">PLN (zł)</option>
+                  <option value="CZK">CZK (Kč)</option>
+                  <option value="TRY">TRY (₺)</option>
+                  <option value="ZAR">ZAR (R)</option>
+                  <option value="ILS">ILS (₪)</option>
                 </select>
               </div>
               <div>
@@ -1083,7 +1121,7 @@ export default function ShopDetails() {
                         fontWeight: 600
                       }}>
                         {shop.retention_coupon_type === 'fixed'
-                          ? `R$ ${shop.retention_coupon_value.toFixed(2).replace('.', ',')} de desconto`
+                          ? `${CURRENCY_SYMBOLS[shop.currency] || shop.currency || 'R$'} ${shop.retention_coupon_value.toFixed(2).replace('.', ',')} de desconto`
                           : `${shop.retention_coupon_value}% de desconto`
                         }
                       </span>

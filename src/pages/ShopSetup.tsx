@@ -48,6 +48,7 @@ interface ShopData {
   retention_coupon_code: string
   retention_coupon_type: 'percentage' | 'fixed'
   retention_coupon_value: number | null
+  currency: string
 }
 
 const initialShopData: ShopData = {
@@ -75,6 +76,7 @@ const initialShopData: ShopData = {
   retention_coupon_code: '',
   retention_coupon_type: 'percentage',
   retention_coupon_value: null,
+  currency: 'BRL',
 }
 
 const steps = [
@@ -84,6 +86,13 @@ const steps = [
   { id: 4, title: 'Customizações', icon: Settings },
   { id: 5, title: 'Revisão', icon: Rocket },
 ]
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  BRL: 'R$', USD: '$', EUR: '€', GBP: '£', CAD: 'CA$', AUD: 'A$',
+  JPY: '¥', MXN: 'MX$', ARS: 'ARS$', COP: 'COP$', CLP: 'CLP$',
+  INR: '₹', CHF: 'CHF', SEK: 'kr', NOK: 'kr', DKK: 'kr',
+  PLN: 'zł', CZK: 'Kč', TRY: '₺', ZAR: 'R', ILS: '₪',
+};
 
 const toneOptions = [
   { value: 'professional', label: 'Profissional', description: 'Formal e direto ao ponto' },
@@ -207,6 +216,7 @@ export default function ShopSetup() {
           retention_coupon_code: shop.retention_coupon_code || '',
           retention_coupon_type: shop.retention_coupon_type || 'percentage',
           retention_coupon_value: shop.retention_coupon_value || null,
+          currency: shop.currency || 'BRL',
         })
       }
     } catch (err) {
@@ -391,6 +401,7 @@ export default function ShopSetup() {
         retention_coupon_code: shopData.retention_coupon_code || null,
         retention_coupon_type: shopData.retention_coupon_type || 'percentage',
         retention_coupon_value: shopData.retention_coupon_value,
+        currency: shopData.currency || 'BRL',
         is_active: activate,
       }
 
@@ -1660,7 +1671,7 @@ export default function ShopSetup() {
           style={inputStyle}
           placeholder="Ex: FICA10, DESC20"
         />
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '16px', marginTop: '16px' }}>
           <div>
             <label style={labelStyle}>Tipo de desconto</label>
             <select
@@ -1669,7 +1680,37 @@ export default function ShopSetup() {
               className="replyna-select form-input"
             >
               <option value="percentage">Porcentagem (%)</option>
-              <option value="fixed">Valor fixo (R$)</option>
+              <option value="fixed">Valor fixo</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Moeda</label>
+            <select
+              value={shopData.currency || 'BRL'}
+              onChange={(e) => updateField('currency', e.target.value)}
+              className="replyna-select form-input"
+            >
+              <option value="BRL">BRL (R$)</option>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="CAD">CAD (CA$)</option>
+              <option value="AUD">AUD (A$)</option>
+              <option value="JPY">JPY (¥)</option>
+              <option value="MXN">MXN (MX$)</option>
+              <option value="ARS">ARS (ARS$)</option>
+              <option value="COP">COP (COP$)</option>
+              <option value="CLP">CLP (CLP$)</option>
+              <option value="INR">INR (₹)</option>
+              <option value="CHF">CHF (CHF)</option>
+              <option value="SEK">SEK (kr)</option>
+              <option value="NOK">NOK (kr)</option>
+              <option value="DKK">DKK (kr)</option>
+              <option value="PLN">PLN (zł)</option>
+              <option value="CZK">CZK (Kč)</option>
+              <option value="TRY">TRY (₺)</option>
+              <option value="ZAR">ZAR (R)</option>
+              <option value="ILS">ILS (₪)</option>
             </select>
           </div>
           <div>
@@ -1864,7 +1905,7 @@ export default function ShopSetup() {
                     fontWeight: 600
                   }}>
                     {shopData.retention_coupon_type === 'fixed'
-                      ? `R$ ${shopData.retention_coupon_value.toFixed(2).replace('.', ',')}`
+                      ? `${CURRENCY_SYMBOLS[shopData.currency] || shopData.currency} ${shopData.retention_coupon_value.toFixed(2).replace('.', ',')}`
                       : `${shopData.retention_coupon_value}%`
                     }
                   </span>
