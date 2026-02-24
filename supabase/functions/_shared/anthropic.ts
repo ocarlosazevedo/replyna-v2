@@ -910,30 +910,67 @@ function stripMarkdown(text: string): string {
  * quando a IA gera tudo num bloco só (comum com Haiku)
  */
 function formatEmailResponse(text: string): string {
-  // Se já tem múltiplas quebras de linha, não precisa reformatar
-  if ((text.match(/\n/g) || []).length >= 3) return text;
+  // Se já tem muitas quebras de linha, apenas garantir assinatura e limpar
+  const existingBreaks = (text.match(/\n/g) || []).length;
 
   let result = text;
 
-  // 1. Quebra de linha após saudação inicial (Hello!, Hi!, Olá!, Hey!, etc.)
+  // SEMPRE aplicar: quebra de linha antes de URLs
+  result = result.replace(/([^\n])\s+(https?:\/\/\S+)/g, '$1\n\n$2');
+
+  // SEMPRE aplicar: quebra de linha depois de URLs seguidos de texto
+  result = result.replace(/(https?:\/\/\S+)\.?\s+(?=[A-ZÀ-Úa-zà-ú])/g, '$1\n\n');
+
+  // SEMPRE aplicar: separar assinatura do corpo (Nome\nLoja ou Nome Sobrenome\nLoja)
+  // Detecta: "... frase final. Nome Sobrenome\nNome da Loja" ou "... frase final. Nome\nLoja"
+  // Padrão: última(s) linha(s) que são nomes curtos (1-4 palavras, sem pontuação)
+  const lines = result.split('\n');
+  if (lines.length >= 1) {
+    // Verificar se as últimas linhas do texto (quando é tudo uma linha) terminam com assinatura
+    const lastLine = lines[lines.length - 1].trim();
+    // Detectar "... texto. Nome Sobrenome" ou "... texto. Nome Sobrenome\nLoja"
+    // Padrão: frase terminando em pontuação + espaço + Nome(s) capitalizado(s) no final
+    const signatureMatch = lastLine.match(/^(.+[.!?])\s+((?:[A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+){0,3}))$/);
+    if (signatureMatch) {
+      lines[lines.length - 1] = signatureMatch[1] + '\n\n' + signatureMatch[2];
+      result = lines.join('\n');
+    }
+  }
+
+  // Se já tinha formatação suficiente, retornar com as melhorias acima
+  if (existingBreaks >= 3) {
+    return result.replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  // Abaixo: reformatação agressiva para textos sem quebras de linha
+
+  // 1. Quebra de linha após saudação inicial
   result = result.replace(
-    /^((?:Hello|Hi|Hey|Olá|Oi|Bonjour|Hallo|Ciao|Hej|Cześć|Dobrý den|Witam)[\s!,.].*?[!.])\s+/i,
+    /^((?:Hello|Hi|Hey|Olá|Oi|Bonjour|Hallo|Ciao|Hej|Cześć|Dzień dobry|Dobrý den|Witam|Guten Tag)[^\n]*?[!.,])\s+(?=[A-ZÀ-Ú])/i,
     '$1\n\n'
   );
 
-  // 2. Quebra de linha antes de URLs (links de rastreio, etc.)
-  result = result.replace(/\s+(https?:\/\/\S+)/g, '\n\n$1');
-
-  // 3. Quebra de linha depois de URLs seguidos de texto
-  result = result.replace(/(https?:\/\/\S+)\.?\s+(?=[A-ZÀ-Ú])/g, '$1\n\n');
-
-  // 4. Quebra de linha antes da assinatura (nome no final - última palavra/nome após última frase)
-  // Detecta padrões como ". Name" ou "! Name" no final
-  result = result.replace(/([.!?])\s+([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)?)$/, '$1\n\n$2');
-
-  // 5. Quebra de linha entre bullet points/itens de lista que ficaram juntos
+  // 2. Quebra de linha entre bullet points/itens de lista
   result = result.replace(/([.!])(\s+)(•\s)/g, '$1\n$3');
   result = result.replace(/([.!])(\s+)(\d+[\.\)]\s)/g, '$1\n$3');
+
+  // 3. Quebra a cada 2-3 frases para evitar blocos longos
+  // Divide em frases e reagrupa
+  const sentences = result.split(/(?<=[.!?])\s+/);
+  if (sentences.length > 4) {
+    const grouped: string[] = [];
+    let current = '';
+    for (let i = 0; i < sentences.length; i++) {
+      current += (current ? ' ' : '') + sentences[i];
+      // A cada 2 frases, adicionar quebra de parágrafo
+      if ((i + 1) % 2 === 0 && i < sentences.length - 1) {
+        grouped.push(current);
+        current = '';
+      }
+    }
+    if (current) grouped.push(current);
+    result = grouped.join('\n\n');
+  }
 
   // Limpar espaços extras
   result = result.replace(/\n{3,}/g, '\n\n').trim();
@@ -2626,7 +2663,18 @@ I've reviewed your order #123. Here's what you ordered:
 
 The total was $50. Your order is being prepared and you'll get a tracking number once shipped.
 
-Sophia"
+${shopContext.attendant_name}
+${shopContext.name}"
+
+ASSINATURA DO EMAIL (OBRIGATÓRIO):
+- SEMPRE termine com seu nome E o nome da loja em LINHAS SEPARADAS
+- O nome do atendente numa linha, o nome da loja na linha seguinte
+- NUNCA coloque o nome e a loja na mesma linha do texto
+- Formato OBRIGATÓRIO:
+  [texto da resposta]
+
+  ${shopContext.attendant_name}
+  ${shopContext.name}
 
 REGRA DE BREVIDADE (MUITO IMPORTANTE):
 - Para perguntas simples (status, prazo, info), responda em 1-3 frases CURTAS
