@@ -1669,7 +1669,7 @@ export default function ShopSetup() {
               className="replyna-select form-input"
             >
               <option value="percentage">Porcentagem (%)</option>
-              <option value="fixed">Valor fixo (R$)</option>
+              <option value="fixed">Valor fixo</option>
             </select>
           </div>
           <div>
@@ -1864,7 +1864,7 @@ export default function ShopSetup() {
                     fontWeight: 600
                   }}>
                     {shopData.retention_coupon_type === 'fixed'
-                      ? `R$ ${shopData.retention_coupon_value.toFixed(2).replace('.', ',')}`
+                      ? `${shopData.retention_coupon_value.toFixed(2).replace('.', ',')} de desconto`
                       : `${shopData.retention_coupon_value}%`
                     }
                   </span>
