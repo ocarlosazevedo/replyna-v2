@@ -910,32 +910,100 @@ function stripMarkdown(text: string): string {
  * quando a IA gera tudo num bloco só (comum com Haiku)
  */
 function formatEmailResponse(text: string): string {
-  let result = text;
-
-  // 1. Quebra de linha antes de URLs (sempre seguro)
-  result = result.replace(/([^\n])\s+(https?:\/\/\S+)/g, '$1\n\n$2');
-
-  // 2. Quebra de linha depois de URLs seguidos de texto (sempre seguro)
-  result = result.replace(/(https?:\/\/\S+)\.?\s+(?=[A-ZÀ-Ú])/g, '$1\n\n');
-
-  // 3. Separar assinatura do corpo na última linha
-  // Detecta: "...frase final. Nome Sobrenome" no fim do texto
-  const lines = result.split('\n');
-  const lastLine = lines[lines.length - 1].trim();
-  const sigMatch = lastLine.match(/^(.+[.!?])\s+((?:[A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+){0,3}))$/);
-  if (sigMatch) {
-    lines[lines.length - 1] = sigMatch[1] + '\n\n' + sigMatch[2];
-    result = lines.join('\n');
+  // Se já tem boa formatação (4+ quebras de linha), apenas aplicar fixes pontuais
+  const existingBreaks = (text.match(/\n/g) || []).length;
+  if (existingBreaks >= 4) {
+    let result = text;
+    // Apenas separar URLs e assinatura
+    result = result.replace(/([^\n])\s+(https?:\/\/\S+)/g, '$1\n\n$2');
+    result = result.replace(/(https?:\/\/\S+)\.?\s+(?=[A-ZÀ-Ú])/g, '$1\n\n');
+    return result.replace(/\n{3,}/g, '\n\n').trim();
   }
 
-  // 4. Separar bullet points/itens de lista
+  // Proteger abreviações comuns para não quebrar frases nelas
+  const abbreviations: Record<string, string> = {
+    'Mr.': 'Mr§', 'Mrs.': 'Mrs§', 'Ms.': 'Ms§', 'Dr.': 'Dr§',
+    'Sr.': 'Sr§', 'Sra.': 'Sra§', 'St.': 'St§', 'Jr.': 'Jr§',
+    'vs.': 'vs§', 'etc.': 'etc§', 'approx.': 'approx§', 'no.': 'no§',
+    'No.': 'No§', 'Ref.': 'Ref§', 'ref.': 'ref§',
+  };
+
+  let result = text;
+  for (const [abbr, placeholder] of Object.entries(abbreviations)) {
+    result = result.split(abbr).join(placeholder);
+  }
+
+  // Dividir em frases reais (após . ! ?) seguidas de espaço
+  const sentences = result.split(/(?<=[.!?])\s+/);
+
+  // Restaurar abreviações
+  for (let i = 0; i < sentences.length; i++) {
+    for (const [abbr, placeholder] of Object.entries(abbreviations)) {
+      sentences[i] = sentences[i].split(placeholder).join(abbr);
+    }
+  }
+
+  if (sentences.length <= 1) {
+    return text; // Não conseguiu dividir, retornar original
+  }
+
+  // Identificar saudação (primeira frase se começa com Hello, Hi, etc.)
+  const greetingPattern = /^(hello|hi|hey|olá|oi|bonjour|hallo|ciao|hej|cześć|dzień dobry|dobrý den|witam|guten tag)/i;
+  let greeting = '';
+  let startIdx = 0;
+  if (greetingPattern.test(sentences[0])) {
+    greeting = sentences[0];
+    startIdx = 1;
+  }
+
+  // Identificar assinatura (últimas 1-2 frases que são nomes curtos sem pontuação ou frase + nome)
+  let signature = '';
+  let endIdx = sentences.length;
+  const lastSentence = sentences[sentences.length - 1].trim();
+
+  // Se a última "frase" é só um nome (1-4 palavras, sem pontuação final exceto ponto)
+  if (/^[A-ZÀ-Ú][a-zà-ú]+(\s+[A-ZÀ-Ú][a-zà-ú]+){0,3}\.?$/.test(lastSentence)) {
+    signature = lastSentence;
+    endIdx = sentences.length - 1;
+  } else {
+    // Tentar extrair nome do fim da última frase: "...let me know. Sarah Connolly"
+    const nameAtEnd = lastSentence.match(/^(.+[.!?])\s+((?:[A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+){0,3}))$/);
+    if (nameAtEnd) {
+      sentences[sentences.length - 1] = nameAtEnd[1];
+      signature = nameAtEnd[2];
+    }
+  }
+
+  // Montar corpo: agrupar frases em parágrafos de 2
+  const bodySentences = sentences.slice(startIdx, endIdx);
+  const paragraphs: string[] = [];
+  let current = '';
+  for (let i = 0; i < bodySentences.length; i++) {
+    current += (current ? ' ' : '') + bodySentences[i];
+    if ((i + 1) % 2 === 0 && i < bodySentences.length - 1) {
+      paragraphs.push(current);
+      current = '';
+    }
+  }
+  if (current) paragraphs.push(current);
+
+  // Montar resultado final
+  const parts: string[] = [];
+  if (greeting) parts.push(greeting);
+  parts.push(...paragraphs);
+  if (signature) parts.push(signature);
+
+  result = parts.join('\n\n');
+
+  // Separar URLs do texto
+  result = result.replace(/([^\n])\s+(https?:\/\/\S+)/g, '$1\n\n$2');
+  result = result.replace(/(https?:\/\/\S+)\.?\s+(?=[A-ZÀ-Ú])/g, '$1\n\n');
+
+  // Separar bullet points
   result = result.replace(/([.!])(\s+)(•\s)/g, '$1\n$3');
   result = result.replace(/([.!])(\s+)(\d+[\.\)]\s)/g, '$1\n$3');
 
-  // Limpar espaços extras
-  result = result.replace(/\n{3,}/g, '\n\n').trim();
-
-  return result;
+  return result.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /**
