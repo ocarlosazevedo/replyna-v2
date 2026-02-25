@@ -156,6 +156,15 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Fallback para from_email: usar credentials.user, imap_user ou support_email
+    const fromEmail = emailCredentials.user || shop.imap_user || shop.support_email;
+    if (!fromEmail) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Email de envio não configurado na loja. Configure o IMAP ou email de suporte.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // 6. Marcar como processando
     await updateMessage(message.id, { status: 'processing' });
 
@@ -393,7 +402,7 @@ Deno.serve(async (req) => {
     // 12. Salvar mensagem de resposta
     await saveMessage({
       conversation_id: conversation.id,
-      from_email: emailCredentials.user,
+      from_email: fromEmail,
       from_name: shop.attendant_name || shop.name,
       to_email: message.from_email!,
       subject: replySubject,
@@ -455,10 +464,13 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('[Reprocess] Erro:', error);
+    const errorMsg = error instanceof Error
+      ? error.message
+      : (typeof error === 'string' ? error : JSON.stringify(error));
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        error: errorMsg || 'Erro desconhecido',
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
