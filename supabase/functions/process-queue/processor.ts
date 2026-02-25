@@ -43,7 +43,11 @@ import {
   isShopifyCircuitOpen,
   recordShopifyFailure,
   recordShopifySuccess,
+  getProductsFromCache,
+  formatProductsForAI,
+  syncProductsToCache,
   type OrderSummary,
+  type ProductCacheEntry,
 } from '../_shared/shopify.ts';
 
 import {
@@ -396,12 +400,45 @@ async function processMessage(
   }
 
   // 3. Limpar corpo do email
-  const cleanBody = cleanEmailBody(message.body_text || '', message.body_html || '');
+  let cleanBody = cleanEmailBody(message.body_text || '', message.body_html || '');
+
+  // Fallback: Se body_text+cleanEmailBody resultou vazio mas body_html tem conteúdo,
+  // extrair texto do HTML diretamente (sem passar por cleanEmailBody que pode remover citações)
+  if ((!cleanBody || cleanBody.trim().length < 3) && message.body_html && message.body_html.trim().length > 10) {
+    console.log(`[Processor] body_text vazio mas body_html tem ${message.body_html.length} chars, extraindo texto do HTML`);
+    // Converter HTML para texto simples
+    const htmlText = message.body_html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    if (htmlText && htmlText.length >= 3) {
+      cleanBody = htmlText;
+      console.log(`[Processor] Texto extraído do HTML: ${cleanBody.substring(0, 200)}`);
+    }
+  }
+
+  // Fallback final: usar o subject como indicador de contexto se tiver conteúdo relevante
+  if ((!cleanBody || cleanBody.trim().length < 3) && message.subject && message.subject.length > 5) {
+    console.log(`[Processor] Corpo vazio mas subject tem conteúdo: "${message.subject}"`);
+    cleanBody = `[Cliente respondeu ao email com assunto: ${message.subject}]`;
+  }
+
   if (!cleanBody || cleanBody.trim().length < 3) {
     await updateMessage(message.id, {
       status: 'failed',
       error_message: 'Corpo do email vazio',
-      // NÃO salva categoria para emails vazios
     });
     throw new Error('Corpo do email vazio');
   }
@@ -757,6 +794,50 @@ async function processMessage(
     } // end if (!shopifyCircuitOpen)
   }
 
+  // 10.5 Buscar dados de produtos do cache para enriquecer respostas
+  // Útil especialmente para duvidas_gerais (perguntas sobre disponibilidade, preços, variantes)
+  // mas também para troca_devolucao_reembolso (sugerir alternativas)
+  let productData: string | null = null;
+  const categoriasQueNeedProducts = ['duvidas_gerais', 'troca_devolucao_reembolso'];
+
+  if (categoriasQueNeedProducts.includes(classification.category)) {
+    try {
+      // Auto-sync: se a shop tem Shopify conectado e o cache está vazio ou desatualizado (>24h),
+      // sincronizar automaticamente antes de usar os dados
+      const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 horas
+      const cacheExpired = !shop.products_synced_at ||
+        (Date.now() - new Date(shop.products_synced_at).getTime()) > CACHE_MAX_AGE_MS;
+
+      if (cacheExpired && shop.shopify_domain) {
+        console.log(`[Processor] Product cache expired or empty for shop ${shop.id}, auto-syncing...`);
+        try {
+          const shopifyCredentials = await decryptShopifyCredentials(shop);
+          if (shopifyCredentials) {
+            const circuitOpen = await isShopifyCircuitOpen(shop.id);
+            if (!circuitOpen) {
+              await syncProductsToCache(shop.id, shopifyCredentials, _supabase);
+              console.log(`[Processor] Auto-sync completed for shop ${shop.id}`);
+            }
+          }
+        } catch (syncError) {
+          console.error(`[Processor] Auto-sync failed (non-blocking):`, syncError);
+          // Non-blocking: continue with whatever cache exists
+        }
+      }
+
+      const cachedProducts = await getProductsFromCache(shop.id, _supabase);
+      if (cachedProducts.length > 0) {
+        productData = formatProductsForAI(cachedProducts, classification.language || 'pt');
+        console.log(`[Processor] Product catalog loaded: ${cachedProducts.length} products for AI context`);
+      } else {
+        console.log(`[Processor] No cached products found for shop ${shop.id}`);
+      }
+    } catch (error) {
+      console.error(`[Processor] Error loading product cache:`, error);
+      // Non-blocking: continue without product data
+    }
+  }
+
   // 11. Fluxo de solicitação de dados (se não tiver número do pedido)
   // CORREÇÃO: Se já temos número de pedido (da conversa, do subject, ou do body),
   // NÃO pedir dados ao cliente. Criar contexto mínimo para a IA responder.
@@ -948,6 +1029,7 @@ async function processMessage(
     [], // emailImages
     classification.sentiment || 'calm',
     conversation.status, // para loop detection pular exchange_count se pending_human
+    productData, // dados de produtos do cache para enriquecer respostas
   );
 
   await logProcessingEvent({

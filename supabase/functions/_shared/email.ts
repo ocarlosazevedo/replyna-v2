@@ -422,6 +422,46 @@ class SimpleImapClient {
       }
     }
 
+    // Estratégia 5: Se BODY[TEXT] falhou e temos remetente, tentar BODY[] (mensagem completa)
+    if (!body && from) {
+      console.log(`[IMAP] BODY[TEXT] vazio para mensagem ${uid} de ${from}, tentando BODY[] como fallback...`);
+      try {
+        const tag2 = this.getTag();
+        await this.sendCommand(`${tag2} FETCH ${uid} (BODY[])`);
+        const fullResponse = await this.readUntilTag(tag2);
+
+        // Extrair corpo completo da resposta
+        const fullBodyLiteralMatch = fullResponse.match(/BODY\[\]\s*\{(\d+)\}\r?\n/);
+        let fullRaw = '';
+        if (fullBodyLiteralMatch) {
+          const literalSize2 = parseInt(fullBodyLiteralMatch[1], 10);
+          const startIdx = (fullBodyLiteralMatch.index ?? 0) + fullBodyLiteralMatch[0].length;
+          fullRaw = fullResponse.substring(startIdx, startIdx + literalSize2);
+        } else {
+          // Fallback: extrair tudo entre BODY[] e o final
+          const fullBodyMatch = fullResponse.match(/BODY\[\]\s*(?:\{?\d*\}?\r?\n)?([\s\S]+)/);
+          if (fullBodyMatch) {
+            fullRaw = fullBodyMatch[1].replace(/\)\s*$/, '').replace(/\r?\n[A-Z0-9]+ OK .*$/m, '').trim();
+          }
+        }
+
+        if (fullRaw) {
+          // Separar headers do corpo: procurar linha vazia que separa headers de body
+          const headerBodySplit = fullRaw.match(/^([\s\S]*?)\r?\n\r?\n([\s\S]*)$/);
+          if (headerBodySplit && headerBodySplit[2]) {
+            body = headerBodySplit[2];
+            console.log(`[IMAP] Body extraído via BODY[] fallback: ${body.length} chars`);
+          } else {
+            // Se não conseguiu separar, usar o raw inteiro (pode conter headers)
+            body = fullRaw;
+            console.log(`[IMAP] Body extraído via BODY[] (raw inteiro): ${body.length} chars`);
+          }
+        }
+      } catch (fetchBodyError) {
+        console.error(`[IMAP] Falha no fallback BODY[] para mensagem ${uid}:`, fetchBodyError);
+      }
+    }
+
     if (!body) {
       console.error(`[IMAP] FALHA ao extrair body da mensagem UID ${uid}. Response (2000 chars):`, response.substring(0, 2000));
     }
@@ -628,6 +668,20 @@ export async function fetchUnreadEmails(
 
         if (!bodyText && !decodedBody.html) {
           console.warn(`[fetchUnreadEmails] AVISO: Mensagem ${uid} (${msg.envelope.subject}) tem body_text e body_html vazios! msg.body length: ${msg.body?.length ?? 0}`);
+        }
+
+        // Filtrar mensagens fantasma: sem remetente, sem corpo e sem assunto real
+        // Zoho IMAP às vezes retorna entradas vazias (rascunhos, calendário, etc.)
+        const hasNoFrom = !msg.envelope.from || !msg.envelope.from.includes('@');
+        const hasNoBody = !bodyText && !decodedBody.html && (!msg.body || msg.body.trim().length === 0);
+        const hasNoSubject = !msg.envelope.subject || msg.envelope.subject.trim() === '' || msg.envelope.subject === '(Sem assunto)';
+        const isGenerated = msg.envelope.messageId.includes('@generated');
+
+        if (hasNoFrom && hasNoBody) {
+          console.warn(`[fetchUnreadEmails] SKIP mensagem fantasma ${uid}: sem remetente e sem corpo (subject: "${msg.envelope.subject}", messageId: ${msg.envelope.messageId})`);
+          // Marcar como lida para não buscar novamente
+          await client.markAsSeen(uid);
+          continue;
         }
 
         emails.push({
@@ -1512,7 +1566,11 @@ export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
   for (const marker of quoteMarkers) {
     const match = cleanBody.match(marker);
     if (match && match.index !== undefined) {
-      cleanBody = cleanBody.substring(0, match.index).trim();
+      const candidate = cleanBody.substring(0, match.index).trim();
+      // Só remover citação se sobrar conteúdo significativo
+      if (candidate.length >= 3) {
+        cleanBody = candidate;
+      }
     }
   }
 
@@ -1527,6 +1585,7 @@ export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
     /^Enviado desde mi /im, // Espanhol: "Enviado desde mi iPhone"
     /^Get Outlook for /im,
     /^Von meinem .+ gesendet/im, // Alemão: "Von meinem iPhone gesendet"
+    /^Gesendet mit der .+ App/im, // Alemão: "Gesendet mit der GMX Mail App"
     /^Mit freundlichen Grüßen/im, // Alemão: saudação formal
     /^Atenciosamente,?\s*$/im, // Português: assinatura
     /^Regards,?\s*$/im, // Inglês: assinatura
@@ -1536,8 +1595,19 @@ export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
   for (const marker of signatureMarkers) {
     const match = cleanBody.match(marker);
     if (match && match.index !== undefined) {
-      cleanBody = cleanBody.substring(0, match.index).trim();
+      const candidate = cleanBody.substring(0, match.index).trim();
+      // Só remover assinatura se sobrar conteúdo significativo
+      if (candidate.length >= 3) {
+        cleanBody = candidate;
+      }
     }
+  }
+
+  // FALLBACK: Se após limpeza o texto ficou vazio mas o body original tinha conteúdo,
+  // manter o body original (melhor responder a conteúdo citado do que não responder)
+  if (cleanBody.trim().length < 3 && body.trim().length >= 3) {
+    console.log('[cleanEmailBody] Limpeza removeu todo conteúdo, mantendo corpo original');
+    cleanBody = body;
   }
 
   return cleanBody.trim();

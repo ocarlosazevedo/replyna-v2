@@ -696,6 +696,455 @@ export function extractAllOrderNumbers(text: string): string[] {
   return foundOrders;
 }
 
+// =====================================================================
+// Product & Inventory Functions
+// =====================================================================
+
+export interface ShopifyProduct {
+  id: number;
+  title: string;
+  body_html: string | null;
+  vendor: string;
+  product_type: string;
+  tags: string;
+  status: string;
+  handle: string;
+  variants: Array<{
+    id: number;
+    title: string;
+    sku: string | null;
+    price: string;
+    compare_at_price: string | null;
+    inventory_item_id: number;
+    inventory_quantity: number;
+    option1: string | null;
+    option2: string | null;
+    option3: string | null;
+  }>;
+  options: Array<{
+    id: number;
+    name: string;
+    values: string[];
+    position: number;
+  }>;
+  images: Array<{
+    id: number;
+    src: string;
+    alt: string | null;
+    position: number;
+  }>;
+}
+
+export interface ProductCacheEntry {
+  title: string;
+  description: string | null;
+  vendor: string | null;
+  product_type: string | null;
+  tags: string[];
+  variants: Array<{
+    title: string;
+    sku: string | null;
+    price: string;
+    compare_at_price: string | null;
+    available: boolean;
+    inventory_quantity: number;
+  }>;
+  options: Array<{
+    name: string;
+    values: string[];
+  }>;
+  image_url: string | null;
+  in_stock: boolean;
+  price_range: string;
+  stock_info: string;
+}
+
+/**
+ * Busca todos os produtos ativos de uma loja Shopify
+ * Suporta paginação automática para lojas com muitos produtos
+ */
+export async function getActiveProducts(
+  credentials: ShopifyCredentials,
+  limit: number = 250
+): Promise<ShopifyProduct[]> {
+  const allProducts: ShopifyProduct[] = [];
+  let pageInfo: string | null = null;
+  let hasMore = true;
+
+  while (hasMore) {
+    const endpoint = pageInfo
+      ? `products.json?limit=${limit}&page_info=${pageInfo}`
+      : `products.json?status=active&limit=${limit}`;
+
+    const response = await shopifyRequest<{ products: ShopifyProduct[] }>(
+      credentials,
+      endpoint
+    );
+
+    allProducts.push(...response.products);
+
+    // Shopify pagination: check Link header for next page
+    // For simplicity, stop if we got fewer than limit
+    if (response.products.length < limit) {
+      hasMore = false;
+    } else {
+      // Safety: max 2000 products to avoid infinite loops
+      if (allProducts.length >= 2000) {
+        console.log(`[Shopify Products] Reached 2000 products limit, stopping pagination`);
+        hasMore = false;
+      } else {
+        // Use since_id pagination
+        const lastId = response.products[response.products.length - 1].id;
+        pageInfo = null; // Reset page_info
+        const nextEndpoint = `products.json?status=active&limit=${limit}&since_id=${lastId}`;
+        const nextResponse = await shopifyRequest<{ products: ShopifyProduct[] }>(
+          credentials,
+          nextEndpoint
+        );
+        if (nextResponse.products.length === 0) {
+          hasMore = false;
+        } else {
+          allProducts.push(...nextResponse.products);
+          if (nextResponse.products.length < limit || allProducts.length >= 2000) {
+            hasMore = false;
+          }
+        }
+      }
+    }
+  }
+
+  console.log(`[Shopify Products] Fetched ${allProducts.length} active products`);
+  return allProducts;
+}
+
+/**
+ * Busca níveis de inventário para uma lista de inventory_item_ids
+ */
+export async function getInventoryLevels(
+  credentials: ShopifyCredentials,
+  inventoryItemIds: number[]
+): Promise<Record<number, number>> {
+  const levels: Record<number, number> = {};
+
+  // API aceita até 50 IDs por request
+  const chunks: number[][] = [];
+  for (let i = 0; i < inventoryItemIds.length; i += 50) {
+    chunks.push(inventoryItemIds.slice(i, i + 50));
+  }
+
+  for (const chunk of chunks) {
+    try {
+      const ids = chunk.join(',');
+      const response = await shopifyRequest<{
+        inventory_levels: Array<{
+          inventory_item_id: number;
+          available: number | null;
+        }>;
+      }>(credentials, `inventory_levels.json?inventory_item_ids=${ids}`);
+
+      for (const level of response.inventory_levels) {
+        // Somar disponível de todas as locations
+        levels[level.inventory_item_id] =
+          (levels[level.inventory_item_id] || 0) + (level.available || 0);
+      }
+    } catch (error) {
+      console.error(`[Shopify Inventory] Error fetching levels for chunk:`, error);
+    }
+  }
+
+  return levels;
+}
+
+/**
+ * Remove HTML tags de uma string (para descrições de produto)
+ */
+function stripHtml(html: string | null): string | null {
+  if (!html) return null;
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Sincroniza produtos do Shopify para o cache no Supabase
+ * Busca produtos ativos + níveis de inventário e faz upsert
+ */
+export async function syncProductsToCache(
+  shopId: string,
+  credentials: ShopifyCredentials,
+  supabase: ReturnType<typeof createClient>
+): Promise<{ synced: number; errors: number }> {
+  console.log(`[Shopify Sync] Starting product sync for shop ${shopId}`);
+
+  let synced = 0;
+  let errors = 0;
+
+  try {
+    // 1. Buscar todos os produtos ativos
+    const products = await getActiveProducts(credentials);
+
+    if (products.length === 0) {
+      console.log(`[Shopify Sync] No active products found`);
+      // Limpar cache antigo
+      await supabase.from('shop_products_cache').delete().eq('shop_id', shopId);
+      await supabase.from('shops').update({
+        products_synced_at: new Date().toISOString(),
+        products_count: 0,
+      }).eq('id', shopId);
+      return { synced: 0, errors: 0 };
+    }
+
+    // 2. Coletar todos os inventory_item_ids para buscar estoque
+    const inventoryItemIds: number[] = [];
+    for (const product of products) {
+      for (const variant of product.variants) {
+        if (variant.inventory_item_id) {
+          inventoryItemIds.push(variant.inventory_item_id);
+        }
+      }
+    }
+
+    // 3. Buscar níveis de inventário
+    let inventoryLevels: Record<number, number> = {};
+    if (inventoryItemIds.length > 0) {
+      try {
+        inventoryLevels = await getInventoryLevels(credentials, inventoryItemIds);
+      } catch (error) {
+        console.error(`[Shopify Sync] Error fetching inventory, continuing without stock data:`, error);
+      }
+    }
+
+    // 4. Preparar dados para upsert
+    const cacheEntries = products.map((product) => {
+      const variants = product.variants.map((v) => {
+        const stockQty = inventoryLevels[v.inventory_item_id] ?? v.inventory_quantity ?? 0;
+        return {
+          title: v.title,
+          sku: v.sku,
+          price: v.price,
+          compare_at_price: v.compare_at_price,
+          available: stockQty > 0,
+          inventory_quantity: stockQty,
+        };
+      });
+
+      const options = product.options.map((o) => ({
+        name: o.name,
+        values: o.values,
+      }));
+
+      const tags = product.tags
+        ? product.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+        : [];
+
+      return {
+        shop_id: shopId,
+        shopify_product_id: product.id,
+        title: product.title,
+        description: stripHtml(product.body_html),
+        vendor: product.vendor || null,
+        product_type: product.product_type || null,
+        tags,
+        status: product.status,
+        variants: JSON.stringify(variants),
+        options: JSON.stringify(options),
+        image_url: product.images?.[0]?.src || null,
+        synced_at: new Date().toISOString(),
+      };
+    });
+
+    // 5. Upsert em batches de 50
+    for (let i = 0; i < cacheEntries.length; i += 50) {
+      const batch = cacheEntries.slice(i, i + 50);
+      const { error } = await supabase
+        .from('shop_products_cache')
+        .upsert(batch, {
+          onConflict: 'shop_id,shopify_product_id',
+        });
+
+      if (error) {
+        console.error(`[Shopify Sync] Error upserting batch ${i}:`, error);
+        errors += batch.length;
+      } else {
+        synced += batch.length;
+      }
+    }
+
+    // 6. Remover produtos que não existem mais no Shopify
+    const activeProductIds = products.map((p) => p.id);
+    const { error: deleteError } = await supabase
+      .from('shop_products_cache')
+      .delete()
+      .eq('shop_id', shopId)
+      .not('shopify_product_id', 'in', `(${activeProductIds.join(',')})`);
+
+    if (deleteError) {
+      console.error(`[Shopify Sync] Error cleaning old products:`, deleteError);
+    }
+
+    // 7. Atualizar metadata na shop
+    await supabase.from('shops').update({
+      products_synced_at: new Date().toISOString(),
+      products_count: synced,
+    }).eq('id', shopId);
+
+    console.log(`[Shopify Sync] Completed: ${synced} synced, ${errors} errors`);
+    return { synced, errors };
+  } catch (error) {
+    console.error(`[Shopify Sync] Fatal error:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Busca produtos do cache para enriquecer respostas da IA
+ * Retorna resumo formatado para incluir no contexto
+ */
+export async function getProductsFromCache(
+  shopId: string,
+  supabase: ReturnType<typeof createClient>,
+  searchQuery?: string
+): Promise<ProductCacheEntry[]> {
+  try {
+    let query = supabase
+      .from('shop_products_cache')
+      .select('title, description, vendor, product_type, tags, variants, options, image_url')
+      .eq('shop_id', shopId)
+      .eq('status', 'active');
+
+    if (searchQuery) {
+      // Busca por título usando text search
+      query = query.textSearch('title', searchQuery, { type: 'websearch', config: 'simple' });
+    }
+
+    // Limitar a 50 produtos para não sobrecarregar o contexto da IA
+    const { data, error } = await query.limit(50);
+
+    if (error) {
+      console.error(`[Products Cache] Error fetching:`, error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    return data.map((row: Record<string, unknown>) => {
+      const variants = (typeof row.variants === 'string' ? JSON.parse(row.variants as string) : row.variants) as Array<{
+        title: string;
+        sku: string | null;
+        price: string;
+        compare_at_price: string | null;
+        available: boolean;
+        inventory_quantity: number;
+      }>;
+      const options = (typeof row.options === 'string' ? JSON.parse(row.options as string) : row.options) as Array<{
+        name: string;
+        values: string[];
+      }>;
+
+      // Calcular price range
+      const prices = variants.map((v) => parseFloat(v.price)).filter((p) => !isNaN(p));
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      const priceRange =
+        minPrice === maxPrice
+          ? `R$ ${minPrice.toFixed(2)}`
+          : `R$ ${minPrice.toFixed(2)} - R$ ${maxPrice.toFixed(2)}`;
+
+      // Calcular stock info
+      const totalStock = variants.reduce((sum, v) => sum + (v.inventory_quantity || 0), 0);
+      const anyInStock = variants.some((v) => v.available);
+      let stockInfo = 'Esgotado';
+      if (totalStock > 10) stockInfo = 'Em estoque';
+      else if (totalStock > 0) stockInfo = `Últimas unidades (${totalStock})`;
+
+      return {
+        title: row.title as string,
+        description: row.description as string | null,
+        vendor: row.vendor as string | null,
+        product_type: row.product_type as string | null,
+        tags: (row.tags || []) as string[],
+        variants,
+        options,
+        image_url: row.image_url as string | null,
+        in_stock: anyInStock,
+        price_range: priceRange,
+        stock_info: stockInfo,
+      };
+    });
+  } catch (error) {
+    console.error(`[Products Cache] Exception:`, error);
+    return [];
+  }
+}
+
+/**
+ * Formata dados de produto para incluir no contexto da IA
+ * Recebe os produtos do cache e gera string formatada
+ */
+export function formatProductsForAI(
+  products: ProductCacheEntry[],
+  language: string = 'pt'
+): string {
+  if (!products || products.length === 0) return '';
+
+  const lines: string[] = [];
+  // Limitar a 20 produtos no contexto para não estourar tokens
+  const limitedProducts = products.slice(0, 20);
+
+  for (const product of limitedProducts) {
+    const parts: string[] = [`- Product: ${product.title}`];
+
+    if (product.description) {
+      // Limitar descrição a 200 chars
+      const desc = product.description.length > 200
+        ? product.description.substring(0, 200) + '...'
+        : product.description;
+      parts.push(`  Description: ${desc}`);
+    }
+
+    if (product.options && product.options.length > 0) {
+      const optionStr = product.options
+        .filter((o) => o.name !== 'Title') // Filtrar opção padrão "Title"
+        .map((o) => `${o.name}: ${o.values.join(', ')}`)
+        .join(' | ');
+      if (optionStr) {
+        parts.push(`  Options: ${optionStr}`);
+      }
+    }
+
+    parts.push(`  Price: ${product.price_range}`);
+    parts.push(`  Availability: ${product.stock_info}`);
+
+    if (product.variants && product.variants.length > 1) {
+      // Mostrar estoque por variante quando relevante
+      const variantStock = product.variants
+        .map((v) => `${v.title}: ${v.available ? v.inventory_quantity + ' units' : 'out of stock'}`)
+        .join(', ');
+      parts.push(`  Variants stock: ${variantStock}`);
+    }
+
+    lines.push(parts.join('\n'));
+  }
+
+  const totalProducts = products.length;
+  const header = `PRODUCT CATALOG DATA / DADOS DO CATÁLOGO:
+(⚠️ Use this to answer questions about products, availability, sizes, colors, prices)
+(⚠️ RESPOND in the customer's language: ${language}, NOT in Portuguese!)
+Total active products: ${totalProducts}${totalProducts > 20 ? ` (showing top 20)` : ''}
+`;
+
+  return header + lines.join('\n\n');
+}
+
 // Helpers
 
 function formatDate(isoDate: string): string {

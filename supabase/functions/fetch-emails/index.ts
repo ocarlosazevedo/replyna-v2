@@ -269,6 +269,16 @@ async function saveAndEnqueueEmail(
   shop: Shop,
   supabase: any
 ): Promise<void> {
+  // Validação: rejeitar emails fantasma antes de salvar no banco
+  const hasNoFrom = !email.from_email || !email.from_email.includes('@');
+  const hasNoBody = !email.body_text && !email.body_html;
+  const hasNoSubject = !email.subject || email.subject === '(Sem assunto)';
+
+  if (hasNoFrom && hasNoBody) {
+    console.log(`[Shop:${shop.name}] Rejeitando email fantasma: sem remetente e sem corpo (subject: "${email.subject}", message_id: ${email.message_id})`);
+    return;
+  }
+
   // Check if email already exists (deduplication via message_id)
   const { data: existing } = await supabase
     .from('messages')

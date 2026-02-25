@@ -53,6 +53,27 @@ Deno.serve(async (req: Request) => {
   try {
     console.log('[Queue] Starting processing cycle');
 
+    // STALE JOB RECOVERY: Reset jobs stuck in 'processing' for > 5 minutes
+    // This handles edge function timeouts, crashes, and stuck AI calls
+    const STALE_THRESHOLD_MINUTES = 5;
+    const staleThreshold = new Date(Date.now() - STALE_THRESHOLD_MINUTES * 60 * 1000).toISOString();
+    const { data: staleJobs, error: staleError } = await supabase
+      .from('job_queue')
+      .update({
+        status: 'pending',
+        started_at: null,
+        error_message: 'Auto-recovered: job was stuck in processing (edge function timeout)',
+      })
+      .eq('status', 'processing')
+      .lt('started_at', staleThreshold)
+      .select('id');
+
+    if (staleError) {
+      console.error('[Queue] Failed to recover stale jobs:', staleError.message);
+    } else if (staleJobs && staleJobs.length > 0) {
+      console.log(`[Queue] Recovered ${staleJobs.length} stale jobs stuck in processing`);
+    }
+
     // Dequeue jobs (atomic with row-level locking)
     const { data: jobs, error: dequeueError } = await supabase.rpc('dequeue_jobs', {
       p_batch_size: BATCH_SIZE,
@@ -90,10 +111,17 @@ Deno.serve(async (req: Request) => {
     for (let i = 0; i < (jobs as Job[]).length; i++) {
       const job = (jobs as Job[])[i];
 
-      // Check timeout
+      // Check timeout - reset remaining jobs back to pending before breaking
       if (Date.now() - startTime > MAX_EXECUTION_TIME_MS) {
-        console.log('[Queue] Approaching timeout, stopping processing');
-        // Jobs will remain in 'processing' state and timeout cleanup will handle them
+        console.log('[Queue] Approaching timeout, resetting remaining jobs');
+        const remainingJobs = (jobs as Job[]).slice(i);
+        for (const remainingJob of remainingJobs) {
+          await supabase
+            .from('job_queue')
+            .update({ status: 'pending', started_at: null })
+            .eq('id', remainingJob.id);
+        }
+        console.log(`[Queue] Reset ${remainingJobs.length} unprocessed jobs back to pending`);
         break;
       }
 

@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { ChevronLeft, Eye, EyeOff, Save, Store, ShoppingBag, Mail, Settings, Check, X, Edit3 } from 'lucide-react'
+import { ChevronLeft, Eye, EyeOff, Save, Store, ShoppingBag, Mail, Settings, Check, X, Edit3, Package, RefreshCw } from 'lucide-react'
 import { markRetentionCouponTipAsSeen } from '../components/FeatureTipBanner'
 
 interface ShopData {
@@ -33,6 +33,8 @@ interface ShopData {
   retention_coupon_type: 'percentage' | 'fixed'
   retention_coupon_value: number | null
   is_active: boolean
+  products_synced_at: string | null
+  products_count: number
 }
 
 const toneOptions = [
@@ -76,6 +78,7 @@ export default function ShopDetails() {
   const [testingShopify, setTestingShopify] = useState(false)
   const [oauthRequired, setOauthRequired] = useState(false)
   const [oauthRedirecting, setOauthRedirecting] = useState(false)
+  const [syncingProducts, setSyncingProducts] = useState(false)
 
   useEffect(() => {
     if (shopId) {
@@ -288,6 +291,51 @@ export default function ShopDetails() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao iniciar autorização OAuth')
       setOauthRedirecting(false)
+    }
+  }
+
+  const syncProducts = async () => {
+    if (!shop) return
+    setSyncingProducts(true)
+    setError('')
+
+    try {
+      const session = await supabase.auth.getSession()
+      const accessToken = session.data.session?.access_token
+
+      if (!accessToken) {
+        throw new Error('Sessão expirada. Por favor, faça login novamente.')
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-products`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ shop_id: shop.id }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setShop({
+          ...shop,
+          products_synced_at: new Date().toISOString(),
+          products_count: data.synced,
+        })
+        setSuccess(`Catálogo sincronizado! ${data.synced} produtos atualizados.`)
+        setTimeout(() => setSuccess(''), 5000)
+      } else {
+        setError(data.error || 'Erro ao sincronizar catálogo')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao sincronizar catálogo')
+    } finally {
+      setSyncingProducts(false)
     }
   }
 
@@ -722,6 +770,60 @@ export default function ShopDetails() {
           </div>
         )}
       </div>
+
+      {/* Product Catalog Sync Section */}
+      {shop.shopify_status === 'ok' && (
+        <div style={cardStyle}>
+          <div style={sectionHeaderStyle}>
+            <div style={sectionTitleStyle}>
+              <Package size={22} style={{ color: 'var(--accent)' }} />
+              Catálogo de Produtos
+            </div>
+            <button
+              onClick={syncProducts}
+              disabled={syncingProducts}
+              style={{
+                ...buttonSecondary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                opacity: syncingProducts ? 0.7 : 1,
+              }}
+            >
+              <RefreshCw size={16} style={syncingProducts ? { animation: 'spin 1s linear infinite' } : {}} />
+              {syncingProducts ? 'Sincronizando...' : 'Sincronizar Catálogo'}
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
+            <div>
+              <label style={labelStyle}>Produtos Sincronizados</label>
+              <div style={valueStyle}>{shop.products_count || 0} produtos</div>
+            </div>
+            <div>
+              <label style={labelStyle}>Última Sincronização</label>
+              <div style={valueStyle}>
+                {shop.products_synced_at
+                  ? new Date(shop.products_synced_at).toLocaleString('pt-BR')
+                  : 'Nunca sincronizado'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            marginTop: '16px',
+            padding: '12px 16px',
+            backgroundColor: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            fontSize: '13px',
+            color: 'var(--text-secondary)',
+            lineHeight: '1.5',
+          }}>
+            Sincronize o catálogo para que a IA possa responder perguntas sobre disponibilidade,
+            variantes (cores, tamanhos), preços e detalhes dos seus produtos automaticamente.
+          </div>
+        </div>
+      )}
 
       {/* Email Section */}
       <div style={cardStyle}>

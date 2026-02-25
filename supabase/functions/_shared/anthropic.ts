@@ -906,6 +906,40 @@ function stripMarkdown(text: string): string {
 }
 
 /**
+ * Limpa assinaturas duplicadas onde o nome da loja aparece duas vezes.
+ * Padrões corrigidos:
+ * - "Nome - Loja\nLoja" → "Nome\nLoja"
+ * - "Nome - Loja" (no final) → "Nome\nLoja"
+ * - "Nome, Loja\nLoja" → "Nome\nLoja"
+ */
+function cleanDuplicateSignature(text: string, attendantName: string, storeName: string): string {
+  if (!attendantName || !storeName) return text;
+
+  const escapedName = attendantName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedStore = storeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // Pattern: "Name - Store\nStore" or "Name - Store\n\nStore" → "Name\nStore"
+  const dupPattern = new RegExp(
+    `${escapedName}\\s*[-–—,]\\s*${escapedStore}\\s*\\n+\\s*${escapedStore}\\s*$`,
+    'i'
+  );
+  if (dupPattern.test(text)) {
+    return text.replace(dupPattern, `${attendantName}\n${storeName}`);
+  }
+
+  // Pattern: "Name - Store" at end (no separate store line) → "Name\nStore"
+  const combinedPattern = new RegExp(
+    `${escapedName}\\s*[-–—]\\s*${escapedStore}\\s*$`,
+    'i'
+  );
+  if (combinedPattern.test(text)) {
+    return text.replace(combinedPattern, `${attendantName}\n${storeName}`);
+  }
+
+  return text;
+}
+
+/**
  * Pós-processamento de formatação: adiciona quebras de linha em pontos lógicos
  * quando a IA gera tudo num bloco só (comum com Haiku)
  */
@@ -914,9 +948,14 @@ function formatEmailResponse(text: string): string {
   const existingBreaks = (text.match(/\n/g) || []).length;
   if (existingBreaks >= 4) {
     let result = text;
-    // Apenas separar URLs e assinatura
+    // Separar URLs
     result = result.replace(/([^\n])\s+(https?:\/\/\S+)/g, '$1\n\n$2');
     result = result.replace(/(https?:\/\/\S+)\.?\s+(?=[A-ZÀ-Ú])/g, '$1\n\n');
+
+    // Separar nome colado ao final da última frase: "...de 15 dias. Emily\nBraxora" → "...de 15 dias.\n\nEmily\nBraxora"
+    // Detecta: [frase terminando em .!?] [espaço] [Nome com maiúscula] no final do texto (possivelmente com \nLoja)
+    result = result.replace(/([.!?])\s+([A-ZÀ-Ú][a-zà-ú]+(?:\s*\n\s*[A-ZÀ-Ú][\w\s]*)?)\s*$/, '$1\n\n$2');
+
     return result.replace(/\n{3,}/g, '\n\n').trim();
   }
 
@@ -2409,6 +2448,26 @@ function detectHallucinations(
     }
   }
 
+  // 4a. Detectar frases que validam acusações de fraude/golpe (multi-idioma)
+  const fraudValidationPhrases = [
+    /não posso confirmar.{0,30}(?:golpe|fraude|scam|enganação)/i,
+    /I cannot confirm.{0,30}(?:scam|fraud)/i,
+    /kann nicht bestätigen.{0,30}(?:Betrug|Schwindel)/i,
+    /ne peux pas confirmer.{0,30}(?:arnaque|fraude|escroquerie)/i,
+    /no puedo confirmar.{0,30}(?:estafa|fraude)/i,
+    /non posso confermare.{0,30}(?:truffa|frode)/i,
+    /não posso (?:descartar|negar).{0,30}(?:golpe|fraude)/i,
+    /I cannot (?:rule out|deny).{0,30}(?:scam|fraud)/i,
+  ];
+
+  for (const pattern of fraudValidationPhrases) {
+    if (pattern.test(responseText)) {
+      const match = responseText.match(pattern);
+      problems.push(`FRAUD_VALIDATION: "${match?.[0]}"`);
+      break;
+    }
+  }
+
   // 4. DETECÇÃO ESTRUTURAL: Fechamentos formais (qualquer idioma)
   // Em vez de listar cada frase, detecta o PADRÃO: despedida formal antes da assinatura
   const formalClosings = /(?:atenciosamente|sinceramente|sincerely|best\s+regards|kind\s+regards|warm\s+regards|yours\s+(?:truly|faithfully|sincerely)|mit\s+freundlichen\s+grüßen|cordialmente|cordialement|cordiali\s+saluti|con\s+cordiales?\s+saludos|s\s+pozdravem|z\s+poważaniem|distinti\s+saluti|salutations?\s+distinguées?)/i;
@@ -2634,6 +2693,7 @@ export async function generateResponse(
   }> = [],
   sentiment: string = 'calm',
   conversationStatus?: string,
+  productData?: string | null,
 ): Promise<ResponseGenerationResult> {
   // Mapear tom de voz para instruções - MAIS HUMANO E NATURAL
   const toneInstructions: Record<string, string> = {
@@ -2653,6 +2713,7 @@ ESTILO DE ESCRITA - PAREÇA HUMANO (PRIORIDADE MÁXIMA - SEGUIR SEMPRE):
 - Evite frases muito formais como "Prezado cliente", "Venho por meio desta"
 - Use saudações naturais: "Oi!", "Olá!", "Hey!", "Hi there!"
 - NÃO use estruturas repetitivas (evite sempre começar igual)
+- NUNCA repita a mesma informação com palavras diferentes na mesma resposta. Se já disse que o pedido está aguardando envio, NÃO diga de novo em outro parágrafo. CADA frase deve trazer informação NOVA.
 - Varie suas respostas - não seja previsível
 - Mostre personalidade - você é uma pessoa, não uma máquina
 - Use expressões naturais: "Entendo!", "Claro!", "Sem problemas!", "Deixa comigo!"
@@ -2699,6 +2760,7 @@ ASSINATURA DO EMAIL (OBRIGATÓRIO):
 - SEMPRE termine com seu nome E o nome da loja em LINHAS SEPARADAS
 - O nome do atendente numa linha, o nome da loja na linha seguinte
 - NUNCA coloque o nome e a loja na mesma linha do texto
+- NUNCA use formato "Nome - Loja" ou "Nome, Loja" na mesma linha (PROIBIDO: "${shopContext.attendant_name} - ${shopContext.name}")
 - Formato OBRIGATÓRIO:
   [texto da resposta]
 
@@ -2709,6 +2771,7 @@ REGRA DE BREVIDADE (MUITO IMPORTANTE):
 - Para perguntas simples (status, prazo, info), responda em 1-3 frases CURTAS
 - NUNCA adicione frases de preenchimento/cortesia que não trazem informação
 - Se a pergunta é simples, a resposta deve ser simples
+- NUNCA termine com frases sem sentido como "me avise sobre o suporte" ou "please let me know about support" - termine naturalmente com "Qualquer coisa, me chama!" ou simplesmente com sua assinatura
 - Exemplo ERRADO (robótico):
   "Olá, Sim, esta é a loja Valoreasy. Terei todo o prazer em analisar a sua experiência. Poderia, por favor, fornecer mais detalhes sobre o ocorrido para que eu possa ajudá-lo(a)? Como posso ajudar você hoje? Estou aqui para responder a quaisquer perguntas ou dúvidas que você possa ter. Atenciosamente, Suporte Valoreasy"
 - Exemplo CORRETO (humano):
@@ -2761,6 +2824,19 @@ DÚVIDAS SOBRE AUTENTICIDADE / PRODUTOS ORIGINAIS (MUITO IMPORTANTE):
 - Exemplo CORRETO: "Olá! Pode ficar tranquila! Nossos produtos são 100% originais e de alta qualidade. Muitas marcas têm centros de distribuição em diferentes países, incluindo a China, o que é totalmente normal no mercado global. Seu pedido está a caminho e tenho certeza que você vai adorar! Qualquer dúvida, estou aqui."
 - NUNCA encaminhe para humano só porque o cliente perguntou sobre autenticidade
 - Seja CONFIANTE e POSITIVO - você representa uma loja séria com produtos de qualidade
+
+ACUSAÇÕES DE FRAUDE / GOLPE / SCAM (PRIORIDADE MÁXIMA):
+- Se o cliente acusar a loja de "fraude", "golpe", "scam", "enganação", "roubo", "fake", "Betrug", "arnaque", "estafa", "truffa", "oplichting":
+  → NUNCA valide a acusação. NUNCA diga "não posso confirmar", "não posso descartar", "não posso negar"
+  → NUNCA use frases como "infelizmente não posso confirmar que é golpe" - isso IMPLICA que pode ser golpe!
+  → DEFENDA a loja com CONFIANÇA TOTAL. Você representa uma empresa SÉRIA e LEGÍTIMA
+  → Mostre EMPATIA pela frustração, mas NEGUE categoricamente a acusação
+  → Use os DADOS DO PEDIDO para provar que é legítimo (rastreio, status de envio, etc.)
+- Exemplo ERRADO: "Não posso confirmar que se trata de um golpe" / "I cannot confirm this is a scam"
+- Exemplo ERRADO: "Entendo que parece fraudulento" / "I understand it looks fraudulent"
+- Exemplo CORRETO: "Olá! Lamento que esteja com essa impressão, mas pode ficar tranquilo(a)! Somos uma loja séria e seu pedido #X está a caminho. O status atual é: [status]. Nossos produtos são 100% de qualidade e estamos aqui para garantir sua satisfação!"
+- Exemplo CORRETO (en): "Hi! I'm sorry you feel this way, but I want to reassure you - we are a legitimate store and your order #X is on its way. Current status: [status]. We stand behind the quality of our products!"
+- A acusação de fraude NÃO é motivo para encaminhar para humano - DEFENDA a loja e forneça informações do pedido
 `;
 
   // Montar contexto do Shopify
@@ -2787,9 +2863,8 @@ NOTE: Order was SHIPPED but tracking code is not yet in the system.
 (⚠️ RESPOND in the customer's language: ${language}, NOT in Portuguese!)`;
       } else {
         trackingInstruction = `
-NOTE: Order is still AWAITING SHIPMENT.
-→ Tell the customer the order is being prepared
-→ Say that once shipped, they will receive the tracking code
+NOTE: Order is still AWAITING SHIPMENT (no tracking yet).
+→ Inform the status ONCE (do NOT repeat it in different words)
 → NEVER ask the customer to provide tracking
 (⚠️ RESPOND in the customer's language: ${language}, NOT in Portuguese!)`;
     }
@@ -3097,16 +3172,48 @@ I will mark your order with SPECIAL PREFERENCE in our system.
 Can you tell me what specifically worries you? I really want to help!"
 `}
 
-FORBIDDEN PHRASES (if ANY of these appear in your response, you FAILED):
-- "Let me escalate this"
-- "I will forward to our team"
-- "Please contact support"
-- "Please contact us at"
-- "contact our team at"
+FORBIDDEN PHRASES - ALL LANGUAGES (if ANY of these appear in your response, you FAILED):
+
+English:
+- "Let me escalate this", "I will forward to our team", "I'll forward your request"
+- "Please contact support", "Please contact us at", "contact our team at"
+- "I will process your refund", "I will cancel your order", "I can proceed with the cancellation"
+
+German / Deutsch:
+- "Ich werde Ihre Anfrage weiterleiten", "Ich leite das an unser Team weiter"
+- "Bitte kontaktieren Sie unseren Support", "Kontaktieren Sie uns unter"
+- "Ich werde Ihre Rückerstattung bearbeiten", "Ich werde Ihre Bestellung stornieren"
+
+French / Français:
+- "Je vais transmettre votre demande", "Je vais faire suivre à notre équipe"
+- "Veuillez contacter notre support", "Contactez-nous à"
+- "Je vais traiter votre remboursement", "Je vais annuler votre commande"
+
+Spanish / Español:
+- "Voy a enviar tu solicitud al equipo", "Lo escalaré a nuestro equipo"
+- "Por favor contacta a soporte", "Contáctanos en"
+- "Voy a procesar tu reembolso", "Voy a cancelar tu pedido"
+
+Italian / Italiano:
+- "Inoltrerò la tua richiesta al team", "Passerò la questione al nostro team"
+- "Contatta il nostro supporto", "Contattaci a"
+- "Elaborerò il tuo rimborso", "Cancellerò il tuo ordine"
+
+Dutch / Nederlands:
+- "Ik zal uw verzoek doorsturen", "Ik stuur dit door naar ons team"
+- "Neem contact op met onze support", "Neem contact met ons op via"
+- "Ik zal uw terugbetaling verwerken", "Ik zal uw bestelling annuleren"
+
+Portuguese / Português:
+- "Vou encaminhar para a equipe", "Vou encaminhar sua solicitação"
+- "Entre em contato com o suporte", "Entre em contato pelo email"
+- "Vou processar seu reembolso", "Vou cancelar seu pedido"
+
 - Any email address (e.g. urgent@..., support@..., rai.santos...)
-${codPreDelivery ? '- "I will process your refund" (NO PAYMENT WAS MADE!)' : '- "I will process your refund"'}
-- "I will cancel your order"
-- "I can proceed with the cancellation"
+${codPreDelivery ? '- ANY mention of "refund/Rückerstattung/remboursement/reembolso" (NO PAYMENT WAS MADE!)' : ''}
+
+⚠️ These phrases are FORBIDDEN in ALL languages, including translations not listed above!
+The INTENT matters: never forward, escalate, mention support email, or promise refund/cancellation at this stage.
 ` : ''}
 
 ${retentionContactCount === 2 ? `
@@ -3233,6 +3340,19 @@ ${humanStyleInstructions}
 ${codInstructions}
 ${storeInfo}
 ${shopifyContext}
+${productData ? `
+${productData}
+
+INSTRUÇÕES PARA USO DOS DADOS DE PRODUTO:
+- Se o cliente perguntar sobre disponibilidade, variantes (cores, tamanhos), preços ou detalhes de um produto, USE os dados acima para responder DIRETAMENTE
+- Informe variantes disponíveis (cores, tamanhos) quando perguntado
+- Informe o preço quando perguntado (use o range se houver variantes com preços diferentes)
+- Se um produto está ESGOTADO, informe com empatia e sugira alternativas do catálogo que estejam em estoque
+- Se o cliente quer TROCAR por outra variante (cor/tamanho), confirme se a variante desejada está disponível antes de encaminhar
+- NUNCA invente informações de produto que NÃO estão nos dados acima
+- Se perguntarem sobre um produto que NÃO aparece nos dados, diga que vai verificar com a equipe
+- Ao mencionar preços, use o formato adequado ao idioma do cliente (R$ para PT-BR, $ para EN, etc.)
+` : ''}
 ${language !== 'pt' && language !== 'pt-BR' ? `
 ═══════════════════════════════════════════════════════════════════════
 ⚠️ LANGUAGE REMINDER: The data above is in Portuguese for internal use ONLY.
@@ -3253,6 +3373,7 @@ O cliente perguntou sobre STATUS/RASTREIO. Sua resposta DEVE:
 3. NÃO usar frases de fechamento corporativas ("Caso tenha dúvidas...", "Estaremos felizes...")
 4. NÃO encaminhar para humano (a menos que o rastreio não funcione ou pacote esteja perdido)
 5. Assinar APENAS com seu nome: ${shopContext.attendant_name}
+6. NUNCA repita a mesma informação em parágrafos diferentes (ex: NÃO diga "está aguardando envio" e depois "o status é aguardando envio" - isso é REPETIÇÃO)
 
 ⛔⛔⛔ PROIBIÇÃO ABSOLUTA - PROMESSAS FALSAS (REGRA #1 DE RASTREIO) ⛔⛔⛔
 Você NÃO PODE investigar, checar, contatar transportadoras, ou tomar qualquer ação.
@@ -4306,6 +4427,10 @@ Se a imagem mostrar algo grave (produto claramente errado, danificado, etc.):
   // Aplicar limpeza de pensamentos internos e formatação
   let cleanedResponse = formatEmailResponse(cleanAIResponse(stripMarkdown(responseText)));
 
+  // Limpar assinatura duplicada: "Nome - Loja\nLoja" → "Nome\nLoja"
+  // e "Nome - Loja" no final → "Nome\nLoja"
+  cleanedResponse = cleanDuplicateSignature(cleanedResponse, shopContext.attendant_name, shopContext.name);
+
   // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 1: Detectar alucinações (endereços, telefones, ações falsas)
   const hallucinations = detectHallucinations(cleanedResponse, shopContext, storeProvidedInfo);
   if (hallucinations.length > 0) {
@@ -4333,7 +4458,7 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
       }];
       const retryResponse = await callClaude(systemPrompt, hallucinationFixMessages, MAX_TOKENS);
       const retryText = retryResponse.content[0]?.text || '';
-      const retryClean = formatEmailResponse(cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim())));
+      const retryClean = cleanDuplicateSignature(formatEmailResponse(cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim()))), shopContext.attendant_name, shopContext.name);
 
       // Verificar se o retry também tem alucinações
       const retryHallucinations = detectHallucinations(retryClean, shopContext, storeProvidedInfo);
@@ -4379,6 +4504,69 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
     }
   }
 
+  // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 1.5: Detectar violação do fluxo de retenção
+  // Se o contador < threshold e a IA encaminhou para humano ou mencionou escalação → regenerar
+  if (category === 'troca_devolucao_reembolso' && retentionContactCount >= 1 && retentionContactCount < forwardThreshold) {
+    // Padrões multi-idioma de encaminhamento/escalação proibidos durante retenção
+    const retentionViolationPatterns = [
+      // English
+      /\b(i will forward|i'll forward|let me escalate|i will escalate|please contact support|contact our team|reach out to our team|i('ll| will) pass this|forwarded your (request|case|inquiry))\b/i,
+      // German
+      /\b(ich werde.*weiterleiten|ich leite.*weiter|bitte kontaktieren sie.*support|kontaktieren sie uns|an unser team weiterleiten|ich habe.*weitergeleitet)\b/i,
+      // French
+      /\b(je vais transmettre|je vais faire suivre|veuillez contacter.*support|contactez-nous|transférer.*équipe|j'ai transmis)\b/i,
+      // Spanish
+      /\b(voy a enviar.*equipo|lo escalaré|por favor contacta.*soporte|contáctanos|he reenviado)\b/i,
+      // Italian
+      /\b(inoltrerò.*team|passerò.*team|contatta.*supporto|contattaci|ho inoltrato)\b/i,
+      // Dutch
+      /\b(ik zal.*doorsturen|ik stuur.*door|neem contact op met.*support|ik heb.*doorgestuurd)\b/i,
+      // Portuguese
+      /\b(vou encaminhar|encaminhei|entre em contato com.*suporte|entre em contato pelo email|a equipe vai (analisar|verificar|responder))\b/i,
+    ];
+
+    const hasViolation = retentionViolationPatterns.some(p => p.test(cleanedResponse));
+    if (hasViolation || forwardToHuman) {
+      console.warn(`[generateResponse] RETENTION VIOLATION: Counter=${retentionContactCount} < Threshold=${forwardThreshold}, but AI forwarded/escalated. Regenerating...`);
+      try {
+        const retentionFixMessages = [...messages, {
+          role: 'user' as const,
+          content: `CRITICAL ERROR: Your previous response violated the MANDATORY RETENTION FLOW.
+
+YOU MUST NOT forward, escalate, or mention any support email. The retention counter is ${retentionContactCount} which is BELOW the threshold of ${forwardThreshold}.
+
+YOUR JOB RIGHT NOW IS TO RETAIN THE CUSTOMER, NOT FORWARD THEM.
+
+${retentionContactCount === 1 ? `This is the FIRST retention contact. You MUST:
+1. Make the customer feel SPECIAL and IMPORTANT
+2. Say their order will have SPECIAL PREFERENCE
+3. Ask what SPECIFICALLY worries them
+4. DO NOT forward to any team or mention any email` : `This is retention contact #${retentionContactCount}. You MUST:
+1. Offer a benefit or discount to retain the customer
+2. Ask for one more chance
+3. DO NOT forward to any team or mention any email`}
+
+Rewrite your response following the retention script. Be warm, empathetic, and try to KEEP the customer.`,
+        }];
+        const retryResponse = await callClaude(systemPrompt, retentionFixMessages, MAX_TOKENS);
+        const retryText = retryResponse.content[0]?.text || '';
+        const retryClean = cleanDuplicateSignature(
+          formatEmailResponse(cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim()))),
+          shopContext.attendant_name, shopContext.name
+        );
+        if (retryClean && retryClean.length > 10) {
+          console.log(`[generateResponse] Retention fix successful`);
+          cleanedResponse = retryClean;
+          forwardToHuman = false; // Reset - não deve encaminhar durante retenção
+          response.usage.input_tokens += retryResponse.usage.input_tokens;
+          response.usage.output_tokens += retryResponse.usage.output_tokens;
+        }
+      } catch (retryErr) {
+        console.error(`[generateResponse] Retention fix retry failed:`, retryErr);
+      }
+    }
+  }
+
   // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 2: Detectar se a resposta está no idioma errado
   // Se o idioma esperado NÃO é português mas a resposta começa com saudações em português → ERRO
   if (language && language !== 'pt' && language !== 'pt-BR') {
@@ -4396,7 +4584,7 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
         }];
         const retryResponse = await callClaude(systemPrompt, retryMessages, MAX_TOKENS);
         const retryText = retryResponse.content[0]?.text || '';
-        const retryClean = formatEmailResponse(cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim())));
+        const retryClean = cleanDuplicateSignature(formatEmailResponse(cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim()))), shopContext.attendant_name, shopContext.name);
         if (retryClean && retryClean.length > 10) {
           console.log(`[generateResponse] Language retry successful, response now in ${language}`);
           // Aplicar mesma sanitização das CAMADA 3-5 antes de retornar
@@ -4738,7 +4926,7 @@ ${urgencyNote}`;
     200
   );
 
-  const dataReqResponse = formatEmailResponse(cleanAIResponse(stripMarkdown(response.content[0]?.text || '')));
+  const dataReqResponse = cleanDuplicateSignature(formatEmailResponse(cleanAIResponse(stripMarkdown(response.content[0]?.text || ''))), shopContext.attendant_name, shopContext.name);
 
   // VALIDAÇÃO PÓS-GERAÇÃO: Detectar se a resposta está no idioma errado
   if (language && language !== 'pt' && language !== 'pt-BR') {
@@ -4757,7 +4945,7 @@ ${urgencyNote}`;
           }],
           200
         );
-        const retryText = formatEmailResponse(cleanAIResponse(stripMarkdown(retryResponse.content[0]?.text || '')));
+        const retryText = cleanDuplicateSignature(formatEmailResponse(cleanAIResponse(stripMarkdown(retryResponse.content[0]?.text || ''))), shopContext.attendant_name, shopContext.name);
         if (retryText && retryText.length > 10) {
           console.log(`[generateDataRequestMessage] Language retry successful`);
           return {
@@ -4901,7 +5089,7 @@ LANGUAGE: ${languageInstruction}`;
     150
   );
 
-  const fallbackResponse = formatEmailResponse(cleanAIResponse(stripMarkdown(response.content[0]?.text || '')));
+  const fallbackResponse = cleanDuplicateSignature(formatEmailResponse(cleanAIResponse(stripMarkdown(response.content[0]?.text || ''))), shopContext.attendant_name, shopContext.name);
 
   // VALIDAÇÃO PÓS-GERAÇÃO: Detectar se a resposta está no idioma errado
   if (language && language !== 'pt' && language !== 'pt-BR') {
@@ -4917,7 +5105,7 @@ LANGUAGE: ${languageInstruction}`;
           [{ role: 'user', content: `CRITICAL: Write ONLY in ${langStr}. NOT Portuguese. Tell the customer the team will review their case and respond through this same email. Do NOT provide any different email address. Respond ENTIRELY in ${langStr}.` }],
           150
         );
-        const retryText = formatEmailResponse(cleanAIResponse(stripMarkdown(retryResponse.content[0]?.text || '')));
+        const retryText = cleanDuplicateSignature(formatEmailResponse(cleanAIResponse(stripMarkdown(retryResponse.content[0]?.text || ''))), shopContext.attendant_name, shopContext.name);
         if (retryText && retryText.length > 10) {
           return {
             response: retryText,

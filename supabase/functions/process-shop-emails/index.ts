@@ -566,9 +566,31 @@ async function processMessage(
   // 2. Verificar corpo do email (ANTES de gastar créditos - reutiliza preCleanBody)
   let cleanBody = preCleanBody;
 
+  // Fallback: extrair texto do HTML se body_text resultou vazio
+  if ((!cleanBody || cleanBody.trim().length < 3) && message.body_html && message.body_html.trim().length > 10) {
+    console.log(`[Worker] body_text vazio mas body_html tem ${message.body_html.length} chars, extraindo texto`);
+    const htmlText = message.body_html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    if (htmlText && htmlText.length >= 3) {
+      cleanBody = htmlText;
+    }
+  }
+
+  // Fallback: usar subject como contexto
   if ((!cleanBody || cleanBody.trim().length < 3) && message.subject && message.subject.trim().length > 3) {
     console.log(`[Worker] Corpo vazio, usando assunto: "${message.subject}"`);
-    cleanBody = message.subject;
+    cleanBody = `[Cliente respondeu ao email com assunto: ${message.subject}]`;
   }
 
   if (!cleanBody || cleanBody.trim().length < 3) {
