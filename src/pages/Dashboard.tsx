@@ -239,12 +239,6 @@ export default function Dashboard() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [privacyMode, setPrivacyMode] = useState(false)
-  const [productCatalogStats, setProductCatalogStats] = useState<Array<{
-    shop_id: string;
-    shop_name: string;
-    products_count: number;
-    products_synced_at: string | null;
-  }>>([])
 
 
   const cacheFetch = useCallback(<T,>(key: string, fetcher: () => Promise<T>): Promise<T> => {
@@ -583,33 +577,10 @@ export default function Dashboard() {
       }
     }
 
-    // Carregar dados do catálogo de produtos
-    const loadProductCatalogStats = async () => {
-      try {
-        const { data } = await supabase
-          .from('shops')
-          .select('id, name, products_count, products_synced_at')
-          .in('id', effectiveShopIds)
-          .not('shopify_domain', 'is', null)
-
-        if (isActive && data) {
-          setProductCatalogStats(data.map((s: { id: string; name: string; products_count: number | null; products_synced_at: string | null }) => ({
-            shop_id: s.id,
-            shop_name: s.name,
-            products_count: s.products_count || 0,
-            products_synced_at: s.products_synced_at,
-          })))
-        }
-      } catch (err) {
-        console.error('Erro ao carregar stats de produtos:', err)
-      }
-    }
-
     // Executar carregamentos: métricas primeiro, gráfico depois
     loadFastData().then(() => {
       if (isActive) loadChartData()
     })
-    loadProductCatalogStats()
 
     // Real-time subscription para novas conversas
     const channel = supabase
@@ -1034,86 +1005,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Product Catalog Insights */}
-      {productCatalogStats.length > 0 && (
-        <div style={{
-          backgroundColor: 'var(--bg-card)',
-          borderRadius: isMobile ? '12px' : '16px',
-          padding: isMobile ? '14px' : '20px',
-          border: '1px solid var(--border-color)',
-          marginBottom: isMobile ? '12px' : '16px',
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            marginBottom: isMobile ? '12px' : '16px',
-          }}>
-            <div style={{ ...iconBoxStyle('#8b5cf6'), width: isMobile ? '32px' : '36px', height: isMobile ? '32px' : '36px', borderRadius: isMobile ? '10px' : '12px' }}>
-              <Package size={isMobile ? 16 : 20} style={{ color: '#8b5cf6' }} />
-            </div>
-            <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Catálogo de Produtos
-            </div>
-            {categoryStats['duvidas_gerais'] > 0 && (
-              <div style={{
-                backgroundColor: '#f59e0b15',
-                color: '#f59e0b',
-                padding: '2px 10px',
-                borderRadius: '9999px',
-                fontSize: '12px',
-                fontWeight: 600,
-                marginLeft: 'auto',
-              }}>
-                {categoryStats['duvidas_gerais']} perguntas sobre produtos
-              </div>
-            )}
-          </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : `repeat(${Math.min(productCatalogStats.length, 3)}, 1fr)`,
-            gap: '12px',
-          }}>
-            {productCatalogStats.map((stat) => (
-              <div key={stat.shop_id} style={{
-                padding: '12px 16px',
-                backgroundColor: 'var(--bg-secondary)',
-                borderRadius: '10px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-              }}>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {stat.shop_name}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    {stat.products_count > 0
-                      ? `${stat.products_count} produtos`
-                      : 'Não sincronizado'}
-                  </span>
-                  <span style={{
-                    fontSize: '11px',
-                    padding: '2px 8px',
-                    borderRadius: '9999px',
-                    backgroundColor: stat.products_count > 0 ? '#10b98115' : '#f59e0b15',
-                    color: stat.products_count > 0 ? '#10b981' : '#f59e0b',
-                    fontWeight: 500,
-                  }}>
-                    {stat.products_count > 0 ? 'Ativo' : 'Pendente'}
-                  </span>
-                </div>
-                {stat.products_synced_at && (
-                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                    Sync: {new Date(stat.products_synced_at).toLocaleDateString('pt-BR')}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       {/* Bottom */}
       <div className="replyna-dashboard-bottom">
