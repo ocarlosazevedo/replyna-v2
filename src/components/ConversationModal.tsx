@@ -664,7 +664,11 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
         },
       })
 
-      if (error) throw error
+      // Extrair mensagem real do erro (supabase retorna data mesmo em non-2xx)
+      if (error) {
+        const errorMsg = data?.error || error.message || 'Erro desconhecido'
+        throw new Error(errorMsg)
+      }
 
       if (data?.success) {
         setForceAISuccess(true)
