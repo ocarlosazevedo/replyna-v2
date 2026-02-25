@@ -159,8 +159,39 @@ serve(async (req) => {
       })
     );
 
+    // Buscar conversas pendentes da conta "Teste Email" (gustavolsilva2003@gmail.com)
+    // para permitir testes com o botão "Forçar resposta IA"
+    const testUser = (allUsersForPlansRes.data || []).find(
+      (u: { email: string }) => u.email === 'gustavolsilva2003@gmail.com'
+    );
+    const testShopIds = testUser
+      ? (shopsRes.data || [])
+          .filter((s: { user_id: string }) => s.user_id === testUser.id)
+          .map((s: { id: string }) => s.id)
+      : [];
+
+    let pendingTestConversations: typeof recentConversationsRes.data = [];
+    if (testShopIds.length > 0) {
+      const { data: pendingData } = await supabase
+        .from('conversations')
+        .select('id, shop_id, customer_email, customer_name, subject, category, status, created_at, last_message_at')
+        .in('shop_id', testShopIds)
+        .gte('created_at', dateStart)
+        .lte('created_at', dateEnd)
+        .in('status', ['pending', 'processing', 'open'])
+        .order('last_message_at', { ascending: false, nullsFirst: false })
+        .limit(50);
+      pendingTestConversations = pendingData || [];
+    }
+
     // Processar conversas recentes com dados da loja
-    const recentConversations = (recentConversationsRes.data || []).map(
+    const existingIds = new Set((recentConversationsRes.data || []).map((c: { id: string }) => c.id));
+    const allConversationsRaw = [
+      ...(recentConversationsRes.data || []),
+      ...pendingTestConversations.filter((c: { id: string }) => !existingIds.has(c.id)),
+    ];
+
+    const recentConversations = allConversationsRaw.map(
       (conv: {
         id: string;
         shop_id: string;
