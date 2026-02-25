@@ -384,8 +384,9 @@ Deno.serve(async (req) => {
     const sendResult = await sendEmail(emailCredentials, {
       to: message.from_email!,
       subject: replySubject,
-      body: finalBody,
-      headers: replyHeaders,
+      body_text: finalBody,
+      in_reply_to: replyHeaders['In-Reply-To'],
+      references: replyHeaders['References'],
     });
 
     if (!sendResult.success) {
