@@ -226,63 +226,16 @@ export default function Tickets() {
         </div>
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Filtro por status */}
-          <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-            {([
-              { key: 'all', label: 'Todos' },
-              { key: 'pending', label: 'Pendentes' },
-              { key: 'answered', label: 'Respondidos' },
-            ] as const).map((opt, idx) => (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => setSelectedStatus(opt.key)}
-                style={{
-                  padding: isMobile ? '5px 10px' : '6px 12px',
-                  fontSize: isMobile ? '12px' : '13px',
-                  fontWeight: 600,
-                  border: 'none',
-                  borderLeft: idx > 0 ? '1px solid var(--border-color)' : 'none',
-                  cursor: 'pointer',
-                  backgroundColor: selectedStatus === opt.key
-                    ? opt.key === 'answered'
-                      ? 'rgba(34,197,94,0.15)'
-                      : opt.key === 'pending'
-                        ? 'rgba(239,68,68,0.15)'
-                        : 'var(--accent)'
-                    : 'var(--bg-card)',
-                  color: selectedStatus === opt.key
-                    ? opt.key === 'answered'
-                      ? '#16a34a'
-                      : opt.key === 'pending'
-                        ? '#ef4444'
-                        : '#fff'
-                    : 'var(--text-secondary)',
-                  transition: 'all 0.15s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                {opt.label}
-                <span style={{
-                  fontSize: isMobile ? '10px' : '11px',
-                  fontWeight: 700,
-                  backgroundColor: selectedStatus === opt.key
-                    ? opt.key === 'answered'
-                      ? 'rgba(34,197,94,0.2)'
-                      : opt.key === 'pending'
-                        ? 'rgba(239,68,68,0.2)'
-                        : 'rgba(255,255,255,0.25)'
-                    : 'var(--border-color)',
-                  padding: '1px 6px',
-                  borderRadius: '999px',
-                }}>
-                  {statusCounts[opt.key]}
-                </span>
-              </button>
-            ))}
-          </div>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="replyna-select"
+            style={{ minWidth: isMobile ? '120px' : '180px', flex: isMobile ? 1 : 'none' }}
+          >
+            <option value="all">Todos os status ({statusCounts.all})</option>
+            <option value="pending">Pendentes ({statusCounts.pending})</option>
+            <option value="answered">Respondidos ({statusCounts.answered})</option>
+          </select>
 
           <select
             value={selectedShopId}
