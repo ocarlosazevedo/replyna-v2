@@ -56,6 +56,7 @@ export default function Tickets() {
   const [loading, setLoading] = useState(true)
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [selectedShopId, setSelectedShopId] = useState<string>('all')
+  const [selectedStatus, setSelectedStatus] = useState<string>('all')
 
   const shopIds = useMemo(() => shops.map((s) => s.id), [shops])
 
@@ -153,8 +154,23 @@ export default function Tickets() {
   }, [user, shopIds, shopNameMap])
 
   const filteredTickets = useMemo(() => {
-    if (selectedShopId === 'all') return tickets
-    return tickets.filter((t) => t.shop_id === selectedShopId)
+    let result = tickets
+    if (selectedShopId !== 'all') {
+      result = result.filter((t) => t.shop_id === selectedShopId)
+    }
+    if (selectedStatus !== 'all') {
+      result = result.filter((t) => (t.ticket_status || 'pending') === selectedStatus)
+    }
+    return result
+  }, [tickets, selectedShopId, selectedStatus])
+
+  const statusCounts = useMemo(() => {
+    const base = selectedShopId === 'all' ? tickets : tickets.filter((t) => t.shop_id === selectedShopId)
+    return {
+      all: base.length,
+      pending: base.filter((t) => (t.ticket_status || 'pending') === 'pending').length,
+      answered: base.filter((t) => (t.ticket_status || 'pending') === 'answered').length,
+    }
   }, [tickets, selectedShopId])
 
   const handleConversationClick = useCallback((id: string) => {
@@ -210,6 +226,64 @@ export default function Tickets() {
         </div>
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Filtro por status */}
+          <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+            {([
+              { key: 'all', label: 'Todos' },
+              { key: 'pending', label: 'Pendentes' },
+              { key: 'answered', label: 'Respondidos' },
+            ] as const).map((opt, idx) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setSelectedStatus(opt.key)}
+                style={{
+                  padding: isMobile ? '5px 10px' : '6px 12px',
+                  fontSize: isMobile ? '12px' : '13px',
+                  fontWeight: 600,
+                  border: 'none',
+                  borderLeft: idx > 0 ? '1px solid var(--border-color)' : 'none',
+                  cursor: 'pointer',
+                  backgroundColor: selectedStatus === opt.key
+                    ? opt.key === 'answered'
+                      ? 'rgba(34,197,94,0.15)'
+                      : opt.key === 'pending'
+                        ? 'rgba(239,68,68,0.15)'
+                        : 'var(--accent)'
+                    : 'var(--bg-card)',
+                  color: selectedStatus === opt.key
+                    ? opt.key === 'answered'
+                      ? '#16a34a'
+                      : opt.key === 'pending'
+                        ? '#ef4444'
+                        : '#fff'
+                    : 'var(--text-secondary)',
+                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                {opt.label}
+                <span style={{
+                  fontSize: isMobile ? '10px' : '11px',
+                  fontWeight: 700,
+                  backgroundColor: selectedStatus === opt.key
+                    ? opt.key === 'answered'
+                      ? 'rgba(34,197,94,0.2)'
+                      : opt.key === 'pending'
+                        ? 'rgba(239,68,68,0.2)'
+                        : 'rgba(255,255,255,0.25)'
+                    : 'var(--border-color)',
+                  padding: '1px 6px',
+                  borderRadius: '999px',
+                }}>
+                  {statusCounts[opt.key]}
+                </span>
+              </button>
+            ))}
+          </div>
+
           <select
             value={selectedShopId}
             onChange={(e) => setSelectedShopId(e.target.value)}
@@ -323,10 +397,18 @@ export default function Tickets() {
               <Ticket size={28} style={{ color: '#ec4899', opacity: 0.6 }} />
             </div>
             <div style={{ fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '6px' }}>
-              Nenhum ticket pendente
+              {selectedStatus === 'pending'
+                ? 'Nenhum ticket pendente'
+                : selectedStatus === 'answered'
+                  ? 'Nenhum ticket respondido'
+                  : 'Nenhum ticket encontrado'}
             </div>
             <div style={{ fontSize: '14px', color: 'var(--text-secondary)', maxWidth: '380px', margin: '0 auto', lineHeight: '1.5' }}>
-              Quando uma conversa precisar de atenção humana, ela aparecerá aqui automaticamente.
+              {selectedStatus === 'all'
+                ? 'Quando uma conversa precisar de atenção humana, ela aparecerá aqui automaticamente.'
+                : selectedStatus === 'pending'
+                  ? 'Não há tickets aguardando resposta no momento.'
+                  : 'Não há tickets respondidos no momento.'}
             </div>
           </div>
         ) : (
