@@ -427,9 +427,10 @@ Deno.serve(async (req) => {
       tokens_output: responseResult.tokens_output,
     });
 
-    // 14. Atualizar conversa
+    // 14. Atualizar conversa (inclui categoria resolvida)
     await updateConversation(conversation.id, {
       status: finalStatus === 'replied' ? 'closed' : 'pending_human',
+      category: category,
       last_message_at: new Date().toISOString(),
     });
 
