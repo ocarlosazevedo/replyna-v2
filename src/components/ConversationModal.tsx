@@ -657,17 +657,25 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     setForceAISuccess(false)
 
     try {
-      const { data, error } = await supabase.functions.invoke('reprocess-message', {
-        body: {
-          conversation_id: conversation.id,
-          shop_id: conversation.shop_id,
-        },
-      })
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reprocess-message`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            conversation_id: conversation.id,
+            shop_id: conversation.shop_id,
+          }),
+        }
+      )
 
-      // Extrair mensagem real do erro (supabase retorna data mesmo em non-2xx)
-      if (error) {
-        const errorMsg = data?.error || error.message || 'Erro desconhecido'
-        throw new Error(errorMsg)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data?.error || `Erro ${response.status}: ${response.statusText}`)
       }
 
       if (data?.success) {
