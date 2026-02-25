@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
       .select('*')
       .eq('conversation_id', conversation_id)
       .eq('direction', 'inbound')
-      .in('status', ['pending', 'failed', 'processing'])
+      .in('status', ['pending', 'failed'])
       .order('created_at', { ascending: false })
       .limit(1);
 
