@@ -393,6 +393,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
   const [reprocessing, setReprocessing] = useState(false)
   const [reprocessError, setReprocessError] = useState<string | null>(null)
   const [reprocessSuccess, setReprocessSuccess] = useState(false)
+  const [forceAISuccess, setForceAISuccess] = useState(false)
   const [translations, setTranslations] = useState<Record<string, string>>({})
   const [translatingId, setTranslatingId] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
@@ -407,6 +408,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     setLoading(true)
     setReprocessError(null)
     setReprocessSuccess(false)
+    setForceAISuccess(false)
 
     try {
       if (isAdmin) {
@@ -477,6 +479,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     if (conversationId) {
       loadConversation()
       setShowCategoryDropdown(false)
+      setForceAISuccess(false)
     }
   }, [conversationId, loadConversation])
 
@@ -637,6 +640,37 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     }
   }
 
+  const handleForceAIResponse = async () => {
+    if (!conversation || reprocessing) return
+
+    setReprocessing(true)
+    setReprocessError(null)
+    setForceAISuccess(false)
+
+    try {
+      const { data, error } = await supabase.functions.invoke('reprocess-message', {
+        body: {
+          conversation_id: conversation.id,
+          shop_id: conversation.shop_id,
+        },
+      })
+
+      if (error) throw error
+
+      if (data?.success) {
+        setForceAISuccess(true)
+        await loadConversation()
+      } else {
+        throw new Error(data?.error || 'Erro desconhecido')
+      }
+    } catch (err) {
+      console.error('Erro ao forçar resposta IA:', err)
+      setReprocessError(err instanceof Error ? err.message : 'Erro ao gerar resposta. Tente novamente.')
+    } finally {
+      setReprocessing(false)
+    }
+  }
+
   const handleTranslate = async (messageId: string, text: string) => {
     if (translatingId || translations[messageId]) return
 
@@ -676,6 +710,13 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
       return () => clearTimeout(timer)
     }
   }, [replySuccess])
+
+  useEffect(() => {
+    if (forceAISuccess) {
+      const timer = setTimeout(() => setForceAISuccess(false), 4000)
+      return () => clearTimeout(timer)
+    }
+  }, [forceAISuccess])
 
   const handleSendReply = async () => {
     if (!conversation || !replyText.trim() || sendingReply) return
@@ -720,6 +761,9 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
   if (!conversationId) return null
 
   const isSpam = conversation?.category === 'spam'
+  const hasPendingInbound = messages.some(
+    (m) => m.direction === 'inbound' && ['pending', 'failed', 'processing'].includes(m.status || '')
+  )
 
   return (
     <div
@@ -787,6 +831,53 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {isAdmin && conversation && !isSpam && (hasPendingInbound || reprocessing) && (
+              <button
+                type="button"
+                onClick={handleForceAIResponse}
+                disabled={reprocessing}
+                title="Forçar a IA a gerar e enviar uma resposta agora"
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: '#7c3aed',
+                  color: 'white',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: reprocessing ? 'not-allowed' : 'pointer',
+                  opacity: reprocessing ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {reprocessing ? (
+                  <>
+                    <span
+                      style={{
+                        width: '12px',
+                        height: '12px',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTopColor: 'white',
+                        borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite',
+                        display: 'inline-block',
+                      }}
+                    />
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                    Forçar resposta IA
+                  </>
+                )}
+              </button>
+            )}
             {conversation && (
               <div style={{ position: 'relative' }}>
                 <button
@@ -999,6 +1090,27 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
           >
             <span style={{ fontSize: '14px', color: '#b91c1c' }}>
               {reprocessError}
+            </span>
+          </div>
+        )}
+
+        {/* Sucesso ao forçar resposta IA */}
+        {forceAISuccess && (
+          <div
+            style={{
+              padding: '12px 20px',
+              backgroundColor: 'rgba(124, 58, 237, 0.08)',
+              borderBottom: '1px solid rgba(124, 58, 237, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span style={{ fontSize: '14px', color: '#7c3aed', fontWeight: 600 }}>
+              Resposta IA gerada e enviada com sucesso!
             </span>
           </div>
         )}
