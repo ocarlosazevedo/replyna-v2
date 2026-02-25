@@ -26,6 +26,11 @@ const BATCH_SIZE = 15; // Reduced from 50 to avoid Claude API rate limit (100k t
 const MAX_EXECUTION_TIME_MS = 110000; // 110 seconds
 const DELAY_BETWEEN_JOBS_MS = 2000; // 2 second delay between jobs to spread API calls
 
+// Shops que só processam via botão "Forçar resposta IA" (manual)
+const MANUAL_PROCESSING_ONLY_SHOPS = [
+  'c29834ca-9766-40b8-a91e-4f1321758b3d', // Teste Email (gustavolsilva2003@gmail.com)
+];
+
 interface Job {
   id: string;
   job_type: string;
@@ -126,6 +131,16 @@ Deno.serve(async (req: Request) => {
       }
 
       try {
+        // Skip shops com processamento manual (Forçar resposta IA)
+        if (MANUAL_PROCESSING_ONLY_SHOPS.includes(job.shop_id)) {
+          console.log(`[Queue] Skipping job ${job.id} - shop ${job.shop_id} is manual-only`);
+          await supabase
+            .from('job_queue')
+            .update({ status: 'pending', started_at: null })
+            .eq('id', job.id);
+          continue;
+        }
+
         console.log(`[Queue] Processing job ${job.id} (attempt ${job.attempt_count}/${job.max_attempts})`);
         const jobStartTime = Date.now();
 
