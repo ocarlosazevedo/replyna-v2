@@ -480,16 +480,23 @@ export default function Dashboard() {
       }))
     }
 
+    const isTestAccount = user?.email === 'gustavolsilva2003@gmail.com'
+
     const loadConversationsList = async () => {
       // Lista de conversas para exibição (limite de 200 mais recentes)
-      const query = supabase
+      let query = supabase
         .from('conversations')
         .select('id, shop_id, customer_email, customer_name, subject, category, status, created_at, shops(name)')
-        .not('category', 'is', null) // Excluir conversas ainda em processamento
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
         .order('created_at', { ascending: false })
         .limit(200)
+
+      // Conta teste: mostrar todas as conversas (incluindo pendentes sem categoria)
+      // Outras contas: excluir conversas ainda em processamento
+      if (!isTestAccount) {
+        query = query.not('category', 'is', null)
+      }
 
       const { data, error } =
         selectedShopId === 'all'

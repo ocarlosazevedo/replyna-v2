@@ -372,7 +372,10 @@ function cleanMessageBody(body: string | null): string {
   return cleaned || '(Sem conteudo)'
 }
 
+const TEST_ACCOUNT_EMAIL = 'gustavolsilva2003@gmail.com'
+
 export default function ConversationModal({ conversationId, onClose, onCategoryChange, isAdmin = false }: ConversationModalProps) {
+  const [isTestAccount, setIsTestAccount] = useState(false)
   const [conversation, setConversation] = useState<{
     id: string
     customer_email: string
@@ -401,6 +404,12 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
   const [replyError, setReplyError] = useState<string | null>(null)
   const [replySuccess, setReplySuccess] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsTestAccount(session?.user?.email === TEST_ACCOUNT_EMAIL)
+    })
+  }, [])
 
   const loadConversation = useCallback(async () => {
     if (!conversationId) return
@@ -831,7 +840,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            {isAdmin && conversation && !isSpam && (hasPendingInbound || reprocessing) && (
+            {(isAdmin || isTestAccount) && conversation && !isSpam && (hasPendingInbound || reprocessing) && (
               <button
                 type="button"
                 onClick={handleForceAIResponse}
