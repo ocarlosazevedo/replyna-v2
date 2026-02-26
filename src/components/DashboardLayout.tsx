@@ -41,6 +41,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         .eq('archived', false)
         .in('shop_id', shopIds)
         .in('category', ['suporte_humano', 'edicao_pedido', 'troca_devolucao_reembolso'])
+        .or('ticket_status.is.null,ticket_status.eq.pending')
       setTicketCount(count ?? 0)
     }
 
