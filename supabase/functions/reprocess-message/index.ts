@@ -50,6 +50,7 @@ import {
 import {
   generateResponse,
   generateDataRequestMessage,
+  classifyEmail,
 } from '../_shared/anthropic.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
@@ -102,6 +103,21 @@ Deno.serve(async (req) => {
         JSON.stringify({ success: false, error: 'Conversa não encontrada' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Check if conversation is paused by human reply
+    if (conversation.human_paused_until) {
+      const pausedUntil = new Date(conversation.human_paused_until);
+      if (pausedUntil > new Date()) {
+        console.log(`[Reprocess] Conversation ${conversation_id} is paused until ${conversation.human_paused_until} (human replied), skipping`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Conversa pausada por resposta humana até ${new Date(conversation.human_paused_until).toLocaleDateString('pt-BR')}. A IA não responde enquanto o humano está ativo.`,
+          }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // 3. Buscar a última mensagem inbound pendente
@@ -239,8 +255,38 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 10. Gerar resposta baseada na categoria
-    const category = conversation.category || message.category || 'duvidas_gerais';
+    // 10. Classificar email se categoria não existir
+    let category = conversation.category || message.category;
+    let detectedSentiment: 'calm' | 'frustrated' | 'angry' | 'legal_threat' = 'calm';
+
+    if (!category) {
+      console.log(`[Reprocess] Categoria não encontrada, classificando email...`);
+      try {
+        const classification = await classifyEmail(
+          message.subject || '',
+          cleanBody,
+          conversationHistory,
+          message.body_html || undefined,
+        );
+        category = classification.category;
+        detectedSentiment = classification.sentiment || 'calm';
+
+        // Atualizar conversa e mensagem com a classificação
+        await updateConversation(conversation.id, {
+          category: classification.category,
+          language: classification.language,
+        });
+        await updateMessage(message.id, {
+          category: classification.category,
+        });
+
+        console.log(`[Reprocess] Classificado como: ${classification.category} (confidence: ${classification.confidence}, language: ${classification.language}, sentiment: ${detectedSentiment})`);
+      } catch (classifyErr) {
+        console.error(`[Reprocess] Erro na classificação, usando duvidas_gerais:`, classifyErr);
+        category = 'duvidas_gerais';
+      }
+    }
+
     let responseResult: { response: string; tokens_input: number; tokens_output: number };
     let finalStatus: 'replied' | 'pending_human' = 'replied';
 
@@ -339,7 +385,7 @@ Deno.serve(async (req) => {
     // Se shopifyData foi preenchido (real ou mínimo) e responseResult não foi setado, gerar resposta
     // @ts-ignore - responseResult pode não estar inicializado se caiu nos branches de shopifyData
     if (!responseResult) {
-      responseResult = await generateResponse(
+      const generateArgs = [
         {
           name: shop.name,
           attendant_name: shop.attendant_name,
@@ -361,9 +407,23 @@ Deno.serve(async (req) => {
         0, // retentionContactCount
         [], // additionalOrders
         [], // emailImages
-        'calm', // sentiment - não temos classification no reprocess
+        detectedSentiment, // sentiment detectado na classificação (ou 'calm' como fallback)
         conversation.status, // para loop detection pular exchange_count se pending_human
-      );
+      ] as const;
+
+      // Retry automático para erros transientes da API (500, 529)
+      try {
+        responseResult = await generateResponse(...generateArgs);
+      } catch (firstErr: any) {
+        const is500 = firstErr?.message?.includes('500') || firstErr?.message?.includes('529');
+        if (is500) {
+          console.log(`[Reprocess] API error, retrying in 2s...`);
+          await new Promise(r => setTimeout(r, 2000));
+          responseResult = await generateResponse(...generateArgs);
+        } else {
+          throw firstErr;
+        }
+      }
 
       // Se a IA detectou que é terceiro contato de cancelamento, encaminhar para humano
       if (responseResult.forward_to_human) {

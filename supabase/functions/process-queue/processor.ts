@@ -283,6 +283,20 @@ async function processMessage(
     return false;
   }
 
+  // Check if conversation is paused by human reply (7-day pause)
+  if (conversation.human_paused_until) {
+    const pausedUntil = new Date(conversation.human_paused_until);
+    if (pausedUntil > new Date()) {
+      console.log(`[Processor] Conversation ${conversation.id} is paused until ${conversation.human_paused_until} (human replied), skipping auto-reply`);
+      await updateMessage(message.id, {
+        status: 'pending_human',
+        error_message: `Skipped - conversation paused by human reply until ${conversation.human_paused_until}`,
+        processed_at: new Date().toISOString(),
+      });
+      return false;
+    }
+  }
+
   // Skip Replyna forwarding notifications (emails that were forwarded to human support)
   const messageBody = message.body_text || '';
   const messageSubject = message.subject || '';

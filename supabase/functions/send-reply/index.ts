@@ -190,10 +190,12 @@ Deno.serve(async (req) => {
       replied_at: new Date().toISOString(),
     } as any);
 
-    // 11. Atualizar conversa
+    // 11. Atualizar conversa (pausa IA por 7 dias)
+    const pauseUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     await updateConversation(conversation.id, {
       last_message_at: new Date().toISOString(),
       ticket_status: 'answered',
+      human_paused_until: pauseUntil,
     } as any);
 
     // 12. Registrar log

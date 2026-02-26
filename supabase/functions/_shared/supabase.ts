@@ -92,6 +92,7 @@ export interface Conversation {
   language: string;
   shopify_order_id: string | null;
   shopify_customer_id: string | null;
+  human_paused_until: string | null;
   last_message_at: string;
   created_at: string;
   updated_at: string;
