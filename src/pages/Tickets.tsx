@@ -214,7 +214,7 @@ export default function Tickets() {
                 fontSize: '13px',
                 fontWeight: 700,
               }}>
-                {filteredTickets.length}
+                {statusCounts.pending}
               </span>
             )}
           </div>
