@@ -214,8 +214,32 @@ export default function Masterclass() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    whatsapp: ''
+    whatsapp: '',
+    countryCode: '+55'
   })
+
+  const countryCodes = [
+    { code: '+55', label: '🇧🇷 +55' },
+    { code: '+1', label: '🇺🇸 +1' },
+    { code: '+351', label: '🇵🇹 +351' },
+    { code: '+44', label: '🇬🇧 +44' },
+    { code: '+49', label: '🇩🇪 +49' },
+    { code: '+33', label: '🇫🇷 +33' },
+    { code: '+39', label: '🇮🇹 +39' },
+    { code: '+34', label: '🇪🇸 +34' },
+    { code: '+52', label: '🇲🇽 +52' },
+    { code: '+54', label: '🇦🇷 +54' },
+    { code: '+56', label: '🇨🇱 +56' },
+    { code: '+57', label: '🇨🇴 +57' },
+    { code: '+507', label: '🇵🇦 +507' },
+    { code: '+598', label: '🇺🇾 +598' },
+    { code: '+595', label: '🇵🇾 +595' },
+    { code: '+61', label: '🇦🇺 +61' },
+    { code: '+91', label: '🇮🇳 +91' },
+    { code: '+81', label: '🇯🇵 +81' },
+    { code: '+971', label: '🇦🇪 +971' },
+    { code: '+27', label: '🇿🇦 +27' },
+  ]
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [openFaq, setOpenFaq] = useState<number | null>(null)
@@ -346,7 +370,8 @@ export default function Masterclass() {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          whatsapp: formData.whatsapp
+          whatsapp: formData.whatsapp,
+          countryCode: formData.countryCode
         })
       })
 
@@ -358,14 +383,17 @@ export default function Masterclass() {
         return
       }
 
-      supabase
+      const { error: dbError } = await supabase
         .from('masterclass_leads')
         .insert({
           name: formData.name.trim(),
           email: formData.email.toLowerCase().trim(),
           whatsapp: formData.whatsapp.replace(/\D/g, '')
         })
-        .then(() => {})
+
+      if (dbError) {
+        console.error('Supabase insert error:', dbError)
+      }
 
       if ((window as any).fbq) {
         (window as any).fbq('track', 'Lead', {
@@ -932,14 +960,26 @@ export default function Masterclass() {
 
               <div className="mc-field">
                 <label htmlFor="modal-whatsapp">WhatsApp</label>
-                <input
-                  id="modal-whatsapp"
-                  type="tel"
-                  placeholder="(00) 00000-0000"
-                  value={formData.whatsapp}
-                  onChange={handleWhatsAppChange}
-                  className={errors.whatsapp ? 'mc-input-error' : ''}
-                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select
+                    value={formData.countryCode}
+                    onChange={e => setFormData(prev => ({ ...prev, countryCode: e.target.value }))}
+                    className="mc-country-select"
+                  >
+                    {countryCodes.map(c => (
+                      <option key={c.code} value={c.code}>{c.label}</option>
+                    ))}
+                  </select>
+                  <input
+                    id="modal-whatsapp"
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    value={formData.whatsapp}
+                    onChange={handleWhatsAppChange}
+                    className={errors.whatsapp ? 'mc-input-error' : ''}
+                    style={{ flex: 1 }}
+                  />
+                </div>
                 {errors.whatsapp && <span className="mc-error">{errors.whatsapp}</span>}
               </div>
 
@@ -1541,6 +1581,36 @@ const styles = `
     border-color: #1E90FF;
     background: rgba(30,144,255,0.08);
     box-shadow: 0 0 0 3px rgba(30,144,255,0.1);
+  }
+  .mc-country-select {
+    padding: 16px 8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 15px;
+    font-family: inherit;
+    min-width: 95px;
+    cursor: pointer;
+    transition: all 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(255,255,255,0.5)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 24px;
+  }
+  .mc-country-select:focus {
+    outline: none;
+    border-color: #1E90FF;
+    background-color: rgba(30,144,255,0.08);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(255,255,255,0.5)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+  .mc-country-select option {
+    background: #1a1a2e;
+    color: #fff;
   }
   .mc-input-error { border-color: #ef4444 !important; background: rgba(239,68,68,0.08) !important; }
   .mc-error { font-size: 13px; color: #f87171; }

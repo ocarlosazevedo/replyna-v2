@@ -44,8 +44,10 @@ async function ensureContact(email: string, name: string): Promise<boolean> {
 }
 
 // Tenta salvar o numero no contato (SMS + WHATSAPP_NUMBER)
-async function savePhoneToContact(email: string, phone: string): Promise<void> {
-  const smsValue = `+55${phone}`
+async function savePhoneToContact(email: string, phone: string, countryCode: string): Promise<void> {
+  // Garante formato: +CC seguido dos digitos do telefone
+  const code = countryCode.startsWith('+') ? countryCode : `+${countryCode}`
+  const smsValue = `${code}${phone}`
 
   // Tentativa 1: salvar SMS + WHATSAPP_NUMBER juntos
   const resp = await fetch(`https://api.brevo.com/v3/contacts/${encodeURIComponent(email)}`, {
@@ -96,7 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Configuração do servidor incompleta', code: 'MISSING_API_KEY' })
   }
 
-  const { name, email, whatsapp } = req.body
+  const { name, email, whatsapp, countryCode } = req.body
 
   // Validação básica
   if (!name || !email || !whatsapp) {
@@ -122,7 +124,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Passo 2: Salvar telefone separadamente (SMS + WHATSAPP_NUMBER com fallback)
     if (cleanWhatsapp) {
-      await savePhoneToContact(cleanEmail, cleanWhatsapp)
+      await savePhoneToContact(cleanEmail, cleanWhatsapp, countryCode || '+55')
     }
 
     return res.status(200).json({ success: true, message: 'Lead cadastrado com sucesso' })
