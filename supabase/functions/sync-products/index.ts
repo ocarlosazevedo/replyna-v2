@@ -52,15 +52,11 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-    // Cliente autenticado (para verificar permissões)
-    const supabaseAuth = createClient(supabaseUrl, supabaseServiceKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // SERVICE_ROLE_JWT contém o JWT correto; SUPABASE_SERVICE_ROLE_KEY pode conter apenas o secret
+    const serviceRoleJwt = Deno.env.get('SERVICE_ROLE_JWT') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     // Cliente service_role (para operações de banco)
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, serviceRoleJwt);
 
     // Parse body
     const body = await req.json();
@@ -75,11 +71,26 @@ Deno.serve(async (req) => {
 
     // Verificar se o usuário tem acesso à shop (ou é service_role)
     const token = authHeader.replace('Bearer ', '');
-    const isServiceRole = token === supabaseServiceKey;
+    const isServiceRole = token === serviceRoleJwt;
 
     if (!isServiceRole) {
-      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
-      if (authError || !user) {
+      // Verificar user via Auth API diretamente
+      const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        headers: {
+          'Authorization': authHeader,
+          'apikey': serviceRoleJwt,
+        },
+      });
+
+      if (!authResponse.ok) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const user = await authResponse.json();
+      if (!user || !user.id) {
         return new Response(
           JSON.stringify({ error: 'Unauthorized' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
