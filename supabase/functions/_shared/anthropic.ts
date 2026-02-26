@@ -159,6 +159,32 @@ function detectLanguageFromText(text: string): string | null {
     /\b(chegou|chegaram|chegando)\b/i, // ES usa "llegó/llegaron"
     /\b(rastreio|rastreamento)\b/i, // palavra única PT para tracking
     /\b(encomenda)\b/i, // palavra única PT para order (ES usa "pedido")
+    // Possessivos PT (ES usa "mi/mis/mío/mía/su/sus")
+    /\b(meu|minha|meus|minhas)\b/i,
+    // Negação PT (ES usa "no")
+    /\bnão\b/i,
+    // Advérbios PT únicos (ES usa "aún/todavía", "también")
+    // NOTA: "aqui" removido pois existe em ES também
+    /\b(ainda|também)\b/i,
+    // Verbos conjugados PT - pretérito perfeito (ES usa formas diferentes)
+    /\b(recebi|recebeu|recebemos|receberam)\b/i, // ES: recibí/recibió
+    // NOTA: "fez" removido pois existe em EN (fez hat); manter apenas formas sem colisão
+    /\b(fiz|fizeram|fizemos)\b/i, // ES: hice/hizo
+    /\b(comprei|comprou|compramos)\b/i, // ES: compré/compró
+    /\b(paguei|pagou|pagamos)\b/i, // ES: pagué/pagó
+    // NOTA: "queremos" removido pois é idêntico em ES; manter apenas formas únicas PT
+    // NOTA: "quer" removido pois existe em DE (=diagonal/transversal); "quero" é seguro
+    /\b(quero)\b/i, // ES: quiero (forma diferente)
+    /\b(tenho|temos|tinha|tinham)\b/i, // ES: tengo/tenemos/tenía
+    // NOTA: "está/estamos" removidos pois são idênticos em ES; manter apenas formas únicas PT
+    /\b(estou|estão)\b/i, // ES: estoy/están (formas diferentes)
+    // Pronomes e artigos PT únicos
+    // NOTA: "dele/dela" removidos - "dela" colide com sueco (=compartilhar), "dele" com EN (=marca de revisão)
+    /\b(deles|delas)\b/i, // ES: de ellos/de ellas (formas plurais são seguras)
+    /\b(nesse|nessa|nisso|neste|nesta|nisto)\b/i, // contrações PT únicas
+    /\b(desse|dessa|disso|deste|desta|disto)\b/i, // contrações PT únicas
+    // Palavras comuns em e-commerce PT
+    /\b(boleto|entregue|devolvido|trocado)\b/i, // termos PT de e-commerce
   ];
 
   for (const pattern of portugueseUniquePatterns) {
@@ -444,30 +470,78 @@ function detectLanguageFromText(text: string): string | null {
   // Outros idiomas já foram verificados acima
   // ============================================================================
 
-  // ESPANHOL - Padrões com palavras ambíguas (verificar depois das únicas)
-  const spanishAmbiguousPatterns = [
-    /\b(pedido|envío|enviado|enviaron)\b/i,
-    /\b(reembolso|devolución)\b/i,
-    /\b(por favor)\b/i, // existe em ambos mas comum em ES
+  // ETAPA 3: Sistema de SCORING para palavras ambíguas PT/ES
+  // Em vez de first-match-wins, conta matches de cada idioma e retorna o que tem mais
+  let esAmbiguousScore = 0;
+  let ptAmbiguousScore = 0;
+
+  // Palavras compartilhadas entre PT e ES (contam para ambos)
+  const sharedWords = [
+    /\b(pedido)\b/i,
+    /\b(enviado)\b/i,
+    /\b(reembolso)\b/i,
+    /\b(por favor)\b/i,
   ];
 
-  for (const pattern of spanishAmbiguousPatterns) {
+  // Palavras que inclinam para ESPANHOL
+  const spanishLeaningPatterns = [
+    /\b(envío|enviaron)\b/i,   // ES-specific forms
+    /\b(devolución)\b/i,        // ES-specific (PT: devolução)
+    /\b(dirección)\b/i,         // ES-specific (PT: direção/endereço)
+    /\b(información)\b/i,       // ES-specific (PT: informação)
+    /\b(también)\b/i,           // ES "also" (PT: também)
+    /\b(aquí)\b/i,              // ES "here" with accent
+    /\b(más)\b/i,               // ES "more" (PT: mais)
+    /\b(estoy|están)\b/i,       // ES verb forms
+    /\b(tengo|tienen)\b/i,      // ES verb forms
+    /\b(quiero|quieren)\b/i,    // ES verb forms
+    /\b(recibí|recibió)\b/i,    // ES past tense (PT: recebi/recebeu)
+  ];
+
+  // Palavras que inclinam para PORTUGUÊS
+  const portugueseLeaningPatterns = [
+    /\b(entrega|enviaram)\b/i,  // PT-specific forms
+    /\b(devolução|troca)\b/i,   // PT-specific (ES: devolución/cambio)
+    /\b(endereço)\b/i,          // PT-specific (ES: dirección)
+    /\b(informação)\b/i,        // PT-specific (ES: información)
+    /\b(mais)\b/i,              // PT "more" (ES: más)
+    /\b(já)\b/i,                // PT "already" (ES: ya)
+    /\b(então|entao)\b/i,       // PT "so/then" (ES: entonces)
+    /\b(porque|pois)\b/i,       // PT reason words
+    /\b(desde)\b/i,             // shared but more common in PT e-commerce context
+  ];
+
+  for (const pattern of spanishLeaningPatterns) {
     if (pattern.test(lowerText)) {
-      console.log(`[detectLanguage] Spanish detected by ambiguous word (last resort): ${pattern}`);
-      return 'es';
+      esAmbiguousScore++;
     }
   }
 
-  // PORTUGUÊS - Padrões com palavras ambíguas (verificar por último)
-  const portugueseAmbiguousPatterns = [
-    /\b(pedido|entrega|enviado|enviaram)\b/i,
-    /\b(reembolso|devolução|troca)\b/i,
-    /\b(quero|recebi|comprei|paguei)\b/i,
-  ];
-
-  for (const pattern of portugueseAmbiguousPatterns) {
+  for (const pattern of portugueseLeaningPatterns) {
     if (pattern.test(lowerText)) {
-      console.log(`[detectLanguage] Portuguese detected by ambiguous word (last resort): ${pattern}`);
+      ptAmbiguousScore++;
+    }
+  }
+
+  // Shared words don't break the tie - they're truly ambiguous
+  // Only count them if no leaning patterns matched at all
+  if (esAmbiguousScore === 0 && ptAmbiguousScore === 0) {
+    for (const pattern of sharedWords) {
+      if (pattern.test(lowerText)) {
+        // Default to Portuguese for shared words (more common use case)
+        ptAmbiguousScore++;
+        break;
+      }
+    }
+  }
+
+  if (esAmbiguousScore > 0 || ptAmbiguousScore > 0) {
+    if (esAmbiguousScore > ptAmbiguousScore) {
+      console.log(`[detectLanguage] Spanish detected by scoring: ES=${esAmbiguousScore} vs PT=${ptAmbiguousScore}`);
+      return 'es';
+    } else {
+      // PT wins on tie (more common use case for our stores)
+      console.log(`[detectLanguage] Portuguese detected by scoring: PT=${ptAmbiguousScore} vs ES=${esAmbiguousScore}`);
       return 'pt';
     }
   }
@@ -2385,7 +2459,8 @@ function detectConversationLoop(
 function detectHallucinations(
   responseText: string,
   shopContext: { attendant_name: string; name: string; support_email?: string; store_email?: string },
-  storeProvidedInfo?: StoreProvidedInfo
+  storeProvidedInfo?: StoreProvidedInfo,
+  shopifyData?: { tracking_number?: string | null; tracking_url?: string | null; order_number?: string | null } | null,
 ): string[] {
   const problems: string[] = [];
   const text = responseText.toLowerCase();
@@ -2620,6 +2695,60 @@ function detectHallucinations(
   if (genericContactInvite.test(responseText)) {
     const match = responseText.match(genericContactInvite);
     problems.push(`GENERIC_CONTACT_INVITE: "${match?.[0]}"`);
+  }
+
+  // 14. DETECÇÃO DE TRACKING FABRICADO: Validar URLs e códigos de rastreio contra dados reais
+  // A IA pode inventar links como "https://shopify.17track.net/ABC123" ou códigos falsos
+  const urlsInResponse = responseText.match(/https?:\/\/[^\s,)>\]]+/gi) || [];
+  if (urlsInResponse.length > 0) {
+    // Coletar URLs legítimas que estavam nos dados do prompt
+    const legitimateUrls: string[] = [];
+    if (shopifyData?.tracking_url && shopifyData.tracking_url !== 'N/A') {
+      legitimateUrls.push(shopifyData.tracking_url.toLowerCase());
+    }
+    if (storeProvidedInfo?.hasCustomTrackingUrl && storeProvidedInfo.customTrackingUrl) {
+      legitimateUrls.push(storeProvidedInfo.customTrackingUrl.toLowerCase());
+    }
+
+    for (const url of urlsInResponse) {
+      const urlLower = url.toLowerCase();
+      // Ignorar URLs que são exatamente as fornecidas nos dados
+      const isLegitimate = legitimateUrls.some(legit => urlLower.startsWith(legit) || legit.startsWith(urlLower));
+      if (!isLegitimate) {
+        // URLs de tracking fabricadas (17track, aftership, parcelsapp, etc.)
+        const isTrackingUrl = /(?:17track|track|aftership|parcelsapp|packagetrackr|trackingmore|ship24|tracktry)/i.test(url);
+        if (isTrackingUrl) {
+          problems.push(`FABRICATED_TRACKING_URL: "${url}" (not in order data)`);
+          break;
+        }
+      }
+    }
+  }
+
+  // 14b. DETECÇÃO DE CÓDIGO DE RASTREIO FABRICADO
+  // Se a resposta menciona um código de rastreio mas ele não corresponde ao real
+  if (shopifyData) {
+    const realTracking = shopifyData.tracking_number;
+    // Padrão para encontrar códigos de rastreio na resposta (alfanumérico 6+ chars, geralmente maiúsculo)
+    const trackingCodeMentions = responseText.match(/(?:(?:tracking|rastreio|rastreamento|suivi|sendungsnummer|seguimiento)\s*(?:code|código|numero|number|n[°º]?)?\s*(?:is|é|:)?\s*)([A-Z0-9]{6,30})/gi) || [];
+
+    for (const mention of trackingCodeMentions) {
+      // Extrair o código do match
+      const codeMatch = mention.match(/([A-Z0-9]{6,30})\s*$/i);
+      if (codeMatch) {
+        const codeInResponse = codeMatch[1];
+        // Se temos um código real, verificar se o mencionado bate
+        if (realTracking && realTracking !== codeInResponse && codeInResponse !== shopifyData.order_number?.replace('#', '')) {
+          problems.push(`FABRICATED_TRACKING_CODE: Response says "${codeInResponse}" but real tracking is "${realTracking}"`);
+          break;
+        }
+        // Se NÃO temos código real mas a IA inventou um
+        if (!realTracking && codeInResponse !== shopifyData.order_number?.replace('#', '')) {
+          problems.push(`FABRICATED_TRACKING_CODE: Response mentions "${codeInResponse}" but no tracking code exists for this order`);
+          break;
+        }
+      }
+    }
   }
 
   return problems;
@@ -4275,9 +4404,7 @@ Antes de escrever sua resposta, verifique CADA item. Se violar QUALQUER um, REES
 - NUNCA: "Não hesite em entrar em contato" / "Don't hesitate to reach out" / "N'hésitez pas"
 - NUNCA: "Assistente virtual" / "Virtual assistant"
 - NUNCA: "Suporte [Nome da Loja]" ou "Equipe [Nome da Loja]" na assinatura
-=== FIM DO CHECKLIST ===
-
-${shopContext.signature_html ? `ASSINATURA (adicione ao final):\n${shopContext.signature_html}` : ''}`;
+=== FIM DO CHECKLIST ===`;
 
   // DETECÇÃO PROGRAMÁTICA DE LOOP (multi-estratégia, antes de montar mensagens)
   const loopResult = detectConversationLoop(conversationHistory, conversationStatus);
@@ -4431,8 +4558,8 @@ Se a imagem mostrar algo grave (produto claramente errado, danificado, etc.):
   // e "Nome - Loja" no final → "Nome\nLoja"
   cleanedResponse = cleanDuplicateSignature(cleanedResponse, shopContext.attendant_name, shopContext.name);
 
-  // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 1: Detectar alucinações (endereços, telefones, ações falsas)
-  const hallucinations = detectHallucinations(cleanedResponse, shopContext, storeProvidedInfo);
+  // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 1: Detectar alucinações (endereços, telefones, ações falsas, tracking fabricado)
+  const hallucinations = detectHallucinations(cleanedResponse, shopContext, storeProvidedInfo, shopifyData);
   if (hallucinations.length > 0) {
     console.warn(`[generateResponse] HALLUCINATION DETECTED: ${hallucinations.join(', ')}. Regenerating...`);
     try {
@@ -4453,6 +4580,7 @@ STRICT RULES FOR YOUR NEW RESPONSE:
 9. NEVER promise "I'll get back to you", "I'll return soon", "within the next hours" - you WON'T
 10. NEVER say "please wait while I check" - there is nothing to wait for
 11. Only state FACTS from the data you have. If you don't have info, say the team will respond through this same email. NEVER provide a different support email address
+12. NEVER invent tracking URLs or tracking codes. Only use the EXACT tracking code and URL from the order data. If no tracking data exists, say tracking is not yet available - do NOT fabricate links like "https://17track.net/ABC123"
 
 Rewrite your response using ONLY facts you have. Be short and direct. NO promises.`,
       }];
@@ -4461,7 +4589,7 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
       const retryClean = cleanDuplicateSignature(formatEmailResponse(cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim()))), shopContext.attendant_name, shopContext.name);
 
       // Verificar se o retry também tem alucinações
-      const retryHallucinations = detectHallucinations(retryClean, shopContext, storeProvidedInfo);
+      const retryHallucinations = detectHallucinations(retryClean, shopContext, storeProvidedInfo, shopifyData);
       if (retryHallucinations.length === 0 && retryClean && retryClean.length > 10) {
         console.log(`[generateResponse] Hallucination fix successful`);
         cleanedResponse = retryClean;
@@ -4568,19 +4696,44 @@ Rewrite your response following the retention script. Be warm, empathetic, and t
   }
 
   // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 2: Detectar se a resposta está no idioma errado
-  // Se o idioma esperado NÃO é português mas a resposta começa com saudações em português → ERRO
-  if (language && language !== 'pt' && language !== 'pt-BR') {
-    const responseStart = cleanedResponse.substring(0, 100).toLowerCase();
-    const portugueseGreetings = /^(olá|oi[!,\s]|bom dia|boa tarde|boa noite|prezad[oa]|car[oa]\s|recebi seu contato|obrigad[oa])/i;
-    if (portugueseGreetings.test(responseStart)) {
-      console.warn(`[generateResponse] LANGUAGE MISMATCH: Expected "${language}" but response starts with Portuguese. Response: "${cleanedResponse.substring(0, 80)}"`);
+  // Detecta QUALQUER mismatch de idioma, não apenas PT→não-PT
+  if (language) {
+    const responseStart = cleanedResponse.substring(0, 150).toLowerCase();
+
+    // Mapa de saudações por idioma para detecção cruzada
+    const greetingsByLang: Record<string, RegExp> = {
+      pt: /^(olá|oi[!,\s]|bom dia|boa tarde|boa noite|prezad[oa]|car[oa]\s|recebi seu contato|obrigad[oa])/i,
+      es: /^(hola|buenos días|buenas tardes|buenas noches|estimad[oa]|querid[oa])/i,
+      en: /^(hello|hi[!,\s]|hey[!,\s]|good morning|good afternoon|good evening|dear\s)/i,
+      de: /^(hallo|guten tag|guten morgen|guten abend|sehr geehrte|liebe[rs]?\s)/i,
+      fr: /^(bonjour|bonsoir|salut|cher\s|chère\s)/i,
+      it: /^(ciao|buongiorno|buonasera|gentile\s|caro\/a\s)/i,
+      nl: /^(hallo|goedemorgen|goedemiddag|beste\s|geachte\s)/i,
+      pl: /^(cześć|dzień dobry|witam|szanown)/i,
+      cs: /^(dobrý den|ahoj|zdravím)/i,
+    };
+
+    let mismatchDetected = false;
+    let detectedWrongLang = '';
+
+    // Verificar se a resposta começa com saudações de um idioma DIFERENTE do esperado
+    for (const [langCode, greetingPattern] of Object.entries(greetingsByLang)) {
+      if (langCode !== language && langCode !== language.split('-')[0] && greetingPattern.test(responseStart)) {
+        mismatchDetected = true;
+        detectedWrongLang = langCode;
+        break;
+      }
+    }
+
+    if (mismatchDetected) {
+      console.warn(`[generateResponse] LANGUAGE MISMATCH: Expected "${language}" but response starts with "${detectedWrongLang}" greeting. Response: "${cleanedResponse.substring(0, 80)}"`);
       // Tentar regenerar com instrução mais forte
       try {
         const retryLangName: Record<string, string> = { en: 'English', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian', nl: 'Dutch', cs: 'Czech', pl: 'Polish', sv: 'Swedish', da: 'Danish', no: 'Norwegian', fi: 'Finnish', ro: 'Romanian', hu: 'Hungarian', tr: 'Turkish', ru: 'Russian', pt: 'Portuguese' };
         const langNameStr = retryLangName[language] || language;
         const retryMessages = [...messages, {
           role: 'user' as const,
-          content: `CRITICAL ERROR: Your previous response was in Portuguese, but the customer speaks ${langNameStr}. Rewrite your ENTIRE response in ${langNameStr}. Do NOT use any Portuguese words.`,
+          content: `CRITICAL ERROR: Your previous response was in the WRONG LANGUAGE (detected: ${detectedWrongLang}), but the customer speaks ${langNameStr}. Rewrite your ENTIRE response in ${langNameStr}. Do NOT use any ${detectedWrongLang === 'pt' ? 'Portuguese' : detectedWrongLang === 'es' ? 'Spanish' : detectedWrongLang === 'en' ? 'English' : detectedWrongLang === 'de' ? 'German' : detectedWrongLang === 'fr' ? 'French' : detectedWrongLang} words. EVERY word must be in ${langNameStr}.`,
         }];
         const retryResponse = await callClaude(systemPrompt, retryMessages, MAX_TOKENS);
         const retryText = retryResponse.content[0]?.text || '';
@@ -4700,6 +4853,43 @@ Rewrite your response following the retention script. Be warm, empathetic, and t
     console.log(`[generateResponse] CAMADA 5: Fixed store name signature → ${shopContext.attendant_name}`);
   }
 
+  // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 5.5: Separar nome do atendente colado ao texto
+  // Quando a IA gera "...after order confirmation Emily Carter\nAlpine Wear" sem separação
+  const escapedAttendantName = shopContext.attendant_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // 5.5a: Remover nome da loja que aparece após o nome do atendente no final
+  // "Emily Carter\nAlpine Wear" → "Emily Carter"
+  const storeAfterAttendant = new RegExp(
+    `(${escapedAttendantName})\\s*\\n\\s*${escapedStoreName}\\s*$`,
+    'i'
+  );
+  if (storeAfterAttendant.test(cleanedResponse)) {
+    cleanedResponse = cleanedResponse.replace(storeAfterAttendant, `$1`);
+    console.log(`[generateResponse] CAMADA 5.5a: Removed store name after attendant name`);
+  }
+
+  // 5.5b: Separar nome do atendente colado ao final do texto sem pontuação
+  // "...after order confirmation Emily Carter" → "...after order confirmation.\n\nEmily Carter"
+  const nameStuckNoPunctuation = new RegExp(
+    `([a-zà-ú0-9])\\s+(${escapedAttendantName})\\s*$`,
+    'i'
+  );
+  if (nameStuckNoPunctuation.test(cleanedResponse)) {
+    cleanedResponse = cleanedResponse.replace(nameStuckNoPunctuation, `$1.\n\n$2`);
+    console.log(`[generateResponse] CAMADA 5.5b: Separated attendant name stuck to text (added period)`);
+  }
+
+  // 5.5c: Separar nome do atendente colado ao final após pontuação mas sem quebra de linha
+  // "...let me know!Emily Carter" or "...let me know! Emily Carter" → "...let me know!\n\nEmily Carter"
+  const nameStuckAfterPunctuation = new RegExp(
+    `([.!?])\\s*(${escapedAttendantName})\\s*$`,
+    'i'
+  );
+  if (nameStuckAfterPunctuation.test(cleanedResponse)) {
+    cleanedResponse = cleanedResponse.replace(nameStuckAfterPunctuation, `$1\n\n$2`);
+    console.log(`[generateResponse] CAMADA 5.5c: Separated attendant name after punctuation`);
+  }
+
   // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 6: Remoção programática de PROMESSAS FALSAS
   // Esta é a última linha de defesa - remove sentenças com promessas que a IA não pode cumprir
   // Funciona removendo SENTENÇAS INTEIRAS que contêm os padrões problemáticos
@@ -4766,24 +4956,89 @@ Rewrite your response following the retention script. Be warm, empathetic, and t
   if (responseWithoutSignature.length < 20) {
     console.warn(`[generateResponse] CAMADA 6 left response too short (${responseWithoutSignature.length} chars). Building factual fallback for category: ${category}`);
 
-    // Fallback inteligente baseado na categoria e dados disponíveis
+    // Fallback inteligente baseado na categoria, dados disponíveis E IDIOMA
+    const fallbackTexts: Record<string, { greeting: string; trackingWith: (code: string, url: string) => string; trackingWithout: (code: string) => string; shipped: string; preparing: string; received: string; receivedGeneric: string; signoff: string; deliveryTime: (time: string) => string; deliveryDefault: string }> = {
+      pt: {
+        greeting: 'Olá!',
+        trackingWith: (code, url) => `O código de rastreio do seu pedido é ${code}. Você pode acompanhar pelo link: ${url}`,
+        trackingWithout: (code) => `O código de rastreio do seu pedido é ${code}. Você pode pesquisar esse código no site 17track.net para acompanhar`,
+        shipped: 'Seu pedido já foi enviado e o código de rastreio será atualizado em breve.',
+        preparing: 'Seu pedido está sendo preparado para envio. Assim que for enviado, você receberá o código de rastreio.',
+        received: 'Recebemos sua mensagem e encaminhamos para nossa equipe que vai analisar e te responder por aqui!',
+        receivedGeneric: 'Recebemos sua mensagem e estamos cuidando do seu caso. Qualquer dúvida, responda este email.',
+        signoff: 'Qualquer coisa, me chama!',
+        deliveryTime: (time) => `O prazo estimado de entrega é ${time}.`,
+        deliveryDefault: 'O rastreio de envios internacionais pode demorar alguns dias para atualizar.',
+      },
+      en: {
+        greeting: 'Hello!',
+        trackingWith: (code, url) => `Your tracking code is ${code}. You can follow your delivery here: ${url}`,
+        trackingWithout: (code) => `Your tracking code is ${code}. You can track it at 17track.net`,
+        shipped: 'Your order has been shipped and the tracking code will be updated shortly.',
+        preparing: 'Your order is being prepared for shipment. You will receive the tracking code once it ships.',
+        received: 'We received your message and our team will review and respond through this same email!',
+        receivedGeneric: 'We received your message and are taking care of your case. Feel free to reply to this email.',
+        signoff: 'Let me know if you need anything!',
+        deliveryTime: (time) => `The estimated delivery time is ${time}.`,
+        deliveryDefault: 'International shipment tracking may take a few days to update.',
+      },
+      es: {
+        greeting: '¡Hola!',
+        trackingWith: (code, url) => `El código de seguimiento de tu pedido es ${code}. Puedes seguirlo aquí: ${url}`,
+        trackingWithout: (code) => `El código de seguimiento de tu pedido es ${code}. Puedes rastrearlo en 17track.net`,
+        shipped: 'Tu pedido ya fue enviado y el código de seguimiento se actualizará pronto.',
+        preparing: 'Tu pedido está siendo preparado para envío. Recibirás el código de seguimiento cuando sea enviado.',
+        received: '¡Recibimos tu mensaje y nuestro equipo lo revisará y responderá por este mismo correo!',
+        receivedGeneric: 'Recibimos tu mensaje y estamos atendiendo tu caso. Cualquier duda, responde a este correo.',
+        signoff: '¡Cualquier cosa, me avisas!',
+        deliveryTime: (time) => `El plazo estimado de entrega es ${time}.`,
+        deliveryDefault: 'El seguimiento de envíos internacionales puede tardar unos días en actualizarse.',
+      },
+      de: {
+        greeting: 'Hallo!',
+        trackingWith: (code, url) => `Ihre Sendungsnummer lautet ${code}. Sie können die Lieferung hier verfolgen: ${url}`,
+        trackingWithout: (code) => `Ihre Sendungsnummer lautet ${code}. Sie können sie auf 17track.net verfolgen`,
+        shipped: 'Ihre Bestellung wurde versandt und die Sendungsnummer wird in Kürze aktualisiert.',
+        preparing: 'Ihre Bestellung wird für den Versand vorbereitet. Sie erhalten die Sendungsnummer sobald sie versandt wird.',
+        received: 'Wir haben Ihre Nachricht erhalten und unser Team wird sich über diese E-Mail bei Ihnen melden!',
+        receivedGeneric: 'Wir haben Ihre Nachricht erhalten und kümmern uns um Ihr Anliegen.',
+        signoff: 'Bei Fragen stehe ich Ihnen gerne zur Verfügung!',
+        deliveryTime: (time) => `Die geschätzte Lieferzeit beträgt ${time}.`,
+        deliveryDefault: 'Die Sendungsverfolgung internationaler Sendungen kann einige Tage dauern.',
+      },
+      fr: {
+        greeting: 'Bonjour !',
+        trackingWith: (code, url) => `Votre numéro de suivi est ${code}. Vous pouvez suivre votre livraison ici : ${url}`,
+        trackingWithout: (code) => `Votre numéro de suivi est ${code}. Vous pouvez le suivre sur 17track.net`,
+        shipped: 'Votre commande a été expédiée et le numéro de suivi sera mis à jour prochainement.',
+        preparing: 'Votre commande est en cours de préparation. Vous recevrez le numéro de suivi dès son expédition.',
+        received: 'Nous avons bien reçu votre message et notre équipe vous répondra par ce même email !',
+        receivedGeneric: 'Nous avons bien reçu votre message et nous nous occupons de votre demande.',
+        signoff: "N'hésitez pas à me contacter si besoin !",
+        deliveryTime: (time) => `Le délai de livraison estimé est de ${time}.`,
+        deliveryDefault: 'Le suivi des envois internationaux peut prendre quelques jours avant de se mettre à jour.',
+      },
+    };
+
+    const fb = fallbackTexts[language] || fallbackTexts[language?.split('-')[0]] || fallbackTexts['en'];
+
     if (category === 'rastreio' && shopifyData?.tracking_number) {
       const trackingInfo = shopifyData?.tracking_url && shopifyData.tracking_url !== 'N/A'
-        ? `Você pode acompanhar pelo link: ${shopifyData.tracking_url}`
-        : 'Você pode pesquisar esse código no site 17track.net para acompanhar';
+        ? fb.trackingWith(shopifyData.tracking_number, shopifyData.tracking_url)
+        : fb.trackingWithout(shopifyData.tracking_number);
       const deliveryInfo = shopContext.delivery_time
-        ? ` O prazo estimado de entrega é ${shopContext.delivery_time}.`
-        : ' O rastreio de envios internacionais pode demorar alguns dias para atualizar.';
-      cleanedResponse = `Olá! O código de rastreio do seu pedido${shopifyData?.order_number ? ` #${shopifyData.order_number}` : ''} é ${shopifyData.tracking_number}. ${trackingInfo}.${deliveryInfo} Qualquer coisa, me chama!\n\n${shopContext.attendant_name}`;
+        ? ` ${fb.deliveryTime(shopContext.delivery_time)}`
+        : ` ${fb.deliveryDefault}`;
+      cleanedResponse = `${fb.greeting} ${trackingInfo}.${deliveryInfo} ${fb.signoff}\n\n${shopContext.attendant_name}`;
     } else if (category === 'rastreio' && shopifyData?.fulfillment_status) {
       const statusMsg = shopifyData.fulfillment_status.toLowerCase().includes('fulfilled')
-        ? 'Seu pedido já foi enviado e o código de rastreio será atualizado em breve.'
-        : 'Seu pedido está sendo preparado para envio. Assim que for enviado, você receberá o código de rastreio.';
-      cleanedResponse = `Olá! ${statusMsg}${shopContext.delivery_time ? ` O prazo estimado é ${shopContext.delivery_time}.` : ''} Qualquer coisa, me chama!\n\n${shopContext.attendant_name}`;
+        ? fb.shipped
+        : fb.preparing;
+      cleanedResponse = `${fb.greeting} ${statusMsg}${shopContext.delivery_time ? ` ${fb.deliveryTime(shopContext.delivery_time)}` : ''} ${fb.signoff}\n\n${shopContext.attendant_name}`;
     } else if (shopContext.support_email) {
-      cleanedResponse = `Olá! Recebemos sua mensagem e encaminhamos para nossa equipe que vai analisar e te responder por aqui! Qualquer coisa, estamos à disposição.\n\n${shopContext.attendant_name}`;
+      cleanedResponse = `${fb.greeting} ${fb.received}\n\n${shopContext.attendant_name}`;
     } else {
-      cleanedResponse = `Olá! Recebemos sua mensagem e estamos cuidando do seu caso. Qualquer dúvida, responda este email.\n\n${shopContext.attendant_name}`;
+      cleanedResponse = `${fb.greeting} ${fb.receivedGeneric}\n\n${shopContext.attendant_name}`;
     }
   }
 
