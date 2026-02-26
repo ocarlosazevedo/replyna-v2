@@ -321,10 +321,15 @@ export default function Masterclass() {
 
   const formatWhatsApp = (value: string) => {
     const numbers = value.replace(/\D/g, '')
-    if (numbers.length <= 2) return numbers
-    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`
-    if (numbers.length <= 11) return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`
-    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`
+    // Formato brasileiro: (XX) XXXXX-XXXX
+    if (formData.countryCode === '+55') {
+      if (numbers.length <= 2) return numbers
+      if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`
+      if (numbers.length <= 11) return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`
+    }
+    // Internacional: aceitar apenas digitos sem formatacao
+    return numbers.slice(0, 15)
   }
 
   const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -348,8 +353,12 @@ export default function Masterclass() {
 
     if (!formData.whatsapp.trim()) {
       newErrors.whatsapp = 'Digite seu WhatsApp'
-    } else if (formData.whatsapp.replace(/\D/g, '').length < 10) {
-      newErrors.whatsapp = 'WhatsApp inválido'
+    } else {
+      const digits = formData.whatsapp.replace(/\D/g, '').length
+      const minDigits = formData.countryCode === '+55' ? 10 : 7
+      if (digits < minDigits) {
+        newErrors.whatsapp = 'WhatsApp inválido'
+      }
     }
 
     setErrors(newErrors)
@@ -963,7 +972,7 @@ export default function Masterclass() {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <select
                     value={formData.countryCode}
-                    onChange={e => setFormData(prev => ({ ...prev, countryCode: e.target.value }))}
+                    onChange={e => setFormData(prev => ({ ...prev, countryCode: e.target.value, whatsapp: '' }))}
                     className="mc-country-select"
                   >
                     {countryCodes.map(c => (
@@ -973,7 +982,7 @@ export default function Masterclass() {
                   <input
                     id="modal-whatsapp"
                     type="tel"
-                    placeholder="(00) 00000-0000"
+                    placeholder={formData.countryCode === '+55' ? '(00) 00000-0000' : '912345678'}
                     value={formData.whatsapp}
                     onChange={handleWhatsAppChange}
                     className={errors.whatsapp ? 'mc-input-error' : ''}
