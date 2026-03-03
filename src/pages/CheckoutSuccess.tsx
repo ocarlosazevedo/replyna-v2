@@ -12,6 +12,15 @@ export default function CheckoutSuccess() {
     // Limpar dados temporários do registro
     localStorage.removeItem('pending_registration')
 
+    // Google Ads conversion tracking - checkout success
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', 'conversion', {
+        'send_to': 'AW-17979181556/6bTqCK72oIIcEPSTkv1C',
+        'value': 450.0,
+        'currency': 'BRL'
+      })
+    }
+
     // Mostrar sucesso após pequeno delay para UX
     const timer = setTimeout(() => {
       setStatus('success')
