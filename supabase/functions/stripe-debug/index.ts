@@ -282,6 +282,78 @@ serve(async (req) => {
       );
     }
 
+    // Listar invoices de um customer
+    if (action === 'invoices') {
+      const customerId = url.searchParams.get('customer_id');
+      if (!customerId) {
+        return new Response(
+          JSON.stringify({ error: 'customer_id é obrigatório' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const invoices = await stripe.invoices.list({
+        customer: customerId,
+        limit: 20,
+      });
+
+      const charges = await stripe.charges.list({
+        customer: customerId,
+        limit: 20,
+      });
+
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: 'all',
+        limit: 10,
+      });
+
+      return new Response(
+        JSON.stringify({
+          invoices: invoices.data.map((inv: any) => ({
+            id: inv.id,
+            number: inv.number,
+            status: inv.status,
+            amount_due: inv.amount_due,
+            amount_paid: inv.amount_paid,
+            currency: inv.currency,
+            created: new Date(inv.created * 1000).toISOString(),
+            period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
+            period_end: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
+            subscription: inv.subscription,
+            hosted_invoice_url: inv.hosted_invoice_url,
+            billing_reason: inv.billing_reason,
+          })),
+          charges: charges.data.map((ch: any) => ({
+            id: ch.id,
+            amount: ch.amount,
+            currency: ch.currency,
+            status: ch.status,
+            created: new Date(ch.created * 1000).toISOString(),
+            description: ch.description,
+            invoice: ch.invoice,
+            payment_method_details: ch.payment_method_details?.type,
+            refunded: ch.refunded,
+          })),
+          subscriptions: subscriptions.data.map((sub: any) => ({
+            id: sub.id,
+            status: sub.status,
+            current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: sub.cancel_at_period_end,
+            created: new Date(sub.created * 1000).toISOString(),
+            items: sub.items.data.map((item: any) => ({
+              price_id: item.price.id,
+              amount: item.price.unit_amount,
+              currency: item.price.currency,
+              interval: item.price.recurring?.interval,
+            })),
+          })),
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Default: mostrar instruções
     return new Response(
       JSON.stringify({

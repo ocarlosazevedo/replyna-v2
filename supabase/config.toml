@@ -21,3 +21,7 @@ verify_jwt = false
 # Process Queue - Chamado via pg_cron
 [functions.process-queue]
 verify_jwt = false
+
+# Request Password Reset - Público (usuários não autenticados)
+[functions.request-password-reset]
+verify_jwt = false

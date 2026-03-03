@@ -114,6 +114,12 @@ export default function Register() {
 
   useEffect(() => {
     loadPlans()
+    // Google Ads conversion tracking
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', 'conversion', {
+        'send_to': 'AW-17979181556/EkcYCPKZrIIcEPSTkv1C'
+      })
+    }
   }, [])
 
   useEffect(() => {

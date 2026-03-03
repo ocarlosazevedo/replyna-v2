@@ -158,6 +158,8 @@ export async function createCustomer(input: {
   email: string;
   cpfCnpj?: string;
   mobilePhone?: string;
+  postalCode?: string;
+  addressNumber?: string;
 }): Promise<AsaasCustomer> {
   return await asaasRequest<AsaasCustomer>('POST', '/customers', input);
 }
@@ -176,6 +178,8 @@ export async function updateCustomer(id: string, input: Partial<{
   email: string;
   cpfCnpj: string;
   mobilePhone: string;
+  postalCode: string;
+  addressNumber: string;
 }>): Promise<AsaasCustomer> {
   return await asaasRequest<AsaasCustomer>('PUT', `/customers/${id}`, input);
 }

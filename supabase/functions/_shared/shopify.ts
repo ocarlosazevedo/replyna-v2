@@ -523,7 +523,7 @@ export function orderToSummary(order: ShopifyOrder): OrderSummary {
       quantity: item.quantity,
     })),
     customer_name: order.customer
-      ? `${order.customer.first_name} ${order.customer.last_name}`.trim()
+      ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim() || null
       : null,
   };
 }

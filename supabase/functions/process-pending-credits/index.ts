@@ -81,6 +81,7 @@ Deno.serve(async (req) => {
 
     // Adicionar mensagens à fila de processamento
     const jobsToInsert = messages.map((msg: any) => ({
+      job_type: 'process_email',
       message_id: msg.id,
       shop_id: msg.conversations.shop_id,
       status: 'pending',

@@ -267,6 +267,7 @@ Deno.serve(async (req) => {
           cleanBody,
           conversationHistory,
           message.body_html || undefined,
+          conversation.language || null,
         );
         category = classification.category;
         detectedSentiment = classification.sentiment || 'calm';

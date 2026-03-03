@@ -89,15 +89,19 @@ Deno.serve(async (req: Request) => {
             email: user.email,
             cpfCnpj: credit_card_holder_info.cpfCnpj.replace(/\D/g, ''),
             mobilePhone: credit_card_holder_info.phone.replace(/\D/g, ''),
+            postalCode: credit_card_holder_info.postalCode.replace(/\D/g, ''),
+            addressNumber: credit_card_holder_info.addressNumber,
           });
           console.log(`[UpdatePayment] Cliente Asaas criado: ${customer.id}`);
         } else {
-          // Atualizar dados do customer existente com CPF e telefone do formulario
+          // Atualizar dados do customer existente com dados do formulario
           console.log(`[UpdatePayment] Cliente Asaas encontrado por email: ${customer.id}, atualizando dados...`);
           await updateCustomer(customer.id, {
             name: user.name || user.email,
             cpfCnpj: credit_card_holder_info.cpfCnpj.replace(/\D/g, ''),
             mobilePhone: credit_card_holder_info.phone.replace(/\D/g, ''),
+            postalCode: credit_card_holder_info.postalCode.replace(/\D/g, ''),
+            addressNumber: credit_card_holder_info.addressNumber,
           });
         }
 
@@ -115,6 +119,20 @@ Deno.serve(async (req: Request) => {
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+    }
+
+    // Atualizar dados do customer no Asaas com as informações do formulário
+    try {
+      await updateCustomer(user.asaas_customer_id, {
+        name: credit_card.holderName || user.name || user.email,
+        cpfCnpj: credit_card_holder_info.cpfCnpj.replace(/\D/g, ''),
+        mobilePhone: credit_card_holder_info.phone.replace(/\D/g, ''),
+        postalCode: credit_card_holder_info.postalCode.replace(/\D/g, ''),
+        addressNumber: credit_card_holder_info.addressNumber,
+      });
+      console.log(`[UpdatePayment] Customer ${user.asaas_customer_id} atualizado com dados do formulário`);
+    } catch (updateErr) {
+      console.warn(`[UpdatePayment] Falha ao atualizar customer no Asaas (não crítico):`, updateErr);
     }
 
     // Buscar assinatura ativa do usuario
@@ -179,10 +197,15 @@ Deno.serve(async (req: Request) => {
       }
 
       // Usar current_period_end como data da primeira cobranca (nao cobrar hoje)
+      // Se a data ja passou, usar amanha para nao rejeitar a criacao no Asaas
       let nextDueDate: string;
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
       if (subscription.current_period_end) {
         const d = new Date(subscription.current_period_end);
-        nextDueDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        d.setUTCHours(0, 0, 0, 0);
+        const effective = d > today ? d : new Date(today.getTime() + 86400000); // amanha se data ja passou
+        nextDueDate = `${effective.getUTCFullYear()}-${String(effective.getUTCMonth() + 1).padStart(2, '0')}-${String(effective.getUTCDate()).padStart(2, '0')}`;
       } else {
         // Fallback: 30 dias a partir de hoje
         const d = new Date();

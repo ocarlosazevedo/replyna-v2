@@ -185,6 +185,37 @@ function detectLanguageFromText(text: string): string | null {
     /\b(desse|dessa|disso|deste|desta|disto)\b/i, // contrações PT únicas
     // Palavras comuns em e-commerce PT
     /\b(boleto|entregue|devolvido|trocado)\b/i, // termos PT de e-commerce
+    // Palavras comuns do dia-a-dia PT (únicas - não existem em ES/EN/IT/DE/FR)
+    /\b(amanhã)\b/i, // tomorrow (ES: mañana)
+    /\b(ontem)\b/i, // yesterday (ES: ayer)
+    /\b(hoje)\b/i, // today (ES: hoy)
+    /\b(agora)\b/i, // now (ES: ahora)
+    /\b(mês|meses)\b/i, // month(s) - PT circumflex ê
+    /\b(mensagem|mensagens)\b/i, // message(s) (ES: mensaje)
+    /\b(faz|fazem|fazendo|fazer)\b/i, // do/does (ES: hace/hacer)
+    /\b(muito|muita|muitos|muitas)\b/i, // very/much (ES: mucho)
+    /\b(depois)\b/i, // after (ES: después)
+    /\b(tudo)\b/i, // everything (ES: todo)
+    /\b(isso)\b/i, // that (ES: eso)
+    /\b(são)\b/i, // are (ES: son)
+    /\b(inglês|francês)\b/i, // PT-specific language name accents
+    /\b(português|portuguesa)\b/i, // Portuguese language/nationality
+    /\b(traduzir|traduza|tradução)\b/i, // translate (ES: traducir/traduzca)
+    /\b(loja|lojas)\b/i, // store(s) (ES: tienda)
+    /\b(coisa|coisas)\b/i, // thing(s) - PT unique spelling vs ES "cosa"
+    /\b(outro|outra|outros|outras)\b/i, // other(s) (ES: otro/otra)
+    /\b(errado|errada)\b/i, // wrong (ES: equivocado)
+    // Palavras PT extremamente comuns que evitam falsos positivos com FR/ES
+    /\b(mais)\b/i, // more/but - palavra PT muito comum (FR também usa, mas em PT é onipresente)
+    /\b(posição|posições)\b/i, // position (ES: posición - grafia diferente)
+    /\b(dá|dê)\b/i, // give (conjugação PT única)
+    /\b(pô|poxa|puxa)\b/i, // interjeição brasileira
+    /\b(fica|ficou|ficaram)\b/i, // stay/stayed (ES: queda/quedó)
+    /\b(esperto|esperta)\b/i, // smart (ES: listo)
+    /\b(mexendo|mechendo|mexer)\b/i, // messing/touching (PT único)
+    /\b(pessoa|pessoas)\b/i, // person(s) (ES: persona)
+    /\b(alguma|algum|algumas|alguns)\b/i, // some (ES: alguna/algún)
+    // NOTA: "sobre" e "concreta/concreto" REMOVIDOS pois existem idênticos em espanhol
   ];
 
   for (const pattern of portugueseUniquePatterns) {
@@ -231,11 +262,13 @@ function detectLanguageFromText(text: string): string | null {
 
   // FRANCÊS - Palavras ÚNICAS (verificar ANTES de ambíguas PT/ES)
   // NOTA: Evitar palavras curtas como "je", "mon", "ma" que causam falsos positivos com nomes de produtos (ex: "Mon Paris" perfume)
+  // NOTA: "mais" REMOVIDO pois é uma das palavras mais comuns do português (=more/but), causava falso positivo FR em emails PT
+  // NOTA: "pour" REMOVIDO pois é muito curto e pode gerar falsos positivos
   const frenchUniquePatterns = [
     /^bonjour\b/i, /^bonsoir\b/i, /^salut\b/i,
     /\b(voudrais|besoin|reçu|acheté|j'ai|j'avais|c'est)\b/i,
     /\b(commande|livraison|remboursement)\b/i,
-    /\b(merci|s'il vous plaît|aussi|mais|avec|pour)\b/i,
+    /\b(merci|s'il vous plaît|avec)\b/i,
   ];
 
   for (const pattern of frenchUniquePatterns) {
@@ -785,6 +818,18 @@ export function isSpamByPattern(subject: string, body: string): boolean {
   if (!fullText || fullText.length < 5) return false;
 
   const subjectLower = (subject || '').toLowerCase().trim();
+
+  // 0. Detecção de Unicode "fancy" (caracteres matemáticos itálicos/bold/script)
+  // Spammers usam Mathematical Alphanumeric Symbols (U+1D400-U+1D7FF) para burlar filtros.
+  // Ex: "𝘏𝘪 Vorynshop, 𝘐𝘴 𝘵𝘩𝘪𝘴 𝘪𝘵𝘦𝘮 𝘢𝘷𝘢𝘪𝘭𝘢𝘣𝘭𝘦" em vez de "Hi Vorynshop, Is this item available"
+  // Nenhum cliente legítimo escreve com esses caracteres.
+  const rawText = `${subject || ''} ${body || ''}`;
+  const unicodeFancyPattern = /[\u{1D400}-\u{1D7FF}]/u;
+  const fancyMatches = rawText.match(new RegExp(unicodeFancyPattern.source, 'gu'));
+  if (fancyMatches && fancyMatches.length >= 3) {
+    console.log(`[isSpamByPattern] Unicode fancy characters detected (${fancyMatches.length} chars) - spam`);
+    return true;
+  }
 
   // 1. Subject-level spam signals (alta confiança)
   const spamSubjectPatterns = [
@@ -1549,6 +1594,7 @@ export async function classifyEmail(
   emailBody: string,
   conversationHistory: Array<{ role: 'customer' | 'assistant'; content: string }>,
   rawEmailBody?: string,
+  conversationLanguage?: string | null,
 ): Promise<ClassificationResult> {
   const systemPrompt = `You are an email classifier for e-commerce customer support.
 
@@ -2012,9 +2058,37 @@ REGRAS CRÍTICAS:
       }
     }
 
-    // PASSO 2: Se body não deu resultado, tentar body RAW (antes da limpeza)
+    // PASSO 2: Se body não deu resultado, tentar body RAW (mas limpar citações primeiro!)
+    // CRÍTICO: O rawEmailBody contém texto citado de respostas anteriores (que podem estar em outro idioma).
+    // Se não limparmos, o detector pode encontrar "Hello!", "I see that..." no texto citado e classificar como inglês.
     if (!detectedLanguage && rawEmailBody && rawEmailBody.length > 10) {
-      detectedLanguage = detectLanguageFromText(rawEmailBody);
+      let rawBodyForLang = rawEmailBody;
+      const rawQuoteMarkers = [
+        /^On .+ wrote:/m,
+        /^Em .+ escreveu:/m,
+        /^Am .+ schrieb/im,
+        /^Le .+ a écrit/im,
+        /^El .+ escribió/im,
+        /^Il .+ ha scritto/im,
+        /^Op .+ schreef/im,
+        /^>+\s/m,
+        /^-+\s*Original Message\s*-+/im,
+        /^-+\s*Mensagem Original\s*-+/im,
+        /^From:\s/m,
+        /^De:\s/m,
+        /^.{0,80}<\s*[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\s*>\s*(escreveu|wrote|schrieb|a écrit|escribió|ha scritto|schreef)\s*:/im,
+      ];
+      for (const marker of rawQuoteMarkers) {
+        const match = rawBodyForLang.match(marker);
+        if (match && match.index !== undefined) {
+          const candidate = rawBodyForLang.substring(0, match.index).trim();
+          if (candidate.length >= 3) {
+            rawBodyForLang = candidate;
+            break;
+          }
+        }
+      }
+      detectedLanguage = detectLanguageFromText(rawBodyForLang);
       if (detectedLanguage) {
         console.log(`[classifyEmail] Language detected from RAW body: "${detectedLanguage}"`);
       }
@@ -2050,6 +2124,13 @@ REGRAS CRÍTICAS:
         detectedLanguage = countryToLanguage[countryCode];
         console.log(`[classifyEmail] Language inferred from country code ${countryCode}: "${detectedLanguage}"`);
       }
+    }
+
+    // PASSO 4b: Se ainda não detectou, usar o idioma já salvo na conversa (continuidade)
+    // Isso evita que mensagens curtas sejam classificadas errado quando já houve troca anterior no mesmo idioma
+    if (!detectedLanguage && conversationLanguage) {
+      detectedLanguage = conversationLanguage;
+      console.log(`[classifyEmail] Language fallback from conversation history: "${detectedLanguage}"`);
     }
 
     // PASSO 5: Se BODY detectou um idioma diferente do SUBJECT, confiar no BODY
@@ -2857,7 +2938,7 @@ FRASES PROIBIDAS POR SEREM ROBÓTICAS/CORPORATIVAS (NUNCA USE - EM NENHUM IDIOMA
 - NUNCA use "quaisquer perguntas ou dúvidas que você possa ter" / "any questions you may have"
 - NUNCA use "Estou aqui para responder" / "I am here to answer" / "I'm here to help with any"
 - NUNCA use "Como posso ajudá-lo(a) hoje?" como frase de preenchimento no final
-- NUNCA use "Atenciosamente" / "Sincerely" / "Best regards" - use apenas seu nome ou "Abraço," / "Thanks,"
+- NUNCA use "Atenciosamente" / "Sincerely" / "Best regards" / "Kind regards" / "Cordialement" / "Cordiali saluti" / "Mit freundlichen Grüßen" / "Cordialmente" - use apenas seu nome ou "Abraço," / "Thanks,"
 - NUNCA assine como "Suporte [Loja]" ou "Equipe [Loja]" - assine APENAS com seu nome: ${shopContext.attendant_name}
 - NUNCA use "Não hesite em entrar em contato" / "Don't hesitate to reach out"
 - NUNCA use "Fico à disposição para quaisquer esclarecimentos"
@@ -3279,6 +3360,37 @@ RETENTION COUNTER / CONTADOR: ${retentionContactCount}
 FORWARD THRESHOLD / LIMITE PARA ENCAMINHAR: ${forwardThreshold} contacts
 ${codPreDelivery ? 'MODE / MODO: COD PRE-DELIVERY (cliente NÃO pagou - retenção estendida a 4 contatos)' : shopContext.is_cod && codDeliveryState === 'post_delivery' ? 'MODE / MODO: COD POST-DELIVERY (cliente JÁ pagou - retenção padrão 3 contatos)' : 'MODE / MODO: STANDARD (retenção padrão 3 contatos)'}
 
+═══════════════════════════════════════════════════════════════════════
+STEP 0 — DIAGNOSE CANCELLATION REASON (DO THIS FIRST):
+═══════════════════════════════════════════════════════════════════════
+Before following any retention script below, analyze the customer's email
+(subject + body + conversation history) and classify the PRIMARY reason:
+
+TYPE_A) DELIVERY ISSUE → customer says package hasn't arrived, no tracking
+  update, lost, taking too long, delayed, "where is my order"
+TYPE_B) PRODUCT ISSUE → wrong size, wrong color, defective, damaged,
+  doesn't fit, not as described, broken, missing parts
+TYPE_C) REGRET → changed mind, don't want it, don't need it, impulse buy,
+  ordered by mistake
+TYPE_D) PRICE → too expensive, not worth it, found cheaper elsewhere,
+  unexpected fees/taxes
+TYPE_E) BAD EXPERIENCE → terrible service, frustrated with support,
+  angry about previous interactions, feels ignored
+TYPE_F) UNKNOWN → just says "cancel" / "refund" with no reason given
+
+HOW TO CLASSIFY:
+- Read the customer's CURRENT message AND the conversation history
+- Look for keywords: "hasn't arrived" → TYPE_A, "wrong size" → TYPE_B,
+  "changed my mind" → TYPE_C, "too expensive" → TYPE_D, "terrible" → TYPE_E
+- If the customer gives NO reason at all → TYPE_F
+- Use the diagnosed type to ADAPT your retention response below
+- You do NOT need to mention the type to the customer — it's internal only
+
+IMPORTANT: The type diagnosis ADAPTS the retention script — it does NOT
+replace it. You still MUST follow the counter-based rules (no email before
+threshold, no escalation, etc.). The type just changes HOW you retain.
+═══════════════════════════════════════════════════════════════════════
+
 ${retentionContactCount === 1 ? `
 ***** FIRST CONTACT (COUNTER = 1) / PRIMEIRO CONTATO *****
 ${codPreDelivery ? `
@@ -3289,6 +3401,32 @@ Você NÃO TEM PERMISSÃO para mencionar QUALQUER email nesta resposta.
 Mesmo que o cliente tenha recusado o pacote, recebido produto errado, ou esteja frustrado:
 → O argumento "ZERO RISCO" é sua ÚNICA ferramenta agora.
 → Próximo email com suporte disponível: APENAS no contato ${forwardThreshold}.
+
+ADAPT BY CANCELLATION TYPE (COD PRE-DELIVERY, COUNTER 1):
+
+If TYPE_A (delivery issue):
+→ Pull tracking data from ORDER DATA and show current status/delivery estimate
+→ Say "Your order is on its way! Current status: [real status from data]. Expected delivery: [delivery_time]."
+→ Combine with zero risk: "And remember, you don't pay until delivery — zero risk!"
+→ This SOLVES the root problem. No generic "feel special" needed.
+
+If TYPE_B (product issue):
+→ Acknowledge the specific concern (wrong size, color, etc.)
+→ Offer exchange/replacement: "I can arrange to send you the correct [size/color] at no extra cost — would you prefer that?"
+→ Combine with zero risk: "Either way, you haven't paid anything, so there's no risk in waiting to see the product."
+→ Use [FORWARD_TO_HUMAN] ONLY if exchange is accepted (to process it), NOT for cancellation.
+
+If TYPE_C (regret) or TYPE_D (price):
+→ Follow the standard COD zero risk script below as-is. This is where "zero risk + try it" works best.
+
+If TYPE_E (bad experience):
+→ Lead with GENUINE empathy in the FIRST sentence. Acknowledge the frustration specifically.
+→ Example: "I'm really sorry you've had this experience — that's not the level of service we aim for."
+→ THEN follow the zero risk script. The empathy must come BEFORE the retention pitch.
+
+If TYPE_F (unknown reason):
+→ Ask the reason BEFORE attempting retention: "I'd love to help — could you share what prompted the cancellation? I may be able to resolve it right away."
+→ Still mention zero risk briefly, but focus on understanding the problem first.
 
 COD PRE-DELIVERY SCRIPT (ZERO RISK STRATEGY):
 YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
@@ -3309,6 +3447,32 @@ When you receive the package, you can see the product, and if for any reason you
 I've marked your order with SPECIAL PREFERENCE to ensure everything goes perfectly.
 Why not give it a chance? You literally have nothing to lose!"
 ` : `
+ADAPT BY CANCELLATION TYPE (STANDARD, COUNTER 1):
+
+If TYPE_A (delivery issue):
+→ Pull tracking data from ORDER DATA and show current status/delivery estimate
+→ Say "Your order is on its way! Current status: [real status from data]. Expected delivery: [delivery_time]."
+→ This SOLVES the root problem directly. No need for generic "feel special" — real data is more convincing.
+→ Mark with SPECIAL PREFERENCE after showing data.
+
+If TYPE_B (product issue):
+→ Acknowledge the specific concern (wrong size, color, defect, etc.)
+→ Offer exchange/replacement FIRST: "I can send you the correct [size/color] at no extra cost. Would you prefer that?"
+→ This gives the customer a SOLUTION, not just empathy.
+→ Use [FORWARD_TO_HUMAN] ONLY if exchange is accepted (to process it), NOT for cancellation.
+
+If TYPE_C (regret) or TYPE_D (price):
+→ Follow the standard "feel special" script below as-is. This is where emotional retention works best.
+
+If TYPE_E (bad experience):
+→ Lead with GENUINE empathy in the FIRST sentence. Acknowledge the frustration specifically.
+→ Example: "I'm really sorry you've had this experience — that's not what we want for our customers."
+→ THEN follow the standard script. Empathy BEFORE retention pitch.
+
+If TYPE_F (unknown reason):
+→ Ask the reason BEFORE attempting retention: "I'd love to help — could you share what prompted the cancellation? I may be able to resolve it right away."
+→ Mark with SPECIAL PREFERENCE, but focus on understanding the problem first.
+
 STANDARD SCRIPT:
 YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
 1. Make the customer feel SPECIAL and IMPORTANT / Fazer o cliente se sentir ESPECIAL
@@ -3373,6 +3537,25 @@ ${retentionContactCount === 2 ? `
 ${codPreDelivery ? `
 ⛔ BLOQUEIO: Contato 2 de ${forwardThreshold}. AINDA não forneça email de suporte!
 
+ADAPT BY CANCELLATION TYPE (COD PRE-DELIVERY, COUNTER 2):
+
+If TYPE_A (delivery) and issue was NOT resolved in counter 1:
+→ Provide MORE DETAILED tracking status, show any updates since last contact
+→ Reinforce zero risk: "Even if it takes a bit longer, you pay nothing until delivery"
+→ THEN offer coupon as goodwill for the wait
+
+If TYPE_B (product) and exchange was declined in counter 1:
+→ NOW offer the coupon as partial compensation: "I understand the exchange wasn't what you wanted. As a gesture of goodwill..."
+→ Still reinforce zero risk
+
+If TYPE_C (regret) or TYPE_D (price):
+→ Follow the standard counter=2 COD script below (zero risk + coupon)
+
+If TYPE_E (bad experience):
+→ Acknowledge this is the SECOND contact, apologize for the ongoing issue
+→ Address the ROOT CAUSE if identifiable from history
+→ THEN offer coupon as goodwill gesture
+
 COD PRE-DELIVERY SCRIPT (ZERO RISK + BENEFIT):
 YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
 1. Reinforce ZERO RISK - "you haven't paid anything!" / Reforce ZERO RISCO
@@ -3387,6 +3570,25 @@ Remember: you don't pay anything until delivery. You can see the product, touch 
 ${shopContext.retention_coupon_code ? `Plus, I have a special surprise: use coupon ${shopContext.retention_coupon_code}${shopContext.retention_coupon_value ? ` for ${shopContext.retention_coupon_type === 'fixed' ? `${getCurrencySymbol(shopifyData?.currency)}${shopContext.retention_coupon_value} off` : `${shopContext.retention_coupon_value}% off`}` : ''} on your next purchase!` : 'I am looking for a special discount for you!'}
 It's completely risk-free to wait and try it. Can I count on you?"
 ` : `
+ADAPT BY CANCELLATION TYPE (STANDARD, COUNTER 2):
+
+If TYPE_A (delivery) and issue was NOT resolved in counter 1:
+→ Provide MORE DETAILED tracking status, any updates since last contact
+→ Reassure delivery is progressing
+→ THEN offer coupon as goodwill for the wait: "For the inconvenience of waiting..."
+
+If TYPE_B (product) and exchange was declined in counter 1:
+→ NOW offer the coupon as partial compensation
+→ "I understand the exchange wasn't what you wanted. As a gesture of goodwill, here's a discount..."
+
+If TYPE_C (regret) or TYPE_D (price):
+→ Follow the standard counter=2 script below (reassure + coupon)
+
+If TYPE_E (bad experience):
+→ Acknowledge this is the SECOND contact, apologize for the ongoing issue
+→ Address the ROOT CAUSE if identifiable from history
+→ THEN offer coupon as goodwill gesture: "I want to make this right..."
+
 STANDARD SCRIPT:
 YOUR RESPONSE MUST / SUA RESPOSTA DEVE:
 1. Reassure everything is configured for success / Tranquilizar que está tudo certo
@@ -3707,18 +3909,6 @@ PROMESSAS DE CANCELAMENTO (PROIBIDO - VOCÊ NÃO PODE CANCELAR PEDIDOS):
 - Italiano: "Ho cancellato il tuo ordine", "L'ordine è stato cancellato", "Mi assicurerò che non venga spedito"
 → O QUE FAZER: Se a categoria for "troca_devolucao_reembolso", SIGA O FLUXO DE RETENÇÃO (seção abaixo). SÓ use [FORWARD_TO_HUMAN] quando o contador de retenção atingir o limite (${forwardThreshold}). NÃO encaminhe imediatamente.
 
-REGRA ESPECIAL - CANCELAMENTO URGENTE (CRÍTICO):
-Se o cliente diz que cancelou dentro do prazo (12 horas, 24 horas, etc.) e pede para NÃO ENVIAR:
-❌ NUNCA diga: "garantirei que o pedido não seja enviado"
-❌ NUNCA diga: "vou garantir", "I will ensure", "Ich werde sicherstellen"
-❌ NUNCA diga: "recebi e processarei", "already processed", "wurde bearbeitet"
-❌ NUNCA pergunte "confirme se entendi corretamente" como se tivesse feito algo
-
-⚠️ IMPORTANTE: Mesmo em cancelamentos urgentes, SIGA O FLUXO DE RETENÇÃO primeiro!
-- Se o contador de retenção < ${forwardThreshold}: NÃO forneça email de suporte. Tente reter o cliente primeiro.
-- Se o contador de retenção >= ${forwardThreshold}: Aí sim, encaminhe para o email de suporte.
-- NÃO prometa que fará algo - você apenas RESPONDE
-
 NUNCA INVENTAR INFORMAÇÕES DE CONTATO (REGRA CRÍTICA - PRIORIDADE MÁXIMA):
 - NUNCA invente endereços de email - use APENAS os emails fornecidos neste prompt
 - NUNCA invente nomes de pessoas - use APENAS seu nome: ${shopContext.attendant_name}
@@ -3736,7 +3926,6 @@ REGRA DE EMAILS DA LOJA (MUITO IMPORTANTE):
 ${storeProvidedInfo.hasPhone ? `  → Se o cliente pedir telefone: forneça ${storeProvidedInfo.phone}` : `  → Se o cliente pedir telefone e não existe: "No momento, nosso atendimento é feito por email: ${mainStoreEmail}"`}
   → Se o cliente pedir outro canal: "Por favor, entre em contato pelo email ${mainStoreEmail}"
 - ESCALAÇÃO HUMANA: Quando o caso precisar de atendimento humano (cancelamentos, reembolsos, produto errado, etc.), use [FORWARD_TO_HUMAN] e diga que a equipe vai responder por este mesmo email
-  → NUNCA forneça um email diferente ao cliente para contato de suporte
 
 ${storeProvidedInfo.hasReturnAddress ? `ENDEREÇO DE DEVOLUÇÃO DA LOJA (FORNECIDO PELO DONO - USE QUANDO NECESSÁRIO):
 - Endereço de devolução: ${storeProvidedInfo.returnAddress}
@@ -3770,6 +3959,7 @@ SOLICITAÇÃO DE DOCUMENTOS (REGRA ESPECIAL - FATURAS, RECIBOS, CERTIFICADOS, DO
   "[FORWARD_TO_HUMAN] Olá! Entendi que você precisa de uma fatura em inglês para liberação na alfândega referente ao pedido #XXXX. Já encaminhei sua solicitação para nossa equipe que vai preparar o documento e enviar para o seu email o mais breve possível! ${shopContext.attendant_name}"
 - Exemplo de resposta CORRETA (recibo/comprovante):
   "[FORWARD_TO_HUMAN] Olá! Já encaminhei sua solicitação de comprovante para nossa equipe. Você receberá o documento por este mesmo email! ${shopContext.attendant_name}"
+- NUNCA peça mais detalhes sobre a alfândega ao cliente - ele já disse o que precisa
 
 QUANDO O CLIENTE QUER CANCELAR (SOMENTE APÓS FLUXO DE RETENÇÃO COMPLETO - contador >= ${forwardThreshold}):
 - NUNCA diga "cancelei seu pedido" ou "pedido foi cancelado"
@@ -3971,14 +4161,6 @@ REGRA CRÍTICA - NUNCA PEÇA DADOS QUE VOCÊ JÁ TEM (PRIORIDADE MÁXIMA):
 - Exemplo ERRADO: "Para ajudá-la, me forneça o número do pedido (#16560) e o tracking (TRF123)" ← Você JÁ TEM esses dados!
 - Exemplo CORRETO: "Encontrei seu pedido #16560! O rastreio é TRF123 e o status atual é: Enviado."
 
-REGRA CRÍTICA - ALFÂNDEGA, FATURAS E DOCUMENTOS:
-- Se o cliente pede FATURA, INVOICE, NOTA FISCAL, ou documentos para ALFÂNDEGA/CUSTOMS:
-  → Você NÃO pode gerar esses documentos
-  → [FORWARD_TO_HUMAN] Diga que vai encaminhar para a equipe que pode fornecer a documentação necessária
-  → Diga que a equipe vai responder por este mesmo email
-  → Exemplo: "Entendo que você precisa da fatura para liberar na alfândega. Vou encaminhar seu caso para nossa equipe que poderá fornecer a documentação necessária."
-  → NUNCA peça mais detalhes sobre a alfândega ao cliente - ele já disse o que precisa
-
 COMPORTAMENTO INTELIGENTE (REGRA CRÍTICA - SEGUIR SEMPRE):
 - RESPONDA APENAS ao que foi perguntado - NADA MAIS
 - NUNCA mencione cancelamento/reembolso/devolução se o cliente NÃO pediu isso EXPLICITAMENTE
@@ -3991,19 +4173,8 @@ COMPORTAMENTO INTELIGENTE (REGRA CRÍTICA - SEGUIR SEMPRE):
 REGRA CRÍTICA - TRACKING / RASTREIO (PRIORIDADE MÁXIMA):
 - O código de rastreio é responsabilidade da LOJA, não do cliente
 - NUNCA peça ao cliente para fornecer: tracking number, tracking code, código de rastreio, link de rastreio
-- Se você TEM tracking disponível nos DADOS DO PEDIDO → FORNEÇA IMEDIATAMENTE ao cliente
-- Se o cliente pergunta "onde está meu pedido?" e você TEM rastreio → RESPONDA com o rastreio, NÃO encaminhe
-- Se o cliente reclama que o tracking não funciona ou não tem tracking:
-  → Use os dados do pedido que você tem (DADOS DO PEDIDO DO CLIENTE acima)
-  → Se "Código de rastreio: Ainda não disponível" → diga que o pedido está sendo preparado/processado
-  → Se tem tracking mas cliente diz que não funciona → forneça o código/link que você tem
-  → Se "Status de envio: Enviado" mas sem tracking → diga que o pedido foi enviado e o código de rastreio será atualizado em breve
-  → Se "Status de envio: Aguardando envio" → diga que está sendo preparado para envio
-- NUNCA diga "não posso fornecer mais informações" quando você TEM dados de rastreio nos DADOS DO PEDIDO
-- NUNCA encaminhe para suporte humano quando a resposta está nos dados que você tem
+- Se você TEM tracking nos DADOS DO PEDIDO → FORNEÇA IMEDIATAMENTE (siga as regras da seção RASTREIO acima)
 - NUNCA diga "Could you provide the tracking number?" - O CLIENTE não tem tracking, a LOJA tem!
-- Exemplo ERRADO: "Could you please provide the tracking number or link?"
-- Exemplo CORRETO: "Your order has been shipped! The tracking code is ABC123. You can follow the delivery here: https://..." (use os dados REAIS do pedido, NUNCA placeholders como [code] ou [link])
 
 REGRA CRÍTICA - AMEAÇAS DE PAYPAL/DISPUTA NÃO SÃO PEDIDOS DE REEMBOLSO:
 - Se o cliente diz "IF I don't receive... I will ask for refund" ou "I'll report to PayPal" → isso é AMEAÇA/AVISO, NÃO um pedido
@@ -4415,30 +4586,11 @@ Lamento pelo transtorno. Encaminhei seu caso para nossa equipe que vai analisar 
 [Assinatura]"
 
 === CHECKLIST FINAL - VERIFIQUE ANTES DE RESPONDER ===
-Antes de escrever sua resposta, verifique CADA item. Se violar QUALQUER um, REESCREVA.
-
-⛔ NÃO INVENTE informações:
-- NUNCA inclua endereços físicos que não estão nos dados acima
-- NUNCA inclua números de telefone que não estão nos dados acima
-- NUNCA diga que "marcou", "processou", "atualizou" ou "cancelou" algo — você NÃO pode executar ações
-
-⛔ NÃO FAÇA PROMESSAS que você não pode cumprir:
-- NUNCA diga "vou verificar", "vou investigar", "vou entrar em contato", "vou checar", "vou analisar"
-- NUNCA diga "I'll check", "I'll investigate", "I'll contact", "je vais vérifier", "ich werde überprüfen"
-- NUNCA diga "aguarde enquanto eu verifico" / "wait while I check"
-- NUNCA diga "vou te manter informado" / "I'll keep you updated"
-- Em vez disso: USE os dados que você JÁ TEM, ou use [FORWARD_TO_HUMAN] e diga que a equipe vai responder por aqui
-
-⛔ NÃO USE fechamentos formais:
-- NUNCA: Atenciosamente, Sinceramente, Sincerely, Best regards, Kind regards, Cordialement, Cordiali saluti, Mit freundlichen Grüßen, Cordialmente
-- CORRETO: Assine apenas com seu nome (${shopContext.attendant_name}) ou "Abraço," / "Thanks,"
-
-⛔ NÃO USE frases vazias:
-- NUNCA: "Agradeço sua paciência" / "Thank you for your patience" / "Merci de votre patience"
-- NUNCA: "Agradeço sua compreensão" / "Thank you for your understanding"
-- NUNCA: "Não hesite em entrar em contato" / "Don't hesitate to reach out" / "N'hésitez pas"
-- NUNCA: "Assistente virtual" / "Virtual assistant"
-- NUNCA: "Suporte [Nome da Loja]" ou "Equipe [Nome da Loja]" na assinatura
+⛔ Não inventou endereços, telefones ou informações que não estão nos dados?
+⛔ Não disse que "marcou", "processou", "cancelou" ou "verificou" algo?
+⛔ Não prometeu "vou verificar/investigar/checar" em nenhum idioma?
+⛔ Assinou apenas com "${shopContext.attendant_name}" sem "Atenciosamente", "Sincerely", "Cordialement" etc.?
+⛔ Não usou "Agradeço sua paciência", "Don't hesitate", "Assistente virtual", "Suporte/Equipe [Loja]"?
 === FIM DO CHECKLIST ===`;
 
   // DETECÇÃO PROGRAMÁTICA DE LOOP (multi-estratégia, antes de montar mensagens)
@@ -4593,6 +4745,27 @@ Se a imagem mostrar algo grave (produto claramente errado, danificado, etc.):
   // e "Nome - Loja" no final → "Nome\nLoja"
   cleanedResponse = cleanDuplicateSignature(cleanedResponse, shopContext.attendant_name, shopContext.name);
 
+  // Prompt MÍNIMO para retries - economiza ~24K tokens por retry (vs re-enviar o prompt inteiro)
+  // Inclui apenas: identidade, idioma, dados essenciais do pedido e regras de formatação
+  const retrySystemPrompt = `You are ${shopContext.attendant_name}, customer support for ${shopContext.name}.
+Email: ${mainStoreEmail}
+Language: Respond ENTIRELY in ${detectedLangName} (${language}). Every word must be in ${detectedLangName}.
+${shopifyData?.order_number ? `Order data:
+- Order: ${shopifyData.order_number}
+- Date: ${shopifyData.order_date || 'N/A'}
+- Status: ${shopifyData.fulfillment_status || 'N/A'}
+- Payment: ${shopifyData.order_status || 'N/A'}
+- Tracking: ${shopifyData.tracking_number || 'Not available'}
+- Tracking link: ${shopifyData.tracking_url || 'N/A'}
+- Items: ${shopifyData.items.map((i) => `${i.name} (x${i.quantity})`).join(', ') || 'N/A'}
+- Customer: ${shopifyData.customer_name || 'N/A'}
+Only use data listed above. NEVER invent data.` : 'No order data available. Do NOT invent order numbers, tracking codes, or other data.'}
+Format: Sign only with "${shopContext.attendant_name}" on one line, then "${shopContext.name}" on the next.
+NEVER use formal closings: "Atenciosamente", "Sincerely", "Best regards", "Kind regards", "Cordialement", "Cordiali saluti", "Mit freundlichen Grüßen".
+NEVER say you "checked", "processed", "verified", or "contacted" anything. You CANNOT take actions.
+NEVER promise "I'll get back to you" or "I'll follow up". You WON'T.
+Be concise and natural - write like a real person, not a corporate robot.`;
+
   // VALIDAÇÃO PÓS-GERAÇÃO CAMADA 1: Detectar alucinações (endereços, telefones, ações falsas, tracking fabricado)
   const hallucinations = detectHallucinations(cleanedResponse, shopContext, storeProvidedInfo, shopifyData);
   if (hallucinations.length > 0) {
@@ -4619,7 +4792,7 @@ STRICT RULES FOR YOUR NEW RESPONSE:
 
 Rewrite your response using ONLY facts you have. Be short and direct. NO promises.`,
       }];
-      const retryResponse = await callClaude(systemPrompt, hallucinationFixMessages, MAX_TOKENS);
+      const retryResponse = await callClaude(retrySystemPrompt, hallucinationFixMessages, MAX_TOKENS);
       const retryText = retryResponse.content[0]?.text || '';
       const retryClean = cleanDuplicateSignature(formatEmailResponse(cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim()))), shopContext.attendant_name, shopContext.name);
 
@@ -4711,7 +4884,7 @@ ${retentionContactCount === 1 ? `This is the FIRST retention contact. You MUST:
 
 Rewrite your response following the retention script. Be warm, empathetic, and try to KEEP the customer.`,
         }];
-        const retryResponse = await callClaude(systemPrompt, retentionFixMessages, MAX_TOKENS);
+        const retryResponse = await callClaude(retrySystemPrompt, retentionFixMessages, MAX_TOKENS);
         const retryText = retryResponse.content[0]?.text || '';
         const retryClean = cleanDuplicateSignature(
           formatEmailResponse(cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim()))),
@@ -4770,7 +4943,7 @@ Rewrite your response following the retention script. Be warm, empathetic, and t
           role: 'user' as const,
           content: `CRITICAL ERROR: Your previous response was in the WRONG LANGUAGE (detected: ${detectedWrongLang}), but the customer speaks ${langNameStr}. Rewrite your ENTIRE response in ${langNameStr}. Do NOT use any ${detectedWrongLang === 'pt' ? 'Portuguese' : detectedWrongLang === 'es' ? 'Spanish' : detectedWrongLang === 'en' ? 'English' : detectedWrongLang === 'de' ? 'German' : detectedWrongLang === 'fr' ? 'French' : detectedWrongLang} words. EVERY word must be in ${langNameStr}.`,
         }];
-        const retryResponse = await callClaude(systemPrompt, retryMessages, MAX_TOKENS);
+        const retryResponse = await callClaude(retrySystemPrompt, retryMessages, MAX_TOKENS);
         const retryText = retryResponse.content[0]?.text || '';
         const retryClean = cleanDuplicateSignature(formatEmailResponse(cleanAIResponse(stripMarkdown(retryText.replace('[FORWARD_TO_HUMAN]', '').trim()))), shopContext.attendant_name, shopContext.name);
         if (retryClean && retryClean.length > 10) {

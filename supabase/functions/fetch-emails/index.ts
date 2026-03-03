@@ -279,6 +279,28 @@ async function saveAndEnqueueEmail(
     return;
   }
 
+  // Rejeitar domínios de marketing/publicidade que nunca são clientes reais
+  const MARKETING_DOMAINS = [
+    'microsoftadvertising.microsoft.com',
+    'email.hostinger.com',
+    'mc.sendgrid.net',
+    'email.mailchimp.com',
+    'bounce.google.com',
+    'mail.google.com',
+    'mailer-daemon@',
+    'postmaster@',
+    'facebookmail.com',
+    'mail.instagram.com',
+    'tiktokmail.com',
+    'email.tiktok.com',
+  ];
+  const fromLower = (email.from_email || '').toLowerCase();
+  const isMarketingDomain = MARKETING_DOMAINS.some(d => fromLower.includes(d));
+  if (isMarketingDomain) {
+    console.log(`[Shop:${shop.name}] Rejeitando email de marketing: ${email.from_email} (subject: "${email.subject}")`);
+    return;
+  }
+
   // Check if email already exists (deduplication via message_id)
   const { data: existing } = await supabase
     .from('messages')
@@ -347,7 +369,7 @@ async function saveAndEnqueueEmail(
       subject: email.subject,
     },
     p_priority: 0, // Normal priority
-    p_max_attempts: 5,
+    p_max_attempts: 3,
   });
 
   if (jobError) {

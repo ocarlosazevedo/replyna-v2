@@ -457,6 +457,13 @@ async function processMessage(
     throw new Error('Corpo do email vazio');
   }
 
+  // 3b. Truncar corpo muito longo para evitar consumo excessivo de tokens Claude
+  const MAX_BODY_CHARS = 8000;
+  if (cleanBody.length > MAX_BODY_CHARS) {
+    console.log(`[Processor] Email body truncated: ${cleanBody.length} → ${MAX_BODY_CHARS} chars (from: ${message.from_email})`);
+    cleanBody = cleanBody.substring(0, MAX_BODY_CHARS) + '\n\n[... conteúdo truncado ...]';
+  }
+
   // 4. Verificar agradecimentos (não responder)
   if (isAcknowledgmentMessage(cleanBody, message.subject || '')) {
     await updateMessage(message.id, {
@@ -517,9 +524,43 @@ async function processMessage(
     cleanBody,
     conversationHistory.slice(0, -1), // Excluir a mensagem atual
     message.body_text || '', // rawEmailBody para fallback de idioma (country code, etc.)
+    conversation.language || null, // Idioma da conversa para continuidade (evita erros em msgs curtas)
   );
 
-  // 8. Reservar crédito atomicamente (verifica E reserva em uma única transação)
+  // 8. Se for spam, tratar ANTES de reservar crédito (spam não consome crédito)
+  if (classification.category === 'spam') {
+    // Salvar categoria 'spam' na MENSAGEM para aparecer no filtro do painel
+    await updateMessage(message.id, {
+      status: 'failed',
+      category: 'spam',
+      category_confidence: classification.confidence,
+      error_message: 'Email classificado como spam',
+      processed_at: new Date().toISOString(),
+    });
+
+    // Atualizar a CONVERSA com categoria spam apenas se não tiver categoria ainda
+    if (!conversation.category) {
+      await updateConversation(conversation.id, {
+        category: 'spam',
+      });
+    }
+
+    await logProcessingEvent({
+      shop_id: shop.id,
+      message_id: message.id,
+      conversation_id: conversation.id,
+      event_type: 'spam_detected',
+      event_data: {
+        confidence: classification.confidence,
+        summary: classification.summary,
+      },
+    });
+
+    console.log(`[Processor] Message ${message.id} classified as SPAM, no credit consumed`);
+    return true;
+  }
+
+  // 9. Reservar crédito atomicamente (verifica E reserva em uma única transação)
   // Isso evita race condition quando múltiplos emails são processados em paralelo
   const creditReserved = await tryReserveCredit(user.id);
   if (!creditReserved) {
@@ -546,7 +587,7 @@ async function processMessage(
     });
 
     // Atualizar conversa com categoria se não tiver
-    if (!conversation.category && classification.category !== 'spam') {
+    if (!conversation.category) {
       await updateConversation(conversation.id, {
         category: classification.category,
         language: classification.language,
@@ -571,40 +612,6 @@ async function processMessage(
 
   // Envolver processamento pós-crédito em try/catch para rollback em caso de falha
   try {
-
-  // 9. Se for spam, salvar categoria na MENSAGEM (para aparecer no painel), mas NÃO atualizar CONVERSA
-  if (classification.category === 'spam') {
-    // Salvar categoria 'spam' na MENSAGEM para aparecer no filtro do painel
-    await updateMessage(message.id, {
-      status: 'failed',
-      category: 'spam',
-      category_confidence: classification.confidence,
-      error_message: 'Email classificado como spam',
-      processed_at: new Date().toISOString(),
-    });
-
-    // Atualizar a CONVERSA com categoria spam apenas se não tiver categoria ainda
-    // Isso permite que o spam apareça no filtro de spam do painel
-    if (!conversation.category) {
-      await updateConversation(conversation.id, {
-        category: 'spam',
-      });
-    }
-
-    await logProcessingEvent({
-      shop_id: shop.id,
-      message_id: message.id,
-      conversation_id: conversation.id,
-      event_type: 'spam_detected',
-      event_data: {
-        confidence: classification.confidence,
-        summary: classification.summary,
-      },
-    });
-
-    console.log(`[Processor] Message ${message.id} classified as SPAM, ignoring`);
-    return true; // Success without replying - marked as processing before
-  }
 
   // 10. Salvar categoria apenas para emails NÃO-spam
   await updateMessage(message.id, {
@@ -919,7 +926,7 @@ async function processMessage(
       message.subject || '',
       cleanBody,
       (conversation.data_request_count || 0) + 1,
-      classification.language || 'en'
+      classification.language || conversation.language || 'pt'
     );
 
     await sendReply(message, conversation, shop, dataRequestResult.response, 'data_requested');
@@ -1026,7 +1033,7 @@ async function processMessage(
       items: shopifyData.items || [],
       customer_name: shopifyData.customer_name,
     } : null,
-    classification.language || 'en',
+    classification.language || conversation.language || 'pt',
     currentRetentionCount,
     // Passar pedidos adicionais se houver
     additionalOrders.map(order => ({
@@ -1102,7 +1109,7 @@ async function processMessage(
     });
   }
 
-  // 16. Crédito já foi reservado atomicamente no passo 8 (tryReserveCredit)
+  // 16. Crédito já foi reservado atomicamente no passo 9 (tryReserveCredit)
   // Não precisa mais chamar incrementEmailsUsed aqui
 
   console.log(`[Processor] Message ${message.id} processed successfully`);

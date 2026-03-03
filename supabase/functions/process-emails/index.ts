@@ -1215,6 +1215,7 @@ async function processMessageInternal(
     cleanBody,
     conversationHistory.slice(0, -1),
     message.body_text || '', // rawEmailBody para fallback de idioma
+    conversation.language || null, // Idioma da conversa para continuidade
   );
 
   await updateMessage(message.id, {
