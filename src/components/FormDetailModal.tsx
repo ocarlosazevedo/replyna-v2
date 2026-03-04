@@ -89,9 +89,10 @@ interface Message {
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
   pending:  { label: 'Pendente',   bg: 'rgba(245,158,11,0.15)', color: '#d97706' },
   answered: { label: 'Respondido', bg: 'rgba(34,197,94,0.15)',  color: '#16a34a' },
-  closed:   { label: 'Fechado',    bg: 'rgba(107,114,128,0.15)',color: '#6b7280' },
+  closed:   { label: 'Encerrado',  bg: 'rgba(107,114,128,0.15)',color: '#6b7280' },
   approved: { label: 'Aprovado',   bg: 'rgba(34,197,94,0.15)',  color: '#16a34a' },
   rejected: { label: 'Rejeitado',  bg: 'rgba(239,68,68,0.15)',  color: '#ef4444' },
+  reopened: { label: 'Reaberto',   bg: 'rgba(249,115,22,0.15)', color: '#f97316' },
 }
 
 function getLabel(options: Array<{ value: string; label: string }>, value: string | undefined): string {
@@ -180,6 +181,10 @@ export default function FormDetailModal({ conversationId, onClose, onStatusChang
   const [replyError, setReplyError] = useState<string | null>(null)
   const [replySuccess, setReplySuccess] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Close/freeze state
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [closingForm, setClosingForm] = useState(false)
 
   // Attachments state
   const [attachments, setAttachments] = useState<Array<{ file: File; uploading: boolean; url: string | null; error: boolean }>>([])
@@ -308,6 +313,33 @@ export default function FormDetailModal({ conversationId, onClose, onStatusChang
       setUpdating(null)
     }
   }, [conversationId, updating, onStatusChange])
+
+  // Close form (frozen 7 days)
+  const handleCloseForm = useCallback(async () => {
+    if (!conversationId || closingForm) return
+    setClosingForm(true)
+    try {
+      const frozenUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      const { error } = await supabase
+        .from('conversations')
+        .update({
+          ticket_status: 'closed',
+          frozen_until: frozenUntil,
+          archived: true,
+        })
+        .eq('id', conversationId)
+
+      if (error) throw error
+      setShowCloseConfirm(false)
+      setConversation(prev => prev ? { ...prev, ticket_status: 'closed' } : null)
+      onStatusChange?.(conversationId, 'closed')
+      onClose()
+    } catch (err) {
+      console.error('Erro ao encerrar formulário:', err)
+    } finally {
+      setClosingForm(false)
+    }
+  }, [conversationId, closingForm, onStatusChange, onClose])
 
   // Handle file selection for attachments
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -556,17 +588,104 @@ export default function FormDetailModal({ conversationId, onClose, onStatusChang
                 </span>
               )}
             </div>
-            <button
-              onClick={onClose}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              {conversation && status !== 'closed' && (
+                <button
+                  type="button"
+                  onClick={() => setShowCloseConfirm(true)}
+                  title="Encerrar formulário e congelar cliente por 7 dias"
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                    color: '#dc2626',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="15" y1="9" x2="9" y2="15" />
+                    <line x1="9" y1="9" x2="15" y2="15" />
+                  </svg>
+                  Encerrar
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-secondary)', padding: '4px', display: 'flex',
+                  borderRadius: '8px', flexShrink: 0,
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Confirmação de encerramento */}
+          {showCloseConfirm && (
+            <div
               style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--text-secondary)', padding: '4px', display: 'flex',
-                borderRadius: '8px', flexShrink: 0,
+                padding: '14px 20px',
+                backgroundColor: 'rgba(220, 38, 38, 0.06)',
+                borderBottom: '1px solid rgba(220, 38, 38, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap',
+                flexShrink: 0,
               }}
             >
-              <X size={20} />
-            </button>
-          </div>
+              <div style={{ fontSize: '13px', color: '#dc2626', fontWeight: 500 }}>
+                Tem certeza? O formulário será encerrado e o cliente ficará em frozen por 7 dias (emails ignorados).
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCloseConfirm(false)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-secondary)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseForm}
+                  disabled={closingForm}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: '#dc2626',
+                    color: 'white',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: closingForm ? 'not-allowed' : 'pointer',
+                    opacity: closingForm ? 0.7 : 1,
+                  }}
+                >
+                  {closingForm ? 'Encerrando...' : 'Confirmar encerramento'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Scrollable body */}
           <div className="replyna-scrollbar" style={{
@@ -1228,7 +1347,7 @@ export default function FormDetailModal({ conversationId, onClose, onStatusChang
                 </a>
               )}
 
-              {(status === 'pending' || status === 'answered') && (
+              {(status === 'pending' || status === 'answered' || status === 'reopened') && (
                 <>
                   {updateError && (
                     <div style={{

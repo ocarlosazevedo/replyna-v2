@@ -29,9 +29,10 @@ interface FormRow {
 const FORM_STATUS: Record<string, { label: string; bg: string; color: string }> = {
   pending:  { label: 'Pendente',   bg: 'rgba(245,158,11,0.15)', color: '#d97706' },
   answered: { label: 'Respondido', bg: 'rgba(34,197,94,0.15)',  color: '#16a34a' },
-  closed:   { label: 'Fechado',    bg: 'rgba(107,114,128,0.15)',color: '#6b7280' },
+  closed:   { label: 'Encerrado',  bg: 'rgba(107,114,128,0.15)',color: '#6b7280' },
   approved: { label: 'Aprovado',   bg: 'rgba(34,197,94,0.15)',  color: '#16a34a' },
   rejected: { label: 'Rejeitado',  bg: 'rgba(239,68,68,0.15)',  color: '#ef4444' },
+  reopened: { label: 'Reaberto',   bg: 'rgba(249,115,22,0.15)', color: '#f97316' },
 }
 
 const formatDateTime = (date: Date) =>
@@ -89,7 +90,8 @@ export default function Formularios() {
 
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      // Query 1: formulários ativos (não arquivados)
+      const activePromise = supabase
         .from('conversations')
         .select('id, shop_id, customer_email, customer_name, subject, category, status, ticket_status, shopify_order_id, archived, created_at')
         .eq('archived', false)
@@ -98,9 +100,23 @@ export default function Formularios() {
         .not('form_data', 'is', null)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      // Query 2: formulários encerrados (arquivados + closed)
+      const closedPromise = supabase
+        .from('conversations')
+        .select('id, shop_id, customer_email, customer_name, subject, category, status, ticket_status, shopify_order_id, archived, created_at')
+        .eq('archived', true)
+        .eq('ticket_status', 'closed')
+        .in('shop_id', shopIds)
+        .eq('category', 'troca_devolucao_reembolso')
+        .not('form_data', 'is', null)
+        .order('created_at', { ascending: false })
 
-      const rows: FormRow[] = (data || []).map((c) => ({
+      const [activeRes, closedRes] = await Promise.all([activePromise, closedPromise])
+      if (activeRes.error) throw activeRes.error
+      if (closedRes.error) throw closedRes.error
+
+      const allData = [...(activeRes.data || []), ...(closedRes.data || [])]
+      const rows: FormRow[] = allData.map((c) => ({
         ...c,
         shop_name: shopNameMap[c.shop_id] || 'Loja',
       }))
@@ -145,7 +161,7 @@ export default function Formularios() {
           const updated = payload.new as FormRow
           if (!shopIds.includes(updated.shop_id)) return
 
-          if (updated.category === 'troca_devolucao_reembolso' && !updated.archived && (payload.new as any).form_data) {
+          if (updated.category === 'troca_devolucao_reembolso' && (payload.new as any).form_data) {
             setForms((prev) => {
               const exists = prev.find((f) => f.id === updated.id)
               if (exists) {
@@ -169,13 +185,27 @@ export default function Formularios() {
     return row.ticket_status || 'pending'
   }
 
+  // Agrupar status para os filtros:
+  // "pending" = pending ou null
+  // "answered" = answered, approved, rejected (formas de resposta)
+  // "reopened" = reopened
+  // "closed" = closed
+  const getFilterGroup = (row: FormRow): string => {
+    const s = getFormStatus(row)
+    if (s === 'pending') return 'pending'
+    if (s === 'answered' || s === 'approved' || s === 'rejected') return 'answered'
+    if (s === 'reopened') return 'reopened'
+    if (s === 'closed') return 'closed'
+    return 'pending'
+  }
+
   const filteredForms = useMemo(() => {
     let result = forms
     if (selectedShopId !== 'all') {
       result = result.filter((f) => f.shop_id === selectedShopId)
     }
     if (selectedStatus !== 'all') {
-      result = result.filter((f) => getFormStatus(f) === selectedStatus)
+      result = result.filter((f) => getFilterGroup(f) === selectedStatus)
     }
     return result
   }, [forms, selectedShopId, selectedStatus])
@@ -184,11 +214,10 @@ export default function Formularios() {
     const base = selectedShopId === 'all' ? forms : forms.filter((f) => f.shop_id === selectedShopId)
     return {
       all: base.length,
-      pending: base.filter((f) => getFormStatus(f) === 'pending').length,
-      answered: base.filter((f) => getFormStatus(f) === 'answered').length,
-      closed: base.filter((f) => getFormStatus(f) === 'closed').length,
-      approved: base.filter((f) => getFormStatus(f) === 'approved').length,
-      rejected: base.filter((f) => getFormStatus(f) === 'rejected').length,
+      pending: base.filter((f) => getFilterGroup(f) === 'pending').length,
+      answered: base.filter((f) => getFilterGroup(f) === 'answered').length,
+      reopened: base.filter((f) => getFilterGroup(f) === 'reopened').length,
+      closed: base.filter((f) => getFilterGroup(f) === 'closed').length,
     }
   }, [forms, selectedShopId])
 
@@ -217,7 +246,7 @@ export default function Formularios() {
         onClose={() => setSelectedConversationId(null)}
         onStatusChange={(conversationId, newStatus) => {
           setForms((prev) =>
-            prev.map((f) => (f.id === conversationId ? { ...f, ticket_status: newStatus } : f))
+            prev.map((f) => (f.id === conversationId ? { ...f, ticket_status: newStatus, ...(newStatus === 'closed' ? { archived: true } : {}) } : f))
           )
         }}
       />
@@ -246,7 +275,7 @@ export default function Formularios() {
                 fontSize: '13px',
                 fontWeight: 700,
               }}>
-                {statusCounts.pending}
+                {statusCounts.pending + statusCounts.reopened}
               </span>
             )}
           </div>
@@ -266,10 +295,9 @@ export default function Formularios() {
           >
             <option value="all">Todos os status ({statusCounts.all})</option>
             <option value="pending">Pendentes ({statusCounts.pending})</option>
-            <option value="approved">Aprovados ({statusCounts.approved})</option>
-            <option value="rejected">Rejeitados ({statusCounts.rejected})</option>
             <option value="answered">Respondidos ({statusCounts.answered})</option>
-            <option value="closed">Fechados ({statusCounts.closed})</option>
+            <option value="reopened">Reabertos ({statusCounts.reopened})</option>
+            <option value="closed">Encerrados ({statusCounts.closed})</option>
           </select>
 
           <select
@@ -500,15 +528,13 @@ export default function Formularios() {
             <div style={{ fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '6px' }}>
               {selectedStatus === 'pending'
                 ? 'Nenhum formulário pendente'
-                : selectedStatus === 'approved'
-                  ? 'Nenhum formulário aprovado'
-                  : selectedStatus === 'rejected'
-                    ? 'Nenhum formulário rejeitado'
-                    : selectedStatus === 'answered'
-                      ? 'Nenhum formulário respondido'
-                      : selectedStatus === 'closed'
-                        ? 'Nenhum formulário fechado'
-                        : 'Nenhum formulário encontrado'}
+                : selectedStatus === 'answered'
+                  ? 'Nenhum formulário respondido'
+                  : selectedStatus === 'reopened'
+                    ? 'Nenhum formulário reaberto'
+                    : selectedStatus === 'closed'
+                      ? 'Nenhum formulário encerrado'
+                      : 'Nenhum formulário encontrado'}
             </div>
             <div style={{ fontSize: '14px', color: 'var(--text-secondary)', maxWidth: '380px', margin: '0 auto', lineHeight: '1.5' }}>
               {selectedStatus === 'all'
@@ -517,7 +543,9 @@ export default function Formularios() {
                   ? 'Não há formulários aguardando resposta no momento.'
                   : selectedStatus === 'answered'
                     ? 'Não há formulários respondidos no momento.'
-                    : 'Não há formulários fechados no momento.'}
+                    : selectedStatus === 'reopened'
+                      ? 'Não há formulários reabertos no momento.'
+                      : 'Não há formulários encerrados no momento.'}
             </div>
           </div>
         ) : (
