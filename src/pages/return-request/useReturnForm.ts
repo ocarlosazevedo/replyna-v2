@@ -86,41 +86,44 @@ export function useReturnForm() {
 
   const startTime = useRef(Date.now())
 
-  // Fetch shop info on mount via edge function (name, language, logo)
+  // Buscar nome e idioma direto do banco (rápido) + logo via edge function (em paralelo)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const shopId = urlParams.get('shop')
     if (!shopId) return
 
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-    const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-    fetch(`${SUPABASE_URL}/functions/v1/get-shop-public-info`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': ANON_KEY,
-        'Authorization': `Bearer ${ANON_KEY}`,
-      },
-      body: JSON.stringify({ shop_id: shopId }),
-    })
-      .then(res => res.json())
-      .then(data => {
+    // 1. Busca rápida: nome, idioma e logo cacheado direto do banco
+    supabase
+      .from('shops')
+      .select('name, language, logo_url')
+      .eq('id', shopId)
+      .single()
+      .then(({ data }) => {
         if (data?.name) setShopName(data.name)
-        if (data?.logo_url) setShopLogoUrl(data.logo_url)
         if (data?.language && !saved?.locale) setLocale(data.language as Locale)
-      })
-      .catch(() => {
-        // Fallback: buscar direto do banco (sem logo)
-        supabase
-          .from('shops')
-          .select('name, language')
-          .eq('id', shopId)
-          .single()
-          .then(({ data }) => {
-            if (data?.name) setShopName(data.name)
-            if (data?.language && !saved?.locale) setLocale(data.language as Locale)
+        if (data?.logo_url) {
+          setShopLogoUrl(data.logo_url)
+          return // Logo já cacheado, não precisa buscar
+        }
+
+        // 2. Logo não cacheado: buscar via edge function (em background)
+        const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+        const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+        fetch(`${SUPABASE_URL}/functions/v1/get-shop-public-info`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': ANON_KEY,
+            'Authorization': `Bearer ${ANON_KEY}`,
+          },
+          body: JSON.stringify({ shop_id: shopId }),
+        })
+          .then(res => res.json())
+          .then(info => {
+            if (info?.logo_url) setShopLogoUrl(info.logo_url)
           })
+          .catch(() => {}) // Ignora erro, logo é opcional
       })
   }, [])
 
