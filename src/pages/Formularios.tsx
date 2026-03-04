@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { FileText, Store, ClipboardList } from 'lucide-react'
+import { FileText, Store, ClipboardList, Link2, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile } from '../hooks/useUserProfile'
@@ -64,6 +64,8 @@ export default function Formularios() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [selectedShopId, setSelectedShopId] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [showLinks, setShowLinks] = useState(false)
+  const [copiedShopId, setCopiedShopId] = useState<string | null>(null)
 
   const shopIds = useMemo(() => shops.map((s) => s.id), [shops])
 
@@ -193,6 +195,15 @@ export default function Formularios() {
     setSelectedConversationId(id)
   }, [])
 
+  const handleCopyLink = useCallback((shopId: string) => {
+    const baseUrl = window.location.origin
+    const link = `${baseUrl}/return-request?shop=${shopId}`
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedShopId(shopId)
+      setTimeout(() => setCopiedShopId(null), 2000)
+    })
+  }, [])
+
   if (user && !FORMS_ALLOWED_USERS.has(user.id)) {
     return <Navigate to="/dashboard" replace />
   }
@@ -308,6 +319,119 @@ export default function Formularios() {
             Formulários são solicitações de troca, devolução ou reembolso enviadas pelos clientes da sua loja. Clique em um formulário para visualizar os detalhes e responder.
           </div>
         </div>
+      </div>
+
+      {/* Links dos formulários */}
+      <div style={{
+        backgroundColor: 'var(--bg-card)',
+        borderRadius: isMobile ? '12px' : '16px',
+        border: '1px solid var(--border-color)',
+        overflow: 'hidden',
+      }}>
+        <button
+          onClick={() => setShowLinks(!showLinks)}
+          style={{
+            width: '100%',
+            padding: isMobile ? '14px' : '16px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--text-primary)',
+          }}
+        >
+          <div style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <Link2 size={18} style={{ color: '#6366f1' }} />
+          </div>
+          <div style={{ flex: 1, textAlign: 'left' }}>
+            <div style={{ fontSize: '14px', fontWeight: 600 }}>
+              Links dos formulários
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+              Copie e envie o link para o cliente preencher o formulário de devolução
+            </div>
+          </div>
+          {showLinks ? <ChevronUp size={18} style={{ color: 'var(--text-secondary)' }} /> : <ChevronDown size={18} style={{ color: 'var(--text-secondary)' }} />}
+        </button>
+
+        {showLinks && (
+          <div style={{
+            borderTop: '1px solid var(--border-color)',
+            padding: isMobile ? '12px' : '8px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+            maxHeight: '320px',
+            overflowY: 'auto',
+          }}>
+            {shops.map((shop) => {
+              const link = `${window.location.origin}/return-request?shop=${shop.id}`
+              const isCopied = copiedShopId === shop.id
+              return (
+                <div
+                  key={shop.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: isMobile ? '10px 12px' : '10px 14px',
+                    borderRadius: '8px',
+                    backgroundColor: isCopied ? 'rgba(34, 197, 94, 0.06)' : 'transparent',
+                    transition: 'background-color 0.2s',
+                  }}
+                >
+                  <Store size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {shop.name}
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: 'var(--text-secondary)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {link}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleCopyLink(shop.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      border: isCopied ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--border-color)',
+                      backgroundColor: isCopied ? 'rgba(34, 197, 94, 0.1)' : 'var(--bg-primary)',
+                      color: isCopied ? '#16a34a' : 'var(--text-secondary)',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {isCopied ? <Check size={14} /> : <Copy size={14} />}
+                    {isCopied ? 'Copiado!' : 'Copiar'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Table card */}
