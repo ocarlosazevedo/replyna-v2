@@ -385,6 +385,51 @@ export default function Formularios() {
         </div>
       </div>
 
+      {/* Info cards grid */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+          gap: isMobile ? '10px' : '14px',
+        }}
+      >
+        {FILTER_CARDS.map((card) => {
+          const Icon = card.icon
+          return (
+            <div
+              key={card.key}
+              style={{
+                backgroundColor: 'var(--bg-card)',
+                borderRadius: '14px',
+                padding: isMobile ? '12px' : '16px',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <div style={{
+                  width: isMobile ? '28px' : '34px',
+                  height: isMobile ? '28px' : '34px',
+                  borderRadius: '9px',
+                  backgroundColor: card.bg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <Icon size={isMobile ? 14 : 17} style={{ color: card.color }} />
+                </div>
+                <div style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: 700, color: card.color }}>
+                  {card.title}
+                </div>
+              </div>
+              <div style={{ fontSize: isMobile ? '11px' : '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                {card.description}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
       {/* Links dos formulários */}
       <div style={{
         backgroundColor: 'var(--bg-card)',
@@ -496,51 +541,6 @@ export default function Formularios() {
             })}
           </div>
         )}
-      </div>
-
-      {/* Info cards grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
-          gap: isMobile ? '10px' : '14px',
-        }}
-      >
-        {FILTER_CARDS.map((card) => {
-          const Icon = card.icon
-          return (
-            <div
-              key={card.key}
-              style={{
-                backgroundColor: 'var(--bg-card)',
-                borderRadius: '14px',
-                padding: isMobile ? '12px' : '16px',
-                border: '1px solid var(--border-color)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                <div style={{
-                  width: isMobile ? '28px' : '34px',
-                  height: isMobile ? '28px' : '34px',
-                  borderRadius: '9px',
-                  backgroundColor: card.bg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <Icon size={isMobile ? 14 : 17} style={{ color: card.color }} />
-                </div>
-                <div style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: 700, color: card.color }}>
-                  {card.title}
-                </div>
-              </div>
-              <div style={{ fontSize: isMobile ? '11px' : '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                {card.description}
-              </div>
-            </div>
-          )
-        })}
       </div>
 
       {/* Table card */}
