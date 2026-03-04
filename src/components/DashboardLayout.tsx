@@ -59,6 +59,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         .eq('archived', false)
         .in('shop_id', shopIds)
         .eq('category', 'troca_devolucao_reembolso')
+        .not('form_data', 'is', null)
         .or('ticket_status.is.null,ticket_status.eq.pending')
       setFormsCount(count ?? 0)
     }
