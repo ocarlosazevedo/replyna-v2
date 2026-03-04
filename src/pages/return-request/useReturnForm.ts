@@ -75,7 +75,6 @@ export function useReturnForm() {
   const [signature, setSignature] = useState<string | null>(saved?.signature ?? null)
   const [returnId, setReturnId] = useState<string | null>(saved?.returnId ?? null)
   const [shopName, setShopName] = useState<string | null>(saved?.shopName ?? null)
-  const [shopDomain, setShopDomain] = useState<string | null>(saved?.shopDomain ?? null)
   const [shopLogoUrl, setShopLogoUrl] = useState<string | null>(saved?.shopLogoUrl ?? null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -127,9 +126,9 @@ export function useReturnForm() {
 
   // Persist form state to sessionStorage
   useEffect(() => {
-    const data = { currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale, shopName, shopDomain, shopLogoUrl }
+    const data = { currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale, shopName, shopLogoUrl }
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  }, [currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale, shopName, shopDomain, shopLogoUrl])
+  }, [currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale, shopName, shopLogoUrl])
 
   const updateField = useCallback(<K extends keyof FormFields>(key: K, value: FormFields[K]) => {
     setFields(prev => ({ ...prev, [key]: value }))
@@ -585,7 +584,6 @@ export function useReturnForm() {
     submitReturn,
     locale,
     shopName,
-    shopDomain,
     shopLogoUrl,
   }
 }
