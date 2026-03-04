@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Ticket, Store, Headphones, MessageSquare, Clock, CheckCircle, RefreshCw, XCircle } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Ticket, Store, MessageSquare, Clock, CheckCircle, RefreshCw, XCircle } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile } from '../hooks/useUserProfile'
