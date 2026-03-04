@@ -8,6 +8,7 @@
  * - conversation_id: ID da conversa
  * - shop_id: ID da loja
  * - reply_text: Texto da resposta (plain text)
+ * - attachments?: Array<{ filename, content_type, url }> (opcional)
  */
 
 // deno-lint-ignore-file no-explicit-any
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
 
   try {
     // 1. Parse e validar inputs
-    const { conversation_id, shop_id, reply_text } = await req.json();
+    const { conversation_id, shop_id, reply_text, attachments } = await req.json();
 
     if (!conversation_id || !shop_id || !reply_text) {
       return new Response(
@@ -155,7 +156,15 @@ Deno.serve(async (req) => {
     const recipientEmail = lastInbound?.from_email || conversation.customer_email;
     const fromName = (shop as Shop).attendant_name || (shop as Shop).name;
 
-    // 9. Enviar via SMTP
+    // 9. Validar anexos (se enviados)
+    const validAttachments = Array.isArray(attachments)
+      ? attachments.filter(
+          (a: { filename?: string; content_type?: string; url?: string }) =>
+            a && a.filename && a.content_type && a.url
+        ).slice(0, 10) // Máximo 10 anexos
+      : [];
+
+    // 10. Enviar via SMTP
     const sendResult = await sendEmail(emailCredentials, {
       to: recipientEmail,
       subject: replySubject,
@@ -163,6 +172,7 @@ Deno.serve(async (req) => {
       in_reply_to: lastInbound?.message_id || undefined,
       references: replyHeaders.references || undefined,
       from_name: fromName,
+      attachments: validAttachments.length > 0 ? validAttachments : undefined,
     });
 
     if (!sendResult.success) {
@@ -207,17 +217,27 @@ Deno.serve(async (req) => {
         type: 'manual_reply',
         reply_length: trimmedText.length,
         recipient: recipientEmail,
+        attachment_count: validAttachments.length,
       },
     });
 
     console.log(`[send-reply] Resposta manual enviada para ${recipientEmail} na conversa ${conversation.id}`);
 
+    // Montar resposta com info de anexos
+    const responseData: Record<string, any> = {
+      success: true,
+      message: 'Resposta enviada com sucesso',
+      message_id: sendResult.message_id,
+    };
+
+    // Avisar se algum anexo falhou no download
+    if (sendResult.attachments_requested && sendResult.attachments_requested > 0) {
+      responseData.attachments_requested = sendResult.attachments_requested;
+      responseData.attachments_sent = sendResult.attachments_sent ?? 0;
+    }
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Resposta enviada com sucesso',
-        message_id: sendResult.message_id,
-      }),
+      JSON.stringify(responseData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

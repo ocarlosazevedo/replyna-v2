@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Store, Ticket, User, LogOut, Menu, X } from 'lucide-react'
+import { LayoutGrid, Store, Ticket, FileText, User, LogOut, Menu, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useUserProfile } from '../hooks/useUserProfile'
 import { supabase } from '../lib/supabase'
@@ -17,6 +17,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [ticketCount, setTicketCount] = useState(0)
+  const [formsCount, setFormsCount] = useState(0)
 
   // Detectar se é mobile
   useEffect(() => {
@@ -45,14 +46,26 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       setTicketCount(count ?? 0)
     }
 
+    const fetchFormsCount = async () => {
+      const { count } = await supabase
+        .from('conversations')
+        .select('id', { count: 'exact', head: true })
+        .eq('archived', false)
+        .in('shop_id', shopIds)
+        .eq('category', 'troca_devolucao_reembolso')
+        .or('ticket_status.is.null,ticket_status.eq.pending')
+      setFormsCount(count ?? 0)
+    }
+
     fetchCount()
+    fetchFormsCount()
 
     const channel = supabase
       .channel('sidebar-ticket-count')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'conversations' },
-        () => { fetchCount() }
+        () => { fetchCount(); fetchFormsCount() }
       )
       .subscribe()
 
@@ -79,6 +92,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const menuItems = [
     { path: '/dashboard', label: 'Painel de controle', icon: LayoutGrid },
     { path: '/tickets', label: 'Tickets', icon: Ticket, badge: ticketCount },
+    { path: '/formularios', label: 'Formulários', icon: FileText, badge: formsCount },
     { path: '/shops', label: 'Minhas lojas', icon: Store },
   ]
 

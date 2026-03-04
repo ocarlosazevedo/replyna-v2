@@ -1,13 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Ticket, Store, Headphones, MessageSquare } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FileText, Store, ClipboardList } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile } from '../hooks/useUserProfile'
 import { supabase } from '../lib/supabase'
-import ConversationModal from '../components/ConversationModal'
-import { getCategoryBadgeStyle, getCategoryLabel } from '../constants/categories'
+import FormDetailModal from '../components/FormDetailModal'
 
-interface TicketRow {
+interface FormRow {
   id: string
   shop_id: string
   customer_email: string
@@ -16,14 +15,18 @@ interface TicketRow {
   category: string | null
   status: string | null
   ticket_status: string | null
+  shopify_order_id: string | null
+  archived: boolean
   created_at: string
   shop_name?: string
 }
 
-const TICKET_STATUS: Record<string, { label: string; bg: string; color: string }> = {
-  pending:  { label: 'Pendente',   bg: 'rgba(239,68,68,0.15)',   color: '#ef4444' },
-  answered: { label: 'Respondido', bg: 'rgba(34,197,94,0.15)',   color: '#16a34a' },
-  closed:   { label: 'Fechado',    bg: 'rgba(107,114,128,0.15)', color: '#6b7280' },
+const FORM_STATUS: Record<string, { label: string; bg: string; color: string }> = {
+  pending:  { label: 'Pendente',   bg: 'rgba(245,158,11,0.15)', color: '#d97706' },
+  answered: { label: 'Respondido', bg: 'rgba(34,197,94,0.15)',  color: '#16a34a' },
+  closed:   { label: 'Fechado',    bg: 'rgba(107,114,128,0.15)',color: '#6b7280' },
+  approved: { label: 'Aprovado',   bg: 'rgba(34,197,94,0.15)',  color: '#16a34a' },
+  rejected: { label: 'Rejeitado',  bg: 'rgba(239,68,68,0.15)',  color: '#ef4444' },
 }
 
 const formatDateTime = (date: Date) =>
@@ -47,12 +50,12 @@ const Skeleton = ({ height = 16, width = '100%' }: { height?: number; width?: nu
   />
 )
 
-export default function Tickets() {
+export default function Formularios() {
   const { user } = useAuth()
   const { shops, loading: loadingShops } = useUserProfile()
   const isMobile = useIsMobile()
 
-  const [tickets, setTickets] = useState<TicketRow[]>([])
+  const [forms, setForms] = useState<FormRow[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [selectedShopId, setSelectedShopId] = useState<string>('all')
@@ -66,9 +69,14 @@ export default function Tickets() {
     return map
   }, [shops])
 
-  const loadTickets = useCallback(async () => {
+  // Ref para acessar shopNameMap atualizado nos callbacks de real-time
+  // sem recriar a subscription toda vez que o mapa muda
+  const shopNameMapRef = useRef(shopNameMap)
+  useEffect(() => { shopNameMapRef.current = shopNameMap }, [shopNameMap])
+
+  const loadForms = useCallback(async () => {
     if (!user || shopIds.length === 0) {
-      setTickets([])
+      setForms([])
       setLoading(false)
       return
     }
@@ -77,23 +85,22 @@ export default function Tickets() {
     try {
       const { data, error } = await supabase
         .from('conversations')
-        .select('id, shop_id, customer_email, customer_name, subject, category, status, ticket_status, created_at')
-        .eq('status', 'pending_human')
+        .select('id, shop_id, customer_email, customer_name, subject, category, status, ticket_status, shopify_order_id, archived, created_at')
         .eq('archived', false)
         .in('shop_id', shopIds)
-        .in('category', ['suporte_humano', 'edicao_pedido'])
+        .eq('category', 'troca_devolucao_reembolso')
         .order('created_at', { ascending: false })
 
       if (error) throw error
 
-      const rows: TicketRow[] = (data || []).map((c) => ({
+      const rows: FormRow[] = (data || []).map((c) => ({
         ...c,
         shop_name: shopNameMap[c.shop_id] || 'Loja',
       }))
 
-      setTickets(rows)
+      setForms(rows)
     } catch (err) {
-      console.error('Erro ao carregar tickets:', err)
+      console.error('Erro ao carregar formulários:', err)
     } finally {
       setLoading(false)
     }
@@ -101,26 +108,25 @@ export default function Tickets() {
 
   useEffect(() => {
     if (!loadingShops && shopIds.length > 0) {
-      loadTickets()
+      loadForms()
     }
-  }, [loadingShops, shopIds, loadTickets])
+  }, [loadingShops, shopIds, loadForms])
 
   // Real-time subscription
   useEffect(() => {
     if (!user || shopIds.length === 0) return
 
     const channel = supabase
-      .channel('tickets-realtime')
+      .channel('forms-realtime')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'conversations' },
         (payload) => {
-          const newConv = payload.new as TicketRow
-          const ticketCategories = ['suporte_humano', 'edicao_pedido', 'troca_devolucao_reembolso']
-          if (newConv.status === 'pending_human' && shopIds.includes(newConv.shop_id) && ticketCategories.includes(newConv.category || '')) {
-            setTickets((prev) => [
-              { ...newConv, shop_name: shopNameMap[newConv.shop_id] || 'Loja' },
-              ...prev.filter((t) => t.id !== newConv.id),
+          const newConv = payload.new as FormRow
+          if (newConv.category === 'troca_devolucao_reembolso' && shopIds.includes(newConv.shop_id)) {
+            setForms((prev) => [
+              { ...newConv, shop_name: shopNameMapRef.current[newConv.shop_id] || 'Loja' },
+              ...prev.filter((f) => f.id !== newConv.id),
             ])
           }
         }
@@ -129,20 +135,19 @@ export default function Tickets() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'conversations' },
         (payload) => {
-          const updated = payload.new as TicketRow
+          const updated = payload.new as FormRow
           if (!shopIds.includes(updated.shop_id)) return
 
-          const ticketCats = ['suporte_humano', 'edicao_pedido', 'troca_devolucao_reembolso']
-          if (updated.status === 'pending_human' && ticketCats.includes(updated.category || '')) {
-            setTickets((prev) => {
-              const exists = prev.find((t) => t.id === updated.id)
+          if (updated.category === 'troca_devolucao_reembolso' && !updated.archived) {
+            setForms((prev) => {
+              const exists = prev.find((f) => f.id === updated.id)
               if (exists) {
-                return prev.map((t) => t.id === updated.id ? { ...updated, shop_name: shopNameMap[updated.shop_id] || 'Loja' } : t)
+                return prev.map((f) => f.id === updated.id ? { ...updated, shop_name: shopNameMapRef.current[updated.shop_id] || 'Loja' } : f)
               }
-              return [{ ...updated, shop_name: shopNameMap[updated.shop_id] || 'Loja' }, ...prev]
+              return [{ ...updated, shop_name: shopNameMapRef.current[updated.shop_id] || 'Loja' }, ...prev]
             })
           } else {
-            setTickets((prev) => prev.filter((t) => t.id !== updated.id))
+            setForms((prev) => prev.filter((f) => f.id !== updated.id))
           }
         }
       )
@@ -151,41 +156,48 @@ export default function Tickets() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user, shopIds, shopNameMap])
+  }, [user, shopIds])
 
-  const filteredTickets = useMemo(() => {
-    let result = tickets
+  const getFormStatus = (row: FormRow): string => {
+    return row.ticket_status || 'pending'
+  }
+
+  const filteredForms = useMemo(() => {
+    let result = forms
     if (selectedShopId !== 'all') {
-      result = result.filter((t) => t.shop_id === selectedShopId)
+      result = result.filter((f) => f.shop_id === selectedShopId)
     }
     if (selectedStatus !== 'all') {
-      result = result.filter((t) => (t.ticket_status || 'pending') === selectedStatus)
+      result = result.filter((f) => getFormStatus(f) === selectedStatus)
     }
     return result
-  }, [tickets, selectedShopId, selectedStatus])
+  }, [forms, selectedShopId, selectedStatus])
 
   const statusCounts = useMemo(() => {
-    const base = selectedShopId === 'all' ? tickets : tickets.filter((t) => t.shop_id === selectedShopId)
+    const base = selectedShopId === 'all' ? forms : forms.filter((f) => f.shop_id === selectedShopId)
     return {
       all: base.length,
-      pending: base.filter((t) => (t.ticket_status || 'pending') === 'pending').length,
-      answered: base.filter((t) => (t.ticket_status || 'pending') === 'answered').length,
+      pending: base.filter((f) => getFormStatus(f) === 'pending').length,
+      answered: base.filter((f) => getFormStatus(f) === 'answered').length,
+      closed: base.filter((f) => getFormStatus(f) === 'closed').length,
+      approved: base.filter((f) => getFormStatus(f) === 'approved').length,
+      rejected: base.filter((f) => getFormStatus(f) === 'rejected').length,
     }
-  }, [tickets, selectedShopId])
+  }, [forms, selectedShopId])
 
-  const handleConversationClick = useCallback((id: string) => {
+  const handleFormClick = useCallback((id: string) => {
     setSelectedConversationId(id)
   }, [])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px' }}>
       {/* Modal */}
-      <ConversationModal
+      <FormDetailModal
         conversationId={selectedConversationId}
         onClose={() => setSelectedConversationId(null)}
-        onCategoryChange={(conversationId, newCategory) => {
-          setTickets((prev) =>
-            prev.map((t) => (t.id === conversationId ? { ...t, category: newCategory } : t))
+        onStatusChange={(conversationId, newStatus) => {
+          setForms((prev) =>
+            prev.map((f) => (f.id === conversationId ? { ...f, ticket_status: newStatus } : f))
           )
         }}
       />
@@ -203,12 +215,12 @@ export default function Tickets() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Tickets
+              Formulários
             </div>
             {!loading && (
               <span style={{
-                backgroundColor: 'rgba(236, 72, 153, 0.15)',
-                color: '#be185d',
+                backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                color: '#d97706',
                 padding: '3px 10px',
                 borderRadius: '999px',
                 fontSize: '13px',
@@ -220,7 +232,7 @@ export default function Tickets() {
           </div>
           {!isMobile && (
             <div style={{ color: 'var(--text-secondary)', marginTop: '6px', fontSize: '14px' }}>
-              Conversas que precisam de atendimento humano
+              Formulários de devolução e reembolso enviados pelos clientes
             </div>
           )}
         </div>
@@ -234,7 +246,10 @@ export default function Tickets() {
           >
             <option value="all">Todos os status ({statusCounts.all})</option>
             <option value="pending">Pendentes ({statusCounts.pending})</option>
+            <option value="approved">Aprovados ({statusCounts.approved})</option>
+            <option value="rejected">Rejeitados ({statusCounts.rejected})</option>
             <option value="answered">Respondidos ({statusCounts.answered})</option>
+            <option value="closed">Fechados ({statusCounts.closed})</option>
           </select>
 
           <select
@@ -254,7 +269,7 @@ export default function Tickets() {
         </div>
       </div>
 
-      {/* Explicacao */}
+      {/* Info box */}
       <div style={{
         backgroundColor: 'var(--bg-card)',
         borderRadius: isMobile ? '12px' : '16px',
@@ -269,32 +284,32 @@ export default function Tickets() {
           width: '40px',
           height: '40px',
           borderRadius: '10px',
-          backgroundColor: 'rgba(236, 72, 153, 0.1)',
+          backgroundColor: 'rgba(245, 158, 11, 0.1)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
         }}>
-          <Headphones size={20} style={{ color: '#ec4899' }} />
+          <FileText size={20} style={{ color: '#f59e0b' }} />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>
-            O que são tickets?
+            O que são formulários?
           </div>
           <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-            Tickets são conversas que a IA identificou como necessitando de atendimento humano — como edições de pedidos, suporte especializado ou situações após o fluxo de retenção. Clique em uma conversa para visualizar e responder manualmente.
+            Formulários são solicitações de troca, devolução ou reembolso enviadas pelos clientes da sua loja. Clique em um formulário para visualizar os detalhes e responder.
           </div>
         </div>
       </div>
 
-      {/* Card da tabela */}
+      {/* Table card */}
       <div style={{
         backgroundColor: 'var(--bg-card)',
         borderRadius: isMobile ? '12px' : '16px',
         padding: isMobile ? '14px' : '20px',
         border: '1px solid var(--border-color)',
       }}>
-        {/* Subheader com icone */}
+        {/* Subheader */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -306,20 +321,20 @@ export default function Tickets() {
               width: isMobile ? '32px' : '36px',
               height: isMobile ? '32px' : '36px',
               borderRadius: '10px',
-              backgroundColor: 'rgba(236, 72, 153, 0.1)',
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <MessageSquare size={isMobile ? 16 : 18} style={{ color: '#ec4899' }} />
+              <ClipboardList size={isMobile ? 16 : 18} style={{ color: '#f59e0b' }} />
             </div>
             <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Conversas pendentes
+              Formulários de devolução
             </div>
           </div>
-          {!loading && !isMobile && filteredTickets.length > 0 && (
+          {!loading && !isMobile && filteredForms.length > 0 && (
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-              {filteredTickets.length} {filteredTickets.length === 1 ? 'ticket' : 'tickets'}
+              {filteredForms.length} {filteredForms.length === 1 ? 'formulário' : 'formulários'}
             </div>
           )}
         </div>
@@ -332,7 +347,7 @@ export default function Tickets() {
             <Skeleton height={36} />
             <Skeleton height={36} />
           </div>
-        ) : filteredTickets.length === 0 ? (
+        ) : filteredForms.length === 0 ? (
           <div style={{
             padding: isMobile ? '40px 16px' : '56px 24px',
             textAlign: 'center',
@@ -341,27 +356,35 @@ export default function Tickets() {
               width: '64px',
               height: '64px',
               borderRadius: '50%',
-              backgroundColor: 'rgba(236, 72, 153, 0.08)',
+              backgroundColor: 'rgba(245, 158, 11, 0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 16px',
             }}>
-              <Ticket size={28} style={{ color: '#ec4899', opacity: 0.6 }} />
+              <FileText size={28} style={{ color: '#f59e0b', opacity: 0.6 }} />
             </div>
             <div style={{ fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '6px' }}>
               {selectedStatus === 'pending'
-                ? 'Nenhum ticket pendente'
-                : selectedStatus === 'answered'
-                  ? 'Nenhum ticket respondido'
-                  : 'Nenhum ticket encontrado'}
+                ? 'Nenhum formulário pendente'
+                : selectedStatus === 'approved'
+                  ? 'Nenhum formulário aprovado'
+                  : selectedStatus === 'rejected'
+                    ? 'Nenhum formulário rejeitado'
+                    : selectedStatus === 'answered'
+                      ? 'Nenhum formulário respondido'
+                      : selectedStatus === 'closed'
+                        ? 'Nenhum formulário fechado'
+                        : 'Nenhum formulário encontrado'}
             </div>
             <div style={{ fontSize: '14px', color: 'var(--text-secondary)', maxWidth: '380px', margin: '0 auto', lineHeight: '1.5' }}>
               {selectedStatus === 'all'
-                ? 'Quando uma conversa precisar de atenção humana, ela aparecerá aqui automaticamente.'
+                ? 'Quando um cliente enviar um formulário de devolução, ele aparecerá aqui automaticamente.'
                 : selectedStatus === 'pending'
-                  ? 'Não há tickets aguardando resposta no momento.'
-                  : 'Não há tickets respondidos no momento.'}
+                  ? 'Não há formulários aguardando resposta no momento.'
+                  : selectedStatus === 'answered'
+                    ? 'Não há formulários respondidos no momento.'
+                    : 'Não há formulários fechados no momento.'}
             </div>
           </div>
         ) : (
@@ -372,18 +395,18 @@ export default function Tickets() {
                   {!isMobile && <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Loja</th>}
                   <th style={{ padding: isMobile ? '8px 10px' : '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Cliente</th>
                   {!isMobile && <th style={{ padding: '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Assunto</th>}
-                  <th style={{ padding: isMobile ? '8px 10px' : '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Categoria</th>
                   <th style={{ padding: isMobile ? '8px 10px' : '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Status</th>
                   <th style={{ padding: isMobile ? '8px 10px' : '10px 12px', fontWeight: 700, borderBottom: '1px solid var(--border-color)' }}>Data</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredTickets.map((ticket) => {
-                  const statusInfo = TICKET_STATUS[ticket.ticket_status || 'pending'] || TICKET_STATUS.pending
+                {filteredForms.map((form) => {
+                  const status = getFormStatus(form)
+                  const statusInfo = FORM_STATUS[status] || FORM_STATUS.pending
                   return (
                     <tr
-                      key={ticket.id}
-                      onClick={() => handleConversationClick(ticket.id)}
+                      key={form.id}
+                      onClick={() => handleFormClick(form.id)}
                       style={{
                         borderBottom: '1px solid var(--border-color)',
                         cursor: 'pointer',
@@ -420,7 +443,7 @@ export default function Tickets() {
                                 fontSize: '13px',
                               }}
                             >
-                              {ticket.shop_name || 'Loja'}
+                              {form.shop_name || 'Loja'}
                             </span>
                           </div>
                         </td>
@@ -438,7 +461,7 @@ export default function Tickets() {
                             fontSize: isMobile ? '12px' : '14px',
                           }}
                         >
-                          {ticket.customer_name || ticket.customer_email}
+                          {form.customer_name || form.customer_email}
                         </span>
                       </td>
                       {!isMobile && (
@@ -453,15 +476,10 @@ export default function Tickets() {
                               color: 'var(--text-secondary)',
                             }}
                           >
-                            {ticket.subject || 'Sem assunto'}
+                            {form.subject || 'Solicitação de devolução'}
                           </span>
                         </td>
                       )}
-                      <td style={{ padding: isMobile ? '10px' : '12px' }}>
-                        <span style={{ ...getCategoryBadgeStyle(ticket.category), fontSize: isMobile ? '10px' : '12px', padding: isMobile ? '3px 6px' : '4px 8px' }}>
-                          {getCategoryLabel(ticket.category)}
-                        </span>
-                      </td>
                       <td style={{ padding: isMobile ? '10px' : '12px' }}>
                         <span style={{
                           display: 'inline-block',
@@ -476,7 +494,7 @@ export default function Tickets() {
                         </span>
                       </td>
                       <td style={{ padding: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', fontSize: isMobile ? '11px' : '13px', whiteSpace: 'nowrap' }}>
-                        {formatDateTime(new Date(ticket.created_at))}
+                        {formatDateTime(new Date(form.created_at))}
                       </td>
                     </tr>
                   )

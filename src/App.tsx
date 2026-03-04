@@ -21,7 +21,9 @@ import PrivacyPolicy from './pages/PrivacyPolicy'
 import Masterclass from './pages/Masterclass'
 import MasterclassWatch from './pages/MasterclassWatch'
 import Tickets from './pages/Tickets'
+import Formularios from './pages/Formularios'
 import Migrate from './pages/Migrate'
+import ReturnRequest from './pages/ReturnRequest'
 
 // Verifica se estamos no domínio da Landing Page (replyna.me sem subdomain)
 const isLandingDomain = () => {
@@ -64,6 +66,7 @@ import AuthConfirm from './pages/AuthConfirm'
 // Components
 import DashboardLayout from './components/DashboardLayout'
 import AdminLayout from './components/AdminLayout'
+import ErrorBoundary from './components/ErrorBoundary'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -184,6 +187,7 @@ function App() {
     <BrowserRouter>
       <AdminProvider>
         <NotificationProvider>
+        <ErrorBoundary>
         <Routes>
           {/* Rotas publicas */}
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
@@ -194,6 +198,7 @@ function App() {
           <Route path="/migrate" element={<Migrate />} />
           <Route path="/migrate/:code" element={<MigrationAccept />} />
           <Route path="/auth/confirm" element={<AuthConfirm />} />
+          <Route path="/return-request" element={<ReturnRequest />} />
 
           {/* Rotas privadas */}
           <Route path="/dashboard" element={
@@ -228,6 +233,13 @@ function App() {
             <PrivateRoute>
               <DashboardLayout>
                 <ShopDetails />
+              </DashboardLayout>
+            </PrivateRoute>
+          } />
+          <Route path="/formularios" element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Formularios />
               </DashboardLayout>
             </PrivateRoute>
           } />
@@ -308,6 +320,7 @@ function App() {
           {/* Redirect padrao */}
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
+        </ErrorBoundary>
         </NotificationProvider>
       </AdminProvider>
     </BrowserRouter>

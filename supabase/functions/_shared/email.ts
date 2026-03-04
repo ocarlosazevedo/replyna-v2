@@ -55,6 +55,12 @@ export interface IncomingEmail {
   imap_uid?: number; // UID do IMAP para marcar como lido após salvar no DB
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content_type: string;
+  url: string; // Public URL to download from (e.g. Supabase Storage)
+}
+
 export interface OutgoingEmail {
   to: string;
   subject: string;
@@ -63,6 +69,7 @@ export interface OutgoingEmail {
   in_reply_to?: string;
   references?: string;
   from_name?: string;
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -1276,6 +1283,7 @@ export async function sendEmail(
       inReplyTo?: string;
       references?: string;
       headers?: Record<string, string>;
+      attachments?: Array<{ filename: string; content: Buffer | Uint8Array; contentType: string }>;
     } = {
       from: email.from_name
         ? `"${email.from_name}" <${credentials.smtp_user}>`
@@ -1313,6 +1321,42 @@ export async function sendEmail(
       mailOptions.headers['References'] = email.references;
     }
 
+    // Anexos — baixar de URLs públicas e anexar ao email via Nodemailer
+    if (email.attachments && email.attachments.length > 0) {
+      const nodemailerAttachments: Array<{ filename: string; content: Uint8Array; contentType: string }> = [];
+      for (const att of email.attachments) {
+        try {
+          console.log(`[sendEmail] Baixando anexo: ${att.filename} de ${att.url}`);
+          const res = await fetch(att.url);
+          if (res.ok) {
+            const arrayBuf = await res.arrayBuffer();
+            const buf = new Uint8Array(arrayBuf);
+            console.log(`[sendEmail] Anexo baixado: ${att.filename} (${buf.length} bytes, tipo: ${att.content_type})`);
+            nodemailerAttachments.push({
+              filename: att.filename,
+              content: buf,
+              contentType: att.content_type,
+            });
+          } else {
+            console.error(`[sendEmail] Falha ao baixar anexo ${att.filename}: HTTP ${res.status}`);
+          }
+        } catch (err) {
+          console.error(`[sendEmail] Erro ao baixar anexo ${att.filename}:`, err);
+        }
+      }
+      if (nodemailerAttachments.length > 0) {
+        mailOptions.attachments = nodemailerAttachments;
+        console.log(`[sendEmail] ${nodemailerAttachments.length} anexo(s) adicionado(s) ao email`);
+      }
+
+      // Registrar se algum anexo falhou
+      const requestedCount = email.attachments.length;
+      const sentCount = nodemailerAttachments.length;
+      if (sentCount < requestedCount) {
+        console.warn(`[sendEmail] ${requestedCount - sentCount} anexo(s) falharam no download`);
+      }
+    }
+
     // Enviar
     const info = await transporter.sendMail(mailOptions);
 
@@ -1321,9 +1365,15 @@ export async function sendEmail(
       console.error('Erro ao salvar em Sent (não crítico):', err);
     });
 
+    // Calcular anexos enviados vs pedidos
+    const attachmentsRequested = email.attachments?.length ?? 0;
+    const attachmentsSent = (mailOptions.attachments as any[])?.length ?? 0;
+
     return {
       success: true,
       message_id: info.messageId,
+      attachments_requested: attachmentsRequested,
+      attachments_sent: attachmentsSent,
     };
   } catch (error) {
     return {
