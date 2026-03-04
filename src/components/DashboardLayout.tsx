@@ -9,6 +9,7 @@ import WhatsAppButton from './WhatsAppButton'
 // IDs de contas com acesso ao módulo Formulários
 const FORMS_ALLOWED_USERS = new Set([
   '115571d2-78af-4213-a01b-8a5e3ccf1714', // Carlos Azevedo
+  '8026c11a-f1b5-4fb9-b43b-29e98446eed8', // Carlos Azevedo [MDG]
 ])
 
 interface DashboardLayoutProps {
