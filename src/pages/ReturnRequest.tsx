@@ -153,7 +153,18 @@ export default function ReturnRequest() {
       case 'loading':
         return <LoadingScreen t={t} />
       case 'success':
-        return <SuccessScreen t={t} returnId={form.returnId} customerEmail={form.customerEmail} />
+        return (
+          <SuccessScreen
+            t={t}
+            returnId={form.returnId}
+            customerEmail={form.customerEmail}
+            fields={form.fields}
+            selectedOrder={form.selectedOrder}
+            signature={form.signature}
+            shopName={form.shopName}
+            locale={form.locale}
+          />
+        )
       case 'out-of-period':
         return <OutOfPeriodScreen t={t} onReset={() => form.goToStep(0)} />
       default:

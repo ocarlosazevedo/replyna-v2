@@ -1,6 +1,8 @@
 import { CheckCircle, XCircle, Download } from 'lucide-react'
 import { primaryBtnStyle, secondaryBtnStyle } from './constants'
 import type { TFunction } from './i18n'
+import type { FormFields, Order } from './types'
+import { generateReturnPDF } from './generateReturnPDF'
 
 // ===================== Loading Screen =====================
 interface LoadingProps {
@@ -34,15 +36,27 @@ interface SuccessProps {
   returnId: string | null
   customerEmail: string
   t: TFunction
+  fields?: FormFields
+  selectedOrder?: Order | null
+  signature?: string | null
+  shopName?: string | null
+  locale?: string
 }
 
-export function SuccessScreen({ returnId, customerEmail, t }: SuccessProps) {
+export function SuccessScreen({ returnId, customerEmail, t, fields, selectedOrder, signature, shopName, locale }: SuccessProps) {
   const refNumber = returnId ? returnId.substring(0, 8).toUpperCase() : '--------'
 
   const handleDownloadPDF = () => {
-    if (!returnId) return
-    const pdfUrl = `/api/returns/generate-pdf?return_id=${returnId}&customer_email=${encodeURIComponent(customerEmail)}`
-    window.open(pdfUrl, '_blank')
+    if (!returnId || !fields || !selectedOrder) return
+    generateReturnPDF({
+      returnId,
+      customerEmail,
+      fields,
+      selectedOrder,
+      signature: signature ?? null,
+      shopName: shopName ?? null,
+      locale: locale ?? 'pt',
+    })
   }
 
   return (

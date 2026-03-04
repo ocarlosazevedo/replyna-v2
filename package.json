@@ -15,6 +15,7 @@
     "chart.js": "^4.5.1",
     "date-fns": "^4.1.0",
     "imap": "^0.8.19",
+    "jspdf": "^4.2.0",
     "lucide-react": "^0.562.0",
     "nodemailer": "^7.0.12",
     "react": "^19.1.0",
