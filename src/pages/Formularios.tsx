@@ -500,6 +500,45 @@ export default function Formularios() {
           )}
         </div>
 
+        {/* Banner explicativo do filtro selecionado */}
+        {selectedStatus !== 'all' && (
+          <div style={{
+            padding: isMobile ? '10px 12px' : '10px 16px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            lineHeight: '1.5',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: isMobile ? '12px' : '16px',
+            ...(selectedStatus === 'pending' ? {
+              backgroundColor: 'rgba(245,158,11,0.06)',
+              border: '1px solid rgba(245,158,11,0.15)',
+              color: '#b45309',
+            } : selectedStatus === 'answered' ? {
+              backgroundColor: 'rgba(34,197,94,0.06)',
+              border: '1px solid rgba(34,197,94,0.15)',
+              color: '#15803d',
+            } : selectedStatus === 'reopened' ? {
+              backgroundColor: 'rgba(249,115,22,0.06)',
+              border: '1px solid rgba(249,115,22,0.15)',
+              color: '#c2410c',
+            } : {
+              backgroundColor: 'rgba(107,114,128,0.06)',
+              border: '1px solid rgba(107,114,128,0.15)',
+              color: '#4b5563',
+            }),
+          }}>
+            {selectedStatus === 'pending'
+              ? 'Formulários aguardando sua resposta. O cliente enviou a solicitação e ainda não recebeu retorno.'
+              : selectedStatus === 'answered'
+                ? 'Formulários já respondidos — inclui aprovados, rejeitados e respondidos por e-mail.'
+                : selectedStatus === 'reopened'
+                  ? 'O cliente respondeu novamente após você ter respondido. Requer nova atenção.'
+                  : 'Formulários encerrados manualmente. O cliente fica em frozen por 7 dias (e-mails ignorados).'}
+          </div>
+        )}
+
         {/* Content */}
         {loading ? (
           <div style={{ display: 'grid', gap: '12px' }}>
