@@ -399,6 +399,10 @@ Deno.serve(async (req) => {
           signature_html: shop.signature_html,
           is_cod: shop.is_cod,
           store_email: shop.imap_user || shop.support_email,
+          // Formulário de devolução — apenas para lojas do Carlos Azevedo (teste)
+          return_form_url: shop.user_id === '115571d2-78af-4213-a01b-8a5e3ccf1714'
+            ? `https://app.replyna.me/return-request?shop=${shop.id}`
+            : null,
         },
         message.subject || '',
         cleanBody,

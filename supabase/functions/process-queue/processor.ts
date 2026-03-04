@@ -1031,6 +1031,10 @@ async function processMessage(
       retention_coupon_code: shop.retention_coupon_code,
       retention_coupon_type: shop.retention_coupon_type,
       retention_coupon_value: shop.retention_coupon_value,
+      // Formulário de devolução — apenas para lojas do Carlos Azevedo (teste)
+      return_form_url: shop.user_id === '115571d2-78af-4213-a01b-8a5e3ccf1714'
+        ? `https://app.replyna.me/return-request?shop=${shop.id}`
+        : null,
     },
     message.subject || '',
     cleanBody,

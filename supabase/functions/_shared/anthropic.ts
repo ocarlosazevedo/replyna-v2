@@ -3006,6 +3006,7 @@ export async function generateResponse(
     retention_coupon_code?: string | null;
     retention_coupon_type?: 'percentage' | 'fixed';
     retention_coupon_value?: number | null;
+    return_form_url?: string | null;
   },
   emailSubject: string,
   emailBody: string,
@@ -4630,8 +4631,31 @@ Há algo específico sobre o pedido que te preocupa? Quero muito ajudar a resolv
 [Assinatura]"
 ` : ''}
 --- SE CONTADOR >= ${forwardThreshold} (${codPreDelivery ? 'Quarto' : 'Terceiro'} contato ou mais - cliente quer desistir) ---
-Objetivo: Aceitar a decisão e encaminhar para a equipe
+Objetivo: Aceitar a decisão e ${shopContext.return_form_url ? 'enviar o formulário de devolução' : 'encaminhar para a equipe'}
 
+${shopContext.return_form_url ? `
+⚠️ FORMULÁRIO DE DEVOLUÇÃO OBRIGATÓRIO ⚠️
+Esta loja possui um formulário de devolução. Quando o contador atingir o limite (>= ${forwardThreshold}):
+- Aceite a decisão do cliente
+- Informe que para processar o reembolso/devolução, o cliente PRECISA preencher o formulário
+- SEMPRE inclua o link do formulário: ${shopContext.return_form_url}
+- Diga que após preencher o formulário, a equipe vai analisar e processar a solicitação
+- SEMPRE adicione [FORWARD_TO_HUMAN] no início
+- O link do formulário deve ser incluído de forma natural no texto, como parte da frase
+
+Exemplo (CONTADOR >= ${forwardThreshold} - COM FORMULÁRIO):
+"[FORWARD_TO_HUMAN] Olá [Nome]!
+
+Entendo sua decisão referente ao pedido #[número].
+
+Para que possamos processar sua solicitação de devolução/reembolso, precisamos que você preencha nosso formulário oficial com os detalhes do pedido e as evidências necessárias. É rápido e simples!
+
+Acesse aqui: ${shopContext.return_form_url}
+
+Após o preenchimento, nossa equipe vai analisar seu caso e te responder por aqui!
+
+[Assinatura]"
+` : `
 O que fazer:
 - Aceite que o cliente realmente quer desistir
 - Diga que encaminhou para a equipe que vai responder por este mesmo email
@@ -4647,6 +4671,7 @@ Entendo sua decisão referente ao pedido #[número].
 Encaminhei sua solicitação para nossa equipe que vai analisar seu caso e te responder por aqui!
 
 [Assinatura]"
+`}
 
 === CATEGORIA ESPECIAL: EDIÇÃO DE PEDIDO (edicao_pedido) ===
 
