@@ -111,7 +111,8 @@ export default function Tickets() {
 
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      // Active tickets (not archived)
+      const { data: activeData, error: activeError } = await supabase
         .from('conversations')
         .select('id, shop_id, customer_email, customer_name, subject, category, status, ticket_status, created_at')
         .eq('status', 'pending_human')
@@ -120,9 +121,22 @@ export default function Tickets() {
         .in('category', ['suporte_humano', 'edicao_pedido'])
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (activeError) throw activeError
 
-      const rows: TicketRow[] = (data || []).map((c) => ({
+      // Closed tickets (archived)
+      const { data: closedData, error: closedError } = await supabase
+        .from('conversations')
+        .select('id, shop_id, customer_email, customer_name, subject, category, status, ticket_status, created_at')
+        .eq('ticket_status', 'closed')
+        .eq('archived', true)
+        .in('shop_id', shopIds)
+        .in('category', ['suporte_humano', 'edicao_pedido'])
+        .order('created_at', { ascending: false })
+
+      if (closedError) throw closedError
+
+      const all = [...(activeData || []), ...(closedData || [])]
+      const rows: TicketRow[] = all.map((c) => ({
         ...c,
         shop_name: shopNameMap[c.shop_id] || 'Loja',
       }))
@@ -207,6 +221,7 @@ export default function Tickets() {
       pending: base.filter((t) => (t.ticket_status || 'pending') === 'pending').length,
       answered: base.filter((t) => (t.ticket_status || 'pending') === 'answered').length,
       reopened: base.filter((t) => (t.ticket_status || 'pending') === 'reopened').length,
+      closed: base.filter((t) => t.ticket_status === 'closed').length,
     }
   }, [tickets, selectedShopId])
 
@@ -273,6 +288,7 @@ export default function Tickets() {
             <option value="pending">Pendentes ({statusCounts.pending})</option>
             <option value="answered">Respondidos ({statusCounts.answered})</option>
             <option value="reopened">Reabertos ({statusCounts.reopened})</option>
+            <option value="closed">Encerrados ({statusCounts.closed})</option>
           </select>
 
           <select
@@ -406,7 +422,9 @@ export default function Tickets() {
                   ? 'Nenhum ticket respondido'
                   : selectedStatus === 'reopened'
                     ? 'Nenhum ticket reaberto'
-                    : 'Nenhum ticket encontrado'}
+                    : selectedStatus === 'closed'
+                      ? 'Nenhum ticket encerrado'
+                      : 'Nenhum ticket encontrado'}
             </div>
             <div style={{ fontSize: '14px', color: 'var(--text-secondary)', maxWidth: '380px', margin: '0 auto', lineHeight: '1.5' }}>
               {selectedStatus === 'all'
@@ -415,7 +433,9 @@ export default function Tickets() {
                   ? 'Não há tickets aguardando resposta no momento.'
                   : selectedStatus === 'reopened'
                     ? 'Não há tickets reabertos no momento.'
-                    : 'Não há tickets respondidos no momento.'}
+                    : selectedStatus === 'closed'
+                      ? 'Nenhum ticket foi encerrado ainda.'
+                      : 'Não há tickets respondidos no momento.'}
             </div>
           </div>
         ) : (
