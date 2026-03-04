@@ -186,12 +186,14 @@ export function generateReturnPDF(data: PDFData) {
     y += 6
 
     selectedOrder.line_items.forEach((item: LineItem) => {
-      checkPageBreak(8)
+      checkPageBreak(10)
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
       doc.setTextColor(...DARK_GRAY)
-      doc.text(`• ${item.title} (x${item.quantity}) — ${selectedOrder.currency} ${item.price}`, margin + 6, y)
-      y += 5
+      const itemText = `- ${item.title} (x${item.quantity}) -- ${selectedOrder.currency} ${item.price}`
+      const itemLines = doc.splitTextToSize(itemText, contentWidth - 10)
+      doc.text(itemLines, margin + 6, y)
+      y += itemLines.length * 4 + 2
     })
     y += 2
   }
@@ -250,9 +252,9 @@ export function generateReturnPDF(data: PDFData) {
   doc.setTextColor(...DARK_GRAY)
 
   const termsChecks = [
-    '[✓] Li e compreendo os termos e condições da política de devolução.\n     I have read and understand the return policy terms and conditions.',
-    '[✓] Confirmo que todas as informações fornecidas são precisas e verdadeiras.\n     I confirm that all information provided is accurate and truthful.',
-    '[✓] Entendo que informações falsas podem resultar na negação da solicitação.\n     I understand that false information may result in denial of my request.',
+    '[X] Li e compreendo os termos e condições da política de devolução.\n     I have read and understand the return policy terms and conditions.',
+    '[X] Confirmo que todas as informações fornecidas são precisas e verdadeiras.\n     I confirm that all information provided is accurate and truthful.',
+    '[X] Entendo que informações falsas podem resultar na negação da solicitação.\n     I understand that false information may result in denial of my request.',
   ]
 
   termsChecks.forEach(term => {
