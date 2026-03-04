@@ -403,7 +403,7 @@ export default function Formularios() {
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                     }}>
-                      {link}
+                      {shop.name.toLowerCase().replace(/\s+/g, '')}.com/formulario-devolucao
                     </div>
                   </div>
                   <button
