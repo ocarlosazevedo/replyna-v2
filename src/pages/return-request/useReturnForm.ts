@@ -74,6 +74,8 @@ export function useReturnForm() {
   }, [])
   const [signature, setSignature] = useState<string | null>(saved?.signature ?? null)
   const [returnId, setReturnId] = useState<string | null>(saved?.returnId ?? null)
+  const [shopName, setShopName] = useState<string | null>(saved?.shopName ?? null)
+  const [shopDomain, setShopDomain] = useState<string | null>(saved?.shopDomain ?? null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fields, setFields] = useState<FormFields>(saved?.fields ?? initialFields)
@@ -84,26 +86,28 @@ export function useReturnForm() {
 
   const startTime = useRef(Date.now())
 
-  // Fetch shop language on mount so form shows in the right language immediately
+  // Fetch shop info on mount (name, domain, language)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const shopId = urlParams.get('shop')
-    if (!shopId || saved?.locale) return
+    if (!shopId) return
     supabase
       .from('shops')
-      .select('language')
+      .select('name, shopify_domain, language')
       .eq('id', shopId)
       .single()
       .then(({ data }) => {
-        if (data?.language) setLocale(data.language as Locale)
+        if (data?.name) setShopName(data.name)
+        if (data?.shopify_domain) setShopDomain(data.shopify_domain)
+        if (data?.language && !saved?.locale) setLocale(data.language as Locale)
       })
   }, [])
 
   // Persist form state to sessionStorage
   useEffect(() => {
-    const data = { currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale }
+    const data = { currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale, shopName, shopDomain }
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  }, [currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale])
+  }, [currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale, shopName, shopDomain])
 
   const updateField = useCallback(<K extends keyof FormFields>(key: K, value: FormFields[K]) => {
     setFields(prev => ({ ...prev, [key]: value }))
@@ -558,5 +562,7 @@ export function useReturnForm() {
     removeUpload,
     submitReturn,
     locale,
+    shopName,
+    shopDomain,
   }
 }

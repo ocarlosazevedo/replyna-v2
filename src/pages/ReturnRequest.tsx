@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Sun, Moon, Shield, Lock, ShieldCheck, Eye } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { useReturnForm } from './return-request/useReturnForm'
@@ -21,7 +22,9 @@ export default function ReturnRequest() {
   const t = getTranslations(form.locale)
   const termsText = getTermsText(form.locale)
 
-  const storeName = form.selectedOrder?.store_name || form.orders[0]?.store_name || null
+  const storeName = form.shopName || form.selectedOrder?.store_name || form.orders[0]?.store_name || null
+  const faviconUrl = form.shopDomain ? `https://${form.shopDomain}/favicon.ico` : null
+  const [faviconError, setFaviconError] = useState(false)
   const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light')
 
   const renderStep = () => {
@@ -241,8 +244,18 @@ export default function ReturnRequest() {
                   fontWeight: 800,
                   color: '#fff',
                   border: '1px solid rgba(255,255,255,0.1)',
+                  overflow: 'hidden',
                 }}>
-                  {storeName ? storeName.charAt(0).toUpperCase() : 'R'}
+                  {faviconUrl && !faviconError ? (
+                    <img
+                      src={faviconUrl}
+                      alt={storeName || ''}
+                      style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+                      onError={() => setFaviconError(true)}
+                    />
+                  ) : (
+                    storeName ? storeName.charAt(0).toUpperCase() : 'R'
+                  )}
                 </div>
                 <div>
                   <div style={{
