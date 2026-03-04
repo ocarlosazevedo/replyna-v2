@@ -64,6 +64,12 @@ interface ConversationWithForm {
   shops: { name: string; shopify_domain: string } | null
 }
 
+interface MessageAttachment {
+  filename: string
+  content_type: string
+  url: string
+}
+
 interface Message {
   id: string
   direction: 'inbound' | 'outbound'
@@ -73,6 +79,9 @@ interface Message {
   status: string | null
   was_auto_replied: boolean | null
   created_at: string
+  has_attachments?: boolean
+  attachment_count?: number
+  attachments_metadata?: MessageAttachment[] | null
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -202,7 +211,7 @@ export default function FormDetailModal({ conversationId, onClose, onStatusChang
       // Load messages
       const { data: msgs } = await supabase
         .from('messages')
-        .select('id, direction, from_email, to_email, body_text, status, was_auto_replied, created_at')
+        .select('id, direction, from_email, to_email, body_text, status, was_auto_replied, created_at, has_attachments, attachment_count, attachments_metadata')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
 
@@ -233,7 +242,23 @@ export default function FormDetailModal({ conversationId, onClose, onStatusChang
         (payload) => {
           const newMsg = payload.new as Message
           setMessages(prev => {
+            // Se já existe com esse ID, ignora
             if (prev.some(m => m.id === newMsg.id)) return prev
+            // Substitui mensagem otimista (mesmo texto e direção) pela real do banco
+            const hasOptimistic = prev.some(
+              m => m.id.startsWith('optimistic-') &&
+                   m.direction === newMsg.direction &&
+                   m.body_text === newMsg.body_text
+            )
+            if (hasOptimistic) {
+              return prev.map(m =>
+                m.id.startsWith('optimistic-') &&
+                m.direction === newMsg.direction &&
+                m.body_text === newMsg.body_text
+                  ? newMsg
+                  : m
+              )
+            }
             return [...prev, newMsg]
           })
         }
@@ -397,6 +422,22 @@ export default function FormDetailModal({ conversationId, onClose, onStatusChang
       const data = await response.json()
 
       if (data?.success) {
+        // Atualização otimista: adiciona mensagem enviada imediatamente no thread
+        const optimisticMsg: Message = {
+          id: `optimistic-${Date.now()}`,
+          direction: 'outbound',
+          from_email: null,
+          to_email: conversation.customer_email,
+          body_text: replyText.trim(),
+          status: 'replied',
+          was_auto_replied: false,
+          created_at: new Date().toISOString(),
+          has_attachments: uploadedAttachments.length > 0,
+          attachment_count: uploadedAttachments.length,
+          attachments_metadata: uploadedAttachments.length > 0 ? uploadedAttachments : null,
+        }
+        setMessages(prev => [...prev, optimisticMsg])
+
         setReplyText('')
         setAttachments([])
         // Update local status
@@ -854,6 +895,67 @@ export default function FormDetailModal({ conversationId, onClose, onStatusChang
                             wordBreak: 'break-word',
                           }}>
                             {msg.body_text}
+                          </div>
+                        )}
+                        {/* Anexos da mensagem */}
+                        {msg.attachments_metadata && msg.attachments_metadata.length > 0 && (
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            marginTop: '8px',
+                            paddingTop: '8px',
+                            borderTop: '1px solid var(--border-color)',
+                          }}>
+                            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Paperclip size={12} />
+                              {msg.attachments_metadata.length} anexo{msg.attachments_metadata.length > 1 ? 's' : ''}
+                            </div>
+                            {msg.attachments_metadata.map((att, i) => (
+                              <a
+                                key={i}
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  padding: '6px 10px',
+                                  borderRadius: '6px',
+                                  backgroundColor: 'var(--bg-secondary)',
+                                  border: '1px solid var(--border-color)',
+                                  textDecoration: 'none',
+                                  color: 'var(--accent)',
+                                  fontSize: '12px',
+                                  transition: 'background-color 0.15s',
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
+                                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-secondary)')}
+                              >
+                                <FileText size={14} />
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {att.filename}
+                                </span>
+                                <ExternalLink size={12} style={{ flexShrink: 0, opacity: 0.6 }} />
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                        {/* Indicador de anexos sem metadados (mensagens antigas) */}
+                        {(!msg.attachments_metadata || msg.attachments_metadata.length === 0) && msg.has_attachments && msg.attachment_count && msg.attachment_count > 0 && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            marginTop: '8px',
+                            paddingTop: '8px',
+                            borderTop: '1px solid var(--border-color)',
+                            fontSize: '12px',
+                            color: 'var(--text-secondary)',
+                          }}>
+                            <Paperclip size={12} />
+                            {msg.attachment_count} anexo{msg.attachment_count > 1 ? 's' : ''} enviado{msg.attachment_count > 1 ? 's' : ''}
                           </div>
                         )}
                       </div>

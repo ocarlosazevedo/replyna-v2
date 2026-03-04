@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 10. Salvar mensagem outbound no banco
+    // 10. Salvar mensagem outbound no banco (incluindo metadados de anexos)
     await saveMessage({
       conversation_id: conversation.id,
       from_email: emailCredentials.smtp_user || (shop as Shop).imap_user || '',
@@ -198,6 +198,9 @@ Deno.serve(async (req) => {
       references_header: replyHeaders.references || null,
       processed_at: new Date().toISOString(),
       replied_at: new Date().toISOString(),
+      has_attachments: validAttachments.length > 0,
+      attachment_count: validAttachments.length,
+      attachments_metadata: validAttachments.length > 0 ? validAttachments : null,
     } as any);
 
     // 11. Atualizar conversa (pausa IA por 7 dias)
