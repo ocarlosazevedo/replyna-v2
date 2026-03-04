@@ -179,19 +179,37 @@ export default function Shops() {
     }
   }
 
+  const [deletingShopId, setDeletingShopId] = useState<string | null>(null)
+
   const handleDeleteShop = async (shopId: string) => {
     if (!confirm('Tem certeza que deseja excluir esta loja? Esta ação não pode ser desfeita.')) return
 
+    setDeletingShopId(shopId)
     try {
-      const { error } = await supabase
-        .from('shops')
-        .delete()
-        .eq('id', shopId)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Não autenticado')
 
-      if (error) throw error
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-shop`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ shopId }),
+        }
+      )
+
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Erro ao excluir loja')
+
       loadShops()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro ao excluir loja:', err)
+      alert(err.message || 'Erro ao excluir loja. Tente novamente.')
+    } finally {
+      setDeletingShopId(null)
     }
   }
 
@@ -780,10 +798,15 @@ export default function Shops() {
                   )}
                   <button
                     onClick={() => handleDeleteShop(shop.id)}
-                    style={{ ...buttonIcon, color: '#ef4444' }}
+                    style={{ ...buttonIcon, color: '#ef4444', opacity: deletingShopId === shop.id ? 0.5 : 1 }}
                     title="Excluir loja"
+                    disabled={deletingShopId === shop.id}
                   >
-                    <Trash2 size={18} />
+                    {deletingShopId === shop.id ? (
+                      <span style={{ fontSize: 12 }}>...</span>
+                    ) : (
+                      <Trash2 size={18} />
+                    )}
                   </button>
                 </div>
               </div>
