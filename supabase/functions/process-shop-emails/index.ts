@@ -783,8 +783,8 @@ async function processMessage(
         signature_html: shop.signature_html,
         is_cod: shop.is_cod,
         store_email: shop.imap_user || shop.support_email,
-        // Formulário de devolução — apenas para lojas do Carlos Azevedo (teste)
-        return_form_url: shop.user_id === '115571d2-78af-4213-a01b-8a5e3ccf1714'
+        // Formulário de devolução — lojas habilitadas
+        return_form_url: ['115571d2-78af-4213-a01b-8a5e3ccf1714', '8026c11a-f1b5-4fb9-b43b-29e98446eed8'].includes(shop.user_id)
           ? `https://app.replyna.me/return-request?shop=${shop.id}`
           : null,
       },
