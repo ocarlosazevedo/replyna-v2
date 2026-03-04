@@ -266,7 +266,7 @@ export default function Tickets() {
                 fontSize: '13px',
                 fontWeight: 700,
               }}>
-                {statusCounts.pending}
+                {statusCounts.pending + statusCounts.reopened}
               </span>
             )}
           </div>
