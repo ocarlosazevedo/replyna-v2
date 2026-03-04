@@ -154,6 +154,7 @@ export interface ShopifyOrder {
     email: string;
     first_name: string;
     last_name: string;
+    phone: string | null;
   } | null;
   line_items: Array<{
     id: number;
@@ -169,9 +170,13 @@ export interface ShopifyOrder {
     tracking_company: string | null;
   }>;
   shipping_address?: {
+    address1: string;
+    address2: string;
     city: string;
     province: string;
+    zip: string;
     country: string;
+    phone: string;
   };
 }
 

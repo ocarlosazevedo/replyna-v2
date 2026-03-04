@@ -865,6 +865,12 @@ export function isSpamByPattern(subject: string, body: string): boolean {
     /\bnew\s+customer$/i,
     // Follow-up cold outreach
     /\bfollow[- ]?up\s+with\s+\w+/i,
+    // Chargeback / dispute / payment service probing
+    /\b(?:alertas?|alerts?)\s+(?:do\s+)?paypal/i,
+    /\bchargeback\s+(?:alerts?|management|protection|prevention)/i,
+    /\bdispute\s+(?:alerts?|management|protection|prevention)/i,
+    /\bpaypal\s+(?:alerts?|disputes?|chargebacks?)/i,
+    /\bfraud\s+(?:alerts?|protection|prevention|management)/i,
   ];
 
   for (const pattern of spamSubjectPatterns) {
@@ -982,6 +988,20 @@ export function isSpamByPattern(subject: string, body: string): boolean {
     /\bpodemos\s+negociar/i,
     /\bcan\s+we\s+negotiate/i,
     /\b(increase|aumentar)\s+(the\s+)?(value|valor|sales|vendas)\s+.{0,30}(commission|comiss)/i,
+
+    // === B2B PAYMENT / CHARGEBACK / DISPUTE SERVICE PROBING ===
+    /\b(?:usa|uses?|utiliza)\s+o?\s*paypal\s+(?:atrav[ée]s|through|via)\s+(?:do\s+)?shopify/i,
+    /\b(?:conta|account)\s+(?:comercial|business|merchant)\s+(?:separada|separate)/i,
+    /\bsu[ao]\s+especialista\s+(?:em\s+)?suporte\b/i,
+    /\byour\s+(?:dedicated\s+)?(?:support\s+)?specialist\s+today/i,
+    /\b(?:chargeback|dispute)\s+(?:alerts?|management|protection|prevention|service)/i,
+    /\b(?:alertas?\s+(?:de\s+)?(?:chargeback|disputa|paypal))/i,
+    /\bgerenciamento\s+de\s+(?:chargebacks?|disputas?)/i,
+    /\bprote[çc][ãa]o\s+(?:contra\s+)?(?:chargebacks?|disputas?)/i,
+    /\b(?:prevent|prevenir|reduc|reduzir)\s+(?:chargebacks?|disputas?|disputes?)/i,
+    /\b(?:payment|pagamento)\s+(?:gateway|processor|processador)\s+(?:setup|configura[çc][ãa]o)/i,
+    /\bhow\s+(?:do\s+you|does\s+your\s+store)\s+(?:handle|manage|process)\s+(?:payments?|chargebacks?|disputes?)/i,
+    /\bcomo\s+(?:voc[eê]s?\s+)?(?:lidam?|gerenciam?|processam?)\s+(?:pagamentos?|chargebacks?|disputas?)/i,
   ];
 
   for (const pattern of spamBodyPatterns) {
@@ -1841,6 +1861,18 @@ CLASSIFY AS SPAM (confidence 0.95+) - THESE ARE NOT REAL CUSTOMERS:
    - "Is this store open?" → SPAM
    - "Do you still sell [products]?" without specific purchase intent → SPAM
    - Generic questions about the store's status that any spam bot could send → SPAM
+
+5b. B2B PAYMENT / CHARGEBACK / DISPUTE SERVICES (CRITICAL - ALWAYS SPAM):
+   These are B2B services (Disputifier, Chargeflow, etc.) trying to sell chargeback/dispute management:
+   - "How do PayPal alerts work?" → SPAM
+   - "Do you use PayPal through Shopify?" → SPAM
+   - "Do you have a separate merchant/business account?" → SPAM
+   - "I'm your support specialist today" → SPAM (external service intro)
+   - Questions about how the store handles payments, chargebacks, disputes → SPAM
+   - Offering chargeback protection, dispute management, fraud prevention → SPAM
+   - "alertas do PayPal", "PayPal alerts", "chargeback alerts" → SPAM
+   - Any email asking about the store's PAYMENT INFRASTRUCTURE (not about a customer's payment) → SPAM
+   REAL CUSTOMERS ask about THEIR payment ("was I charged?", "my payment failed"). They NEVER ask about the store's payment setup.
 
 6. SOCIAL ENGINEERING / PHISHING / SCAM ATTEMPTS (CRITICAL - ALWAYS SPAM):
    - Someone claiming to own/run another Shopify store asking for advice → SPAM

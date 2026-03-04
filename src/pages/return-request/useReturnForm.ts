@@ -201,89 +201,47 @@ export function useReturnForm() {
     setError(null)
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      // Try real API first
-      try {
-        const response = await fetch(`/api/orders/search?email=${encodeURIComponent(customerEmail)}`)
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'Failed to search orders')
-        const fetchedOrders = data.orders || []
-        if (fetchedOrders.length === 0) {
-          setError(tRef.current('error.noOrders'))
-          return
-        }
-        setOrders(fetchedOrders)
-        goToStep(1)
-        return
-      } catch {
-        // API not available - use Supabase direct for local testing
-      }
-
-      // Buscar shop_id da URL (?shop=UUID) — em produção cada loja terá seu link
       const urlParams = new URLSearchParams(window.location.search)
-      const shopFromUrl = urlParams.get('shop')
-      let realShopId = shopFromUrl || 'mock-store-1'
-      let realShopName = shopFromUrl ? '' : 'Loja Teste'
-      if (shopFromUrl) {
-        try {
-          const { data: shopData } = await supabase
-            .from('shops')
-            .select('name, language')
-            .eq('id', shopFromUrl)
-            .single()
-          if (shopData?.name) realShopName = shopData.name
-          if (shopData?.language) setLocale(shopData.language as Locale)
-        } catch { /* RLS pode bloquear */ }
-        if (!realShopName) realShopName = 'Loja'
+      const shopId = urlParams.get('shop')
+
+      if (!shopId) {
+        setError(tRef.current('error.enterEmail'))
+        return
       }
 
-      // Mock data using real shop_id
-      const mockOrders: Order[] = [
-        {
-          order_number: '#1042',
-          order_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          total: '149.90',
-          currency: 'BRL',
-          line_items: [
-            { title: 'Camiseta Premium Preta - M', quantity: 1, price: '79.90' },
-            { title: 'Bone Estruturado Logo', quantity: 1, price: '70.00' },
-          ],
-          customer_name: 'Cliente Teste',
-          customer_phone: '+55 11 99999-0000',
-          shipping_address: {
-            address1: 'Rua Exemplo, 123',
-            address2: 'Apto 45',
-            city: 'Sao Paulo',
-            province: 'SP',
-            zip: '01310-100',
-            country: 'Brazil',
-          },
-          existing_return_status: null,
-          store_id: realShopId,
-          shopify_order_id: 'test-order-1042',
-          store_name: realShopName,
-        },
-        {
-          order_number: '#1038',
-          order_date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-          total: '259.00',
-          currency: 'BRL',
-          line_items: [
-            { title: 'Jaqueta Corta-Vento', quantity: 1, price: '259.00' },
-          ],
-          customer_name: 'Cliente Teste',
-          customer_phone: '+55 11 99999-0000',
-          shipping_address: null,
-          existing_return_status: 'pending',
-          store_id: realShopId,
-          shopify_order_id: 'test-order-1038',
-          store_name: realShopName,
-        },
-      ]
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+      const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-      setOrders(mockOrders)
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/search-orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': ANON_KEY,
+          'Authorization': `Bearer ${ANON_KEY}`,
+        },
+        body: JSON.stringify({ shop_id: shopId, email: customerEmail }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || tRef.current('error.noOrders'))
+        return
+      }
+
+      if (data.language) setLocale(data.language as Locale)
+
+      const fetchedOrders: Order[] = data.orders || []
+
+      if (fetchedOrders.length === 0) {
+        setError(tRef.current('error.noOrders'))
+        return
+      }
+
+      setOrders(fetchedOrders)
       goToStep(1)
+    } catch {
+      setError(tRef.current('error.genericError'))
     } finally {
       setIsLoading(false)
     }
