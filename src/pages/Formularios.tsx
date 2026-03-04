@@ -376,7 +376,6 @@ export default function Formularios() {
             overflowY: 'auto',
           }}>
             {shops.map((shop) => {
-              const link = `${window.location.origin}/return-request?shop=${shop.id}`
               const isCopied = copiedShopId === shop.id
               return (
                 <div
