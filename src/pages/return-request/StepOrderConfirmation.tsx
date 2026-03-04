@@ -1,5 +1,6 @@
 import ProgressBar from './ProgressBar'
 import type { Order, FormFields } from './types'
+import type { TFunction } from './i18n'
 import { inputStyle, primaryBtnStyle, secondaryBtnStyle, errorBoxStyle } from './constants'
 
 interface Props {
@@ -9,10 +10,11 @@ interface Props {
   onNext: () => void
   onBack: () => void
   error: string | null
+  t: TFunction
 }
 
-export default function StepOrderConfirmation({ order, fields, updateField, onNext, onBack, error }: Props) {
-  const orderDate = new Date(order.order_date).toLocaleDateString('pt-BR')
+export default function StepOrderConfirmation({ order, fields, updateField, onNext, onBack, error, t }: Props) {
+  const orderDate = new Date(order.order_date).toLocaleDateString()
 
   // Convert internal YYYY-MM-DD to display DD/MM/YYYY
   const displayDate = fields.receiveDate
@@ -40,13 +42,13 @@ export default function StepOrderConfirmation({ order, fields, updateField, onNe
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      <ProgressBar step={3} />
+      <ProgressBar step={3} t={t} />
 
       <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-        Confirmação do Pedido
+        {t('orderConfirm.title')}
       </div>
       <div style={{ fontSize: '15px', color: 'var(--text-secondary)', marginBottom: '28px', lineHeight: '1.5' }}>
-        Verifique os detalhes do pedido abaixo.
+        {t('orderConfirm.desc')}
       </div>
 
       {error && <div style={errorBoxStyle}>{error}</div>}
@@ -85,7 +87,7 @@ export default function StepOrderConfirmation({ order, fields, updateField, onNe
               <div>
                 <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{item.title}</div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  Qtd: {item.quantity} - {order.currency} {item.price}
+                  {t('orderConfirm.qty')}: {item.quantity} - {order.currency} {item.price}
                 </div>
               </div>
             </div>
@@ -93,19 +95,19 @@ export default function StepOrderConfirmation({ order, fields, updateField, onNe
         </div>
 
         <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '12px' }}>
-          Total: {order.currency} {parseFloat(order.total).toFixed(2)}
+          {t('orderConfirm.total')}: {order.currency} {parseFloat(order.total).toFixed(2)}
         </div>
       </div>
 
       <div style={{ marginBottom: '20px' }}>
         <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-          Quando você recebeu este pedido? <span style={{ color: '#ef4444' }}>*</span>
+          {t('orderConfirm.receiveDate')} <span style={{ color: '#ef4444' }}>*</span>
         </label>
         <input
           type="text"
           value={displayDate}
           onChange={e => handleDateChange(e.target.value)}
-          placeholder="DD/MM/AAAA"
+          placeholder={t('orderConfirm.datePlaceholder')}
           maxLength={10}
           style={inputStyle}
         />
@@ -129,13 +131,13 @@ export default function StepOrderConfirmation({ order, fields, updateField, onNe
           style={{ marginTop: '2px', width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--accent)' }}
         />
         <label htmlFor="confirmOrder" style={{ flex: 1, fontSize: '14px', lineHeight: '1.5', color: 'var(--text-primary)', cursor: 'pointer' }}>
-          Confirmo que este é o pedido correto e as informações acima estão corretas.
+          {t('orderConfirm.confirmOrder')}
         </label>
       </div>
 
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
-        <button onClick={onBack} style={secondaryBtnStyle}>Voltar</button>
-        <button onClick={onNext} style={primaryBtnStyle}>Continuar</button>
+        <button onClick={onBack} style={secondaryBtnStyle}>{t('common.back')}</button>
+        <button onClick={onNext} style={primaryBtnStyle}>{t('common.continue')}</button>
       </div>
     </div>
   )

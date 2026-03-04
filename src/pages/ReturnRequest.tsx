@@ -1,6 +1,7 @@
 import { Sun, Moon, Shield, Lock, ShieldCheck, Eye } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { useReturnForm } from './return-request/useReturnForm'
+import { getTranslations, getTermsText } from './return-request/i18n'
 
 import StepEmailLookup from './return-request/StepEmailLookup'
 import StepOrderSelection from './return-request/StepOrderSelection'
@@ -17,6 +18,8 @@ import { LoadingScreen, SuccessScreen, OutOfPeriodScreen } from './return-reques
 export default function ReturnRequest() {
   const { theme, setTheme } = useTheme()
   const form = useReturnForm()
+  const t = getTranslations(form.locale)
+  const termsText = getTermsText(form.locale)
 
   const storeName = form.selectedOrder?.store_name || form.orders[0]?.store_name || null
   const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light')
@@ -26,6 +29,7 @@ export default function ReturnRequest() {
       case 0:
         return (
           <StepEmailLookup
+            t={t}
             email={form.customerEmail}
             setEmail={form.setCustomerEmail}
             onSearch={form.searchOrders}
@@ -36,6 +40,7 @@ export default function ReturnRequest() {
       case 1:
         return (
           <StepOrderSelection
+            t={t}
             orders={form.orders}
             selectedOrder={form.selectedOrder}
             onSelect={form.selectOrder}
@@ -47,6 +52,7 @@ export default function ReturnRequest() {
       case 2:
         return (
           <StepIdentityVerification
+            t={t}
             fields={form.fields}
             updateField={form.updateField}
             uploads={form.uploads}
@@ -60,6 +66,7 @@ export default function ReturnRequest() {
       case 3:
         return form.selectedOrder ? (
           <StepOrderConfirmation
+            t={t}
             order={form.selectedOrder}
             fields={form.fields}
             updateField={form.updateField}
@@ -71,6 +78,7 @@ export default function ReturnRequest() {
       case 4:
         return (
           <StepReturnReason
+            t={t}
             fields={form.fields}
             updateField={form.updateField}
             onNext={() => form.validateAndNext(4)}
@@ -81,6 +89,7 @@ export default function ReturnRequest() {
       case 5:
         return (
           <StepProblemDetails
+            t={t}
             fields={form.fields}
             updateField={form.updateField}
             onNext={() => form.validateAndNext(5)}
@@ -91,6 +100,7 @@ export default function ReturnRequest() {
       case 6:
         return (
           <StepPhotoEvidence
+            t={t}
             uploads={form.uploads}
             onFileUpload={form.handleFileUpload}
             onRemoveUpload={form.removeUpload}
@@ -102,6 +112,7 @@ export default function ReturnRequest() {
       case 7:
         return (
           <StepAddressConfirmation
+            t={t}
             fields={form.fields}
             updateField={form.updateField}
             uploads={form.uploads}
@@ -115,6 +126,7 @@ export default function ReturnRequest() {
       case 8:
         return (
           <StepResolutionPreference
+            t={t}
             fields={form.fields}
             updateField={form.updateField}
             onNext={() => form.validateAndNext(8)}
@@ -125,6 +137,8 @@ export default function ReturnRequest() {
       case 9:
         return (
           <StepTermsSignature
+            t={t}
+            termsText={termsText}
             fields={form.fields}
             updateField={form.updateField}
             setSignature={form.setSignature}
@@ -134,11 +148,11 @@ export default function ReturnRequest() {
           />
         )
       case 'loading':
-        return <LoadingScreen />
+        return <LoadingScreen t={t} />
       case 'success':
-        return <SuccessScreen returnId={form.returnId} customerEmail={form.customerEmail} />
+        return <SuccessScreen t={t} returnId={form.returnId} customerEmail={form.customerEmail} />
       case 'out-of-period':
-        return <OutOfPeriodScreen onReset={() => form.goToStep(0)} />
+        return <OutOfPeriodScreen t={t} onReset={() => form.goToStep(0)} />
       default:
         return null
     }
@@ -169,7 +183,7 @@ export default function ReturnRequest() {
           zIndex: 10,
           boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
         }}
-        title={theme === 'light' ? 'Modo escuro' : 'Modo claro'}
+        title={theme === 'light' ? t('header.darkMode') : t('header.lightMode')}
       >
         {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
       </button>
@@ -238,7 +252,7 @@ export default function ReturnRequest() {
                     letterSpacing: '-0.5px',
                     lineHeight: '1.2',
                   }}>
-                    {storeName || 'Portal de Devoluções'}
+                    {storeName || t('header.returnPortal')}
                   </div>
                   <div style={{
                     fontSize: '14px',
@@ -246,7 +260,7 @@ export default function ReturnRequest() {
                     fontWeight: 500,
                     marginTop: '4px',
                   }}>
-                    Solicitação de Devolução e Reembolso
+                    {t('header.subtitle')}
                   </div>
                 </div>
               </div>
@@ -266,7 +280,7 @@ export default function ReturnRequest() {
                 letterSpacing: '0.03em',
               }}>
                 <Shield size={14} />
-                SEGURO
+                {t('header.secure')}
               </div>
             </div>
           </div>
@@ -284,17 +298,17 @@ export default function ReturnRequest() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>
               <Lock size={12} color="#10b981" />
-              Conexão Criptografada
+              {t('header.encrypted')}
             </div>
             <div style={{ width: '1px', height: '14px', backgroundColor: 'var(--border-color)' }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>
               <ShieldCheck size={12} color="#10b981" />
-              Dados Protegidos
+              {t('header.dataProtected')}
             </div>
             <div style={{ width: '1px', height: '14px', backgroundColor: 'var(--border-color)' }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>
               <Eye size={12} color="#10b981" />
-              Verificação Oficial
+              {t('header.officialVerification')}
             </div>
           </div>
         </div>
@@ -360,18 +374,18 @@ export default function ReturnRequest() {
               opacity: 0.7,
             }}>
               <Shield size={12} />
-              Antifraude
+              {t('header.antiFraud')}
             </div>
           </div>
 
           <div style={{ fontSize: '12px', lineHeight: '1.4' }}>
             {storeName
-              ? `© ${new Date().getFullYear()} ${storeName}. Todos os direitos reservados.`
-              : 'Portal de Devoluções Seguro'
+              ? `© ${new Date().getFullYear()} ${storeName}. ${t('header.allRightsReserved')}`
+              : t('header.securePortal')
             }
           </div>
           <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.6 }}>
-            Suas informações são protegidas e nunca serão compartilhadas.
+            {t('header.infoProtected')}
           </div>
         </div>
       </div>

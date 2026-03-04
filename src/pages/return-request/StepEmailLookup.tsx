@@ -1,5 +1,6 @@
 import { Search, Lock } from 'lucide-react'
 import { inputStyle, primaryBtnStyle, errorBoxStyle } from './constants'
+import type { TFunction } from './i18n'
 
 interface Props {
   email: string
@@ -7,9 +8,10 @@ interface Props {
   onSearch: () => void
   isLoading: boolean
   error: string | null
+  t: TFunction
 }
 
-export default function StepEmailLookup({ email, setEmail, onSearch, isLoading, error }: Props) {
+export default function StepEmailLookup({ email, setEmail, onSearch, isLoading, error, t }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSearch()
@@ -31,10 +33,10 @@ export default function StepEmailLookup({ email, setEmail, onSearch, isLoading, 
           <Search size={28} color="var(--accent)" />
         </div>
         <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-          Encontre seu Pedido
+          {t('email.title')}
         </div>
         <div style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-          Digite o e-mail utilizado na sua compra para localizar seu pedido.
+          {t('email.desc')}
         </div>
       </div>
 
@@ -42,18 +44,18 @@ export default function StepEmailLookup({ email, setEmail, onSearch, isLoading, 
 
       <div style={{ marginBottom: '24px' }}>
         <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-          Endereço de E-mail <span style={{ color: '#ef4444' }}>*</span>
+          {t('email.label')} <span style={{ color: '#ef4444' }}>*</span>
         </label>
         <input
           type="email"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          placeholder="seu@email.com"
+          placeholder={t('email.placeholder')}
           required
           style={inputStyle}
         />
         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-          Use o mesmo e-mail da confirmação do seu pedido
+          {t('email.hint')}
         </div>
       </div>
 
@@ -69,7 +71,7 @@ export default function StepEmailLookup({ email, setEmail, onSearch, isLoading, 
         }}
       >
         <Search size={18} />
-        {isLoading ? 'Buscando...' : 'Buscar Pedidos'}
+        {isLoading ? t('email.searching') : t('email.search')}
       </button>
 
       <div style={{
@@ -83,7 +85,7 @@ export default function StepEmailLookup({ email, setEmail, onSearch, isLoading, 
         opacity: 0.7,
       }}>
         <Lock size={11} />
-        Seus dados são protegidos e não serão compartilhados
+        {t('email.privacy')}
       </div>
     </form>
   )

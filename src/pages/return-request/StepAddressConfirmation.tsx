@@ -1,5 +1,6 @@
 import ProgressBar from './ProgressBar'
 import type { FormFields, UploadsMap, UploadKey } from './types'
+import type { TFunction } from './i18n'
 import { inputStyle, primaryBtnStyle, secondaryBtnStyle, errorBoxStyle } from './constants'
 
 interface Props {
@@ -11,44 +12,45 @@ interface Props {
   onNext: () => void
   onBack: () => void
   error: string | null
+  t: TFunction
 }
 
-export default function StepAddressConfirmation({ fields, updateField, onNext, onBack, error }: Props) {
+export default function StepAddressConfirmation({ fields, updateField, onNext, onBack, error, t }: Props) {
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      <ProgressBar step={7} />
+      <ProgressBar step={7} t={t} />
 
       <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-        Confirmação de Endereço
+        {t('address.title')}
       </div>
       <div style={{ fontSize: '15px', color: 'var(--text-secondary)', marginBottom: '28px', lineHeight: '1.5' }}>
-        Confirme seu endereço atual para o envio da devolução.
+        {t('address.desc')}
       </div>
 
       {error && <div style={errorBoxStyle}>{error}</div>}
 
       <div style={{ marginBottom: '20px' }}>
         <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-          Endereço Completo <span style={{ color: '#ef4444' }}>*</span>
+          {t('address.line1')} <span style={{ color: '#ef4444' }}>*</span>
         </label>
         <input
           type="text"
           value={fields.addressLine1}
           onChange={e => updateField('addressLine1', e.target.value)}
-          placeholder="Rua, número"
+          placeholder={t('address.line1Placeholder')}
           style={inputStyle}
         />
       </div>
 
       <div style={{ marginBottom: '20px' }}>
         <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-          Complemento
+          {t('address.line2')}
         </label>
         <input
           type="text"
           value={fields.addressLine2}
           onChange={e => updateField('addressLine2', e.target.value)}
-          placeholder="Apartamento, bloco, etc."
+          placeholder={t('address.line2Placeholder')}
           style={inputStyle}
         />
       </div>
@@ -56,7 +58,7 @@ export default function StepAddressConfirmation({ fields, updateField, onNext, o
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
         <div>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-            Cidade <span style={{ color: '#ef4444' }}>*</span>
+            {t('address.city')} <span style={{ color: '#ef4444' }}>*</span>
           </label>
           <input
             type="text"
@@ -67,7 +69,7 @@ export default function StepAddressConfirmation({ fields, updateField, onNext, o
         </div>
         <div>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-            Estado <span style={{ color: '#ef4444' }}>*</span>
+            {t('address.state')} <span style={{ color: '#ef4444' }}>*</span>
           </label>
           <input
             type="text"
@@ -81,7 +83,7 @@ export default function StepAddressConfirmation({ fields, updateField, onNext, o
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
         <div>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-            CEP <span style={{ color: '#ef4444' }}>*</span>
+            {t('address.zipCode')} <span style={{ color: '#ef4444' }}>*</span>
           </label>
           <input
             type="text"
@@ -92,7 +94,7 @@ export default function StepAddressConfirmation({ fields, updateField, onNext, o
         </div>
         <div>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-            País <span style={{ color: '#ef4444' }}>*</span>
+            {t('address.country')} <span style={{ color: '#ef4444' }}>*</span>
           </label>
           <input
             type="text"
@@ -121,13 +123,13 @@ export default function StepAddressConfirmation({ fields, updateField, onNext, o
           style={{ marginTop: '2px', width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--accent)' }}
         />
         <label htmlFor="confirmAddress" style={{ flex: 1, fontSize: '14px', lineHeight: '1.5', color: 'var(--text-primary)', cursor: 'pointer' }}>
-          Confirmo que este é meu endereço residencial atual.
+          {t('address.confirmAddress')}
         </label>
       </div>
 
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
-        <button onClick={onBack} style={secondaryBtnStyle}>Voltar</button>
-        <button onClick={onNext} style={primaryBtnStyle}>Continuar</button>
+        <button onClick={onBack} style={secondaryBtnStyle}>{t('common.back')}</button>
+        <button onClick={onNext} style={primaryBtnStyle}>{t('common.continue')}</button>
       </div>
     </div>
   )

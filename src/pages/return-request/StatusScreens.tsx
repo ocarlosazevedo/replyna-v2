@@ -1,8 +1,13 @@
 import { CheckCircle, XCircle, Download } from 'lucide-react'
 import { primaryBtnStyle, secondaryBtnStyle } from './constants'
+import type { TFunction } from './i18n'
 
 // ===================== Loading Screen =====================
-export function LoadingScreen() {
+interface LoadingProps {
+  t: TFunction
+}
+
+export function LoadingScreen({ t }: LoadingProps) {
   return (
     <div style={{ textAlign: 'center', padding: '64px 32px', animation: 'fadeIn 0.4s ease' }}>
       <div style={{
@@ -15,10 +20,10 @@ export function LoadingScreen() {
         margin: '0 auto 24px',
       }} />
       <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
-        Processando sua solicitação...
+        {t('status.loading.title')}
       </div>
       <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-        Isso pode levar um momento. Por favor, não feche esta página.
+        {t('status.loading.desc')}
       </div>
     </div>
   )
@@ -28,9 +33,10 @@ export function LoadingScreen() {
 interface SuccessProps {
   returnId: string | null
   customerEmail: string
+  t: TFunction
 }
 
-export function SuccessScreen({ returnId, customerEmail }: SuccessProps) {
+export function SuccessScreen({ returnId, customerEmail, t }: SuccessProps) {
   const refNumber = returnId ? returnId.substring(0, 8).toUpperCase() : '--------'
 
   const handleDownloadPDF = () => {
@@ -56,7 +62,7 @@ export function SuccessScreen({ returnId, customerEmail }: SuccessProps) {
       </div>
 
       <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
-        Solicitação Enviada!
+        {t('status.success.title')}
       </div>
       <div style={{
         fontSize: '15px',
@@ -65,7 +71,7 @@ export function SuccessScreen({ returnId, customerEmail }: SuccessProps) {
         maxWidth: '480px',
         margin: '0 auto',
       }}>
-        Sua solicitação de devolução foi recebida. Analisaremos seu envio e entraremos em contato em 3-5 dias úteis com nossa decisão.
+        {t('status.success.desc')}
       </div>
 
       <div style={{
@@ -76,7 +82,7 @@ export function SuccessScreen({ returnId, customerEmail }: SuccessProps) {
         border: '1px solid var(--border-color)',
         display: 'inline-block',
       }}>
-        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Número de Referência:</div>
+        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{t('status.success.refNumber')}</div>
         <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
           {refNumber}
         </div>
@@ -85,7 +91,7 @@ export function SuccessScreen({ returnId, customerEmail }: SuccessProps) {
       <div style={{ marginTop: '24px' }}>
         <button onClick={handleDownloadPDF} style={{ ...primaryBtnStyle, gap: '8px' }}>
           <Download size={18} />
-          Baixar Comprovante da Solicitação (PDF)
+          {t('status.success.downloadPdf')}
         </button>
       </div>
     </div>
@@ -95,9 +101,10 @@ export function SuccessScreen({ returnId, customerEmail }: SuccessProps) {
 // ===================== Out of Period Screen =====================
 interface OutOfPeriodProps {
   onReset: () => void
+  t: TFunction
 }
 
-export function OutOfPeriodScreen({ onReset }: OutOfPeriodProps) {
+export function OutOfPeriodScreen({ onReset, t }: OutOfPeriodProps) {
   return (
     <div style={{ textAlign: 'center', padding: '48px 32px', animation: 'fadeIn 0.4s ease' }}>
       <div style={{
@@ -115,7 +122,7 @@ export function OutOfPeriodScreen({ onReset }: OutOfPeriodProps) {
       </div>
 
       <div style={{ fontSize: '28px', fontWeight: 700, color: '#ef4444', marginBottom: '16px' }}>
-        Período de Devolução Expirado
+        {t('status.outOfPeriod.title')}
       </div>
       <div style={{
         fontSize: '15px',
@@ -124,8 +131,7 @@ export function OutOfPeriodScreen({ onReset }: OutOfPeriodProps) {
         maxWidth: '480px',
         margin: '0 auto',
       }}>
-        Infelizmente, seu pedido foi recebido há mais de 14 dias e está fora do nosso período de devolução e troca.
-        De acordo com nossa política de devolução, só podemos processar devoluções para pedidos recebidos dentro de 14 dias da data da solicitação.
+        {t('status.outOfPeriod.desc')}
       </div>
 
       <div style={{
@@ -137,14 +143,14 @@ export function OutOfPeriodScreen({ onReset }: OutOfPeriodProps) {
         textAlign: 'left',
       }}>
         <div style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: '1.6' }}>
-          <strong>Política de Devolução:</strong><br />
-          Devoluções e trocas devem ser solicitadas em até 14 dias após a entrega. Os produtos devem estar em condição original, sem uso e com toda a embalagem original.
+          <strong>{t('status.outOfPeriod.policyTitle')}</strong><br />
+          {t('status.outOfPeriod.policyDesc')}
         </div>
       </div>
 
       <div style={{ marginTop: '24px' }}>
         <button onClick={onReset} style={secondaryBtnStyle}>
-          Voltar ao Início
+          {t('status.outOfPeriod.backToStart')}
         </button>
       </div>
     </div>

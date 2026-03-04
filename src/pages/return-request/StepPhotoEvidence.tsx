@@ -2,7 +2,8 @@ import { Shield } from 'lucide-react'
 import ProgressBar from './ProgressBar'
 import UploadZone from './UploadZone'
 import type { UploadsMap, UploadKey } from './types'
-import { UPLOAD_LABELS, primaryBtnStyle, secondaryBtnStyle, errorBoxStyle } from './constants'
+import { primaryBtnStyle, secondaryBtnStyle, errorBoxStyle } from './constants'
+import type { TFunction } from './i18n'
 
 interface Props {
   uploads: UploadsMap
@@ -11,20 +12,29 @@ interface Props {
   onNext: () => void
   onBack: () => void
   error: string | null
+  t: TFunction
 }
 
 const PHOTO_KEYS: UploadKey[] = ['product_front', 'product_back', 'defect', 'packaging', 'label']
 
-export default function StepPhotoEvidence({ uploads, onFileUpload, onRemoveUpload, onNext, onBack, error }: Props) {
+export default function StepPhotoEvidence({ uploads, onFileUpload, onRemoveUpload, onNext, onBack, error, t }: Props) {
+  const uploadLabels: Record<string, string> = {
+    product_front: t('upload.productFront'),
+    product_back: t('upload.productBack'),
+    defect: t('upload.defect'),
+    packaging: t('upload.packaging'),
+    label: t('upload.label'),
+  }
+
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      <ProgressBar step={6} />
+      <ProgressBar step={6} t={t} />
 
       <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-        Evidências Fotográficas
+        {t('photos.title')}
       </div>
       <div style={{ fontSize: '15px', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: '1.5' }}>
-        Envie fotos nítidas para apoiar sua solicitação de devolução.
+        {t('photos.desc')}
       </div>
 
       {/* Security tip */}
@@ -41,7 +51,7 @@ export default function StepPhotoEvidence({ uploads, onFileUpload, onRemoveUploa
         color: 'var(--text-secondary)',
       }}>
         <Shield size={14} color="#10b981" style={{ flexShrink: 0 }} />
-        Suas fotos são armazenadas com segurança e utilizadas exclusivamente para análise da solicitação.
+        {t('photos.securityTip')}
       </div>
 
       {error && <div style={errorBoxStyle}>{error}</div>}
@@ -53,13 +63,14 @@ export default function StepPhotoEvidence({ uploads, onFileUpload, onRemoveUploa
           state={uploads[key]}
           onFileSelect={onFileUpload}
           onRemove={onRemoveUpload}
-          label={UPLOAD_LABELS[key]}
+          label={uploadLabels[key]}
+          t={t}
         />
       ))}
 
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
-        <button onClick={onBack} style={secondaryBtnStyle}>Voltar</button>
-        <button onClick={onNext} style={primaryBtnStyle}>Continuar</button>
+        <button onClick={onBack} style={secondaryBtnStyle}>{t('common.back')}</button>
+        <button onClick={onNext} style={primaryBtnStyle}>{t('common.continue')}</button>
       </div>
     </div>
   )

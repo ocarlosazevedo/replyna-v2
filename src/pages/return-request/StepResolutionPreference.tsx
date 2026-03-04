@@ -1,6 +1,7 @@
 import ProgressBar from './ProgressBar'
 import type { FormFields } from './types'
-import { RESOLUTION_OPTIONS, selectStyle, textareaStyle, primaryBtnStyle, secondaryBtnStyle, errorBoxStyle } from './constants'
+import type { TFunction } from './i18n'
+import { selectStyle, textareaStyle, primaryBtnStyle, secondaryBtnStyle, errorBoxStyle } from './constants'
 
 interface Props {
   fields: FormFields
@@ -8,32 +9,40 @@ interface Props {
   onNext: () => void
   onBack: () => void
   error: string | null
+  t: TFunction
 }
 
-export default function StepResolutionPreference({ fields, updateField, onNext, onBack, error }: Props) {
+export default function StepResolutionPreference({ fields, updateField, onNext, onBack, error, t }: Props) {
+  const resolutionOptions = [
+    { value: '', label: t('resolution.select') },
+    { value: 'refund', label: t('resolution.refund') },
+    { value: 'exchange', label: t('resolution.exchange') },
+    { value: 'store_credit', label: t('resolution.storeCredit') },
+  ]
+
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      <ProgressBar step={8} />
+      <ProgressBar step={8} t={t} />
 
       <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-        Preferência de Resolução
+        {t('resolution.title')}
       </div>
       <div style={{ fontSize: '15px', color: 'var(--text-secondary)', marginBottom: '28px', lineHeight: '1.5' }}>
-        Como você gostaria que resolvêssemos esta questão?
+        {t('resolution.desc')}
       </div>
 
       {error && <div style={errorBoxStyle}>{error}</div>}
 
       <div style={{ marginBottom: '20px' }}>
         <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-          Resolução Preferida <span style={{ color: '#ef4444' }}>*</span>
+          {t('resolution.preferred')} <span style={{ color: '#ef4444' }}>*</span>
         </label>
         <select
           value={fields.resolutionType}
           onChange={e => updateField('resolutionType', e.target.value)}
           style={selectStyle}
         >
-          {RESOLUTION_OPTIONS.map(opt => (
+          {resolutionOptions.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
@@ -48,26 +57,26 @@ export default function StepResolutionPreference({ fields, updateField, onNext, 
         marginBottom: '24px',
       }}>
         <div style={{ fontSize: '13px', color: 'var(--accent)', lineHeight: '1.6' }}>
-          <strong>Informação sobre Reembolso:</strong><br />
-          Se aprovado, o reembolso será processado diretamente no seu método de pagamento original dentro de 5 a 10 dias úteis. Não é necessário informar dados bancários.
+          <strong>{t('resolution.refundInfo')}</strong><br />
+          {t('resolution.refundDesc')}
         </div>
       </div>
 
       <div style={{ marginBottom: '20px' }}>
         <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-          Comentários Adicionais
+          {t('resolution.additionalComments')}
         </label>
         <textarea
           value={fields.additionalComments}
           onChange={e => updateField('additionalComments', e.target.value)}
-          placeholder="Alguma informação adicional que gostaria de compartilhar..."
+          placeholder={t('resolution.commentsPlaceholder')}
           style={textareaStyle}
         />
       </div>
 
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
-        <button onClick={onBack} style={secondaryBtnStyle}>Voltar</button>
-        <button onClick={onNext} style={primaryBtnStyle}>Continuar</button>
+        <button onClick={onBack} style={secondaryBtnStyle}>{t('common.back')}</button>
+        <button onClick={onNext} style={primaryBtnStyle}>{t('common.continue')}</button>
       </div>
     </div>
   )

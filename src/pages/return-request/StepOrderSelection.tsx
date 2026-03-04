@@ -1,4 +1,5 @@
 import type { Order } from './types'
+import type { TFunction } from './i18n'
 import { primaryBtnStyle, secondaryBtnStyle, errorBoxStyle } from './constants'
 
 interface Props {
@@ -8,9 +9,10 @@ interface Props {
   onNext: () => void
   onBack: () => void
   error: string | null
+  t: TFunction
 }
 
-export default function StepOrderSelection({ orders, selectedOrder, onSelect, onNext, onBack, error }: Props) {
+export default function StepOrderSelection({ orders, selectedOrder, onSelect, onNext, onBack, error, t }: Props) {
   const getBadgeStyle = (status: string): React.CSSProperties => {
     const map: Record<string, { bg: string; color: string }> = {
       pending: { bg: '#fef3cd', color: '#856404' },
@@ -36,10 +38,10 @@ export default function StepOrderSelection({ orders, selectedOrder, onSelect, on
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
       <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-        Selecione seu Pedido
+        {t('orderSelect.title')}
       </div>
       <div style={{ fontSize: '15px', color: 'var(--text-secondary)', marginBottom: '28px', lineHeight: '1.5' }}>
-        Escolha o pedido para o qual deseja solicitar a devolução.
+        {t('orderSelect.desc')}
       </div>
 
       {error && <div style={errorBoxStyle}>{error}</div>}
@@ -75,7 +77,7 @@ export default function StepOrderSelection({ orders, selectedOrder, onSelect, on
               </div>
               <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px' }}>
                 {order.line_items.slice(0, 2).map(i => i.title).join(', ')}
-                {order.line_items.length > 2 && ` +${order.line_items.length - 2} mais`}
+                {order.line_items.length > 2 && ` +${order.line_items.length - 2} ${t('orderSelect.more')}`}
               </div>
               <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '8px' }}>
                 {order.currency} {parseFloat(order.total).toFixed(2)}
@@ -83,12 +85,12 @@ export default function StepOrderSelection({ orders, selectedOrder, onSelect, on
               {hasReturn && (
                 <div style={{ marginTop: '8px' }}>
                   <span style={getBadgeStyle(order.existing_return_status!)}>
-                    Devolução {order.existing_return_status!.replace('_', ' ')}
+                    {t('orderSelect.return')} {order.existing_return_status!.replace('_', ' ')}
                   </span>
                 </div>
               )}
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                de {order.store_name}
+                {t('orderSelect.from')} {order.store_name}
               </div>
             </div>
           )
@@ -96,7 +98,7 @@ export default function StepOrderSelection({ orders, selectedOrder, onSelect, on
       </div>
 
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
-        <button onClick={onBack} style={secondaryBtnStyle}>Voltar</button>
+        <button onClick={onBack} style={secondaryBtnStyle}>{t('common.back')}</button>
         <button
           onClick={onNext}
           disabled={!selectedOrder}
@@ -106,7 +108,7 @@ export default function StepOrderSelection({ orders, selectedOrder, onSelect, on
             cursor: selectedOrder ? 'pointer' : 'not-allowed',
           }}
         >
-          Continuar
+          {t('common.continue')}
         </button>
       </div>
     </div>

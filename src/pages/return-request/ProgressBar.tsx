@@ -1,14 +1,27 @@
 import { Check } from 'lucide-react'
-import { PROGRESS_MAP, STEP_LABELS } from './constants'
+import { PROGRESS_MAP } from './constants'
+import type { TFunction } from './i18n'
 
 interface ProgressBarProps {
   step: number
+  t: TFunction
 }
 
 const STEPS = [2, 3, 4, 5, 6, 7, 8, 9]
 
-export default function ProgressBar({ step }: ProgressBarProps) {
+export default function ProgressBar({ step, t }: ProgressBarProps) {
   const percentage = PROGRESS_MAP[step] || 0
+
+  const stepLabels: Record<number, string> = {
+    2: t('progress.identity'),
+    3: t('progress.order'),
+    4: t('progress.reason'),
+    5: t('progress.details'),
+    6: t('progress.photos'),
+    7: t('progress.address'),
+    8: t('progress.resolution'),
+    9: t('progress.terms'),
+  }
 
   return (
     <div style={{ marginBottom: '32px' }}>
@@ -95,7 +108,7 @@ export default function ProgressBar({ step }: ProgressBarProps) {
                 transition: 'color 0.3s ease',
                 letterSpacing: '0.01em',
               }}>
-                {STEP_LABELS[s] || ''}
+                {stepLabels[s] || ''}
               </span>
             </div>
           )

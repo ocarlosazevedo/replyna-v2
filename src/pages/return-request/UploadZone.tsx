@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback } from 'react'
 import { Upload, FileText, X } from 'lucide-react'
 import type { UploadKey, UploadState } from './types'
+import type { TFunction } from './i18n'
 
 interface UploadZoneProps {
   uploadKey: UploadKey
@@ -9,9 +10,10 @@ interface UploadZoneProps {
   onRemove: (key: UploadKey) => void
   acceptPdf?: boolean
   label: string
+  t: TFunction
 }
 
-export default function UploadZone({ uploadKey, state, onFileSelect, onRemove, acceptPdf, label }: UploadZoneProps) {
+export default function UploadZone({ uploadKey, state, onFileSelect, onRemove, acceptPdf, label, t }: UploadZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
 
@@ -81,7 +83,7 @@ export default function UploadZone({ uploadKey, state, onFileSelect, onRemove, a
         >
           <Upload size={32} color="var(--text-secondary)" style={{ marginBottom: '8px' }} />
           <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>
-            Clique ou arraste para enviar
+            {t('upload.dragOrClick')}
           </div>
         </div>
       ) : (
@@ -133,7 +135,7 @@ export default function UploadZone({ uploadKey, state, onFileSelect, onRemove, a
             <>
               <img
                 src={state.previewUrl || ''}
-                alt="Pré-visualização"
+                alt={t('upload.preview')}
                 style={{
                   width: '120px',
                   height: '120px',
@@ -171,7 +173,7 @@ export default function UploadZone({ uploadKey, state, onFileSelect, onRemove, a
               color: 'var(--accent)',
               marginTop: '4px',
             }}>
-              Enviando...
+              {t('upload.uploading')}
             </div>
           )}
         </div>

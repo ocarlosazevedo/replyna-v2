@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import type { ReturnStep, Order, UploadsMap, UploadKey, FormFields } from './types'
+import type { Locale, TFunction } from './i18n'
+import { getTranslations } from './i18n'
 import { supabase } from '../../lib/supabase'
 
 const STORAGE_KEY = 'replyna_return_form'
@@ -56,6 +58,7 @@ export function useReturnForm() {
   const [currentStep, setCurrentStep] = useState<ReturnStep>(saved?.currentStep ?? 0)
   const [customerEmail, setCustomerEmail] = useState(saved?.customerEmail ?? '')
   const [orders, setOrders] = useState<Order[]>(saved?.orders ?? [])
+  const [locale, setLocale] = useState<Locale>(saved?.locale ?? 'en')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(saved?.selectedOrder ?? null)
   const [uploads, setUploads] = useState<UploadsMap>(initialUploads)
 
@@ -75,13 +78,32 @@ export function useReturnForm() {
   const [error, setError] = useState<string | null>(null)
   const [fields, setFields] = useState<FormFields>(saved?.fields ?? initialFields)
 
+  const t = getTranslations(locale)
+  const tRef = useRef<TFunction>(t)
+  useEffect(() => { tRef.current = t }, [locale])
+
   const startTime = useRef(Date.now())
+
+  // Fetch shop language on mount so form shows in the right language immediately
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const shopId = urlParams.get('shop')
+    if (!shopId || saved?.locale) return
+    supabase
+      .from('shops')
+      .select('language')
+      .eq('id', shopId)
+      .single()
+      .then(({ data }) => {
+        if (data?.language) setLocale(data.language as Locale)
+      })
+  }, [])
 
   // Persist form state to sessionStorage
   useEffect(() => {
-    const data = { currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId }
+    const data = { currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale }
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  }, [currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId])
+  }, [currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale])
 
   const updateField = useCallback(<K extends keyof FormFields>(key: K, value: FormFields[K]) => {
     setFields(prev => ({ ...prev, [key]: value }))
@@ -94,18 +116,19 @@ export function useReturnForm() {
   }, [])
 
   const validateStep = useCallback((step: number): string | null => {
+    const t = tRef.current
     switch (step) {
       case 2: {
-        if (!fields.fullName.trim()) return 'Por favor, preencha seu nome completo.'
-        if (!fields.customerPhone.trim()) return 'Por favor, preencha seu número de telefone.'
+        if (!fields.fullName.trim()) return t('error.fullName')
+        if (!fields.customerPhone.trim()) return t('error.phone')
         if (selectedOrder?.customer_phone && fields.customerPhone.trim() !== selectedOrder.customer_phone) {
-          return 'O número de telefone não corresponde ao registrado no seu pedido.'
+          return t('error.phoneMismatch')
         }
         return null
       }
       case 3: {
-        if (!fields.receiveDate) return 'Por favor, informe quando você recebeu o pedido.'
-        if (!fields.confirmOrder) return 'Por favor, confirme os detalhes do pedido.'
+        if (!fields.receiveDate) return t('error.receiveDate')
+        if (!fields.confirmOrder) return t('error.confirmOrder')
         // Parse both dates as local midnight to avoid timezone issues
         const [ry, rm, rd] = fields.receiveDate.split('-').map(Number)
         const received = new Date(ry, rm - 1, rd)
@@ -116,33 +139,33 @@ export function useReturnForm() {
         return null
       }
       case 4: {
-        if (!fields.returnReason) return 'Por favor, selecione um motivo de devolução.'
-        if (fields.returnDescription.trim().length < 100) return 'Por favor, forneça uma descrição detalhada (mínimo 100 caracteres).'
+        if (!fields.returnReason) return t('error.returnReason')
+        if (fields.returnDescription.trim().length < 100) return t('error.returnDescription')
         return null
       }
       case 5: {
-        if (!fields.whenNoticed) return 'Por favor, informe quando você notou o problema.'
-        if (!fields.triedResolve) return 'Por favor, informe se tentou resolver o problema.'
-        if (!fields.productUsed) return 'Por favor, informe sobre o uso do produto.'
+        if (!fields.whenNoticed) return t('error.whenNoticed')
+        if (!fields.triedResolve) return t('error.triedResolve')
+        if (!fields.productUsed) return t('error.productUsed')
         return null
       }
       case 6: {
         const required: UploadKey[] = ['product_front', 'product_back', 'defect', 'packaging', 'label']
         const missing = required.filter(k => !uploads[k].file)
-        if (missing.length > 0) return 'Por favor, envie todas as fotos obrigatórias.'
+        if (missing.length > 0) return t('error.uploadAllPhotos')
         return null
       }
       case 7: {
-        if (!fields.addressLine1.trim()) return 'Por favor, preencha seu endereço.'
-        if (!fields.city.trim()) return 'Por favor, preencha sua cidade.'
-        if (!fields.state.trim()) return 'Por favor, preencha seu estado.'
-        if (!fields.zipCode.trim()) return 'Por favor, preencha seu CEP.'
-        if (!fields.country.trim()) return 'Por favor, preencha seu país.'
-        if (!fields.confirmAddress) return 'Por favor, confirme suas informações de endereço.'
+        if (!fields.addressLine1.trim()) return t('error.address')
+        if (!fields.city.trim()) return t('error.city')
+        if (!fields.state.trim()) return t('error.state')
+        if (!fields.zipCode.trim()) return t('error.zipCode')
+        if (!fields.country.trim()) return t('error.country')
+        if (!fields.confirmAddress) return t('error.confirmAddress')
         return null
       }
       case 8: {
-        if (!fields.resolutionType) return 'Por favor, selecione sua resolução preferida.'
+        if (!fields.resolutionType) return t('error.resolution')
         return null
       }
       default:
@@ -165,12 +188,12 @@ export function useReturnForm() {
 
   const searchOrders = useCallback(async () => {
     if (!customerEmail.trim()) {
-      setError('Por favor, digite seu endereço de e-mail.')
+      setError(tRef.current('error.enterEmail'))
       return
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(customerEmail)) {
-      setError('Por favor, digite um endereço de e-mail válido.')
+      setError(tRef.current('error.invalidEmail'))
       return
     }
 
@@ -187,7 +210,7 @@ export function useReturnForm() {
         if (!response.ok) throw new Error(data.error || 'Failed to search orders')
         const fetchedOrders = data.orders || []
         if (fetchedOrders.length === 0) {
-          setError('Nenhum pedido encontrado para este endereço de e-mail.')
+          setError(tRef.current('error.noOrders'))
           return
         }
         setOrders(fetchedOrders)
@@ -206,10 +229,11 @@ export function useReturnForm() {
         try {
           const { data: shopData } = await supabase
             .from('shops')
-            .select('name')
+            .select('name, language')
             .eq('id', shopFromUrl)
             .single()
           if (shopData?.name) realShopName = shopData.name
+          if (shopData?.language) setLocale(shopData.language as Locale)
         } catch { /* RLS pode bloquear */ }
         if (!realShopName) realShopName = 'Loja'
       }
@@ -293,19 +317,19 @@ export function useReturnForm() {
 
     if (isDocument) {
       if (!isValidImage && !isValidPDF) {
-        setError('Por favor, envie um arquivo de imagem ou PDF.')
+        setError(tRef.current('error.imageOrPdf'))
         return
       }
     } else {
       if (!isValidImage) {
-        setError('Por favor, envie um arquivo de imagem.')
+        setError(tRef.current('error.imageOnly'))
         return
       }
     }
 
     const maxSize = isValidPDF ? 10 * 1024 * 1024 : 5 * 1024 * 1024
     if (file.size > maxSize) {
-      setError(`Arquivo muito grande. Tamanho máximo: ${isValidPDF ? '10MB' : '5MB'}.`)
+      setError(tRef.current('error.fileTooLarge', { size: isValidPDF ? '10MB' : '5MB' }))
       return
     }
 
@@ -380,11 +404,11 @@ export function useReturnForm() {
 
   const submitReturn = useCallback(async () => {
     if (!fields.acceptTerms1 || !fields.acceptTerms2 || !fields.acceptTerms3) {
-      setError('Por favor, aceite todos os termos e condições.')
+      setError(tRef.current('error.acceptTerms'))
       return
     }
     if (!signature) {
-      setError('Por favor, forneça sua assinatura digital.')
+      setError(tRef.current('error.signature'))
       return
     }
 
@@ -534,12 +558,12 @@ export function useReturnForm() {
           } else {
             const errBody = await insertRes.text()
             console.warn('Supabase insert falhou:', insertRes.status, errBody)
-            throw new Error('Não foi possível enviar o formulário. Tente novamente.')
+            throw new Error(tRef.current('error.submitFailed'))
           }
         } catch (supaErr) {
-          if (supaErr instanceof Error && supaErr.message.includes('Não foi possível')) throw supaErr
+          if (supaErr instanceof Error && supaErr.message === tRef.current('error.submitFailed')) throw supaErr
           console.warn('Fallback Supabase falhou:', supaErr)
-          throw new Error('Erro de conexão ao enviar formulário. Verifique sua internet e tente novamente.')
+          throw new Error(tRef.current('error.connectionError'))
         }
       }
 
@@ -548,7 +572,7 @@ export function useReturnForm() {
       goToStep('success')
     } catch (err) {
       console.error('Erro ao submeter:', err)
-      setError('Ocorreu um erro. Por favor, tente novamente.')
+      setError(tRef.current('error.genericError'))
       goToStep(9)
     }
   }, [fields, signature, selectedOrder, customerEmail, uploads, goToStep])
@@ -575,5 +599,6 @@ export function useReturnForm() {
     handleFileUpload,
     removeUpload,
     submitReturn,
+    locale,
   }
 }

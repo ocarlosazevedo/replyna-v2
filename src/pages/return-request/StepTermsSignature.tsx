@@ -3,7 +3,8 @@ import { Lock } from 'lucide-react'
 import SignaturePad from './SignaturePad'
 import ProgressBar from './ProgressBar'
 import type { FormFields, SignaturePadHandle } from './types'
-import { TERMS_TEXT, primaryBtnStyle, secondaryBtnStyle, errorBoxStyle } from './constants'
+import { primaryBtnStyle, secondaryBtnStyle, errorBoxStyle } from './constants'
+import type { TFunction } from './i18n'
 
 interface Props {
   fields: FormFields
@@ -12,9 +13,11 @@ interface Props {
   onSubmit: () => void
   onBack: () => void
   error: string | null
+  t: TFunction
+  termsText: string
 }
 
-export default function StepTermsSignature({ fields, updateField, setSignature, onSubmit, onBack, error }: Props) {
+export default function StepTermsSignature({ fields, updateField, setSignature, onSubmit, onBack, error, t, termsText }: Props) {
   const signatureRef = useRef<SignaturePadHandle>(null)
   const [checkboxesEnabled, setCheckboxesEnabled] = useState(false)
 
@@ -33,13 +36,13 @@ export default function StepTermsSignature({ fields, updateField, setSignature, 
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      <ProgressBar step={9} />
+      <ProgressBar step={9} t={t} />
 
       <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-        Termos e Acordo
+        {t('terms.title')}
       </div>
       <div style={{ fontSize: '15px', color: 'var(--text-secondary)', marginBottom: '28px', lineHeight: '1.5' }}>
-        Leia e aceite nossa política de devolução.
+        {t('terms.desc')}
       </div>
 
       {error && <div style={errorBoxStyle}>{error}</div>}
@@ -61,21 +64,21 @@ export default function StepTermsSignature({ fields, updateField, setSignature, 
           whiteSpace: 'pre-wrap',
         }}
       >
-        {TERMS_TEXT}
+        {termsText}
       </div>
 
       {!checkboxesEnabled && (
         <div style={{ fontSize: '13px', color: 'var(--accent)', marginBottom: '16px', textAlign: 'center' }}>
-          Role até o final dos termos para habilitar as caixas de seleção.
+          {t('terms.scrollHint')}
         </div>
       )}
 
       {/* Checkboxes */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
         {[
-          { key: 'acceptTerms1' as const, label: 'Li e compreendo os termos e condições da política de devolução.' },
-          { key: 'acceptTerms2' as const, label: 'Confirmo que todas as informações fornecidas neste formulário são precisas e verdadeiras.' },
-          { key: 'acceptTerms3' as const, label: 'Entendo que fornecer informações falsas pode resultar na negação da minha solicitação.' },
+          { key: 'acceptTerms1' as const, label: t('terms.accept1') },
+          { key: 'acceptTerms2' as const, label: t('terms.accept2') },
+          { key: 'acceptTerms3' as const, label: t('terms.accept3') },
         ].map(item => (
           <div key={item.key} style={{
             display: 'flex',
@@ -105,13 +108,13 @@ export default function StepTermsSignature({ fields, updateField, setSignature, 
       {/* Signature */}
       <div style={{ marginBottom: '24px' }}>
         <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '12px' }}>
-          Assinatura Digital <span style={{ color: '#ef4444' }}>*</span>
+          {t('terms.signature')} <span style={{ color: '#ef4444' }}>*</span>
         </label>
         <SignaturePad ref={signatureRef} />
       </div>
 
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
-        <button onClick={onBack} style={secondaryBtnStyle}>Voltar</button>
+        <button onClick={onBack} style={secondaryBtnStyle}>{t('common.back')}</button>
         <button onClick={handleSubmit} style={{
           ...primaryBtnStyle,
           padding: '14px 32px',
@@ -119,7 +122,7 @@ export default function StepTermsSignature({ fields, updateField, setSignature, 
           minWidth: '220px',
         }}>
           <Lock size={16} />
-          Enviar Solicitação
+          {t('terms.submitBtn')}
         </button>
       </div>
       <div style={{
@@ -129,7 +132,7 @@ export default function StepTermsSignature({ fields, updateField, setSignature, 
         color: 'var(--text-secondary)',
         opacity: 0.7,
       }}>
-        Ao enviar, seus dados serão criptografados e protegidos
+        {t('terms.submitHint')}
       </div>
     </div>
   )

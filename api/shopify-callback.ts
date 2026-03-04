@@ -130,13 +130,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.redirect(302, `https://app.replyna.me/shops/${shop_id}?shopify_oauth=error&reason=db_error`)
     }
 
-    // 6. Verify token works by calling shop.json
+    // 6. Verify token works by calling shop.json and extract language
     const verifyResponse = await fetch(`https://${shop}/admin/api/2025-01/shop.json`, {
       headers: { 'X-Shopify-Access-Token': accessToken },
     })
 
     if (!verifyResponse.ok) {
       console.warn('[shopify-callback] Token verification failed but token was saved:', verifyResponse.status)
+    } else {
+      try {
+        const shopJson = await verifyResponse.json()
+        const primaryLocale: string | undefined = shopJson?.shop?.primary_locale
+        if (primaryLocale) {
+          // Normalize locale to base language code (e.g. "pt-BR" → "pt", "en-US" → "en")
+          const language = primaryLocale.split('-')[0].toLowerCase()
+          const { error: langError } = await supabase
+            .from('shops')
+            .update({ language })
+            .eq('id', shop_id)
+          if (langError) {
+            console.warn('[shopify-callback] Failed to save shop language:', langError)
+          }
+        }
+      } catch (langErr) {
+        console.warn('[shopify-callback] Failed to parse shop.json for language:', langErr)
+      }
     }
 
     // 7. Redirect to shop details with success
