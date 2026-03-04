@@ -376,6 +376,7 @@ export default function Formularios() {
             overflowY: 'auto',
           }}>
             {shops.map((shop) => {
+              const link = `${window.location.origin}/return-request?shop=${shop.id}`
               const isCopied = copiedShopId === shop.id
               return (
                 <div
@@ -402,7 +403,7 @@ export default function Formularios() {
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                     }}>
-                      Formulário de devolução — {shop.name}
+                      {link}
                     </div>
                   </div>
                   <button
