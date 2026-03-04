@@ -47,7 +47,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         .eq('archived', false)
         .in('shop_id', shopIds)
         .in('category', ['suporte_humano', 'edicao_pedido', 'troca_devolucao_reembolso'])
-        .or('ticket_status.is.null,ticket_status.eq.pending')
+        .or('ticket_status.is.null,ticket_status.eq.pending,ticket_status.eq.reopened')
       setTicketCount(count ?? 0)
     }
 
@@ -60,7 +60,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         .in('shop_id', shopIds)
         .eq('category', 'troca_devolucao_reembolso')
         .not('form_data', 'is', null)
-        .or('ticket_status.is.null,ticket_status.eq.pending')
+        .or('ticket_status.is.null,ticket_status.eq.pending,ticket_status.eq.reopened')
       setFormsCount(count ?? 0)
     }
 

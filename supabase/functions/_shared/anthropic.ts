@@ -110,6 +110,82 @@ function extractCountryCodeFromEmail(text: string): string | null {
 }
 
 /**
+ * Detecta idioma pelo domínio (TLD) do email da loja.
+ * Ex: support@loja.de → 'de', support@loja.fr → 'fr'
+ * Ignora TLDs genéricos (.com, .net, .org, .io, .co, .store, .shop)
+ * Retorna código ISO 639-1 ou null se TLD for genérico/desconhecido
+ */
+function detectLanguageFromEmailDomain(email: string): string | null {
+  if (!email || !email.includes('@')) return null;
+
+  const domain = email.split('@')[1]?.toLowerCase();
+  if (!domain) return null;
+
+  // Extrair TLD (último segmento) e segundo nível (para .com.br, .co.uk, etc.)
+  const parts = domain.split('.');
+  if (parts.length < 2) return null;
+
+  const tld = parts[parts.length - 1];
+  const secondLevel = parts.length >= 3 ? parts[parts.length - 2] : null;
+
+  // TLDs genéricos → null (não indicam idioma)
+  const genericTLDs = new Set([
+    'com', 'net', 'org', 'io', 'co', 'store', 'shop', 'online',
+    'site', 'xyz', 'info', 'biz', 'app', 'dev', 'me', 'cc', 'tv',
+  ]);
+  if (genericTLDs.has(tld) && !secondLevel) return null;
+
+  // TLDs compostos: .com.br → pt, .co.uk → en, .com.au → en
+  const compoundTLDs: Record<string, Record<string, string>> = {
+    br: { com: 'pt', net: 'pt', org: 'pt' },
+    uk: { co: 'en', org: 'en' },
+    au: { com: 'en', org: 'en' },
+    nz: { co: 'en' },
+    ar: { com: 'es' },
+    mx: { com: 'es' },
+    co: { com: 'es' },
+  };
+  if (secondLevel && compoundTLDs[tld]?.[secondLevel]) {
+    return compoundTLDs[tld][secondLevel];
+  }
+
+  // TLDs de país → idioma
+  const tldToLanguage: Record<string, string> = {
+    de: 'de', at: 'de',          // Alemanha, Áustria
+    fr: 'fr', be: 'fr',          // França, Bélgica
+    it: 'it',                     // Itália
+    es: 'es',                     // Espanha
+    pt: 'pt', br: 'pt',          // Portugal, Brasil
+    nl: 'nl',                     // Holanda
+    pl: 'pl',                     // Polônia
+    cz: 'cs', sk: 'cs',          // Tchéquia, Eslováquia
+    se: 'sv',                     // Suécia
+    dk: 'da',                     // Dinamarca
+    no: 'no',                     // Noruega
+    fi: 'fi',                     // Finlândia
+    ro: 'ro',                     // Romênia
+    hu: 'hu',                     // Hungria
+    tr: 'tr',                     // Turquia
+    ru: 'ru',                     // Rússia
+    ua: 'uk',                     // Ucrânia
+    jp: 'ja',                     // Japão
+    cn: 'zh',                     // China
+    kr: 'ko',                     // Coreia do Sul
+    il: 'he',                     // Israel
+    sa: 'ar', ae: 'ar',          // Arábia Saudita, Emirados
+    gr: 'el',                     // Grécia
+    bg: 'bg',                     // Bulgária
+    hr: 'hr',                     // Croácia
+    ie: 'en', uk: 'en',          // Irlanda, Reino Unido
+    us: 'en', ca: 'en', au: 'en', nz: 'en', // Anglófonos
+    mx: 'es', ar: 'es', cl: 'es', co: 'es', pe: 'es', // Hispânicos
+    ch: 'de',                     // Suíça (padrão alemão)
+  };
+
+  return tldToLanguage[tld] || null;
+}
+
+/**
  * Detecta o idioma diretamente do texto usando padrões linguísticos
  * Retorna o código do idioma ou null se não conseguir detectar com confiança
  */
@@ -232,6 +308,20 @@ function detectLanguageFromText(text: string): string | null {
     /\b(bestellung|lieferung|rückerstattung|rücksendung)\b/i,
     /\b(aber|noch|keine|bekommen|bestellt)\b/i, // palavras alemãs comuns
     /\b(danke|bitte|deutsch|schreiben)\b/i,
+    // Cores alemãs (formas adjetivais únicas - não existem em outros idiomas)
+    // "blaue" é único DE (NL usa "blauwe"), "schwarze" é único DE, "weiße" é único DE
+    /\b(blaue[rsnm]?|schwarze[rsnm]?|weiße[rsnm]?|grüne[rsnm]?|silberne[rsnm]?|goldene[rsnm]?)\b/i,
+    // Cores compostas alemãs (silberblau, dunkelblau, etc.) - padrão único do alemão
+    // Sem \b no início para capturar dentro de palavras compostas (ex: "sileverblaue")
+    /(?:silber|gold|dunkel|hell|himmel|eis|stahl|tief|mittel|kobalt)(?:blau|rot|grün|schwarz|wei[ßs]|grau|braun)/i,
+    // Sufixos de cores compostas alemãs (captura variações/misspellings como "sileverblaue")
+    // Palavras terminando em -blaue/-schwarze/-weiße são exclusivamente alemãs
+    /\w+(?:blaue[rsnm]?|schwarze[rsnm]?|weiße[rsnm]?|grüne[rsnm]?|graue[rsnm]?|braune[rsnm]?)\b/i,
+    // Palavras comuns de e-commerce em alemão
+    /\b(verfügbar|lieferbar|vorrätig|ausverkauft)\b/i, // available, in stock, sold out
+    /\b(farbe|größe|groesse|stück|stueck|preis|kaufen|suche)\b/i, // color, size, piece, price, buy, search
+    /\b(wann|wo|wie\s+viel|gibt\s+es)\b/i, // when, where, how much, is there
+    /\b(erhalten|geliefert|versandt|versendet)\b/i, // received, delivered, shipped
   ];
 
   for (const pattern of germanUniquePatterns) {
@@ -1615,6 +1705,7 @@ export async function classifyEmail(
   conversationHistory: Array<{ role: 'customer' | 'assistant'; content: string }>,
   rawEmailBody?: string,
   conversationLanguage?: string | null,
+  storeEmail?: string | null,
 ): Promise<ClassificationResult> {
   const systemPrompt = `You are an email classifier for e-commerce customer support.
 
@@ -2165,6 +2256,17 @@ REGRAS CRÍTICAS:
       console.log(`[classifyEmail] Language fallback from conversation history: "${detectedLanguage}"`);
     }
 
+    // PASSO 4c: Se ainda não detectou, inferir pelo domínio do email da loja
+    // Ex: support@loja.de → alemão, support@loja.fr → francês
+    // Solução permanente para mensagens curtas/ambíguas onde a loja tem TLD de país
+    if (!detectedLanguage && storeEmail) {
+      const domainLang = detectLanguageFromEmailDomain(storeEmail);
+      if (domainLang) {
+        detectedLanguage = domainLang;
+        console.log(`[classifyEmail] Language inferred from store email domain (${storeEmail}): "${detectedLanguage}"`);
+      }
+    }
+
     // PASSO 5: Se BODY detectou um idioma diferente do SUBJECT, confiar no BODY
     // Exemplo: subject = "Re: Pedido #1234" (PT) mas body = "Where is my order?" (EN) → usar EN
     if (detectedLanguage && emailBody && emailBody.length > 20) {
@@ -2266,6 +2368,12 @@ REGRAS CRÍTICAS:
     if (!detectedLanguage) {
       const cc = extractCountryCodeFromEmail(rawEmailBody || emailBody || '');
       if (cc && countryToLanguage[cc]) detectedLanguage = countryToLanguage[cc];
+    }
+    if (!detectedLanguage && conversationLanguage) {
+      detectedLanguage = conversationLanguage;
+    }
+    if (!detectedLanguage && storeEmail) {
+      detectedLanguage = detectLanguageFromEmailDomain(storeEmail) || null;
     }
     detectedLanguage = detectedLanguage || 'en';
 

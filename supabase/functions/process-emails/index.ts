@@ -891,6 +891,15 @@ async function processMessage(
   const conversation = message.conversation as Conversation | undefined;
   if (!conversation) return 'skipped';
 
+  // Check if conversation is frozen (ticket closed, 7-day freeze - ignore completely)
+  if (conversation.frozen_until) {
+    const frozenUntil = new Date(conversation.frozen_until);
+    if (frozenUntil > new Date()) {
+      console.log(`[Shop ${shop.name}] Conversa ${conversation.id} está frozen até ${conversation.frozen_until}, ignorando msg ${message.id}`);
+      return 'skipped';
+    }
+  }
+
   // CONTROLE DE CONCORRÊNCIA: Verificar se já está processando esta conversa
   if (conversationsInProcessing.has(conversation.id)) {
     console.log(`[Shop ${shop.name}] Conversa ${conversation.id} já está sendo processada, pulando msg ${message.id}`);
@@ -1216,6 +1225,7 @@ async function processMessageInternal(
     conversationHistory.slice(0, -1),
     message.body_text || '', // rawEmailBody para fallback de idioma
     conversation.language || null, // Idioma da conversa para continuidade
+    shop.imap_user || shop.support_email || null, // Email da loja para detecção de idioma por domínio (.de→alemão, .fr→francês)
   );
 
   await updateMessage(message.id, {

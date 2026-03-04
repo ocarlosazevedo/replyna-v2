@@ -268,6 +268,7 @@ Deno.serve(async (req) => {
           conversationHistory,
           message.body_html || undefined,
           conversation.language || null,
+          shop.imap_user || shop.support_email || null, // Email da loja para detecção de idioma por domínio
         );
         category = classification.category;
         detectedSentiment = classification.sentiment || 'calm';

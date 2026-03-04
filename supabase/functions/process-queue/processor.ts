@@ -283,6 +283,20 @@ async function processMessage(
     return false;
   }
 
+  // Check if conversation is frozen (ticket closed, 7-day freeze)
+  if (conversation.frozen_until) {
+    const frozenUntil = new Date(conversation.frozen_until);
+    if (frozenUntil > new Date()) {
+      console.log(`[Processor] Conversation ${conversation.id} is frozen until ${conversation.frozen_until} (ticket closed), skipping completely`);
+      await updateMessage(message.id, {
+        status: 'skipped',
+        error_message: `Skipped - customer frozen until ${conversation.frozen_until}`,
+        processed_at: new Date().toISOString(),
+      });
+      return false;
+    }
+  }
+
   // Check if conversation is paused by human reply (7-day pause)
   if (conversation.human_paused_until) {
     const pausedUntil = new Date(conversation.human_paused_until);
@@ -525,6 +539,7 @@ async function processMessage(
     conversationHistory.slice(0, -1), // Excluir a mensagem atual
     message.body_text || '', // rawEmailBody para fallback de idioma (country code, etc.)
     conversation.language || null, // Idioma da conversa para continuidade (evita erros em msgs curtas)
+    shop.imap_user || shop.support_email || null, // Email da loja para detecção de idioma por domínio (.de→alemão, .fr→francês)
   );
 
   // 8. Se for spam, tratar ANTES de reservar crédito (spam não consome crédito)
