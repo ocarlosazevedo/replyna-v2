@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { FileText, Store, ClipboardList, Link2, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { FileText, Store, ClipboardList, Link2, Copy, Check, ChevronDown, ChevronUp, Clock, CheckCircle, RefreshCw, XCircle } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile } from '../hooks/useUserProfile'
@@ -34,6 +34,41 @@ const FORM_STATUS: Record<string, { label: string; bg: string; color: string }> 
   rejected: { label: 'Rejeitado',  bg: 'rgba(239,68,68,0.15)',  color: '#ef4444' },
   reopened: { label: 'Reaberto',   bg: 'rgba(249,115,22,0.15)', color: '#f97316' },
 }
+
+const FILTER_CARDS = [
+  {
+    key: 'pending',
+    icon: Clock,
+    color: '#d97706',
+    bg: 'rgba(245,158,11,0.1)',
+    title: 'Pendentes',
+    description: 'Formulários aguardando sua resposta. O cliente enviou a solicitação e ainda não recebeu retorno.',
+  },
+  {
+    key: 'answered',
+    icon: CheckCircle,
+    color: '#16a34a',
+    bg: 'rgba(34,197,94,0.1)',
+    title: 'Respondidos',
+    description: 'Formulários já respondidos — inclui aprovados, rejeitados e respondidos por e-mail.',
+  },
+  {
+    key: 'reopened',
+    icon: RefreshCw,
+    color: '#f97316',
+    bg: 'rgba(249,115,22,0.1)',
+    title: 'Reabertos',
+    description: 'O cliente respondeu novamente após você ter respondido. Requer nova atenção.',
+  },
+  {
+    key: 'closed',
+    icon: XCircle,
+    color: '#6b7280',
+    bg: 'rgba(107,114,128,0.1)',
+    title: 'Encerrados',
+    description: 'Formulários encerrados manualmente. O cliente fica em frozen por 7 dias (e-mails ignorados).',
+  },
+]
 
 const formatDateTime = (date: Date) =>
   new Intl.DateTimeFormat('pt-BR', {
@@ -463,6 +498,51 @@ export default function Formularios() {
         )}
       </div>
 
+      {/* Info cards grid */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+          gap: isMobile ? '10px' : '14px',
+        }}
+      >
+        {FILTER_CARDS.map((card) => {
+          const Icon = card.icon
+          return (
+            <div
+              key={card.key}
+              style={{
+                backgroundColor: 'var(--bg-card)',
+                borderRadius: '14px',
+                padding: isMobile ? '12px' : '16px',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <div style={{
+                  width: isMobile ? '28px' : '34px',
+                  height: isMobile ? '28px' : '34px',
+                  borderRadius: '9px',
+                  backgroundColor: card.bg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <Icon size={isMobile ? 14 : 17} style={{ color: card.color }} />
+                </div>
+                <div style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: 700, color: card.color }}>
+                  {card.title}
+                </div>
+              </div>
+              <div style={{ fontSize: isMobile ? '11px' : '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                {card.description}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
       {/* Table card */}
       <div style={{
         backgroundColor: 'var(--bg-card)',
@@ -499,45 +579,6 @@ export default function Formularios() {
             </div>
           )}
         </div>
-
-        {/* Banner explicativo do filtro selecionado */}
-        {selectedStatus !== 'all' && (
-          <div style={{
-            padding: isMobile ? '10px 12px' : '10px 16px',
-            borderRadius: '8px',
-            fontSize: '13px',
-            lineHeight: '1.5',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: isMobile ? '12px' : '16px',
-            ...(selectedStatus === 'pending' ? {
-              backgroundColor: 'rgba(245,158,11,0.06)',
-              border: '1px solid rgba(245,158,11,0.15)',
-              color: '#b45309',
-            } : selectedStatus === 'answered' ? {
-              backgroundColor: 'rgba(34,197,94,0.06)',
-              border: '1px solid rgba(34,197,94,0.15)',
-              color: '#15803d',
-            } : selectedStatus === 'reopened' ? {
-              backgroundColor: 'rgba(249,115,22,0.06)',
-              border: '1px solid rgba(249,115,22,0.15)',
-              color: '#c2410c',
-            } : {
-              backgroundColor: 'rgba(107,114,128,0.06)',
-              border: '1px solid rgba(107,114,128,0.15)',
-              color: '#4b5563',
-            }),
-          }}>
-            {selectedStatus === 'pending'
-              ? 'Formulários aguardando sua resposta. O cliente enviou a solicitação e ainda não recebeu retorno.'
-              : selectedStatus === 'answered'
-                ? 'Formulários já respondidos — inclui aprovados, rejeitados e respondidos por e-mail.'
-                : selectedStatus === 'reopened'
-                  ? 'O cliente respondeu novamente após você ter respondido. Requer nova atenção.'
-                  : 'Formulários encerrados manualmente. O cliente fica em frozen por 7 dias (e-mails ignorados).'}
-          </div>
-        )}
 
         {/* Content */}
         {loading ? (
