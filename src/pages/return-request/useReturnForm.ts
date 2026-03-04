@@ -76,6 +76,7 @@ export function useReturnForm() {
   const [returnId, setReturnId] = useState<string | null>(saved?.returnId ?? null)
   const [shopName, setShopName] = useState<string | null>(saved?.shopName ?? null)
   const [shopLogoUrl, setShopLogoUrl] = useState<string | null>(saved?.shopLogoUrl ?? null)
+  const [shopLoading, setShopLoading] = useState(!saved?.shopName && !!new URLSearchParams(window.location.search).get('shop'))
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fields, setFields] = useState<FormFields>(saved?.fields ?? initialFields)
@@ -101,6 +102,7 @@ export function useReturnForm() {
       .then(({ data }) => {
         if (data?.name) setShopName(data.name)
         if (data?.language && !saved?.locale) setLocale(data.language as Locale)
+        setShopLoading(false)
         if (data?.logo_url) {
           setShopLogoUrl(data.logo_url)
           return // Logo já cacheado, não precisa buscar
@@ -588,5 +590,6 @@ export function useReturnForm() {
     locale,
     shopName,
     shopLogoUrl,
+    shopLoading,
   }
 }

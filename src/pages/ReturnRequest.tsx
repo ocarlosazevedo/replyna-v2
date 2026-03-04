@@ -246,7 +246,9 @@ export default function ReturnRequest() {
                   border: '1px solid rgba(255,255,255,0.1)',
                   overflow: 'hidden',
                 }}>
-                  {logoUrl && !logoError ? (
+                  {form.shopLoading ? (
+                    <div className="skeleton-shimmer" style={{ width: '100%', height: '100%' }} />
+                  ) : logoUrl && !logoError ? (
                     <img
                       src={logoUrl}
                       alt={storeName || ''}
@@ -258,23 +260,32 @@ export default function ReturnRequest() {
                   )}
                 </div>
                 <div>
-                  <div style={{
-                    fontSize: '22px',
-                    fontWeight: 800,
-                    color: '#fff',
-                    letterSpacing: '-0.5px',
-                    lineHeight: '1.2',
-                  }}>
-                    {storeName || t('header.returnPortal')}
-                  </div>
-                  <div style={{
-                    fontSize: '14px',
-                    color: 'rgba(255,255,255,0.7)',
-                    fontWeight: 500,
-                    marginTop: '4px',
-                  }}>
-                    {t('header.subtitle')}
-                  </div>
+                  {form.shopLoading ? (
+                    <>
+                      <div className="skeleton-shimmer" style={{ width: '160px', height: '22px', borderRadius: '6px' }} />
+                      <div className="skeleton-shimmer" style={{ width: '120px', height: '14px', borderRadius: '4px', marginTop: '6px' }} />
+                    </>
+                  ) : (
+                    <>
+                      <div style={{
+                        fontSize: '22px',
+                        fontWeight: 800,
+                        color: '#fff',
+                        letterSpacing: '-0.5px',
+                        lineHeight: '1.2',
+                      }}>
+                        {storeName || t('header.returnPortal')}
+                      </div>
+                      <div style={{
+                        fontSize: '14px',
+                        color: 'rgba(255,255,255,0.7)',
+                        fontWeight: 500,
+                        marginTop: '4px',
+                      }}>
+                        {t('header.subtitle')}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -392,9 +403,11 @@ export default function ReturnRequest() {
           </div>
 
           <div style={{ fontSize: '12px', lineHeight: '1.4' }}>
-            {storeName
-              ? `© ${new Date().getFullYear()} ${storeName}. ${t('header.allRightsReserved')}`
-              : t('header.securePortal')
+            {form.shopLoading
+              ? <div className="skeleton-shimmer" style={{ width: '200px', height: '14px', borderRadius: '4px', margin: '0 auto', background: 'linear-gradient(90deg, var(--border-color) 25%, var(--bg-card) 50%, var(--border-color) 75%)', backgroundSize: '200% 100%' }} />
+              : storeName
+                ? `© ${new Date().getFullYear()} ${storeName}. ${t('header.allRightsReserved')}`
+                : t('header.securePortal')
             }
           </div>
           <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.6 }}>
@@ -412,6 +425,15 @@ export default function ReturnRequest() {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .skeleton-shimmer {
+          background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.08) 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s ease-in-out infinite;
         }
         input:focus, select:focus, textarea:focus {
           border-color: var(--accent) !important;
