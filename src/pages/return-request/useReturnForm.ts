@@ -76,6 +76,7 @@ export function useReturnForm() {
   const [returnId, setReturnId] = useState<string | null>(saved?.returnId ?? null)
   const [shopName, setShopName] = useState<string | null>(saved?.shopName ?? null)
   const [shopDomain, setShopDomain] = useState<string | null>(saved?.shopDomain ?? null)
+  const [shopLogoUrl, setShopLogoUrl] = useState<string | null>(saved?.shopLogoUrl ?? null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fields, setFields] = useState<FormFields>(saved?.fields ?? initialFields)
@@ -86,28 +87,49 @@ export function useReturnForm() {
 
   const startTime = useRef(Date.now())
 
-  // Fetch shop info on mount (name, domain, language)
+  // Fetch shop info on mount via edge function (name, language, logo)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const shopId = urlParams.get('shop')
     if (!shopId) return
-    supabase
-      .from('shops')
-      .select('name, shopify_domain, language')
-      .eq('id', shopId)
-      .single()
-      .then(({ data }) => {
+
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+    const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+    fetch(`${SUPABASE_URL}/functions/v1/get-shop-public-info`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': ANON_KEY,
+        'Authorization': `Bearer ${ANON_KEY}`,
+      },
+      body: JSON.stringify({ shop_id: shopId }),
+    })
+      .then(res => res.json())
+      .then(data => {
         if (data?.name) setShopName(data.name)
-        if (data?.shopify_domain) setShopDomain(data.shopify_domain)
+        if (data?.logo_url) setShopLogoUrl(data.logo_url)
         if (data?.language && !saved?.locale) setLocale(data.language as Locale)
+      })
+      .catch(() => {
+        // Fallback: buscar direto do banco (sem logo)
+        supabase
+          .from('shops')
+          .select('name, language')
+          .eq('id', shopId)
+          .single()
+          .then(({ data }) => {
+            if (data?.name) setShopName(data.name)
+            if (data?.language && !saved?.locale) setLocale(data.language as Locale)
+          })
       })
   }, [])
 
   // Persist form state to sessionStorage
   useEffect(() => {
-    const data = { currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale, shopName, shopDomain }
+    const data = { currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale, shopName, shopDomain, shopLogoUrl }
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  }, [currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale, shopName, shopDomain])
+  }, [currentStep, customerEmail, orders, selectedOrder, fields, signature, returnId, locale, shopName, shopDomain, shopLogoUrl])
 
   const updateField = useCallback(<K extends keyof FormFields>(key: K, value: FormFields[K]) => {
     setFields(prev => ({ ...prev, [key]: value }))
@@ -564,5 +586,6 @@ export function useReturnForm() {
     locale,
     shopName,
     shopDomain,
+    shopLogoUrl,
   }
 }

@@ -23,8 +23,8 @@ export default function ReturnRequest() {
   const termsText = getTermsText(form.locale)
 
   const storeName = form.shopName || form.selectedOrder?.store_name || form.orders[0]?.store_name || null
-  const faviconUrl = form.shopDomain ? `https://${form.shopDomain}/favicon.ico` : null
-  const [faviconError, setFaviconError] = useState(false)
+  const logoUrl = form.shopLogoUrl || null
+  const [logoError, setLogoError] = useState(false)
   const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light')
 
   const renderStep = () => {
@@ -246,12 +246,12 @@ export default function ReturnRequest() {
                   border: '1px solid rgba(255,255,255,0.1)',
                   overflow: 'hidden',
                 }}>
-                  {faviconUrl && !faviconError ? (
+                  {logoUrl && !logoError ? (
                     <img
-                      src={faviconUrl}
+                      src={logoUrl}
                       alt={storeName || ''}
-                      style={{ width: '32px', height: '32px', objectFit: 'contain' }}
-                      onError={() => setFaviconError(true)}
+                      style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '4px' }}
+                      onError={() => setLogoError(true)}
                     />
                   ) : (
                     storeName ? storeName.charAt(0).toUpperCase() : 'R'
