@@ -1,16 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Navigate } from 'react-router-dom'
 import { FileText, Store, ClipboardList, Link2, Copy, Check, ChevronDown, ChevronUp, Clock, CheckCircle, RefreshCw, XCircle } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile } from '../hooks/useUserProfile'
 import { supabase } from '../lib/supabase'
 import FormDetailModal from '../components/FormDetailModal'
-
-const FORMS_ALLOWED_USERS = new Set([
-  '115571d2-78af-4213-a01b-8a5e3ccf1714', // Carlos Azevedo
-  '8026c11a-f1b5-4fb9-b43b-29e98446eed8', // Carlos Azevedo [MDG]
-])
 
 interface FormRow {
   id: string
@@ -269,10 +263,6 @@ export default function Formularios() {
       setTimeout(() => setCopiedShopId(null), 2000)
     })
   }, [])
-
-  if (user && !FORMS_ALLOWED_USERS.has(user.id)) {
-    return <Navigate to="/dashboard" replace />
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px' }}>
