@@ -95,6 +95,7 @@ export default function Formularios() {
         .eq('archived', false)
         .in('shop_id', shopIds)
         .eq('category', 'troca_devolucao_reembolso')
+        .not('form_data', 'is', null)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -129,7 +130,7 @@ export default function Formularios() {
         { event: 'INSERT', schema: 'public', table: 'conversations' },
         (payload) => {
           const newConv = payload.new as FormRow
-          if (newConv.category === 'troca_devolucao_reembolso' && shopIds.includes(newConv.shop_id)) {
+          if (newConv.category === 'troca_devolucao_reembolso' && shopIds.includes(newConv.shop_id) && (payload.new as any).form_data) {
             setForms((prev) => [
               { ...newConv, shop_name: shopNameMapRef.current[newConv.shop_id] || 'Loja' },
               ...prev.filter((f) => f.id !== newConv.id),
@@ -144,7 +145,7 @@ export default function Formularios() {
           const updated = payload.new as FormRow
           if (!shopIds.includes(updated.shop_id)) return
 
-          if (updated.category === 'troca_devolucao_reembolso' && !updated.archived) {
+          if (updated.category === 'troca_devolucao_reembolso' && !updated.archived && (payload.new as any).form_data) {
             setForms((prev) => {
               const exists = prev.find((f) => f.id === updated.id)
               if (exists) {
