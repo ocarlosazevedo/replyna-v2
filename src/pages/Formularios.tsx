@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import { FileText, Store, ClipboardList } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile } from '../hooks/useUserProfile'
 import { supabase } from '../lib/supabase'
 import FormDetailModal from '../components/FormDetailModal'
+
+const FORMS_ALLOWED_USERS = new Set([
+  '115571d2-78af-4213-a01b-8a5e3ccf1714', // Carlos Azevedo
+])
 
 interface FormRow {
   id: string
@@ -54,7 +59,6 @@ export default function Formularios() {
   const { user } = useAuth()
   const { shops, loading: loadingShops } = useUserProfile()
   const isMobile = useIsMobile()
-
   const [forms, setForms] = useState<FormRow[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
@@ -188,6 +192,10 @@ export default function Formularios() {
   const handleFormClick = useCallback((id: string) => {
     setSelectedConversationId(id)
   }, [])
+
+  if (user && !FORMS_ALLOWED_USERS.has(user.id)) {
+    return <Navigate to="/dashboard" replace />
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px' }}>

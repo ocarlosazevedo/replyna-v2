@@ -6,6 +6,11 @@ import { useUserProfile } from '../hooks/useUserProfile'
 import { supabase } from '../lib/supabase'
 import WhatsAppButton from './WhatsAppButton'
 
+// IDs de contas com acesso ao módulo Formulários
+const FORMS_ALLOWED_USERS = new Set([
+  '115571d2-78af-4213-a01b-8a5e3ccf1714', // Carlos Azevedo
+])
+
 interface DashboardLayoutProps {
   children: React.ReactNode
 }
@@ -47,6 +52,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
 
     const fetchFormsCount = async () => {
+      if (!user || !FORMS_ALLOWED_USERS.has(user.id)) return
       const { count } = await supabase
         .from('conversations')
         .select('id', { count: 'exact', head: true })
@@ -92,7 +98,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const menuItems = [
     { path: '/dashboard', label: 'Painel de controle', icon: LayoutGrid },
     { path: '/tickets', label: 'Tickets', icon: Ticket, badge: ticketCount },
-    { path: '/formularios', label: 'Formulários', icon: FileText, badge: formsCount },
+    ...(user && FORMS_ALLOWED_USERS.has(user.id)
+      ? [{ path: '/formularios', label: 'Formulários', icon: FileText, badge: formsCount }]
+      : []),
     { path: '/shops', label: 'Minhas lojas', icon: Store },
   ]
 
