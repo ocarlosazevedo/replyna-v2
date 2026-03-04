@@ -292,15 +292,12 @@ export default function Tickets() {
         </div>
       </div>
 
-      {/* Info cards com scroll horizontal */}
+      {/* Info cards grid */}
       <div
-        className="replyna-scrollbar"
         style={{
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
           gap: isMobile ? '10px' : '14px',
-          overflowX: 'auto',
-          paddingBottom: '4px',
-          scrollBehavior: 'smooth',
         }}
       >
         {FILTER_CARDS.map((card) => {
@@ -309,18 +306,16 @@ export default function Tickets() {
             <div
               key={card.key}
               style={{
-                minWidth: isMobile ? '200px' : '220px',
                 backgroundColor: 'var(--bg-card)',
                 borderRadius: '14px',
-                padding: isMobile ? '14px' : '16px',
+                padding: isMobile ? '12px' : '16px',
                 border: '1px solid var(--border-color)',
-                flex: '0 0 auto',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                 <div style={{
-                  width: '34px',
-                  height: '34px',
+                  width: isMobile ? '28px' : '34px',
+                  height: isMobile ? '28px' : '34px',
                   borderRadius: '9px',
                   backgroundColor: card.bg,
                   display: 'flex',
@@ -328,13 +323,13 @@ export default function Tickets() {
                   justifyContent: 'center',
                   flexShrink: 0,
                 }}>
-                  <Icon size={17} style={{ color: card.color }} />
+                  <Icon size={isMobile ? 14 : 17} style={{ color: card.color }} />
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: card.color }}>
+                <div style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: 700, color: card.color }}>
                   {card.title}
                 </div>
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              <div style={{ fontSize: isMobile ? '11px' : '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                 {card.description}
               </div>
             </div>
