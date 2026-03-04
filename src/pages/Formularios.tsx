@@ -402,7 +402,7 @@ export default function Formularios() {
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                     }}>
-                      {shop.name.toLowerCase().replace(/\s+/g, '')}.com/formulario-devolucao
+                      Formulário de devolução — {shop.name}
                     </div>
                   </div>
                   <button
