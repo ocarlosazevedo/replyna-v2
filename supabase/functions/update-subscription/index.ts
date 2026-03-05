@@ -167,6 +167,69 @@ serve(async (req) => {
       );
     }
 
+    // === TRIAL -> PAGO: ativar cobranca ===
+    if (subscription.status === 'trialing') {
+      console.log(`[UpdateSubscription] Trial user ${user_id} upgrading to ${newPlan.name}`);
+
+      // Atualizar assinatura no Asaas: novo valor + nextDueDate = hoje (cobrar agora)
+      const today = new Date();
+      const nextDueDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+      await asaasUpdateSubscription(subscription.asaas_subscription_id, {
+        value: Number(newPlan.price_monthly || 0),
+        description: `Replyna - Plano ${newPlan.name}`,
+        cycle: 'MONTHLY',
+        nextDueDate,
+        updatePendingPayments: true,
+      });
+
+      const periodEnd = new Date(today);
+      periodEnd.setDate(periodEnd.getDate() + 30);
+
+      // Ativar subscription
+      await supabase
+        .from('subscriptions')
+        .update({
+          plan_id: new_plan_id,
+          status: 'active',
+          billing_cycle: 'monthly',
+          current_period_start: today.toISOString(),
+          current_period_end: periodEnd.toISOString(),
+          updated_at: today.toISOString(),
+        })
+        .eq('id', subscription.id);
+
+      // Ativar user com plano pago
+      await supabase
+        .from('users')
+        .update({
+          plan: newPlan.name,
+          emails_limit: newPlan.emails_limit,
+          shops_limit: newPlan.shops_limit,
+          emails_used: 0,
+          extra_emails_used: 0,
+          pending_extra_emails: 0,
+          is_trial: false,
+          updated_at: today.toISOString(),
+        })
+        .eq('id', user_id);
+
+      // Buscar URL de pagamento para o usuario pagar
+      const payments = await getPaymentsBySubscription(subscription.asaas_subscription_id, { limit: 1, order: 'desc' });
+      const firstPayment = payments.data?.[0];
+      const invoiceUrl = firstPayment?.invoiceUrl || null;
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          requires_payment_method: !!invoiceUrl,
+          checkout_url: invoiceUrl,
+          plan: newPlan.name,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // === COM ASSINATURA ATIVA: atualizar plano existente ===
     let currentPlan = null;
     if (subscription.plan_id) {

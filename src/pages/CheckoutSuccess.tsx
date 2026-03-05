@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams()
@@ -11,6 +10,7 @@ export default function CheckoutSuccess() {
 
   useEffect(() => {
     // Limpar dados temporários do registro
+    const pendingData = localStorage.getItem('pending_registration')
     localStorage.removeItem('pending_registration')
 
     // Google Ads conversion tracking - checkout success
@@ -22,27 +22,24 @@ export default function CheckoutSuccess() {
       })
     }
 
-    // Confirmar pagamento no backend (ativa subscription + user)
-    const confirmPayment = async () => {
+    // Tentar logar via magic link salvo no localStorage
+    const tryMagicLogin = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-subscription-payment`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({ user_id: user.id }),
-          })
+        if (pendingData) {
+          const parsed = JSON.parse(pendingData)
+          if (parsed.magic_link) {
+            // Redirecionar para magic link para logar automaticamente
+            window.location.href = parsed.magic_link
+            return
+          }
         }
       } catch (err) {
-        console.error('Erro ao confirmar pagamento:', err)
+        console.error('Erro ao processar login automatico:', err)
       }
       setStatus('success')
     }
 
-    confirmPayment()
+    tryMagicLogin()
   }, [])
 
   if (status === 'processing') {
@@ -78,7 +75,7 @@ export default function CheckoutSuccess() {
             color: 'var(--text-primary)',
             marginBottom: '8px',
           }}>
-            Confirmando pagamento...
+            Configurando sua conta...
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
             Aguarde um momento
@@ -130,7 +127,7 @@ export default function CheckoutSuccess() {
           color: 'var(--text-primary)',
           marginBottom: '8px',
         }}>
-          Pagamento confirmado!
+          Conta criada com sucesso!
         </h2>
 
         <p style={{
@@ -139,7 +136,7 @@ export default function CheckoutSuccess() {
           marginBottom: '24px',
           lineHeight: 1.6,
         }}>
-          Sua assinatura foi ativada com sucesso.
+          Seu periodo de teste gratuito foi ativado com 30 emails.
         </p>
 
         <div style={{

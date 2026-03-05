@@ -139,7 +139,10 @@ serve(async (req) => {
       });
     }
 
-    const nextDueDate = formatDateYYYYMMDD(new Date());
+    // nextDueDate 1 ano no futuro: usuario comeca como trial, so cobrado no upgrade
+    const futureDate = new Date();
+    futureDate.setFullYear(futureDate.getFullYear() + 1);
+    const nextDueDate = formatDateYYYYMMDD(futureDate);
 
     // Criar assinatura (valor ja com desconto aplicado, sem usar discount do Asaas para evitar desconto duplicado)
     const subscription = await createSubscription({
@@ -186,26 +189,28 @@ serve(async (req) => {
       throw new Error('Erro ao criar usuario no Auth: ID ausente');
     }
 
-    // Insert na tabela users (nunca upsert)
-    // Status 'inactive' ate o pagamento ser confirmado via webhook
+    // Insert na tabela users como trial ativo
+    // Cartao foi adicionado no Asaas, cobranca so no upgrade
+    const now = new Date();
     await supabase
       .from('users')
       .insert({
         id: userId,
         email: normalizedEmail,
         name: user_name || null,
-        plan: plan.name,
-        emails_limit: plan.emails_limit,
-        shops_limit: plan.shops_limit,
+        plan: 'Free Trial',
+        emails_limit: 30,
+        shops_limit: 1,
         emails_used: 0,
         extra_emails_purchased: 0,
         extra_emails_used: 0,
         pending_extra_emails: 0,
         asaas_customer_id: customer.id,
-        status: 'inactive',
-        is_trial: false,
+        status: 'active',
+        is_trial: true,
+        trial_started_at: now.toISOString(),
         whatsapp_number: whatsapp_number || null,
-        updated_at: new Date().toISOString(),
+        updated_at: now.toISOString(),
       });
 
     // Criar/atualizar assinatura no banco
@@ -213,13 +218,13 @@ serve(async (req) => {
     const periodEnd = new Date(now);
     periodEnd.setDate(periodEnd.getDate() + 30);
 
-    // Status 'incomplete' ate o primeiro pagamento ser confirmado via webhook
+    // Status 'trialing' - usuario em trial, assinatura sera ativada no upgrade
     const subscriptionData = {
       user_id: userId,
       plan_id: plan.id,
       asaas_customer_id: customer.id,
       asaas_subscription_id: subscription.id,
-      status: 'incomplete',
+      status: 'trialing',
       billing_cycle: 'monthly',
       current_period_start: now.toISOString(),
       current_period_end: periodEnd.toISOString(),
@@ -239,10 +244,21 @@ serve(async (req) => {
       });
     }
 
+    // Gerar magic link para login automatico apos checkout
+    const { data: linkData } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email: normalizedEmail,
+      options: {
+        redirectTo: `${origin || 'https://app.replyna.me'}/dashboard`,
+      },
+    });
+    const magicLink = linkData?.properties?.action_link || null;
+
     return new Response(
       JSON.stringify({
         url: invoiceUrl,
         subscription_id: subscription.id,
+        magic_link: magicLink,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
