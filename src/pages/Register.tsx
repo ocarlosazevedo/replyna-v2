@@ -198,7 +198,7 @@ export default function Register() {
       {/* Page content - centered vertically in remaining space */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 24px', minHeight: 0 }}>
         {/* Title just above cards */}
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <h1 style={{
             fontSize: '24px',
             fontWeight: 700,
