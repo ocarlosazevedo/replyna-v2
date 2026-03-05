@@ -200,7 +200,7 @@ export default function Register() {
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gridTemplateColumns: 'repeat(6, 1fr)',
             gap: '20px',
           }}>
             {/* Free Trial card */}
