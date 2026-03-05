@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams()
@@ -21,12 +22,27 @@ export default function CheckoutSuccess() {
       })
     }
 
-    // Mostrar sucesso após pequeno delay para UX
-    const timer = setTimeout(() => {
+    // Confirmar pagamento no backend (ativa subscription + user)
+    const confirmPayment = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-subscription-payment`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ user_id: user.id }),
+          })
+        }
+      } catch (err) {
+        console.error('Erro ao confirmar pagamento:', err)
+      }
       setStatus('success')
-    }, 1500)
+    }
 
-    return () => clearTimeout(timer)
+    confirmPayment()
   }, [])
 
   if (status === 'processing') {

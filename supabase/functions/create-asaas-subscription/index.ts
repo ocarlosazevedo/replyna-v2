@@ -203,6 +203,7 @@ serve(async (req) => {
         pending_extra_emails: 0,
         asaas_customer_id: customer.id,
         status: 'inactive',
+        is_trial: false,
         whatsapp_number: whatsapp_number || null,
         updated_at: new Date().toISOString(),
       });

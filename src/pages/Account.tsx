@@ -13,11 +13,13 @@ interface UserProfile {
   emails_used: number | null
   shops_limit: number | null
   created_at: string | null
-  extra_emails_purchased: number | null // Total de emails extras comprados
-  extra_emails_used: number | null // Total de emails extras usados
-  extra_email_price: number | null // Preço por email extra (do plano)
-  extra_email_package_size: number | null // Tamanho do pacote de emails extras (do plano)
+  extra_emails_purchased: number | null
+  extra_emails_used: number | null
+  extra_email_price: number | null
+  extra_email_package_size: number | null
   whatsapp_number: string | null
+  is_trial: boolean | null
+  trial_started_at: string | null
 }
 
 interface Plan {
@@ -450,24 +452,26 @@ export default function Account() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number')
+        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number, is_trial, trial_started_at')
         .eq('id', user.id)
         .maybeSingle()
 
       if (error) throw error
 
-      // Se não existir registro na tabela users, criar um
+      // Se não existir registro na tabela users, criar um (free trial)
       if (!data) {
         const newUserData = {
           id: user.id,
           email: user.email,
           name: user.user_metadata?.name || null,
-          plan: 'Starter',
-          emails_limit: 500,
+          plan: 'Free Trial',
+          emails_limit: 30,
           emails_used: 0,
           shops_limit: 1,
           extra_emails_purchased: 0,
           extra_emails_used: 0,
+          is_trial: true,
+          trial_started_at: new Date().toISOString(),
         }
 
         const { error: insertError } = await supabase
@@ -491,6 +495,8 @@ export default function Account() {
           extra_email_price: null,
           extra_email_package_size: null,
           whatsapp_number: null,
+          is_trial: true,
+          trial_started_at: newUserData.trial_started_at,
         })
         setName(newUserData.name || '')
         setEmail(newUserData.email || '')
@@ -500,6 +506,8 @@ export default function Account() {
           extra_email_price: null,
           extra_email_package_size: null,
           whatsapp_number: data.whatsapp_number || null,
+          is_trial: data.is_trial ?? false,
+          trial_started_at: data.trial_started_at || null,
         })
         setName(data.name || user.user_metadata?.name || '')
         setEmail(data.email || user.email || '')
@@ -532,6 +540,8 @@ export default function Account() {
           extra_email_price: planData?.extra_email_price ?? 1,
           extra_email_package_size: planData?.extra_email_package_size ?? 100,
           whatsapp_number: data.whatsapp_number || null,
+          is_trial: data.is_trial ?? false,
+          trial_started_at: data.trial_started_at || null,
         })
       }
     } catch (err) {
@@ -820,13 +830,15 @@ export default function Account() {
         // Recarregar profile para atualizar créditos
         const { data: newProfile } = await supabase
           .from('users')
-          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number')
+          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number, is_trial, trial_started_at')
           .eq('id', user.id)
           .single()
         if (newProfile) setProfile({
           ...newProfile,
           extra_email_price: profile?.extra_email_price ?? null,
           extra_email_package_size: profile?.extra_email_package_size ?? null,
+          is_trial: newProfile.is_trial ?? false,
+          trial_started_at: newProfile.trial_started_at || null,
         })
       } else {
         setNotice({ type: 'error', message })
@@ -894,7 +906,7 @@ export default function Account() {
       // Recarregar profile do banco para garantir dados sincronizados
       const { data: updatedProfile, error: profileError } = await supabase
         .from('users')
-        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number')
+        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number, is_trial, trial_started_at')
         .eq('id', user.id)
         .single()
 
@@ -905,6 +917,8 @@ export default function Account() {
           ...updatedProfile,
           extra_email_price: profile?.extra_email_price ?? null,
           extra_email_package_size: profile?.extra_email_package_size ?? null,
+          is_trial: updatedProfile.is_trial ?? false,
+          trial_started_at: updatedProfile.trial_started_at || null,
         })
       } else if (result.new_plan) {
         // Fallback: atualizar localmente se não conseguir recarregar
@@ -1303,6 +1317,75 @@ export default function Account() {
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '16px' }}>
+                {profile?.is_trial ? (
+                <div style={{ borderRadius: '14px', border: '1px solid #f59e0b', padding: '16px', backgroundColor: 'rgba(245, 158, 11, 0.08)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '3px 10px',
+                      borderRadius: '20px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      backgroundColor: '#f59e0b',
+                      color: '#ffffff',
+                    }}>
+                      Periodo de Teste
+                    </span>
+                  </div>
+                  <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    Voce possui <strong style={{ color: 'var(--text-primary)' }}>{30 - (profile?.emails_used ?? 0)}</strong> emails restantes no seu periodo de teste gratuito.
+                  </p>
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Emails utilizados</span>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: (profile?.emails_used ?? 0) >= 30 ? '#ef4444' : '#f59e0b' }}>
+                        {profile?.emails_used ?? 0} / 30
+                      </span>
+                    </div>
+                    <div style={{ height: '8px', backgroundColor: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${Math.min(((profile?.emails_used ?? 0) / 30) * 100, 100)}%`,
+                          backgroundColor: (profile?.emails_used ?? 0) >= 30 ? '#ef4444' : '#f59e0b',
+                          borderRadius: '4px',
+                          transition: 'width 0.3s ease',
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {(profile?.emails_used ?? 0) >= 30 && (
+                    <div style={{
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      marginBottom: '12px',
+                    }}>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>
+                        Seu periodo de teste acabou. Assine um plano para continuar respondendo emails automaticamente.
+                      </p>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleOpenPlanModal}
+                    style={{
+                      width: '100%',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: 'var(--accent)',
+                      color: '#ffffff',
+                      padding: '12px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Assinar um plano
+                  </button>
+                </div>
+              ) : (
                 <div style={{ borderRadius: '14px', border: '1px solid var(--border-color)', padding: '16px', backgroundColor: 'var(--bg-primary)' }}>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
                     Plano {planName}
@@ -1407,6 +1490,7 @@ export default function Account() {
                     Atualizar método de pagamento
                   </button>
                 </div>
+              )}
 
                 <div style={{ borderRadius: '14px', border: '1px solid var(--border-color)', padding: '16px', backgroundColor: 'var(--bg-primary)' }}>
                   <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
@@ -1458,8 +1542,8 @@ export default function Account() {
                   </div>
                 </div>
 
-                {/* Seção de Emails Extras - aparece apenas quando excedeu o limite do plano */}
-                {emailsLimit !== null && emailsLimit !== undefined && profile?.emails_used !== null && profile?.emails_used !== undefined && profile.emails_used >= emailsLimit && (
+                {/* Seção de Emails Extras - aparece apenas quando excedeu o limite do plano (não para trial) */}
+                {!profile?.is_trial && emailsLimit !== null && emailsLimit !== undefined && profile?.emails_used !== null && profile?.emails_used !== undefined && profile.emails_used >= emailsLimit && (
                   <div style={{
                     borderRadius: '14px',
                     border: '1px solid #f59e0b',

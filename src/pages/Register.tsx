@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { Sun, Moon, Check, Star, ArrowRight, ArrowLeft, MessageCircle, Tag, X, Loader2 } from 'lucide-react'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { Sun, Moon, Check, Star, ArrowRight, ArrowLeft, MessageCircle, Tag, X, Loader2, Gift } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { supabase } from '../lib/supabase'
 
@@ -26,11 +26,14 @@ interface Plan {
 
 export default function Register() {
   const { theme, setTheme } = useTheme()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const preselectedPlan = searchParams.get('plan')
 
   // Step management
   const [step, setStep] = useState<'plan' | 'account'>(preselectedPlan ? 'account' : 'plan')
+  const [isTrialFlow, setIsTrialFlow] = useState(false)
+  const [trialLoading, setTrialLoading] = useState(false)
 
   // Plans
   const [plans, setPlans] = useState<Plan[]>([])
@@ -203,6 +206,61 @@ export default function Register() {
     setShowCouponField(false)
   }
 
+  const handleTrialSelect = () => {
+    setIsTrialFlow(true)
+    setSelectedPlan(null)
+    setStep('account')
+  }
+
+  const handleTrialSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (!email.trim() || !name.trim()) {
+      setError('Preencha nome e email')
+      return
+    }
+
+    setTrialLoading(true)
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-trial-account`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          email: email.toLowerCase(),
+          name,
+          whatsapp_number: getFullPhoneNumber() || undefined,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao criar conta')
+      }
+
+      // If we got a magic link, redirect to it so the user is logged in automatically
+      if (data.magic_link) {
+        window.location.href = data.magic_link
+      } else {
+        // Fallback: send password reset and show success
+        await supabase.auth.resetPasswordForEmail(email.toLowerCase(), {
+          redirectTo: `${window.location.origin}/reset-password`,
+        })
+        navigate('/login?trial=success')
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao criar conta'
+      setError(errorMessage)
+    } finally {
+      setTrialLoading(false)
+    }
+  }
+
   const getDiscountedPrice = () => {
     if (!selectedPlan || !couponValidation?.is_valid) return null
 
@@ -373,12 +431,14 @@ export default function Register() {
             color: 'var(--text-primary)',
             marginBottom: '8px',
           }}>
-            {step === 'plan' ? 'Escolha seu plano' : 'Finalize seu cadastro'}
+            {step === 'plan' ? 'Escolha seu plano' : isTrialFlow ? 'Crie sua conta gratuita' : 'Finalize seu cadastro'}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
             {step === 'plan'
               ? 'Selecione o plano ideal para o seu negocio'
-              : `Plano ${selectedPlan?.name} selecionado`}
+              : isTrialFlow
+                ? '30 emails gratis para voce experimentar'
+                : `Plano ${selectedPlan?.name} selecionado`}
           </p>
 
           {/* Step indicator */}
@@ -454,6 +514,83 @@ export default function Register() {
       {/* Step: Select Plan */}
       {step === 'plan' && (
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          {/* Free Trial Card */}
+          <div
+            onClick={handleTrialSelect}
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '16px',
+              padding: '24px',
+              border: '2px solid #f59e0b',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              marginBottom: '24px',
+              maxWidth: '600px',
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '20px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <Gift size={24} style={{ color: '#f59e0b' }} />
+              </div>
+              <div>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  marginBottom: '4px',
+                }}>
+                  Teste Gratuito
+                </h3>
+                <p style={{
+                  fontSize: '14px',
+                  color: 'var(--text-secondary)',
+                  margin: 0,
+                }}>
+                  Experimente gratis com 30 emails e 1 loja. Sem cartao de credito.
+                </p>
+              </div>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexShrink: 0,
+            }}>
+              <span style={{
+                fontSize: '20px',
+                fontWeight: 700,
+                color: '#f59e0b',
+              }}>
+                Gratis
+              </span>
+              <ArrowRight size={18} style={{ color: '#f59e0b' }} />
+            </div>
+          </div>
+
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '24px',
+            fontSize: '14px',
+            color: 'var(--text-secondary)',
+          }}>
+            ou escolha um plano pago
+          </div>
+
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
@@ -654,8 +791,243 @@ export default function Register() {
         </div>
       )}
 
-      {/* Step: Account Details */}
-      {step === 'account' && selectedPlan && (
+      {/* Step: Account Details (Trial) */}
+      {step === 'account' && isTrialFlow && (
+        <div style={{
+          maxWidth: '480px',
+          margin: '0 auto',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: '16px',
+          padding: '24px',
+          border: '1px solid var(--border-color)',
+        }}>
+          <button
+            onClick={() => { setStep('plan'); setIsTrialFlow(false) }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              marginBottom: '20px',
+              padding: 0,
+              fontSize: '14px',
+            }}
+          >
+            <ArrowLeft size={16} />
+            Voltar para planos
+          </button>
+
+          <div style={{
+            padding: '16px',
+            backgroundColor: 'rgba(245, 158, 11, 0.06)',
+            borderRadius: '12px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}>
+            <Gift size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Teste Gratuito
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                30 emails/mes - 1 loja - Sem cartao de credito
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleTrialSubmit}>
+            {error && (
+              <div style={{
+                backgroundColor: '#fef2f2',
+                color: '#dc2626',
+                padding: '12px',
+                borderRadius: '10px',
+                fontSize: '14px',
+                marginBottom: '16px',
+              }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: 'var(--text-secondary)',
+                marginBottom: '8px',
+              }}>
+                Nome completo
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid var(--input-border)',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                }}
+                placeholder="Seu nome"
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: 'var(--text-secondary)',
+                marginBottom: '8px',
+              }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid var(--input-border)',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                }}
+                placeholder="seu@email.com"
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: 'var(--text-secondary)',
+                marginBottom: '8px',
+              }}>
+                Numero de Celular
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  style={{
+                    padding: '12px 8px',
+                    border: '1px solid var(--input-border)',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    minWidth: '110px',
+                  }}
+                >
+                  {countryCodes.map((c) => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '12px 16px',
+                    border: '1px solid var(--input-border)',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    boxSizing: 'border-box',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                  }}
+                  placeholder="11 99999-9999"
+                />
+              </div>
+            </div>
+
+            <div style={{
+              padding: '16px',
+              backgroundColor: 'rgba(245, 158, 11, 0.06)',
+              borderRadius: '12px',
+              marginBottom: '24px',
+            }}>
+              <p style={{
+                fontSize: '14px',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.5,
+                margin: 0,
+              }}>
+                Enviaremos um email para voce definir sua senha e acessar sua conta.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={trialLoading}
+              style={{
+                width: '100%',
+                backgroundColor: '#f59e0b',
+                color: '#fff',
+                padding: '14px',
+                borderRadius: '10px',
+                fontWeight: '600',
+                fontSize: '16px',
+                border: 'none',
+                cursor: trialLoading ? 'not-allowed' : 'pointer',
+                opacity: trialLoading ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              {trialLoading ? (
+                <>
+                  <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                  Criando sua conta...
+                </>
+              ) : (
+                <>
+                  Comecar teste gratuito
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div style={{
+            marginTop: '24px',
+            textAlign: 'center',
+            fontSize: '14px',
+            color: 'var(--text-secondary)',
+          }}>
+            Ja tem conta?{' '}
+            <Link
+              to="/login"
+              style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '500' }}
+            >
+              Fazer login
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Step: Account Details (Paid) */}
+      {step === 'account' && !isTrialFlow && selectedPlan && (
         <div style={{
           maxWidth: '480px',
           margin: '0 auto',

@@ -149,13 +149,9 @@ serve(async (req) => {
         cancel_at_period_end: false,
       });
 
-      // Atualizar plano do usuario
-      await supabase.from('users').update({
-        plan: newPlan.name,
-        emails_limit: newPlan.emails_limit,
-        shops_limit: newPlan.shops_limit,
-        updated_at: now.toISOString(),
-      }).eq('id', user_id);
+      // NAO atualizar plano do usuario aqui - o webhook de pagamento confirmado
+      // (PAYMENT_RECEIVED) vai atualizar o plano quando o pagamento for concluido.
+      // Isso evita que o usuario tenha o plano alterado sem pagar.
 
       console.log(`[UpdateSubscription] Nova assinatura criada: ${newAsaasSub.id}, invoice: ${invoiceUrl}`);
 
@@ -217,6 +213,7 @@ serve(async (req) => {
         emails_used: 0,
         extra_emails_used: 0,
         pending_extra_emails: 0,
+        is_trial: false,
         updated_at: now.toISOString(),
       })
       .eq('id', user_id);
