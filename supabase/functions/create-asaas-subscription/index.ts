@@ -156,15 +156,32 @@ serve(async (req) => {
       });
     }
 
-    // Criar assinatura no Asaas com nextDueDate 1 ano no futuro (sem cobranca imediata)
+    // === TRIAL: apenas criar customer (lead), sem assinatura/checkout ===
+    if (is_trial) {
+      console.log(`[CreateSubscription] Trial flow - customer only: ${customer.id}`);
+
+      return new Response(
+        JSON.stringify({
+          url: null,
+          asaas_customer_id: customer.id,
+          asaas_subscription_id: null,
+          plan_id: plan.id,
+          plan_name: plan.name,
+          coupon_id: null,
+          discount_applied: 0,
+          is_trial: true,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // === PAGO: criar assinatura no Asaas com checkout ===
     const futureDate = new Date();
     futureDate.setFullYear(futureDate.getFullYear() + 1);
     const nextDueDate = formatDateYYYYMMDD(futureDate);
 
     let subscriptionDescription = `Replyna - Plano ${plan.name}`;
-    if (is_trial) {
-      subscriptionDescription = `Replyna - Free Trial (Plano ${plan.name})`;
-    } else if (couponId) {
+    if (couponId) {
       subscriptionDescription = `Replyna - Plano ${plan.name} (Cupom aplicado: -${discountApplied.toFixed(2)})`;
     }
 
@@ -186,10 +203,8 @@ serve(async (req) => {
     const firstPayment = payments.data?.[0];
     const invoiceUrl = firstPayment?.invoiceUrl || null;
 
-    console.log(`[CreateSubscription] Asaas subscription created: ${subscription.id}, trial: ${is_trial}, invoice: ${invoiceUrl}`);
+    console.log(`[CreateSubscription] Subscription created: ${subscription.id}, invoice: ${invoiceUrl}`);
 
-    // NAO criar conta aqui - sera criada no confirm-registration apos checkout
-    // Retornar dados para o frontend salvar no localStorage
     return new Response(
       JSON.stringify({
         url: invoiceUrl,
@@ -199,7 +214,7 @@ serve(async (req) => {
         plan_name: plan.name,
         coupon_id: couponId,
         discount_applied: discountApplied,
-        is_trial: is_trial || false,
+        is_trial: false,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

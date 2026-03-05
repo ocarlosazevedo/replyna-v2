@@ -55,9 +55,9 @@ serve(async (req) => {
       is_trial,
     } = body;
 
-    if (!email || !plan_id || !asaas_customer_id || !asaas_subscription_id) {
+    if (!email || !plan_id || !asaas_customer_id) {
       return new Response(
-        JSON.stringify({ error: 'Campos obrigatorios: email, plan_id, asaas_customer_id, asaas_subscription_id' }),
+        JSON.stringify({ error: 'Campos obrigatorios: email, plan_id, asaas_customer_id' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -65,14 +65,16 @@ serve(async (req) => {
     const normalizedEmail = email.toLowerCase();
     const supabase = getSupabaseAdmin();
 
-    // Verificar se a assinatura existe no Asaas (prevenir chamadas falsas)
-    try {
-      await getSubscription(asaas_subscription_id);
-    } catch {
-      return new Response(
-        JSON.stringify({ error: 'Assinatura nao encontrada no Asaas' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Verificar assinatura no Asaas se fornecida (pago, nao trial)
+    if (asaas_subscription_id) {
+      try {
+        await getSubscription(asaas_subscription_id);
+      } catch {
+        return new Response(
+          JSON.stringify({ error: 'Assinatura nao encontrada no Asaas' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Verificar se usuario ja existe (evitar duplicatas se chamado 2x)
@@ -162,31 +164,33 @@ serve(async (req) => {
       updated_at: now.toISOString(),
     });
 
-    // Criar subscription no banco
-    const periodEnd = new Date(now);
-    periodEnd.setDate(periodEnd.getDate() + 30);
+    // Criar subscription no banco (apenas se tem assinatura no Asaas - fluxo pago)
+    if (asaas_subscription_id) {
+      const periodEnd = new Date(now);
+      periodEnd.setDate(periodEnd.getDate() + 30);
 
-    await supabase.from('subscriptions').insert({
-      user_id: userId,
-      plan_id,
-      asaas_customer_id,
-      asaas_subscription_id,
-      status: 'trialing',
-      billing_cycle: 'monthly',
-      current_period_start: now.toISOString(),
-      current_period_end: periodEnd.toISOString(),
-      cancel_at_period_end: false,
-      coupon_id: coupon_id || null,
-    });
-
-    // Aplicar cupom se houver
-    if (coupon_id && discount_applied) {
-      await supabase.rpc('use_coupon', {
-        p_coupon_id: coupon_id,
-        p_user_id: userId,
-        p_discount_applied: discount_applied,
-        p_subscription_id: asaas_subscription_id,
+      await supabase.from('subscriptions').insert({
+        user_id: userId,
+        plan_id,
+        asaas_customer_id,
+        asaas_subscription_id,
+        status: 'trialing',
+        billing_cycle: 'monthly',
+        current_period_start: now.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+        cancel_at_period_end: false,
+        coupon_id: coupon_id || null,
       });
+
+      // Aplicar cupom se houver
+      if (coupon_id && discount_applied) {
+        await supabase.rpc('use_coupon', {
+          p_coupon_id: coupon_id,
+          p_user_id: userId,
+          p_discount_applied: discount_applied,
+          p_subscription_id: asaas_subscription_id,
+        });
+      }
     }
 
     // Gerar magic link para login automatico

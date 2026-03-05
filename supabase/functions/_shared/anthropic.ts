@@ -1147,13 +1147,32 @@ function cleanDuplicateSignature(text: string, attendantName: string, storeName:
   const escapedName = attendantName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const escapedStore = storeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  // Pattern: "Name - Store\nStore" or "Name - Store\n\nStore" → "Name\nStore"
+  let result = text;
+
+  // REMOVE SIGNATURE FROM THE BEGINNING of the response
+  // AI sometimes puts "Name - Store\nStore\n\n" or "Name\nStore\n\n" at the start like a letter header
+  const headerPatterns = [
+    // "Name - Store\nStore\n" at start
+    new RegExp(`^\\s*${escapedName}\\s*[-–—]\\s*${escapedStore}\\s*\\n+\\s*${escapedStore}\\s*\\n+`, 'i'),
+    // "Name\nStore\n" at start
+    new RegExp(`^\\s*${escapedName}\\s*\\n+\\s*${escapedStore}\\s*\\n+`, 'i'),
+    // "Name - Store\n" at start (without separate store line)
+    new RegExp(`^\\s*${escapedName}\\s*[-–—]\\s*${escapedStore}\\s*\\n+`, 'i'),
+  ];
+  for (const pattern of headerPatterns) {
+    if (pattern.test(result)) {
+      result = result.replace(pattern, '');
+      break;
+    }
+  }
+
+  // Pattern: "Name - Store\nStore" or "Name - Store\n\nStore" → "Name\nStore" at end
   const dupPattern = new RegExp(
     `${escapedName}\\s*[-–—,]\\s*${escapedStore}\\s*\\n+\\s*${escapedStore}\\s*$`,
     'i'
   );
-  if (dupPattern.test(text)) {
-    return text.replace(dupPattern, `${attendantName}\n${storeName}`);
+  if (dupPattern.test(result)) {
+    return result.replace(dupPattern, `${attendantName}\n${storeName}`);
   }
 
   // Pattern: "Name - Store" at end (no separate store line) → "Name\nStore"
@@ -1161,11 +1180,11 @@ function cleanDuplicateSignature(text: string, attendantName: string, storeName:
     `${escapedName}\\s*[-–—]\\s*${escapedStore}\\s*$`,
     'i'
   );
-  if (combinedPattern.test(text)) {
-    return text.replace(combinedPattern, `${attendantName}\n${storeName}`);
+  if (combinedPattern.test(result)) {
+    return result.replace(combinedPattern, `${attendantName}\n${storeName}`);
   }
 
-  return text;
+  return result;
 }
 
 /**
@@ -3112,7 +3131,11 @@ ASSINATURA DO EMAIL (OBRIGATÓRIO):
 - O nome do atendente numa linha, o nome da loja na linha seguinte
 - NUNCA coloque o nome e a loja na mesma linha do texto
 - NUNCA use formato "Nome - Loja" ou "Nome, Loja" na mesma linha (PROIBIDO: "${shopContext.attendant_name} - ${shopContext.name}")
+- NUNCA coloque seu nome ou o nome da loja NO INÍCIO do email. A assinatura vai APENAS NO FINAL.
+- O email deve COMEÇAR com a saudação (Hello, Dear, Hi, etc.), NUNCA com seu nome.
 - Formato OBRIGATÓRIO:
+  [saudação]
+
   [texto da resposta]
 
   ${shopContext.attendant_name}
@@ -4927,7 +4950,7 @@ ${shopifyData?.order_number ? `Order data:
 - Items: ${shopifyData.items.map((i) => `${i.name} (x${i.quantity})`).join(', ') || 'N/A'}
 - Customer: ${shopifyData.customer_name || 'N/A'}
 Only use data listed above. NEVER invent data.` : 'No order data available. Do NOT invent order numbers, tracking codes, or other data.'}
-Format: Sign only with "${shopContext.attendant_name}" on one line, then "${shopContext.name}" on the next.
+Format: Sign only with "${shopContext.attendant_name}" on one line, then "${shopContext.name}" on the next. Signature goes ONLY at the END. NEVER put your name at the beginning of the email. Start with the greeting (Dear/Hello/Hi), NOT your name.
 NEVER use formal closings: "Atenciosamente", "Sincerely", "Best regards", "Kind regards", "Cordialement", "Cordiali saluti", "Mit freundlichen Grüßen".
 NEVER say you "checked", "processed", "verified", or "contacted" anything. You CANNOT take actions.
 NEVER promise "I'll get back to you" or "I'll follow up". You WON'T.
