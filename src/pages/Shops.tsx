@@ -201,8 +201,10 @@ export default function Shops() {
         }
       )
 
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error || 'Erro ao excluir loja')
+      const text = await response.text()
+      let result: any
+      try { result = JSON.parse(text) } catch { result = { error: text } }
+      if (!response.ok) throw new Error(result.error || result.message || `Status ${response.status}: ${text}`)
 
       loadShops()
     } catch (err: any) {
