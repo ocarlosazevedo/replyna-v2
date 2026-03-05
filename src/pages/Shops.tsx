@@ -186,12 +186,24 @@ export default function Shops() {
 
     setDeletingShopId(shopId)
     try {
-      const { data, error } = await supabase.functions.invoke('delete-shop', {
-        body: { shopId },
-      })
+      // Force token refresh before calling function
+      const { data: { session } } = await supabase.auth.refreshSession()
+      if (!session) throw new Error('Não autenticado')
 
-      if (error) throw error
-      if (data?.error) throw new Error(data.error)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-shop`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ shopId }),
+        }
+      )
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || result.message || `Erro ${response.status}`)
 
       loadShops()
     } catch (err: any) {
