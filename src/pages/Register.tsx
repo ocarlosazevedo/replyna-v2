@@ -988,6 +988,33 @@ export default function Register() {
               </span>
             </div>
 
+            {isTrialFlow && (
+              <div style={{
+                padding: '16px',
+                backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                borderRadius: '12px',
+                marginBottom: '16px',
+                border: '1px solid rgba(245, 158, 11, 0.2)',
+              }}>
+                <p style={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#b45309',
+                  margin: '0 0 6px 0',
+                }}>
+                  Nenhuma cobranca sera feita agora
+                </p>
+                <p style={{
+                  fontSize: '13px',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.5,
+                  margin: 0,
+                }}>
+                  O valor exibido na proxima pagina e apenas ilustrativo do plano escolhido. Seu cartao sera salvo para quando voce decidir fazer o upgrade. Voce nao sera cobrado ate la.
+                </p>
+              </div>
+            )}
+
             <div style={{
               padding: '16px',
               backgroundColor: isTrialFlow ? 'rgba(34, 197, 94, 0.06)' : 'rgba(70, 114, 236, 0.06)',
@@ -1001,7 +1028,7 @@ export default function Register() {
                 margin: 0,
               }}>
                 {isTrialFlow
-                  ? 'Adicione seu cartao para garantir continuidade. Voce so sera cobrado ao fazer upgrade.'
+                  ? 'Adicione seu cartao para garantir continuidade. Voce comeca com 30 emails gratis.'
                   : 'Apos o pagamento, enviaremos um email para voce definir sua senha de acesso.'}
               </p>
             </div>
