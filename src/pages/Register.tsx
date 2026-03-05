@@ -205,6 +205,7 @@ export default function Register() {
             overflowX: 'auto',
             WebkitOverflowScrolling: 'touch',
             scrollSnapType: 'x mandatory',
+            paddingTop: '14px',
             paddingBottom: '4px',
           }}>
           <style>{`
