@@ -32,6 +32,18 @@ const STORAGE_KEY_PREFIX = 'replyna_notifications_seen_'
 // Notificações estáticas de funcionalidades (ordenadas da mais recente para mais antiga)
 const FEATURE_NOTIFICATIONS: (Omit<Notification, 'actionLink'> & { fixedActionLink?: string })[] = [
   {
+    id: 'return-forms-v1',
+    type: 'feature',
+    priority: 'medium',
+    title: 'Novo: Formulário de devolução disponível para todos',
+    description: 'Agora todas as lojas possuem um formulário de devolução integrado. Quando um cliente solicitar cancelamento ou devolução, a IA enviará automaticamente o link do formulário por email. Acesse a aba Formulários no menu para gerenciar as solicitações.',
+    icon: 'Sparkles',
+    color: '#8b5cf6',
+    actionLabel: 'Ver formulários',
+    fixedActionLink: '/formularios',
+    createdAt: '2026-03-04',
+  },
+  {
     id: 'payment-gateway-migration-v1',
     type: 'alert',
     priority: 'high',
