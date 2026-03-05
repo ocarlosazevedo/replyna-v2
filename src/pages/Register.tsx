@@ -138,40 +138,39 @@ export default function Register() {
           .plans-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
-      {/* Top bar with logo and theme toggle */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 24px',
-      }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
+      {/* Theme toggle - top right */}
+      <button
+        onClick={toggleTheme}
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '24px',
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '10px',
+          padding: '10px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-secondary)',
+          zIndex: 10,
+        }}
+        title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
+      >
+        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+      </button>
+
+      {/* Logo centered + Title */}
+      <div style={{ textAlign: 'center', padding: '16px 24px 0' }}>
+        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: '10px' }}>
           <img
             src="/replyna-logo.webp"
             alt="Replyna"
-            style={{ width: '120px', height: 'auto' }}
+            style={{ width: '130px', height: 'auto' }}
           />
         </Link>
-        <button
-          onClick={toggleTheme}
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '10px',
-            padding: '10px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-secondary)',
-          }}
-          title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
-        >
-          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-        </button>
       </div>
-
-      {/* Title */}
       <div style={{ textAlign: 'center', marginBottom: '16px' }}>
         <h1 style={{
           fontSize: '24px',
