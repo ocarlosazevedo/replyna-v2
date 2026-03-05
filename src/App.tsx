@@ -9,6 +9,7 @@ import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import CheckoutSuccess from './pages/CheckoutSuccess'
+import Checkout from './pages/Checkout'
 import Dashboard from './pages/Dashboard'
 import Shops from './pages/Shops'
 import ShopSetup from './pages/ShopSetup'
@@ -194,6 +195,7 @@ function App() {
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/checkout" element={<PublicRoute><Checkout /></PublicRoute>} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/migrate" element={<Migrate />} />
           <Route path="/migrate/:code" element={<MigrationAccept />} />

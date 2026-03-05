@@ -1,7 +1,7 @@
 /**
  * Edge Function: Create Asaas Subscription
  *
- * Cria cliente e assinatura no Asaas (SEM criar conta no Supabase).
+ * Cria cliente e assinatura no Asaas com cartao de credito direto.
  * A conta so sera criada quando o usuario completar o checkout (confirm-registration).
  */
 
@@ -11,9 +11,28 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   createCustomer,
   getCustomerByEmail,
+  updateCustomer,
   createSubscription,
-  getPaymentsBySubscription,
 } from '../_shared/asaas.ts';
+
+interface CreditCardInput {
+  holderName: string;
+  number: string;
+  expiryMonth: string;
+  expiryYear: string;
+  ccv: string;
+}
+
+interface CreditCardHolderInfoInput {
+  name: string;
+  email: string;
+  cpfCnpj: string;
+  postalCode: string;
+  addressNumber: string;
+  phone: string;
+  mobilePhone?: string;
+  addressComplement?: string;
+}
 
 interface CreateSubscriptionRequest {
   plan_id: string;
@@ -22,6 +41,8 @@ interface CreateSubscriptionRequest {
   whatsapp_number?: string;
   coupon_code?: string;
   is_trial?: boolean;
+  creditCard?: CreditCardInput;
+  creditCardHolderInfo?: CreditCardHolderInfoInput;
 }
 
 function getSupabaseAdmin() {
@@ -42,6 +63,42 @@ function formatDateYYYYMMDD(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Parse Asaas error responses into user-friendly messages */
+function parseAsaasError(error: unknown): string {
+  if (!error) return 'Erro ao processar pagamento';
+
+  const msg = String(error);
+
+  // Common Asaas credit card errors
+  if (msg.includes('declined') || msg.includes('recusado') || msg.includes('DECLINED'))
+    return 'Cartao recusado. Verifique os dados ou tente outro cartao.';
+  if (msg.includes('insufficient') || msg.includes('insuficiente'))
+    return 'Saldo insuficiente. Tente outro cartao.';
+  if (msg.includes('expired') || msg.includes('expirado') || msg.includes('EXPIRED'))
+    return 'Cartao expirado. Verifique a validade.';
+  if (msg.includes('invalid') && (msg.includes('card') || msg.includes('cartao') || msg.includes('number')))
+    return 'Numero do cartao invalido. Verifique os dados.';
+  if (msg.includes('cvv') || msg.includes('ccv') || msg.includes('security code'))
+    return 'CVV invalido. Verifique o codigo de seguranca.';
+  if (msg.includes('holderName'))
+    return 'Nome do titular invalido.';
+  if (msg.includes('cpfCnpj'))
+    return 'CPF/CNPJ invalido.';
+  if (msg.includes('postalCode'))
+    return 'CEP invalido.';
+
+  // Try to extract Asaas error description
+  try {
+    const parsed = JSON.parse(msg.replace(/^.*?(\{.+\}).*$/, '$1'));
+    if (parsed.errors?.[0]?.description) return parsed.errors[0].description;
+    if (parsed.description) return parsed.description;
+  } catch {
+    // ignore parse errors
+  }
+
+  return 'Erro ao processar pagamento. Verifique os dados do cartao e tente novamente.';
+}
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -52,7 +109,16 @@ serve(async (req) => {
 
   try {
     const body = (await req.json()) as CreateSubscriptionRequest;
-    const { plan_id, user_email, user_name, whatsapp_number, coupon_code, is_trial } = body;
+    const {
+      plan_id,
+      user_email,
+      user_name,
+      whatsapp_number,
+      coupon_code,
+      is_trial,
+      creditCard,
+      creditCardHolderInfo,
+    } = body;
 
     if (!plan_id || !user_email) {
       return new Response(
@@ -61,12 +127,25 @@ serve(async (req) => {
       );
     }
 
+    // Credit card is required for all flows (paid and trial)
+    if (!creditCard || !creditCard.number || !creditCard.holderName || !creditCard.expiryMonth || !creditCard.expiryYear || !creditCard.ccv) {
+      return new Response(
+        JSON.stringify({ error: 'Dados do cartao de credito sao obrigatorios' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!creditCardHolderInfo || !creditCardHolderInfo.cpfCnpj || !creditCardHolderInfo.postalCode) {
+      return new Response(
+        JSON.stringify({ error: 'Dados do titular do cartao sao obrigatorios (CPF/CNPJ e CEP)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabase = getSupabaseAdmin();
     const normalizedEmail = user_email.toLowerCase();
 
-    // Verificar se email ja existe no Auth
-    const { data: existingUsers } = await supabase.auth.admin.listUsers({ perPage: 1 });
-    // Buscar pelo email direto
+    // Verificar se email ja existe
     const { data: userByEmail } = await supabase
       .from('users')
       .select('id')
@@ -99,7 +178,8 @@ serve(async (req) => {
     let discountApplied = 0;
     let couponId: string | null = null;
 
-    if (coupon_code) {
+    // Process coupon (only for paid flow)
+    if (coupon_code && !is_trial) {
       const upper = coupon_code.toUpperCase();
 
       const { data: validation } = await supabase.rpc('validate_coupon', {
@@ -152,72 +232,88 @@ serve(async (req) => {
       customer = await createCustomer({
         name: user_name || user_email,
         email: normalizedEmail,
+        cpfCnpj: creditCardHolderInfo.cpfCnpj,
         mobilePhone: cleanPhone || undefined,
+        postalCode: creditCardHolderInfo.postalCode,
+        addressNumber: creditCardHolderInfo.addressNumber,
+      });
+    } else {
+      // Update existing customer with CPF and address if missing
+      await updateCustomer(customer.id, {
+        name: user_name || customer.name,
+        cpfCnpj: creditCardHolderInfo.cpfCnpj,
+        mobilePhone: cleanPhone || undefined,
+        postalCode: creditCardHolderInfo.postalCode,
+        addressNumber: creditCardHolderInfo.addressNumber,
       });
     }
 
-    // === TRIAL: apenas criar customer (lead), sem assinatura/checkout ===
+    // Next due date: tomorrow for immediate charge, or today
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+    const nextDueDate = formatDateYYYYMMDD(dueDate);
+
+    // Build subscription description
+    let subscriptionDescription = `Replyna - Plano ${plan.name}`;
     if (is_trial) {
-      console.log(`[CreateSubscription] Trial flow - customer only: ${customer.id}`);
+      subscriptionDescription = `Replyna - Free Trial (${plan.name})`;
+    } else if (couponId) {
+      subscriptionDescription = `Replyna - Plano ${plan.name} (Cupom: -${discountApplied.toFixed(2)})`;
+    }
+
+    // Determine subscription value
+    // For trial: create subscription with plan price but Asaas won't charge until trial ends
+    const subscriptionValue = is_trial ? baseValue : finalValue;
+
+    try {
+      const subscription = await createSubscription({
+        customer: customer.id,
+        billingType: 'CREDIT_CARD',
+        value: subscriptionValue,
+        cycle: 'MONTHLY',
+        description: subscriptionDescription,
+        nextDueDate,
+        creditCard: {
+          holderName: creditCard.holderName,
+          number: creditCard.number,
+          expiryMonth: creditCard.expiryMonth,
+          expiryYear: creditCard.expiryYear,
+          ccv: creditCard.ccv,
+        },
+        creditCardHolderInfo: {
+          name: creditCardHolderInfo.name,
+          email: normalizedEmail,
+          cpfCnpj: creditCardHolderInfo.cpfCnpj,
+          postalCode: creditCardHolderInfo.postalCode,
+          addressNumber: creditCardHolderInfo.addressNumber,
+          phone: creditCardHolderInfo.phone || cleanPhone,
+          addressComplement: creditCardHolderInfo.addressComplement || undefined,
+        },
+      });
+
+      console.log(`[CreateSubscription] Subscription created: ${subscription.id}, trial: ${is_trial}`);
 
       return new Response(
         JSON.stringify({
-          url: null,
           asaas_customer_id: customer.id,
-          asaas_subscription_id: null,
+          asaas_subscription_id: subscription.id,
           plan_id: plan.id,
           plan_name: plan.name,
-          coupon_id: null,
-          discount_applied: 0,
-          is_trial: true,
+          coupon_id: couponId,
+          discount_applied: discountApplied,
+          is_trial: is_trial || false,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    } catch (cardError) {
+      // Handle Asaas card processing errors with user-friendly messages
+      console.error('[CreateSubscription] Card error:', cardError);
+      const friendlyMessage = parseAsaasError(cardError?.message || cardError);
+      return new Response(
+        JSON.stringify({ error: friendlyMessage }),
+        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    // === PAGO: criar assinatura no Asaas com checkout ===
-    const futureDate = new Date();
-    futureDate.setFullYear(futureDate.getFullYear() + 1);
-    const nextDueDate = formatDateYYYYMMDD(futureDate);
-
-    let subscriptionDescription = `Replyna - Plano ${plan.name}`;
-    if (couponId) {
-      subscriptionDescription = `Replyna - Plano ${plan.name} (Cupom aplicado: -${discountApplied.toFixed(2)})`;
-    }
-
-    const subscription = await createSubscription({
-      customer: customer.id,
-      billingType: 'CREDIT_CARD',
-      value: finalValue,
-      cycle: 'MONTHLY',
-      description: subscriptionDescription,
-      nextDueDate,
-      callback: {
-        successUrl: 'https://app.replyna.me/checkout/success',
-        autoRedirect: true,
-      },
-    });
-
-    // Buscar URL do checkout
-    const payments = await getPaymentsBySubscription(subscription.id, { limit: 1, order: 'desc' });
-    const firstPayment = payments.data?.[0];
-    const invoiceUrl = firstPayment?.invoiceUrl || null;
-
-    console.log(`[CreateSubscription] Subscription created: ${subscription.id}, invoice: ${invoiceUrl}`);
-
-    return new Response(
-      JSON.stringify({
-        url: invoiceUrl,
-        asaas_customer_id: customer.id,
-        asaas_subscription_id: subscription.id,
-        plan_id: plan.id,
-        plan_name: plan.name,
-        coupon_id: couponId,
-        discount_applied: discountApplied,
-        is_trial: false,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
     console.error('Erro ao criar assinatura Asaas:', error);
     return new Response(

@@ -1,16 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { Sun, Moon, Check, Star, ArrowRight, ArrowLeft, MessageCircle, Tag, X, Loader2 } from 'lucide-react'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { Sun, Moon, Star, ArrowRight, MessageCircle, Check } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { supabase } from '../lib/supabase'
-
-interface CouponValidation {
-  is_valid: boolean
-  coupon_id: string | null
-  discount_type: 'percentage' | 'fixed_amount' | null
-  discount_value: number | null
-  error_message: string | null
-}
 
 interface Plan {
   id: string
@@ -28,92 +20,14 @@ export default function Register() {
   const { theme, setTheme } = useTheme()
   const [searchParams] = useSearchParams()
   const preselectedPlan = searchParams.get('plan')
+  const navigate = useNavigate()
 
-  // Step management
-  const [step, setStep] = useState<'plan' | 'account'>(preselectedPlan ? 'account' : 'plan')
+  // Step management - now only 'plan' step, account goes to /checkout
+  const [step] = useState<'plan'>('plan')
 
   // Plans
   const [plans, setPlans] = useState<Plan[]>([])
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   const [loadingPlans, setLoadingPlans] = useState(true)
-
-  // Trial flow
-  const [isTrialFlow, setIsTrialFlow] = useState(false)
-
-  // Form
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [countryCode, setCountryCode] = useState('+55')
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  // Coupon
-  const [couponCode, setCouponCode] = useState('')
-  const [couponValidation, setCouponValidation] = useState<CouponValidation | null>(null)
-  const [validatingCoupon, setValidatingCoupon] = useState(false)
-  const [showCouponField, setShowCouponField] = useState(false)
-
-  const countryCodes = [
-    { code: '+55', label: 'BR +55' },
-    { code: '+1', label: 'US +1' },
-    { code: '+351', label: 'PT +351' },
-    { code: '+44', label: 'UK +44' },
-    { code: '+49', label: 'DE +49' },
-    { code: '+33', label: 'FR +33' },
-    { code: '+39', label: 'IT +39' },
-    { code: '+34', label: 'ES +34' },
-    { code: '+31', label: 'NL +31' },
-    { code: '+48', label: 'PL +48' },
-    { code: '+420', label: 'CZ +420' },
-    { code: '+43', label: 'AT +43' },
-    { code: '+41', label: 'CH +41' },
-    { code: '+32', label: 'BE +32' },
-    { code: '+46', label: 'SE +46' },
-    { code: '+47', label: 'NO +47' },
-    { code: '+45', label: 'DK +45' },
-    { code: '+358', label: 'FI +358' },
-    { code: '+353', label: 'IE +353' },
-    { code: '+61', label: 'AU +61' },
-    { code: '+64', label: 'NZ +64' },
-    { code: '+91', label: 'IN +91' },
-    { code: '+81', label: 'JP +81' },
-    { code: '+82', label: 'KR +82' },
-    { code: '+86', label: 'CN +86' },
-    { code: '+971', label: 'AE +971' },
-    { code: '+52', label: 'MX +52' },
-    { code: '+54', label: 'AR +54' },
-    { code: '+56', label: 'CL +56' },
-    { code: '+57', label: 'CO +57' },
-    { code: '+507', label: 'PA +507' },
-    { code: '+598', label: 'UY +598' },
-    { code: '+595', label: 'PY +595' },
-    { code: '+27', label: 'ZA +27' },
-    { code: '+234', label: 'NG +234' },
-    { code: '+90', label: 'TR +90' },
-    { code: '+7', label: 'RU +7' },
-    { code: '+380', label: 'UA +380' },
-    { code: '+30', label: 'GR +30' },
-    { code: '+36', label: 'HU +36' },
-    { code: '+40', label: 'RO +40' },
-    { code: '+359', label: 'BG +359' },
-    { code: '+385', label: 'HR +385' },
-    { code: '+65', label: 'SG +65' },
-    { code: '+60', label: 'MY +60' },
-    { code: '+66', label: 'TH +66' },
-    { code: '+63', label: 'PH +63' },
-    { code: '+62', label: 'ID +62' },
-    { code: '+84', label: 'VN +84' },
-    { code: '+20', label: 'EG +20' },
-    { code: '+212', label: 'MA +212' },
-    { code: '+972', label: 'IL +972' },
-  ]
-
-  const getFullPhoneNumber = () => {
-    const num = phoneNumber.trim()
-    if (!num) return ''
-    return `${countryCode} ${num}`
-  }
 
   useEffect(() => {
     loadPlans()
@@ -127,15 +41,14 @@ export default function Register() {
 
   useEffect(() => {
     if (preselectedPlan && plans.length > 0) {
-      // Normaliza ambos os lados: remove espaços/hífens e compara em lowercase
       const normalizedPreselected = preselectedPlan.toLowerCase().replace(/[-\s]/g, '')
       const plan = plans.find(p => p.name.toLowerCase().replace(/[-\s]/g, '') === normalizedPreselected)
       if (plan) {
-        setSelectedPlan(plan)
-        setStep('account')
+        if (isEnterprisePlan(plan)) return
+        navigate('/checkout', { state: { plan, isTrialFlow: false } })
       }
     }
-  }, [preselectedPlan, plans])
+  }, [preselectedPlan, plans, navigate])
 
   const loadPlans = async () => {
     try {
@@ -159,120 +72,11 @@ export default function Register() {
   }
 
   const handleSelectPlan = (plan: Plan) => {
-    // If Enterprise plan, open WhatsApp instead of going to account form
     if (isEnterprisePlan(plan)) {
       window.open('https://wa.me/5531973210191?text=Olá! Tenho interesse no plano Enterprise da Replyna.', '_blank')
       return
     }
-    setIsTrialFlow(false)
-    setSelectedPlan(plan)
-    setStep('account')
-  }
-
-  const validateCoupon = async () => {
-    if (!couponCode.trim()) return
-
-    setValidatingCoupon(true)
-    setCouponValidation(null)
-
-    try {
-      const { data, error } = await supabase.rpc('validate_coupon', {
-        p_code: couponCode.toUpperCase(),
-        p_user_id: '00000000-0000-0000-0000-000000000000',
-        p_plan_id: selectedPlan?.id || null,
-      })
-
-      if (error) throw error
-
-      if (data && data[0]) {
-        setCouponValidation(data[0] as CouponValidation)
-      }
-    } catch (err) {
-      console.error('Erro ao validar cupom:', err)
-      setCouponValidation({
-        is_valid: false,
-        coupon_id: null,
-        discount_type: null,
-        discount_value: null,
-        error_message: 'Erro ao validar cupom',
-      })
-    } finally {
-      setValidatingCoupon(false)
-    }
-  }
-
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-
-    if (!phoneNumber.trim()) {
-      setError('Informe seu número de celular/WhatsApp')
-      return
-    }
-
-    if (!isTrialFlow && !selectedPlan) {
-      setError('Selecione um plano')
-      return
-    }
-
-    if (!isTrialFlow && selectedPlan && (!selectedPlan.is_active || selectedPlan.price_monthly === 0)) {
-      setError('Este plano nao esta disponivel para pagamento. Entre em contato com o suporte.')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      // Ambos os fluxos (trial e pago) passam pelo Asaas para salvar cartao
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-asaas-subscription`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          plan_id: selectedPlan!.id,
-          user_email: email,
-          user_name: name,
-          whatsapp_number: getFullPhoneNumber() || undefined,
-          coupon_code: !isTrialFlow && couponValidation?.is_valid ? couponCode.toUpperCase() : undefined,
-          is_trial: isTrialFlow || undefined,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao criar conta')
-      }
-
-      // Salvar dados para confirm-registration apos checkout
-      localStorage.setItem('pending_registration', JSON.stringify({
-        email,
-        name,
-        whatsapp_number: getFullPhoneNumber() || null,
-        plan_id: data.plan_id || selectedPlan!.id,
-        plan_name: data.plan_name || selectedPlan!.name,
-        asaas_customer_id: data.asaas_customer_id,
-        asaas_subscription_id: data.asaas_subscription_id,
-        coupon_id: data.coupon_id || null,
-        discount_applied: data.discount_applied || 0,
-        is_trial: data.is_trial || false,
-      }))
-
-      // Redirecionar para o checkout do Asaas (adicionar cartao)
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        window.location.href = '/checkout/success'
-      }
-
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao processar'
-      setError(errorMessage)
-      setLoading(false)
-    }
+    navigate('/checkout', { state: { plan, isTrialFlow: false } })
   }
 
   const toggleTheme = () => {
@@ -365,82 +169,11 @@ export default function Register() {
             color: 'var(--text-primary)',
             marginBottom: '8px',
           }}>
-            {step === 'plan' ? 'Escolha seu plano' : 'Finalize seu cadastro'}
+            Escolha seu plano
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-            {step === 'plan'
-              ? 'Comece com 30 emails gratis. Adicione seu cartao para garantir continuidade.'
-              : isTrialFlow ? 'Crie sua conta e comece a usar gratis' : `Plano ${selectedPlan?.name} selecionado`}
+            Comece com 30 emails gratis. Adicione seu cartao para garantir continuidade.
           </p>
-
-          {/* Step indicator */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            marginTop: '24px',
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--accent)',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-                fontWeight: 600,
-              }}>
-                {step === 'account' ? <Check size={14} /> : '1'}
-              </div>
-              <span style={{
-                fontSize: '14px',
-                fontWeight: step === 'plan' ? 600 : 400,
-                color: 'var(--text-primary)',
-              }}>
-                Plano
-              </span>
-            </div>
-            <div style={{
-              width: '40px',
-              height: '2px',
-              backgroundColor: step === 'account' ? 'var(--accent)' : 'var(--border-color)',
-            }} />
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                backgroundColor: step === 'account' ? 'var(--accent)' : 'var(--border-color)',
-                color: step === 'account' ? '#fff' : 'var(--text-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-                fontWeight: 600,
-              }}>
-                2
-              </div>
-              <span style={{
-                fontSize: '14px',
-                fontWeight: step === 'account' ? 600 : 400,
-                color: step === 'account' ? 'var(--text-primary)' : 'var(--text-secondary)',
-              }}>
-                Cadastro
-              </span>
-            </div>
-          </div>
         </div>
 
       {/* Step: Select Plan */}
@@ -451,9 +184,7 @@ export default function Register() {
             onClick={() => {
               const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
               if (basePlan) {
-                setIsTrialFlow(true)
-                setSelectedPlan(basePlan)
-                setStep('account')
+                navigate('/checkout', { state: { plan: basePlan, isTrialFlow: true } })
               }
             }}
             style={{
@@ -693,379 +424,6 @@ export default function Register() {
         </div>
       )}
 
-      {/* Step: Account Details */}
-      {step === 'account' && selectedPlan && (
-        <div style={{
-          maxWidth: '480px',
-          margin: '0 auto',
-          backgroundColor: 'var(--bg-card)',
-          borderRadius: '16px',
-          padding: '24px',
-          border: '1px solid var(--border-color)',
-        }}>
-          <button
-            onClick={() => { setStep('plan'); setIsTrialFlow(false) }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              marginBottom: '20px',
-              padding: 0,
-              fontSize: '14px',
-            }}
-          >
-            <ArrowLeft size={16} />
-            Voltar para planos
-          </button>
-
-          {/* Selected plan summary */}
-          <div style={{
-            padding: '16px',
-            backgroundColor: isTrialFlow ? 'rgba(34, 197, 94, 0.06)' : 'rgba(70, 114, 236, 0.06)',
-            borderRadius: '12px',
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}>
-            <div>
-              <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {isTrialFlow ? 'Free Trial' : selectedPlan.name}
-              </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                {isTrialFlow
-                  ? '30 emails gratis, 1 loja. Sem cartao de credito.'
-                  : 'Teste gratuito com 30 emails. Cartao sera cobrado apenas no upgrade.'}
-              </div>
-            </div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: isTrialFlow ? '#22c55e' : 'var(--accent)' }}>
-              {isTrialFlow ? 'Gratis' : `${formatPrice(selectedPlan.price_monthly)}/mes`}
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            {error && (
-              <div style={{
-                backgroundColor: '#fef2f2',
-                color: '#dc2626',
-                padding: '12px',
-                borderRadius: '10px',
-                fontSize: '14px',
-                marginBottom: '16px',
-              }}>
-                {error}
-              </div>
-            )}
-
-          {/* Coupon field - only for paid plans */}
-          {!isTrialFlow && !couponValidation?.is_valid && (
-            <div style={{ marginBottom: '24px' }}>
-              {!showCouponField ? (
-                <button
-                  type="button"
-                  onClick={() => setShowCouponField(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    fontSize: '14px',
-                    color: 'var(--accent)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <Tag size={14} />
-                  Tem um cupom de desconto?
-                </button>
-              ) : (
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: 'var(--text-secondary)',
-                    marginBottom: '8px',
-                  }}>
-                    Cupom de desconto
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) => {
-                        setCouponCode(e.target.value.toUpperCase())
-                        setCouponValidation(null)
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        border: couponValidation?.is_valid === false
-                          ? '1px solid #ef4444'
-                          : '1px solid var(--input-border)',
-                        borderRadius: '10px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box',
-                        backgroundColor: 'var(--input-bg)',
-                        color: 'var(--text-primary)',
-                        textTransform: 'uppercase',
-                        fontFamily: 'monospace',
-                      }}
-                      placeholder="CODIGO"
-                    />
-                    <button
-                      type="button"
-                      onClick={validateCoupon}
-                      disabled={validatingCoupon || !couponCode.trim()}
-                      style={{
-                        padding: '12px 20px',
-                        borderRadius: '10px',
-                        border: 'none',
-                        backgroundColor: 'var(--accent)',
-                        color: '#fff',
-                        fontWeight: 600,
-                        fontSize: '14px',
-                        cursor: validatingCoupon || !couponCode.trim() ? 'not-allowed' : 'pointer',
-                        opacity: validatingCoupon || !couponCode.trim() ? 0.7 : 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      {validatingCoupon ? (
-                        <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                      ) : (
-                        'Aplicar'
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCouponField(false)
-                        setCouponCode('')
-                        setCouponValidation(null)
-                      }}
-                      style={{
-                        padding: '12px',
-                        borderRadius: '10px',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'transparent',
-                        color: 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  {couponValidation?.is_valid === false && (
-                    <p style={{
-                      marginTop: '8px',
-                      fontSize: '13px',
-                      color: '#ef4444',
-                    }}>
-                      {couponValidation.error_message || 'Cupom invalido'}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: 'var(--text-secondary)',
-                marginBottom: '8px',
-              }}>
-                Nome completo
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '1px solid var(--input-border)',
-                  borderRadius: '10px',
-                  fontSize: '16px',
-                  boxSizing: 'border-box',
-                  backgroundColor: 'var(--input-bg)',
-                  color: 'var(--text-primary)',
-                }}
-                placeholder="Seu nome"
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: 'var(--text-secondary)',
-                marginBottom: '8px',
-              }}>
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '1px solid var(--input-border)',
-                  borderRadius: '10px',
-                  fontSize: '16px',
-                  boxSizing: 'border-box',
-                  backgroundColor: 'var(--input-bg)',
-                  color: 'var(--text-primary)',
-                }}
-                placeholder="seu@email.com"
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: 'var(--text-secondary)',
-                marginBottom: '8px',
-              }}>
-                Número de Celular
-              </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <select
-                  value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  style={{
-                    padding: '12px 8px',
-                    border: '1px solid var(--input-border)',
-                    borderRadius: '10px',
-                    fontSize: '16px',
-                    backgroundColor: 'var(--input-bg)',
-                    color: 'var(--text-primary)',
-                    minWidth: '110px',
-                  }}
-                >
-                  {countryCodes.map((c) => (
-                    <option key={c.code} value={c.code}>{c.label}</option>
-                  ))}
-                </select>
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '12px 16px',
-                    border: '1px solid var(--input-border)',
-                    borderRadius: '10px',
-                    fontSize: '16px',
-                    boxSizing: 'border-box',
-                    backgroundColor: 'var(--input-bg)',
-                    color: 'var(--text-primary)',
-                  }}
-                  placeholder="11 99999-9999"
-                  required
-                />
-              </div>
-              <span style={{
-                display: 'block',
-                marginTop: '6px',
-                fontSize: '12px',
-                color: 'var(--text-secondary)',
-              }}>
-                Para receber notificações sobre sua conta
-              </span>
-            </div>
-
-            <div style={{
-              padding: '16px',
-              backgroundColor: isTrialFlow ? 'rgba(34, 197, 94, 0.06)' : 'rgba(70, 114, 236, 0.06)',
-              borderRadius: '12px',
-              marginBottom: '24px',
-            }}>
-              <p style={{
-                fontSize: '14px',
-                color: 'var(--text-secondary)',
-                lineHeight: 1.5,
-                margin: 0,
-              }}>
-                {isTrialFlow
-                  ? 'Enviaremos um email para voce definir sua senha e acessar o painel.'
-                  : 'Apos o pagamento, enviaremos um email para voce definir sua senha de acesso.'}
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                backgroundColor: isTrialFlow ? '#22c55e' : 'var(--accent)',
-                color: '#ffffff',
-                padding: '14px',
-                borderRadius: '10px',
-                fontWeight: '600',
-                fontSize: '16px',
-                border: 'none',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-            >
-              {loading ? (
-                isTrialFlow ? 'Redirecionando...' : 'Redirecionando para pagamento...'
-              ) : (
-                <>
-                  {isTrialFlow ? 'Comecar gratis' : 'Continuar para pagamento'}
-                  <ArrowRight size={18} />
-                </>
-              )}
-            </button>
-
-            <p style={{
-              marginTop: '16px',
-              fontSize: '12px',
-              color: 'var(--text-secondary)',
-              textAlign: 'center',
-            }}>
-              Pagamento seguro processado pelo Asaas
-            </p>
-          </form>
-
-          <div style={{
-            marginTop: '24px',
-            textAlign: 'center',
-            fontSize: '14px',
-            color: 'var(--text-secondary)',
-          }}>
-            Ja tem conta?{' '}
-            <Link
-              to="/login"
-              style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '500' }}
-            >
-              Fazer login
-            </Link>
-          </div>
-        </div>
-      )}
       </div>
     </div>
   )
