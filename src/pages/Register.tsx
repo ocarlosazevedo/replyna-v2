@@ -37,6 +37,9 @@ export default function Register() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   const [loadingPlans, setLoadingPlans] = useState(true)
 
+  // Trial flow
+  const [isTrialFlow, setIsTrialFlow] = useState(false)
+
   // Form
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -161,6 +164,7 @@ export default function Register() {
       window.open('https://wa.me/5531973210191?text=Olá! Tenho interesse no plano Enterprise da Replyna.', '_blank')
       return
     }
+    setIsTrialFlow(false)
     setSelectedPlan(plan)
     setStep('account')
   }
@@ -207,12 +211,12 @@ export default function Register() {
       return
     }
 
-    if (!selectedPlan) {
+    if (!isTrialFlow && !selectedPlan) {
       setError('Selecione um plano')
       return
     }
 
-    if (!selectedPlan.is_active || selectedPlan.price_monthly === 0) {
+    if (!isTrialFlow && selectedPlan && (!selectedPlan.is_active || selectedPlan.price_monthly === 0)) {
       setError('Este plano nao esta disponivel para pagamento. Entre em contato com o suporte.')
       return
     }
@@ -220,44 +224,76 @@ export default function Register() {
     setLoading(true)
 
     try {
-      // Chamar Edge Function para criar assinatura no Asaas
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-asaas-subscription`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          plan_id: selectedPlan.id,
-          user_email: email,
-          user_name: name,
-          whatsapp_number: getFullPhoneNumber() || undefined,
-          coupon_code: couponValidation?.is_valid ? couponCode.toUpperCase() : undefined,
-        }),
-      })
+      if (isTrialFlow) {
+        // Free Trial: criar conta sem cartao
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-trial-account`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            email,
+            name,
+            whatsapp_number: getFullPhoneNumber() || undefined,
+          }),
+        })
 
-      const data = await response.json()
+        const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao criar sessao de pagamento')
-      }
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao criar conta')
+        }
 
-      // Salvar dados temporários no localStorage (inclui magic_link para login apos checkout)
-      localStorage.setItem('pending_registration', JSON.stringify({
-        email,
-        name,
-        whatsapp_number: getFullPhoneNumber() || null,
-        plan_id: selectedPlan.id,
-        plan_name: selectedPlan.name,
-        magic_link: data.magic_link || null,
-      }))
+        // Salvar magic link para login automatico
+        localStorage.setItem('pending_registration', JSON.stringify({
+          email,
+          name,
+          magic_link: data.magic_link || null,
+        }))
 
-      // Redirecionar para o checkout do Asaas (adicionar cartao)
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        // Sem URL de checkout, redirecionar para sucesso
+        // Redirecionar para sucesso (magic link faz login automatico)
         window.location.href = '/checkout/success'
+
+      } else {
+        // Plano pago: criar assinatura no Asaas
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-asaas-subscription`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            plan_id: selectedPlan!.id,
+            user_email: email,
+            user_name: name,
+            whatsapp_number: getFullPhoneNumber() || undefined,
+            coupon_code: couponValidation?.is_valid ? couponCode.toUpperCase() : undefined,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao criar sessao de pagamento')
+        }
+
+        // Salvar dados temporários no localStorage
+        localStorage.setItem('pending_registration', JSON.stringify({
+          email,
+          name,
+          whatsapp_number: getFullPhoneNumber() || null,
+          plan_id: selectedPlan!.id,
+          plan_name: selectedPlan!.name,
+          magic_link: data.magic_link || null,
+        }))
+
+        // Redirecionar para o checkout do Asaas
+        if (data.url) {
+          window.location.href = data.url
+        } else {
+          window.location.href = '/checkout/success'
+        }
       }
 
     } catch (err: unknown) {
@@ -362,7 +398,7 @@ export default function Register() {
           <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
             {step === 'plan'
               ? 'Comece com 30 emails gratis. Adicione seu cartao para garantir continuidade.'
-              : `Plano ${selectedPlan?.name} selecionado`}
+              : isTrialFlow ? 'Crie sua conta e comece a usar gratis' : `Plano ${selectedPlan?.name} selecionado`}
           </p>
 
           {/* Step indicator */}
@@ -443,6 +479,130 @@ export default function Register() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
             gap: '20px',
           }}>
+            {/* Free Trial card */}
+            <div
+              onClick={() => {
+                setIsTrialFlow(true)
+                setSelectedPlan(null)
+                setStep('account')
+              }}
+              style={{
+                backgroundColor: 'var(--bg-card)',
+                borderRadius: '16px',
+                padding: '24px',
+                border: '2px solid #22c55e',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                position: 'relative',
+              }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: '-12px',
+                right: '16px',
+                backgroundColor: '#22c55e',
+                color: '#fff',
+                padding: '4px 12px',
+                borderRadius: '999px',
+                fontSize: '12px',
+                fontWeight: 600,
+              }}>
+                Gratis
+              </div>
+
+              <h3 style={{
+                fontSize: '22px',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                marginBottom: '8px',
+              }}>
+                Free Trial
+              </h3>
+
+              <p style={{
+                fontSize: '14px',
+                color: 'var(--text-secondary)',
+                marginBottom: '20px',
+              }}>
+                Teste gratis com 30 emails, 1 loja
+              </p>
+
+              <div style={{ marginBottom: '20px' }}>
+                <span style={{
+                  fontSize: '36px',
+                  fontWeight: 700,
+                  color: '#22c55e',
+                }}>
+                  R$ 0
+                </span>
+                <span style={{
+                  fontSize: '14px',
+                  color: 'var(--text-secondary)',
+                  marginLeft: '4px',
+                }}>
+                  /30 dias
+                </span>
+              </div>
+
+              <div style={{
+                padding: '12px',
+                backgroundColor: 'rgba(34, 197, 94, 0.06)',
+                borderRadius: '10px',
+                marginBottom: '20px',
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '8px',
+                }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    Emails
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    30
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    Lojas
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    1
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                {['30 emails gratis', 'Integracao com 1 loja', 'Atendimento 24h por dia', 'Sem cartao de credito'].map((feature, index) => (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
+                    <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{feature}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  backgroundColor: '#22c55e',
+                  color: '#fff',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                }}
+              >
+                Comecar gratis
+                <ArrowRight size={16} />
+              </button>
+            </div>
+
             {plans.map((plan) => (
               <div
                 key={plan.id}
@@ -639,7 +799,7 @@ export default function Register() {
       )}
 
       {/* Step: Account Details */}
-      {step === 'account' && selectedPlan && (
+      {step === 'account' && (isTrialFlow || selectedPlan) && (
         <div style={{
           maxWidth: '480px',
           margin: '0 auto',
@@ -649,7 +809,7 @@ export default function Register() {
           border: '1px solid var(--border-color)',
         }}>
           <button
-            onClick={() => { setStep('plan') }}
+            onClick={() => { setStep('plan'); setIsTrialFlow(false) }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -670,7 +830,7 @@ export default function Register() {
           {/* Selected plan summary */}
           <div style={{
             padding: '16px',
-            backgroundColor: 'rgba(70, 114, 236, 0.06)',
+            backgroundColor: isTrialFlow ? 'rgba(34, 197, 94, 0.06)' : 'rgba(70, 114, 236, 0.06)',
             borderRadius: '12px',
             marginBottom: '24px',
             display: 'flex',
@@ -679,14 +839,16 @@ export default function Register() {
           }}>
             <div>
               <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {selectedPlan.name}
+                {isTrialFlow ? 'Free Trial' : selectedPlan!.name}
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                Teste gratuito com 30 emails. Cartao sera cobrado apenas no upgrade.
+                {isTrialFlow
+                  ? '30 emails gratis, 1 loja. Sem cartao de credito.'
+                  : 'Teste gratuito com 30 emails. Cartao sera cobrado apenas no upgrade.'}
               </div>
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>
-              {formatPrice(selectedPlan.price_monthly)}/mes
+            <div style={{ fontSize: '18px', fontWeight: 700, color: isTrialFlow ? '#22c55e' : 'var(--accent)' }}>
+              {isTrialFlow ? 'Gratis' : `${formatPrice(selectedPlan!.price_monthly)}/mes`}
             </div>
           </div>
 
@@ -704,8 +866,8 @@ export default function Register() {
               </div>
             )}
 
-          {/* Coupon field */}
-          {!couponValidation?.is_valid && (
+          {/* Coupon field - only for paid plans */}
+          {!isTrialFlow && !couponValidation?.is_valid && (
             <div style={{ marginBottom: '24px' }}>
               {!showCouponField ? (
                 <button
@@ -937,7 +1099,7 @@ export default function Register() {
 
             <div style={{
               padding: '16px',
-              backgroundColor: 'rgba(70, 114, 236, 0.06)',
+              backgroundColor: isTrialFlow ? 'rgba(34, 197, 94, 0.06)' : 'rgba(70, 114, 236, 0.06)',
               borderRadius: '12px',
               marginBottom: '24px',
             }}>
@@ -947,7 +1109,9 @@ export default function Register() {
                 lineHeight: 1.5,
                 margin: 0,
               }}>
-                Apos o pagamento, enviaremos um email para voce definir sua senha de acesso.
+                {isTrialFlow
+                  ? 'Enviaremos um email para voce definir sua senha e acessar o painel.'
+                  : 'Apos o pagamento, enviaremos um email para voce definir sua senha de acesso.'}
               </p>
             </div>
 
@@ -956,7 +1120,7 @@ export default function Register() {
               disabled={loading}
               style={{
                 width: '100%',
-                backgroundColor: 'var(--accent)',
+                backgroundColor: isTrialFlow ? '#22c55e' : 'var(--accent)',
                 color: '#ffffff',
                 padding: '14px',
                 borderRadius: '10px',
@@ -972,23 +1136,25 @@ export default function Register() {
               }}
             >
               {loading ? (
-                'Redirecionando para pagamento...'
+                isTrialFlow ? 'Criando sua conta...' : 'Redirecionando para pagamento...'
               ) : (
                 <>
-                  Continuar para pagamento
+                  {isTrialFlow ? 'Criar conta gratis' : 'Continuar para pagamento'}
                   <ArrowRight size={18} />
                 </>
               )}
             </button>
 
-            <p style={{
-              marginTop: '16px',
-              fontSize: '12px',
-              color: 'var(--text-secondary)',
-              textAlign: 'center',
-            }}>
-              Pagamento seguro processado pelo Asaas
-            </p>
+            {!isTrialFlow && (
+              <p style={{
+                marginTop: '16px',
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                textAlign: 'center',
+              }}>
+                Pagamento seguro processado pelo Asaas
+              </p>
+            )}
           </form>
 
           <div style={{

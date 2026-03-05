@@ -214,7 +214,6 @@ serve(async (req) => {
       });
 
     // Criar/atualizar assinatura no banco
-    const now = new Date();
     const periodEnd = new Date(now);
     periodEnd.setDate(periodEnd.getDate() + 30);
 
