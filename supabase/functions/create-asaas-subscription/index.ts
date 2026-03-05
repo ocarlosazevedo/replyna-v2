@@ -248,10 +248,8 @@ serve(async (req) => {
       });
     }
 
-    // Next due date: tomorrow for immediate charge, or today
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 1);
-    const nextDueDate = formatDateYYYYMMDD(dueDate);
+    // Next due date: today for immediate charge
+    const nextDueDate = formatDateYYYYMMDD(new Date());
 
     // Build subscription description
     let subscriptionDescription = `Replyna - Plano ${plan.name}`;
