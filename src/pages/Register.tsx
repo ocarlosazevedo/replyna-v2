@@ -474,135 +474,55 @@ export default function Register() {
       {/* Step: Select Plan */}
       {step === 'plan' && (
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          {/* Free Trial button */}
+          <div
+            onClick={() => {
+              setIsTrialFlow(true)
+              setSelectedPlan(null)
+              setStep('account')
+            }}
+            style={{
+              maxWidth: '480px',
+              margin: '0 auto 32px',
+              padding: '16px 24px',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '12px',
+              border: '1px solid #22c55e',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: '10px',
+                padding: '8px 12px',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#22c55e',
+              }}>
+                Gratis
+              </div>
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Comece com Free Trial
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  30 emails gratis, 1 loja, sem cartao de credito
+                </div>
+              </div>
+            </div>
+            <ArrowRight size={18} style={{ color: '#22c55e', flexShrink: 0 }} />
+          </div>
+
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
             gap: '20px',
           }}>
-            {/* Free Trial card */}
-            <div
-              onClick={() => {
-                setIsTrialFlow(true)
-                setSelectedPlan(null)
-                setStep('account')
-              }}
-              style={{
-                backgroundColor: 'var(--bg-card)',
-                borderRadius: '16px',
-                padding: '24px',
-                border: '2px solid #22c55e',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                position: 'relative',
-              }}
-            >
-              <div style={{
-                position: 'absolute',
-                top: '-12px',
-                right: '16px',
-                backgroundColor: '#22c55e',
-                color: '#fff',
-                padding: '4px 12px',
-                borderRadius: '999px',
-                fontSize: '12px',
-                fontWeight: 600,
-              }}>
-                Gratis
-              </div>
-
-              <h3 style={{
-                fontSize: '22px',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                marginBottom: '8px',
-              }}>
-                Free Trial
-              </h3>
-
-              <p style={{
-                fontSize: '14px',
-                color: 'var(--text-secondary)',
-                marginBottom: '20px',
-              }}>
-                Teste gratis com 30 emails, 1 loja
-              </p>
-
-              <div style={{ marginBottom: '20px' }}>
-                <span style={{
-                  fontSize: '36px',
-                  fontWeight: 700,
-                  color: '#22c55e',
-                }}>
-                  R$ 0
-                </span>
-                <span style={{
-                  fontSize: '14px',
-                  color: 'var(--text-secondary)',
-                  marginLeft: '4px',
-                }}>
-                  /30 dias
-                </span>
-              </div>
-
-              <div style={{
-                padding: '12px',
-                backgroundColor: 'rgba(34, 197, 94, 0.06)',
-                borderRadius: '10px',
-                marginBottom: '20px',
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '8px',
-                }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    Emails
-                  </span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    30
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    Lojas
-                  </span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    1
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                {['30 emails gratis', 'Integracao com 1 loja', 'Atendimento 24h por dia', 'Sem cartao de credito'].map((feature, index) => (
-                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
-                    <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{feature}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  backgroundColor: '#22c55e',
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                }}
-              >
-                Comecar gratis
-                <ArrowRight size={16} />
-              </button>
-            </div>
-
             {plans.map((plan) => (
               <div
                 key={plan.id}
