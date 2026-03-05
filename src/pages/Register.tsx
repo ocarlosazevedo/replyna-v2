@@ -138,45 +138,40 @@ export default function Register() {
           .plans-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
-      {/* Top bar with logo and theme toggle */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 24px',
-        maxWidth: '1400px',
-        margin: '0 auto',
-      }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
-          <img
-            src="/replyna-logo.webp"
-            alt="Replyna"
-            style={{ width: '120px', height: 'auto' }}
-          />
-        </Link>
-        <button
-          onClick={toggleTheme}
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '10px',
-            padding: '10px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-secondary)',
-          }}
-          title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
-        >
-          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-        </button>
-      </div>
+      {/* Theme toggle - absolute top right */}
+      <button
+        onClick={toggleTheme}
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '24px',
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '10px',
+          padding: '10px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-secondary)',
+          zIndex: 10,
+        }}
+        title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
+      >
+        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+      </button>
 
-      {/* Page content */}
-      <div style={{ padding: '0 20px 12px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      {/* Page content - centered vertically */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 24px', minHeight: 0 }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: '12px' }}>
+            <img
+              src="/replyna-logo.webp"
+              alt="Replyna"
+              style={{ width: '130px', height: 'auto' }}
+            />
+          </Link>
           <h1 style={{
             fontSize: '24px',
             fontWeight: 700,
@@ -192,7 +187,7 @@ export default function Register() {
 
       {/* Step: Select Plan */}
       {step === 'plan' && (
-        <div style={{ maxWidth: '1400px', margin: '0 auto', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
           <div className="plans-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(6, 1fr)',
@@ -510,7 +505,7 @@ export default function Register() {
           </div>
 
           <div style={{
-            marginTop: '16px',
+            marginTop: '14px',
             textAlign: 'center',
             fontSize: '13px',
             color: 'var(--text-secondary)',
