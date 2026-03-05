@@ -120,12 +120,15 @@ export default function Register() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
       backgroundColor: 'var(--bg-primary)',
       position: 'relative',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
     }}>
       <style>{`
-        @media (max-width: 1100px) {
+        @media (max-width: 1200px) {
           .plans-grid { grid-template-columns: repeat(3, 1fr) !important; }
         }
         @media (max-width: 700px) {
@@ -171,9 +174,9 @@ export default function Register() {
       </div>
 
       {/* Page content */}
-      <div style={{ padding: '0 20px 20px' }}>
+      <div style={{ padding: '0 20px 12px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
           <h1 style={{
             fontSize: '24px',
             fontWeight: 700,
@@ -189,12 +192,141 @@ export default function Register() {
 
       {/* Step: Select Plan */}
       {step === 'plan' && (
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div className="plans-grid" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(5, 1fr)',
+            gridTemplateColumns: 'repeat(6, 1fr)',
             gap: '14px',
           }}>
+            {/* Free Trial card */}
+            <div
+              onClick={() => {
+                const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
+                if (basePlan) {
+                  navigate('/checkout', { state: { plan: basePlan, isTrialFlow: true } })
+                }
+              }}
+              style={{
+                backgroundColor: 'var(--bg-card)',
+                borderRadius: '14px',
+                padding: '18px',
+                border: '2px solid #22c55e',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: '-11px',
+                right: '14px',
+                backgroundColor: '#22c55e',
+                color: '#fff',
+                padding: '3px 10px',
+                borderRadius: '999px',
+                fontSize: '11px',
+                fontWeight: 600,
+              }}>
+                Gratis
+              </div>
+
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                marginBottom: '4px',
+              }}>
+                Free Trial
+              </h3>
+
+              <p style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                marginBottom: '12px',
+                lineHeight: 1.4,
+              }}>
+                Teste a plataforma sem compromisso
+              </p>
+
+              <div style={{ marginBottom: '12px' }}>
+                <span style={{
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: '#22c55e',
+                }}>
+                  R$ 0
+                </span>
+                <span style={{
+                  fontSize: '13px',
+                  color: 'var(--text-secondary)',
+                  marginLeft: '4px',
+                }}>
+                  /mes
+                </span>
+              </div>
+
+              <div style={{
+                padding: '10px',
+                backgroundColor: 'rgba(34, 197, 94, 0.06)',
+                borderRadius: '8px',
+                marginBottom: '12px',
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '6px',
+                }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Emails/mes
+                  </span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    30
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Lojas
+                  </span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    1
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '12px', flex: 1 }}>
+                {['Sem cartao de credito', '30 emails inclusos', 'Integracao com 1 loja'].map((feature, index) => (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
+                    <Check size={12} style={{ color: '#22c55e', flexShrink: 0 }} />
+                    <span style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{feature}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: '#22c55e',
+                  color: '#fff',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  marginTop: 'auto',
+                }}
+              >
+                Comecar gratis
+                <ArrowRight size={14} />
+              </button>
+            </div>
+
             {plans.map((plan) => (
               <div
                 key={plan.id}
@@ -375,55 +507,6 @@ export default function Register() {
                 </button>
               </div>
             ))}
-          </div>
-
-          {/* Free Trial card */}
-          <div
-            onClick={() => {
-              const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
-              if (basePlan) {
-                navigate('/checkout', { state: { plan: basePlan, isTrialFlow: true } })
-              }
-            }}
-            style={{
-              marginTop: '16px',
-              padding: '16px 24px',
-              backgroundColor: 'var(--bg-card)',
-              borderRadius: '14px',
-              border: '1px solid #22c55e',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div style={{
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                borderRadius: '10px',
-                padding: '8px 14px',
-                fontSize: '13px',
-                fontWeight: 700,
-                color: '#22c55e',
-              }}>
-                Gratis
-              </div>
-              <div>
-                <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Free Trial
-                </div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  30 emails gratis, 1 loja. Sem cartao de credito.
-                </div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 500, color: '#22c55e' }}>
-                Comecar gratis
-              </span>
-              <ArrowRight size={18} style={{ color: '#22c55e', flexShrink: 0 }} />
-            </div>
           </div>
 
           <div style={{
