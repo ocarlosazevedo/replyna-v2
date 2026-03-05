@@ -120,105 +120,88 @@ export default function Register() {
 
   return (
     <div style={{
-      height: '100vh',
+      minHeight: '100vh',
       backgroundColor: 'var(--bg-primary)',
       position: 'relative',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
     }}>
-      <style>{`
-        @media (max-width: 1200px) {
-          .plans-grid { grid-template-columns: repeat(3, 1fr) !important; }
-        }
-        @media (max-width: 700px) {
-          .plans-grid { grid-template-columns: repeat(2, 1fr) !important; }
-        }
-        @media (max-width: 480px) {
-          .plans-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
-      {/* Back button - top left */}
-      <button
-        onClick={() => navigate(-1)}
-        style={{
-          position: 'absolute',
-          top: '16px',
-          left: '24px',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '10px',
-          padding: '10px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-secondary)',
-          zIndex: 10,
-        }}
-        title="Voltar"
-      >
-        <ArrowLeft size={20} />
-      </button>
-
-      {/* Theme toggle - top right */}
-      <button
-        onClick={toggleTheme}
-        style={{
-          position: 'absolute',
-          top: '16px',
-          right: '24px',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '10px',
-          padding: '10px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-secondary)',
-          zIndex: 10,
-        }}
-        title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
-      >
-        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-      </button>
-
-      {/* Logo centered */}
-      <div style={{ textAlign: 'center', padding: '16px 24px 0' }}>
-        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center' }}>
-          <img
-            src="/replyna-logo.webp"
-            alt="Replyna"
-            style={{ width: '130px', height: 'auto' }}
-          />
-        </Link>
+      {/* Top bar with logo and theme toggle */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '20px 24px',
+        maxWidth: '1200px',
+        margin: '0 auto',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '10px',
+              padding: '10px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-secondary)',
+            }}
+            title="Voltar"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
+            <img
+              src="/replyna-logo.webp"
+              alt="Replyna"
+              style={{ width: '120px', height: 'auto' }}
+            />
+          </Link>
+        </div>
+        <button
+          onClick={toggleTheme}
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '10px',
+            padding: '10px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-secondary)',
+          }}
+          title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
+        >
+          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+        </button>
       </div>
 
-      {/* Page content - centered vertically in remaining space */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 24px', minHeight: 0 }}>
-        {/* Title just above cards */}
-        <div style={{ textAlign: 'center', marginBottom: '44px' }}>
+      {/* Page content */}
+      <div style={{ padding: '0 20px 40px' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <h1 style={{
-            fontSize: '24px',
+            fontSize: '28px',
             fontWeight: 700,
             color: 'var(--text-primary)',
-            marginBottom: '6px',
+            marginBottom: '8px',
           }}>
             Escolha seu plano
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
             Comece com 30 emails gratis. Adicione seu cartao para garantir continuidade.
           </p>
         </div>
 
       {/* Step: Select Plan */}
       {step === 'plan' && (
-        <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
-          <div className="plans-grid" style={{
+        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(6, 1fr)',
-            gap: '14px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '20px',
           }}>
             {/* Free Trial card */}
             <div
@@ -230,8 +213,8 @@ export default function Register() {
               }}
               style={{
                 backgroundColor: 'var(--bg-card)',
-                borderRadius: '14px',
-                padding: '18px',
+                borderRadius: '16px',
+                padding: '24px',
                 border: '2px solid #22c55e',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
@@ -242,46 +225,45 @@ export default function Register() {
             >
               <div style={{
                 position: 'absolute',
-                top: '-11px',
-                right: '14px',
+                top: '-12px',
+                right: '16px',
                 backgroundColor: '#22c55e',
                 color: '#fff',
-                padding: '3px 10px',
+                padding: '4px 12px',
                 borderRadius: '999px',
-                fontSize: '11px',
+                fontSize: '12px',
                 fontWeight: 600,
               }}>
                 Gratis
               </div>
 
               <h3 style={{
-                fontSize: '18px',
+                fontSize: '22px',
                 fontWeight: 700,
                 color: 'var(--text-primary)',
-                marginBottom: '4px',
+                marginBottom: '8px',
               }}>
                 Free Trial
               </h3>
 
               <p style={{
-                fontSize: '12px',
+                fontSize: '14px',
                 color: 'var(--text-secondary)',
-                marginBottom: '12px',
-                lineHeight: 1.4,
+                marginBottom: '20px',
               }}>
                 Teste a plataforma sem compromisso
               </p>
 
-              <div style={{ marginBottom: '12px' }}>
+              <div style={{ marginBottom: '20px' }}>
                 <span style={{
-                  fontSize: '28px',
+                  fontSize: '36px',
                   fontWeight: 700,
                   color: '#22c55e',
                 }}>
                   R$ 0
                 </span>
                 <span style={{
-                  fontSize: '13px',
+                  fontSize: '14px',
                   color: 'var(--text-secondary)',
                   marginLeft: '4px',
                 }}>
@@ -290,38 +272,48 @@ export default function Register() {
               </div>
 
               <div style={{
-                padding: '10px',
+                padding: '12px',
                 backgroundColor: 'rgba(34, 197, 94, 0.06)',
-                borderRadius: '8px',
-                marginBottom: '12px',
+                borderRadius: '10px',
+                marginBottom: '20px',
               }}>
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
-                  marginBottom: '6px',
+                  marginBottom: '8px',
                 }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                     Emails/mes
                   </span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
                     30
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                     Lojas
                   </span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
                     1
                   </span>
                 </div>
               </div>
 
-              <div style={{ marginBottom: '12px', flex: 1 }}>
+              <div style={{ marginBottom: '20px', flex: 1 }}>
                 {['Sem cartao de credito', '30 emails inclusos', 'Integracao com 1 loja'].map((feature, index) => (
-                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
-                    <Check size={12} style={{ color: '#22c55e', flexShrink: 0 }} />
-                    <span style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{feature}</span>
+                  <div
+                    key={index}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
+                    <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                      {feature}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -329,23 +321,23 @@ export default function Register() {
               <button
                 style={{
                   width: '100%',
-                  padding: '10px',
-                  borderRadius: '8px',
+                  padding: '12px',
+                  borderRadius: '10px',
                   border: 'none',
                   backgroundColor: '#22c55e',
                   color: '#fff',
                   fontWeight: 600,
-                  fontSize: '13px',
+                  fontSize: '14px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
+                  gap: '8px',
                   marginTop: 'auto',
                 }}
               >
                 Comecar gratis
-                <ArrowRight size={14} />
+                <ArrowRight size={16} />
               </button>
             </div>
 
@@ -355,8 +347,8 @@ export default function Register() {
                 onClick={() => handleSelectPlan(plan)}
                 style={{
                   backgroundColor: 'var(--bg-card)',
-                  borderRadius: '14px',
-                  padding: '18px',
+                  borderRadius: '16px',
+                  padding: '24px',
                   border: plan.is_popular
                     ? '2px solid var(--accent)'
                     : '1px solid var(--border-color)',
@@ -370,47 +362,46 @@ export default function Register() {
                 {plan.is_popular && (
                   <div style={{
                     position: 'absolute',
-                    top: '-11px',
-                    right: '14px',
+                    top: '-12px',
+                    right: '16px',
                     backgroundColor: '#f59e0b',
                     color: '#fff',
-                    padding: '3px 10px',
+                    padding: '4px 12px',
                     borderRadius: '999px',
-                    fontSize: '11px',
+                    fontSize: '12px',
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
                   }}>
-                    <Star size={11} />
+                    <Star size={12} />
                     Popular
                   </div>
                 )}
 
                 <h3 style={{
-                  fontSize: '18px',
+                  fontSize: '22px',
                   fontWeight: 700,
                   color: 'var(--text-primary)',
-                  marginBottom: '4px',
+                  marginBottom: '8px',
                 }}>
                   {plan.name}
                 </h3>
 
                 {plan.description && (
                   <p style={{
-                    fontSize: '12px',
+                    fontSize: '14px',
                     color: 'var(--text-secondary)',
-                    marginBottom: '12px',
-                    lineHeight: 1.4,
+                    marginBottom: '20px',
                   }}>
                     {plan.description}
                   </p>
                 )}
 
-                <div style={{ marginBottom: '12px' }}>
+                <div style={{ marginBottom: '20px' }}>
                   {isEnterprisePlan(plan) ? (
                     <span style={{
-                      fontSize: '22px',
+                      fontSize: '28px',
                       fontWeight: 700,
                       color: 'var(--text-primary)',
                     }}>
@@ -419,14 +410,14 @@ export default function Register() {
                   ) : (
                     <>
                       <span style={{
-                        fontSize: '28px',
+                        fontSize: '36px',
                         fontWeight: 700,
                         color: 'var(--text-primary)',
                       }}>
                         {formatPrice(plan.price_monthly)}
                       </span>
                       <span style={{
-                        fontSize: '13px',
+                        fontSize: '14px',
                         color: 'var(--text-secondary)',
                         marginLeft: '4px',
                       }}>
@@ -437,21 +428,21 @@ export default function Register() {
                 </div>
 
                 <div style={{
-                  padding: '10px',
+                  padding: '12px',
                   backgroundColor: 'rgba(70, 114, 236, 0.06)',
-                  borderRadius: '8px',
-                  marginBottom: '12px',
+                  borderRadius: '10px',
+                  marginBottom: '20px',
                 }}>
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    marginBottom: '6px',
+                    marginBottom: '8px',
                   }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                       Emails/mes
                     </span>
                     <span style={{
-                      fontSize: '12px',
+                      fontSize: '13px',
                       fontWeight: 600,
                       color: plan.emails_limit === null ? '#22c55e' : 'var(--text-primary)',
                     }}>
@@ -459,11 +450,11 @@ export default function Register() {
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                       Lojas
                     </span>
                     <span style={{
-                      fontSize: '12px',
+                      fontSize: '13px',
                       fontWeight: 600,
                       color: plan.shops_limit === null ? '#22c55e' : 'var(--text-primary)',
                     }}>
@@ -473,19 +464,19 @@ export default function Register() {
                 </div>
 
                 {plan.features && plan.features.length > 0 && (
-                  <div style={{ marginBottom: '12px', flex: 1 }}>
-                    {plan.features.slice(0, 3).map((feature, index) => (
+                  <div style={{ marginBottom: '20px', flex: 1 }}>
+                    {plan.features.slice(0, 4).map((feature, index) => (
                       <div
                         key={index}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '6px',
-                          marginBottom: '5px',
+                          gap: '8px',
+                          marginBottom: '8px',
                         }}
                       >
-                        <Check size={12} style={{ color: '#22c55e', flexShrink: 0 }} />
-                        <span style={{ fontSize: '12px', color: 'var(--text-primary)' }}>
+                        <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
+                        <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
                           {feature}
                         </span>
                       </div>
@@ -496,8 +487,8 @@ export default function Register() {
                 <button
                   style={{
                     width: '100%',
-                    padding: '10px',
-                    borderRadius: '8px',
+                    padding: '12px',
+                    borderRadius: '10px',
                     border: 'none',
                     backgroundColor: isEnterprisePlan(plan)
                       ? '#25D366'
@@ -506,24 +497,24 @@ export default function Register() {
                         : 'var(--bg-primary)',
                     color: isEnterprisePlan(plan) || plan.is_popular ? '#fff' : 'var(--text-primary)',
                     fontWeight: 600,
-                    fontSize: '13px',
+                    fontSize: '14px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '6px',
+                    gap: '8px',
                     marginTop: 'auto',
                   }}
                 >
                   {isEnterprisePlan(plan) ? (
                     <>
-                      <MessageCircle size={14} />
+                      <MessageCircle size={16} />
                       Fale conosco
                     </>
                   ) : (
                     <>
                       Selecionar
-                      <ArrowRight size={14} />
+                      <ArrowRight size={16} />
                     </>
                   )}
                 </button>
@@ -532,9 +523,9 @@ export default function Register() {
           </div>
 
           <div style={{
-            marginTop: '14px',
+            marginTop: '32px',
             textAlign: 'center',
-            fontSize: '13px',
+            fontSize: '14px',
             color: 'var(--text-secondary)',
           }}>
             Ja tem conta?{' '}
