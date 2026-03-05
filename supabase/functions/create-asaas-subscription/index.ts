@@ -1,7 +1,8 @@
 /**
  * Edge Function: Create Asaas Subscription
  *
- * Cria cliente e assinatura no Asaas e registra no Supabase.
+ * Cria cliente e assinatura no Asaas (SEM criar conta no Supabase).
+ * A conta so sera criada quando o usuario completar o checkout (confirm-registration).
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
@@ -61,6 +62,23 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseAdmin();
+    const normalizedEmail = user_email.toLowerCase();
+
+    // Verificar se email ja existe no Auth
+    const { data: existingUsers } = await supabase.auth.admin.listUsers({ perPage: 1 });
+    // Buscar pelo email direto
+    const { data: userByEmail } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .limit(1);
+
+    if (userByEmail && userByEmail.length > 0) {
+      return new Response(
+        JSON.stringify({ error: 'Este email ja possui uma conta ativa. Faca login ou use outro email.' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const { data: plan, error: planError } = await supabase
       .from('plans')
@@ -77,7 +95,6 @@ serve(async (req) => {
     }
 
     const baseValue = Number(plan.price_monthly || 0);
-    const normalizedEmail = user_email.toLowerCase();
     let finalValue = baseValue;
     let discountApplied = 0;
     let couponId: string | null = null;
@@ -85,7 +102,6 @@ serve(async (req) => {
     if (coupon_code) {
       const upper = coupon_code.toUpperCase();
 
-      // Validar cupom via RPC para regras de uso
       const { data: validation } = await supabase.rpc('validate_coupon', {
         p_code: upper,
         p_user_id: '00000000-0000-0000-0000-000000000000',
@@ -120,7 +136,7 @@ serve(async (req) => {
       }
     }
 
-    // Limpar telefone: remover caracteres e codigo do pais (fica apenas DDD + numero)
+    // Limpar telefone
     const digitsOnly = (whatsapp_number || '').replace(/\D/g, '');
     let cleanPhone = digitsOnly;
     if (digitsOnly.length > 11) {
@@ -140,34 +156,7 @@ serve(async (req) => {
       });
     }
 
-    // Criar usuario no Auth (nunca reutilizar)
-    const tempPassword = crypto.randomUUID().slice(0, 12) + 'Aa1!';
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: normalizedEmail,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { name: user_name || '' },
-    });
-    if (authError) {
-      const message = authError.message?.toLowerCase() || '';
-      if (message.includes('already') || message.includes('exists') || message.includes('registered')) {
-        return new Response(
-          JSON.stringify({ error: 'Este email já possui uma conta ativa. Faça login ou use outro email.' }),
-          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      throw new Error(`Erro ao criar usuario no Auth: ${authError.message}`);
-    }
-
-    const userId = authData?.user?.id;
-    if (!userId) {
-      throw new Error('Erro ao criar usuario no Auth: ID ausente');
-    }
-
-    const now = new Date();
-
     // Criar assinatura no Asaas com nextDueDate 1 ano no futuro (sem cobranca imediata)
-    // Tanto trial quanto pago passam pelo checkout para salvar o cartao
     const futureDate = new Date();
     futureDate.setFullYear(futureDate.getFullYear() + 1);
     const nextDueDate = formatDateYYYYMMDD(futureDate);
@@ -192,77 +181,25 @@ serve(async (req) => {
       },
     });
 
-    // Buscar primeira cobranca
+    // Buscar URL do checkout
     const payments = await getPaymentsBySubscription(subscription.id, { limit: 1, order: 'desc' });
     const firstPayment = payments.data?.[0];
     const invoiceUrl = firstPayment?.invoiceUrl || null;
 
-    // Insert na tabela users como trial ativo
-    await supabase
-      .from('users')
-      .insert({
-        id: userId,
-        email: normalizedEmail,
-        name: user_name || null,
-        plan: 'Free Trial',
-        emails_limit: 30,
-        shops_limit: 1,
-        emails_used: 0,
-        extra_emails_purchased: 0,
-        extra_emails_used: 0,
-        pending_extra_emails: 0,
-        asaas_customer_id: customer.id,
-        status: 'active',
-        is_trial: true,
-        trial_started_at: now.toISOString(),
-        whatsapp_number: whatsapp_number || null,
-        updated_at: now.toISOString(),
-      });
+    console.log(`[CreateSubscription] Asaas subscription created: ${subscription.id}, trial: ${is_trial}, invoice: ${invoiceUrl}`);
 
-    // Criar assinatura no banco
-    const periodEnd = new Date(now);
-    periodEnd.setDate(periodEnd.getDate() + 30);
-
-    const subscriptionData = {
-      user_id: userId,
-      plan_id: plan.id,
-      asaas_customer_id: customer.id,
-      asaas_subscription_id: subscription.id,
-      status: 'trialing',
-      billing_cycle: 'monthly',
-      current_period_start: now.toISOString(),
-      current_period_end: periodEnd.toISOString(),
-      cancel_at_period_end: false,
-      coupon_id: couponId,
-    };
-    await supabase
-      .from('subscriptions')
-      .insert(subscriptionData);
-
-    if (couponId) {
-      await supabase.rpc('use_coupon', {
-        p_coupon_id: couponId,
-        p_user_id: userId,
-        p_discount_applied: discountApplied,
-        p_subscription_id: subscription.id,
-      });
-    }
-
-    // Gerar magic link para login automatico apos checkout
-    const { data: linkData } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email: normalizedEmail,
-      options: {
-        redirectTo: `${origin || 'https://app.replyna.me'}/dashboard`,
-      },
-    });
-    const magicLink = linkData?.properties?.action_link || null;
-
+    // NAO criar conta aqui - sera criada no confirm-registration apos checkout
+    // Retornar dados para o frontend salvar no localStorage
     return new Response(
       JSON.stringify({
         url: invoiceUrl,
-        subscription_id: subscription.id,
-        magic_link: magicLink,
+        asaas_customer_id: customer.id,
+        asaas_subscription_id: subscription.id,
+        plan_id: plan.id,
+        plan_name: plan.name,
+        coupon_id: couponId,
+        discount_applied: discountApplied,
+        is_trial: is_trial || false,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

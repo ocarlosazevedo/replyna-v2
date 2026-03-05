@@ -247,14 +247,18 @@ export default function Register() {
         throw new Error(data.error || 'Erro ao criar conta')
       }
 
-      // Salvar dados temporários no localStorage
+      // Salvar dados para confirm-registration apos checkout
       localStorage.setItem('pending_registration', JSON.stringify({
         email,
         name,
         whatsapp_number: getFullPhoneNumber() || null,
-        plan_id: selectedPlan!.id,
-        plan_name: selectedPlan!.name,
-        magic_link: data.magic_link || null,
+        plan_id: data.plan_id || selectedPlan!.id,
+        plan_name: data.plan_name || selectedPlan!.name,
+        asaas_customer_id: data.asaas_customer_id,
+        asaas_subscription_id: data.asaas_subscription_id,
+        coupon_id: data.coupon_id || null,
+        discount_applied: data.discount_applied || 0,
+        is_trial: data.is_trial || false,
       }))
 
       // Redirecionar para o checkout do Asaas (adicionar cartao)
