@@ -224,76 +224,43 @@ export default function Register() {
     setLoading(true)
 
     try {
-      if (isTrialFlow) {
-        // Free Trial: criar conta sem cartao
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-trial-account`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            email,
-            name,
-            whatsapp_number: getFullPhoneNumber() || undefined,
-          }),
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Erro ao criar conta')
-        }
-
-        // Salvar magic link para login automatico
-        localStorage.setItem('pending_registration', JSON.stringify({
-          email,
-          name,
-          magic_link: data.magic_link || null,
-        }))
-
-        // Redirecionar para sucesso (magic link faz login automatico)
-        window.location.href = '/checkout/success'
-
-      } else {
-        // Plano pago: criar assinatura no Asaas
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-asaas-subscription`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            plan_id: selectedPlan!.id,
-            user_email: email,
-            user_name: name,
-            whatsapp_number: getFullPhoneNumber() || undefined,
-            coupon_code: couponValidation?.is_valid ? couponCode.toUpperCase() : undefined,
-          }),
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Erro ao criar sessao de pagamento')
-        }
-
-        // Salvar dados temporários no localStorage
-        localStorage.setItem('pending_registration', JSON.stringify({
-          email,
-          name,
-          whatsapp_number: getFullPhoneNumber() || null,
+      // Ambos os fluxos (trial e pago) passam pelo Asaas para salvar cartao
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-asaas-subscription`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
           plan_id: selectedPlan!.id,
-          plan_name: selectedPlan!.name,
-          magic_link: data.magic_link || null,
-        }))
+          user_email: email,
+          user_name: name,
+          whatsapp_number: getFullPhoneNumber() || undefined,
+          coupon_code: !isTrialFlow && couponValidation?.is_valid ? couponCode.toUpperCase() : undefined,
+        }),
+      })
 
-        // Redirecionar para o checkout do Asaas
-        if (data.url) {
-          window.location.href = data.url
-        } else {
-          window.location.href = '/checkout/success'
-        }
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao criar conta')
+      }
+
+      // Salvar dados temporários no localStorage
+      localStorage.setItem('pending_registration', JSON.stringify({
+        email,
+        name,
+        whatsapp_number: getFullPhoneNumber() || null,
+        plan_id: selectedPlan!.id,
+        plan_name: selectedPlan!.name,
+        magic_link: data.magic_link || null,
+      }))
+
+      // Redirecionar para o checkout do Asaas (adicionar cartao)
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        window.location.href = '/checkout/success'
       }
 
     } catch (err: unknown) {
@@ -477,9 +444,12 @@ export default function Register() {
           {/* Free Trial button */}
           <div
             onClick={() => {
-              setIsTrialFlow(true)
-              setSelectedPlan(null)
-              setStep('account')
+              const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
+              if (basePlan) {
+                setIsTrialFlow(true)
+                setSelectedPlan(basePlan)
+                setStep('account')
+              }
             }}
             style={{
               maxWidth: '480px',
@@ -511,7 +481,7 @@ export default function Register() {
                   Comece com Free Trial
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  30 emails gratis, 1 loja, sem cartao de credito
+                  30 emails gratis, 1 loja. Adicione seu cartao, sem cobranca.
                 </div>
               </div>
             </div>
@@ -719,7 +689,7 @@ export default function Register() {
       )}
 
       {/* Step: Account Details */}
-      {step === 'account' && (isTrialFlow || selectedPlan) && (
+      {step === 'account' && selectedPlan && (
         <div style={{
           maxWidth: '480px',
           margin: '0 auto',
@@ -759,16 +729,16 @@ export default function Register() {
           }}>
             <div>
               <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {isTrialFlow ? 'Free Trial' : selectedPlan!.name}
+                {isTrialFlow ? 'Free Trial' : selectedPlan.name}
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                 {isTrialFlow
-                  ? '30 emails gratis, 1 loja. Sem cartao de credito.'
+                  ? '30 emails gratis. Cartao salvo, sem cobranca ate o upgrade.'
                   : 'Teste gratuito com 30 emails. Cartao sera cobrado apenas no upgrade.'}
               </div>
             </div>
             <div style={{ fontSize: '18px', fontWeight: 700, color: isTrialFlow ? '#22c55e' : 'var(--accent)' }}>
-              {isTrialFlow ? 'Gratis' : `${formatPrice(selectedPlan!.price_monthly)}/mes`}
+              {isTrialFlow ? 'Gratis' : `${formatPrice(selectedPlan.price_monthly)}/mes`}
             </div>
           </div>
 
@@ -1030,7 +1000,7 @@ export default function Register() {
                 margin: 0,
               }}>
                 {isTrialFlow
-                  ? 'Enviaremos um email para voce definir sua senha e acessar o painel.'
+                  ? 'Adicione seu cartao para garantir continuidade. Voce so sera cobrado ao fazer upgrade.'
                   : 'Apos o pagamento, enviaremos um email para voce definir sua senha de acesso.'}
               </p>
             </div>
@@ -1056,25 +1026,23 @@ export default function Register() {
               }}
             >
               {loading ? (
-                isTrialFlow ? 'Criando sua conta...' : 'Redirecionando para pagamento...'
+                isTrialFlow ? 'Redirecionando...' : 'Redirecionando para pagamento...'
               ) : (
                 <>
-                  {isTrialFlow ? 'Criar conta gratis' : 'Continuar para pagamento'}
+                  {isTrialFlow ? 'Comecar gratis' : 'Continuar para pagamento'}
                   <ArrowRight size={18} />
                 </>
               )}
             </button>
 
-            {!isTrialFlow && (
-              <p style={{
-                marginTop: '16px',
-                fontSize: '12px',
-                color: 'var(--text-secondary)',
-                textAlign: 'center',
-              }}>
-                Pagamento seguro processado pelo Asaas
-              </p>
-            )}
+            <p style={{
+              marginTop: '16px',
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              textAlign: 'center',
+            }}>
+              Pagamento seguro processado pelo Asaas
+            </p>
           </form>
 
           <div style={{
