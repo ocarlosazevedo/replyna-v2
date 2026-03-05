@@ -85,32 +85,35 @@ export default function CheckoutSuccess() {
         padding: '20px',
       }}>
         <div style={{
-          maxWidth: '400px',
+          maxWidth: '420px',
           width: '100%',
-          backgroundColor: 'var(--bg-card)',
-          borderRadius: '16px',
-          padding: '32px',
           textAlign: 'center',
-          border: '1px solid var(--border-color)',
         }}>
-          <Loader2
-            size={48}
-            style={{
-              color: 'var(--accent)',
-              animation: 'spin 1s linear infinite',
-              marginBottom: '24px',
-            }}
-          />
+          <div style={{
+            width: '64px',
+            height: '64px',
+            margin: '0 auto 32px',
+            position: 'relative',
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              border: '3px solid rgba(70, 114, 236, 0.15)',
+              borderTopColor: 'var(--accent)',
+              animation: 'spin 0.8s linear infinite',
+            }} />
+          </div>
           <h2 style={{
-            fontSize: '20px',
+            fontSize: '22px',
             fontWeight: 700,
             color: 'var(--text-primary)',
-            marginBottom: '8px',
+            marginBottom: '12px',
           }}>
-            Configurando sua conta...
+            Criando sua conta...
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-            Aguarde um momento
+          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.5 }}>
+            Isso leva apenas alguns segundos
           </p>
           <style>{`
             @keyframes spin {
