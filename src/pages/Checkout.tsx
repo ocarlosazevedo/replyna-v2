@@ -467,149 +467,7 @@ export default function Checkout() {
     </div>
   )
 
-  // Review step content
-  const ReviewStep = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-    >
-      {/* Personal info summary */}
-      <div style={{
-        backgroundColor: 'var(--bg-card)',
-        borderRadius: '16px',
-        padding: '20px 24px',
-        border: '1px solid var(--border-color)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Dados pessoais</h4>
-          <button
-            type="button"
-            onClick={() => goToStep('personal')}
-            style={{
-              background: 'none', border: 'none', color: 'var(--accent)',
-              cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
-            }}
-          >
-            Editar
-          </button>
-        </div>
-        <div style={{ display: 'grid', gap: '6px' }}>
-          <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{name}</span>
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{email}</span>
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{getFullPhoneNumber()}</span>
-          {cpfCnpj && <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{cpfCnpj}</span>}
-        </div>
-      </div>
-
-      {/* Address summary */}
-      <div style={{
-        backgroundColor: 'var(--bg-card)',
-        borderRadius: '16px',
-        padding: '20px 24px',
-        border: '1px solid var(--border-color)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Endereco</h4>
-          <button
-            type="button"
-            onClick={() => goToStep('address')}
-            style={{
-              background: 'none', border: 'none', color: 'var(--accent)',
-              cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
-            }}
-          >
-            Editar
-          </button>
-        </div>
-        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-          {address.logradouro}, {address.numero}
-          {address.complemento && ` - ${address.complemento}`}<br />
-          {address.bairro && `${address.bairro} - `}{address.cidade}/{address.estado}<br />
-          CEP: {address.cep}
-        </div>
-      </div>
-
-      {/* Card summary */}
-      <div style={{
-        backgroundColor: 'var(--bg-card)',
-        borderRadius: '16px',
-        padding: '20px 24px',
-        border: '1px solid var(--border-color)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Cartao</h4>
-          <button
-            type="button"
-            onClick={() => goToStep('payment')}
-            style={{
-              background: 'none', border: 'none', color: 'var(--accent)',
-              cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
-            }}
-          >
-            Editar
-          </button>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <CreditCard size={18} style={{ color: 'var(--text-secondary)' }} />
-          <div>
-            <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
-              **** **** **** {card.number.replace(/\D/g, '').slice(-4)}
-            </span>
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', marginLeft: '12px' }}>
-              {card.holderName}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Coupon - only for paid */}
-      {!isTrialFlow && (
-        <CouponSection
-          planId={plan!.id}
-          onCouponValidated={setCouponValidation}
-          onCouponRemoved={() => { setCouponValidation(null); setCouponCode('') }}
-          onCodeChange={setCouponCode}
-          validation={couponValidation}
-        />
-      )}
-
-      {/* Price summary */}
-      {!isTrialFlow && (
-        <div style={{
-          backgroundColor: 'var(--bg-card)',
-          borderRadius: '16px',
-          padding: '20px 24px',
-          border: '1px solid var(--border-color)',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Plano {plan!.name}</span>
-            <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{formatPrice(plan!.price_monthly)}/mes</span>
-          </div>
-          {couponValidation?.is_valid && couponValidation.discount_value && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ fontSize: '14px', color: '#22c55e' }}>Desconto</span>
-              <span style={{ fontSize: '14px', color: '#22c55e', fontWeight: 600 }}>
-                -{couponValidation.discount_type === 'percentage'
-                  ? formatPrice(plan!.price_monthly * couponValidation.discount_value / 100)
-                  : formatPrice(couponValidation.discount_value)}
-              </span>
-            </div>
-          )}
-          <div style={{
-            display: 'flex', justifyContent: 'space-between',
-            paddingTop: '12px', borderTop: '1px solid var(--border-color)',
-          }}>
-            <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Total</span>
-            <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {formatPrice(calculateFinalPrice())}/mes
-            </span>
-          </div>
-        </div>
-      )}
-
-    </motion.div>
-  )
+  // reviewStepContent is inlined as JSX (not a component) to avoid remounting on parent re-render
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
@@ -873,7 +731,145 @@ export default function Checkout() {
                   exit="exit"
                   transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
                 >
-                  <ReviewStep />
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+                  >
+                    {/* Personal info summary */}
+                    <div style={{
+                      backgroundColor: 'var(--bg-card)',
+                      borderRadius: '16px',
+                      padding: '20px 24px',
+                      border: '1px solid var(--border-color)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Dados pessoais</h4>
+                        <button
+                          type="button"
+                          onClick={() => goToStep('personal')}
+                          style={{
+                            background: 'none', border: 'none', color: 'var(--accent)',
+                            cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
+                          }}
+                        >
+                          Editar
+                        </button>
+                      </div>
+                      <div style={{ display: 'grid', gap: '6px' }}>
+                        <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{name}</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{email}</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{getFullPhoneNumber()}</span>
+                        {cpfCnpj && <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{cpfCnpj}</span>}
+                      </div>
+                    </div>
+
+                    {/* Address summary */}
+                    <div style={{
+                      backgroundColor: 'var(--bg-card)',
+                      borderRadius: '16px',
+                      padding: '20px 24px',
+                      border: '1px solid var(--border-color)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Endereco</h4>
+                        <button
+                          type="button"
+                          onClick={() => goToStep('address')}
+                          style={{
+                            background: 'none', border: 'none', color: 'var(--accent)',
+                            cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
+                          }}
+                        >
+                          Editar
+                        </button>
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                        {address.logradouro}, {address.numero}
+                        {address.complemento && ` - ${address.complemento}`}<br />
+                        {address.bairro && `${address.bairro} - `}{address.cidade}/{address.estado}<br />
+                        CEP: {address.cep}
+                      </div>
+                    </div>
+
+                    {/* Card summary */}
+                    <div style={{
+                      backgroundColor: 'var(--bg-card)',
+                      borderRadius: '16px',
+                      padding: '20px 24px',
+                      border: '1px solid var(--border-color)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Cartao</h4>
+                        <button
+                          type="button"
+                          onClick={() => goToStep('payment')}
+                          style={{
+                            background: 'none', border: 'none', color: 'var(--accent)',
+                            cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
+                          }}
+                        >
+                          Editar
+                        </button>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <CreditCard size={18} style={{ color: 'var(--text-secondary)' }} />
+                        <div>
+                          <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
+                            **** **** **** {card.number.replace(/\D/g, '').slice(-4)}
+                          </span>
+                          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', marginLeft: '12px' }}>
+                            {card.holderName}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Coupon - only for paid */}
+                    {!isTrialFlow && (
+                      <CouponSection
+                        planId={plan!.id}
+                        onCouponValidated={setCouponValidation}
+                        onCouponRemoved={() => { setCouponValidation(null); setCouponCode('') }}
+                        onCodeChange={setCouponCode}
+                        validation={couponValidation}
+                      />
+                    )}
+
+                    {/* Price summary */}
+                    {!isTrialFlow && (
+                      <div style={{
+                        backgroundColor: 'var(--bg-card)',
+                        borderRadius: '16px',
+                        padding: '20px 24px',
+                        border: '1px solid var(--border-color)',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Plano {plan!.name}</span>
+                          <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{formatPrice(plan!.price_monthly)}/mes</span>
+                        </div>
+                        {couponValidation?.is_valid && couponValidation.discount_value && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '14px', color: '#22c55e' }}>Desconto</span>
+                            <span style={{ fontSize: '14px', color: '#22c55e', fontWeight: 600 }}>
+                              -{couponValidation.discount_type === 'percentage'
+                                ? formatPrice(plan!.price_monthly * couponValidation.discount_value / 100)
+                                : formatPrice(couponValidation.discount_value)}
+                            </span>
+                          </div>
+                        )}
+                        <div style={{
+                          display: 'flex', justifyContent: 'space-between',
+                          paddingTop: '12px', borderTop: '1px solid var(--border-color)',
+                        }}>
+                          <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Total</span>
+                          <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {formatPrice(calculateFinalPrice())}/mes
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
