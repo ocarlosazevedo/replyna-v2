@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { Sun, Moon, Star, ArrowRight, MessageCircle, Check } from 'lucide-react'
+import { Sun, Moon, Star, ArrowRight, ArrowLeft, MessageCircle, Check } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { supabase } from '../lib/supabase'
 
@@ -138,6 +138,29 @@ export default function Register() {
           .plans-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
+      {/* Back button - top left */}
+      <button
+        onClick={() => navigate(-1)}
+        style={{
+          position: 'absolute',
+          top: '16px',
+          left: '24px',
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '10px',
+          padding: '10px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-secondary)',
+          zIndex: 10,
+        }}
+        title="Voltar"
+      >
+        <ArrowLeft size={20} />
+      </button>
+
       {/* Theme toggle - top right */}
       <button
         onClick={toggleTheme}
