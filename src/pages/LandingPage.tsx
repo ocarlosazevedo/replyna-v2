@@ -36,6 +36,22 @@ const getAppUrl = (path: string) => {
 // Dados dos planos
 const plans = [
   {
+    name: 'Free Trial',
+    description: 'Teste a plataforma sem compromisso',
+    price: 0,
+    emails: 30,
+    shops: 1,
+    extraPrice: '-',
+    popular: false,
+    features: [
+      'Sem cartão de crédito',
+      '30 emails inclusos',
+      'Integração com 1 loja',
+      'Teste grátis por tempo limitado',
+    ],
+    isTrial: true,
+  },
+  {
     name: 'Starter',
     description: 'Ideal para quem está começando',
     price: 197,
@@ -643,7 +659,7 @@ export default function LandingPage() {
         /* Plans Grid */
         .lp-plans-grid {
           display: grid;
-          grid-template-columns: repeat(5, 1fr);
+          grid-template-columns: repeat(6, 1fr);
           gap: 20px;
           align-items: stretch;
         }
@@ -1907,14 +1923,16 @@ export default function LandingPage() {
           <div className="lp-plans-grid">
             {plans.map((plan, i) => (
               <div key={i} style={{ position: 'relative' }}>
-                {/* Popular badge - positioned absolute outside card flow */}
-                {plan.popular && (
+                {/* Popular / Gratis badge */}
+                {(plan.popular || plan.isTrial) && (
                   <div style={{
                     position: 'absolute',
                     top: '-14px',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    background: plan.isTrial
+                      ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                      : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                     color: '#fff',
                     padding: '6px 14px',
                     borderRadius: '999px',
@@ -1924,25 +1942,29 @@ export default function LandingPage() {
                     alignItems: 'center',
                     gap: '6px',
                     whiteSpace: 'nowrap',
-                    boxShadow: '0 4px 15px rgba(245, 158, 11, 0.3)',
+                    boxShadow: plan.isTrial
+                      ? '0 4px 15px rgba(34, 197, 94, 0.3)'
+                      : '0 4px 15px rgba(245, 158, 11, 0.3)',
                     zIndex: 10,
                   }}>
-                    <Star size={12} fill="#fff" />
-                    Popular
+                    {plan.isTrial ? null : <Star size={12} fill="#fff" />}
+                    {plan.isTrial ? 'Grátis' : 'Popular'}
                   </div>
                 )}
                 {/* Card */}
-                <div className={`lp-card-shine ${plan.popular ? '' : 'lp-gradient-border'}`} style={{
+                <div className={`lp-card-shine ${plan.popular || plan.isTrial ? '' : 'lp-gradient-border'}`} style={{
                   padding: '28px 22px',
                   textAlign: 'left',
                   display: 'flex',
                   flexDirection: 'column',
                   height: '100%',
                   boxSizing: 'border-box',
-                  background: plan.popular
-                    ? 'linear-gradient(180deg, rgba(70, 114, 236, 0.1) 0%, rgba(70, 114, 236, 0.02) 100%)'
-                    : 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                  border: plan.popular ? '2px solid rgba(70, 114, 236, 0.5)' : undefined,
+                  background: plan.isTrial
+                    ? 'linear-gradient(180deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.02) 100%)'
+                    : plan.popular
+                      ? 'linear-gradient(180deg, rgba(70, 114, 236, 0.1) 0%, rgba(70, 114, 236, 0.02) 100%)'
+                      : 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+                  border: plan.isTrial ? '2px solid rgba(34, 197, 94, 0.5)' : plan.popular ? '2px solid rgba(70, 114, 236, 0.5)' : undefined,
                   borderRadius: '20px',
                 }}>
                   <h3 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '4px' }}>
@@ -1958,8 +1980,8 @@ export default function LandingPage() {
                 </p>
 
                 <div style={{ marginBottom: '20px', height: '40px', display: 'flex', alignItems: 'center' }}>
-                  <span className="lp-number" style={{ fontSize: plan.isEnterprise ? '24px' : '32px', fontWeight: 800 }}>
-                    {plan.isEnterprise ? 'Sob consulta' : formatPrice(plan.price)}
+                  <span className="lp-number" style={{ fontSize: plan.isEnterprise ? '24px' : '32px', fontWeight: 800, color: plan.isTrial ? '#22c55e' : undefined }}>
+                    {plan.isEnterprise ? 'Sob consulta' : plan.isTrial ? 'R$ 0' : formatPrice(plan.price)}
                   </span>
                   {!plan.isEnterprise && (
                     <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginLeft: '4px' }}>
@@ -2055,6 +2077,32 @@ export default function LandingPage() {
                   >
                     <MessageCircle size={16} />
                     Fale conosco
+                  </a>
+                ) : plan.isTrial ? (
+                  <a
+                    href={getAppUrl('/register')}
+                    style={{
+                      display: 'flex',
+                      width: '100%',
+                      padding: '14px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      backgroundColor: '#22c55e',
+                      color: '#fff',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      textDecoration: 'none',
+                      marginTop: 'auto',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
+                    Começar grátis
+                    <ArrowRight size={16} />
                   </a>
                 ) : (
                   <a
