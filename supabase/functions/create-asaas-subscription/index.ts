@@ -166,64 +166,25 @@ serve(async (req) => {
 
     const now = new Date();
 
-    // === TRIAL: criar apenas customer no Asaas, sem assinatura/fatura ===
-    if (is_trial) {
-      console.log(`[CreateSubscription] Trial flow for ${normalizedEmail}`);
-
-      await supabase
-        .from('users')
-        .insert({
-          id: userId,
-          email: normalizedEmail,
-          name: user_name || null,
-          plan: 'Free Trial',
-          emails_limit: 30,
-          shops_limit: 1,
-          emails_used: 0,
-          extra_emails_purchased: 0,
-          extra_emails_used: 0,
-          pending_extra_emails: 0,
-          asaas_customer_id: customer.id,
-          status: 'active',
-          is_trial: true,
-          trial_started_at: now.toISOString(),
-          whatsapp_number: whatsapp_number || null,
-          updated_at: now.toISOString(),
-        });
-
-      // Gerar magic link para login automatico
-      const { data: linkData } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: normalizedEmail,
-        options: {
-          redirectTo: `${origin || 'https://app.replyna.me'}/dashboard`,
-        },
-      });
-      const magicLink = linkData?.properties?.action_link || null;
-
-      return new Response(
-        JSON.stringify({
-          url: null,
-          subscription_id: null,
-          magic_link: magicLink,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // === PAGO: criar assinatura no Asaas com cobranca futura ===
+    // Criar assinatura no Asaas com nextDueDate 1 ano no futuro (sem cobranca imediata)
+    // Tanto trial quanto pago passam pelo checkout para salvar o cartao
     const futureDate = new Date();
     futureDate.setFullYear(futureDate.getFullYear() + 1);
     const nextDueDate = formatDateYYYYMMDD(futureDate);
+
+    let subscriptionDescription = `Replyna - Plano ${plan.name}`;
+    if (is_trial) {
+      subscriptionDescription = `Replyna - Free Trial (Plano ${plan.name})`;
+    } else if (couponId) {
+      subscriptionDescription = `Replyna - Plano ${plan.name} (Cupom aplicado: -${discountApplied.toFixed(2)})`;
+    }
 
     const subscription = await createSubscription({
       customer: customer.id,
       billingType: 'CREDIT_CARD',
       value: finalValue,
       cycle: 'MONTHLY',
-      description: couponId
-        ? `Replyna - Plano ${plan.name} (Cupom aplicado: -${discountApplied.toFixed(2)})`
-        : `Replyna - Plano ${plan.name}`,
+      description: subscriptionDescription,
       nextDueDate,
       callback: {
         successUrl: 'https://app.replyna.me/checkout/success',
