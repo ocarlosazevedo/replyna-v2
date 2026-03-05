@@ -15,10 +15,11 @@ interface CouponSectionProps {
   planId: string
   onCouponValidated: (validation: CouponValidation) => void
   onCouponRemoved: () => void
+  onCodeChange?: (code: string) => void
   validation: CouponValidation | null
 }
 
-export default function CouponSection({ planId, onCouponValidated, onCouponRemoved, validation }: CouponSectionProps) {
+export default function CouponSection({ planId, onCouponValidated, onCouponRemoved, onCodeChange, validation }: CouponSectionProps) {
   const [showField, setShowField] = useState(false)
   const [code, setCode] = useState('')
   const [validating, setValidating] = useState(false)
@@ -38,6 +39,7 @@ export default function CouponSection({ planId, onCouponValidated, onCouponRemov
 
       if (data && data[0]) {
         onCouponValidated(data[0] as CouponValidation)
+        onCodeChange?.(code.toUpperCase())
       }
     } catch {
       onCouponValidated({
@@ -183,7 +185,9 @@ export default function CouponSection({ planId, onCouponValidated, onCouponRemov
                 type="text"
                 value={code}
                 onChange={(e) => {
-                  setCode(e.target.value.toUpperCase())
+                  const val = e.target.value.toUpperCase()
+                  setCode(val)
+                  onCodeChange?.(val)
                   if (validation) onCouponRemoved()
                 }}
                 style={inputStyle}

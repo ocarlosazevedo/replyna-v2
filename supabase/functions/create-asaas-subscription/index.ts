@@ -259,9 +259,15 @@ serve(async (req) => {
       subscriptionDescription = `Replyna - Plano ${plan.name} (Cupom: -${discountApplied.toFixed(2)})`;
     }
 
-    // Determine subscription value
-    // For trial: create subscription with plan price but Asaas won't charge until trial ends
-    const subscriptionValue = is_trial ? baseValue : finalValue;
+    // Subscription always at full price; coupon discount applied only to first payment via Asaas discount
+    const subscriptionValue = baseValue;
+
+    // Build Asaas discount for first payment only (if coupon applied)
+    const discount = (!is_trial && discountApplied > 0) ? {
+      value: discountApplied,
+      dueDateLimitDays: 0,
+      type: 'FIXED' as const,
+    } : undefined;
 
     try {
       const subscription = await createSubscription({
@@ -271,6 +277,7 @@ serve(async (req) => {
         cycle: 'MONTHLY',
         description: subscriptionDescription,
         nextDueDate,
+        ...(discount ? { discount } : {}),
         creditCard: {
           holderName: creditCard.holderName,
           number: creditCard.number,

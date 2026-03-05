@@ -108,7 +108,7 @@ export default function Checkout() {
 
   // Coupon
   const [couponValidation, setCouponValidation] = useState<CouponValidation | null>(null)
-  const [couponCode] = useState('')
+  const [couponCode, setCouponCode] = useState('')
 
   // UI
   const [error, setError] = useState('')
@@ -568,7 +568,8 @@ export default function Checkout() {
         <CouponSection
           planId={plan!.id}
           onCouponValidated={setCouponValidation}
-          onCouponRemoved={() => setCouponValidation(null)}
+          onCouponRemoved={() => { setCouponValidation(null); setCouponCode('') }}
+          onCodeChange={setCouponCode}
           validation={couponValidation}
         />
       )}
