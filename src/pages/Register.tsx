@@ -184,9 +184,9 @@ export default function Register() {
         {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
       </button>
 
-      {/* Logo centered + Title */}
+      {/* Logo centered */}
       <div style={{ textAlign: 'center', padding: '16px 24px 0' }}>
-        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: '10px' }}>
+        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center' }}>
           <img
             src="/replyna-logo.webp"
             alt="Replyna"
@@ -194,22 +194,23 @@ export default function Register() {
           />
         </Link>
       </div>
-      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: 700,
-          color: 'var(--text-primary)',
-          marginBottom: '6px',
-        }}>
-          Escolha seu plano
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
-          Comece com 30 emails gratis. Adicione seu cartao para garantir continuidade.
-        </p>
-      </div>
 
       {/* Page content - centered vertically in remaining space */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 24px', minHeight: 0 }}>
+        {/* Title just above cards */}
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginBottom: '6px',
+          }}>
+            Escolha seu plano
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+            Comece com 30 emails gratis. Adicione seu cartao para garantir continuidade.
+          </p>
+        </div>
 
       {/* Step: Select Plan */}
       {step === 'plan' && (
