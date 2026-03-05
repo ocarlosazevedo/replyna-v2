@@ -138,52 +138,56 @@ export default function Register() {
           .plans-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
-      {/* Theme toggle - absolute top right */}
-      <button
-        onClick={toggleTheme}
-        style={{
-          position: 'absolute',
-          top: '16px',
-          right: '24px',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '10px',
-          padding: '10px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-secondary)',
-          zIndex: 10,
-        }}
-        title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
-      >
-        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-      </button>
+      {/* Top bar with logo and theme toggle */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '12px 24px',
+      }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
+          <img
+            src="/replyna-logo.webp"
+            alt="Replyna"
+            style={{ width: '120px', height: 'auto' }}
+          />
+        </Link>
+        <button
+          onClick={toggleTheme}
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '10px',
+            padding: '10px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-secondary)',
+          }}
+          title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
+        >
+          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+        </button>
+      </div>
 
-      {/* Page content - centered vertically */}
+      {/* Title */}
+      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+        <h1 style={{
+          fontSize: '24px',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
+          marginBottom: '6px',
+        }}>
+          Escolha seu plano
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+          Comece com 30 emails gratis. Adicione seu cartao para garantir continuidade.
+        </p>
+      </div>
+
+      {/* Page content - centered vertically in remaining space */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 24px', minHeight: 0 }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: '12px' }}>
-            <img
-              src="/replyna-logo.webp"
-              alt="Replyna"
-              style={{ width: '130px', height: 'auto' }}
-            />
-          </Link>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            marginBottom: '6px',
-          }}>
-            Escolha seu plano
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
-            Comece com 30 emails gratis. Adicione seu cartao para garantir continuidade.
-          </p>
-        </div>
 
       {/* Step: Select Plan */}
       {step === 'plan' && (
