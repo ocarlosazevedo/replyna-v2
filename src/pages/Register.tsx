@@ -198,11 +198,24 @@ export default function Register() {
       {/* Step: Select Plan */}
       {step === 'plan' && (
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          <div style={{
+          <div className="plans-grid-wrapper" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(6, 1fr)',
             gap: '20px',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollSnapType: 'x mandatory',
+            paddingBottom: '4px',
           }}>
+          <style>{`
+            @media (max-width: 900px) {
+              .plans-grid-wrapper { grid-template-columns: repeat(6, 260px) !important; }
+            }
+            .plans-grid-wrapper > div { scroll-snap-align: start; }
+            .plans-grid-wrapper::-webkit-scrollbar { height: 6px; }
+            .plans-grid-wrapper::-webkit-scrollbar-track { background: transparent; }
+            .plans-grid-wrapper::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+          `}</style>
             {/* Free Trial card */}
             <div
               onClick={() => {
