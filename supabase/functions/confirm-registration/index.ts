@@ -144,27 +144,37 @@ serve(async (req) => {
 
     const now = new Date();
 
-    // Insert na tabela users
+    // Buscar dados do plano para definir limites corretos
+    const { data: planData } = await supabase
+      .from('plans')
+      .select('name, emails_limit, shops_limit')
+      .eq('id', plan_id)
+      .single();
+
+    // Determinar se eh trial ou pago
+    const userIsTrial = is_trial === true;
+
+    // Insert na tabela users com dados corretos do plano
     await supabase.from('users').insert({
       id: userId,
       email: normalizedEmail,
       name: name || null,
-      plan: 'Free Trial',
-      emails_limit: 30,
-      shops_limit: 1,
+      plan: userIsTrial ? 'Free Trial' : (planData?.name || 'Starter'),
+      emails_limit: userIsTrial ? 30 : (planData?.emails_limit ?? 30),
+      shops_limit: userIsTrial ? 1 : (planData?.shops_limit ?? 1),
       emails_used: 0,
       extra_emails_purchased: 0,
       extra_emails_used: 0,
       pending_extra_emails: 0,
       asaas_customer_id,
       status: 'active',
-      is_trial: true,
-      trial_started_at: now.toISOString(),
+      is_trial: userIsTrial,
+      trial_started_at: userIsTrial ? now.toISOString() : null,
       whatsapp_number: whatsapp_number || null,
       updated_at: now.toISOString(),
     });
 
-    // Criar subscription no banco (apenas se tem assinatura no Asaas - fluxo pago)
+    // Criar subscription no banco (apenas se tem assinatura no Asaas)
     if (asaas_subscription_id) {
       const periodEnd = new Date(now);
       periodEnd.setDate(periodEnd.getDate() + 30);
@@ -174,7 +184,7 @@ serve(async (req) => {
         plan_id,
         asaas_customer_id,
         asaas_subscription_id,
-        status: 'trialing',
+        status: userIsTrial ? 'trialing' : 'active',
         billing_cycle: 'monthly',
         current_period_start: now.toISOString(),
         current_period_end: periodEnd.toISOString(),

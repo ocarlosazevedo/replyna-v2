@@ -8,6 +8,8 @@ export default function CheckoutSuccess() {
 
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
   const [errorMessage, setErrorMessage] = useState('')
+  const [isTrial, setIsTrial] = useState(false)
+  const [planName, setPlanName] = useState('')
 
   useEffect(() => {
     const confirmRegistration = async () => {
@@ -20,6 +22,8 @@ export default function CheckoutSuccess() {
         }
 
         const parsed = JSON.parse(pendingData)
+        setIsTrial(parsed.is_trial || false)
+        setPlanName(parsed.plan_name || '')
         localStorage.removeItem('pending_registration')
 
         // Google Ads conversion tracking
@@ -245,7 +249,9 @@ export default function CheckoutSuccess() {
           marginBottom: '24px',
           lineHeight: 1.6,
         }}>
-          Seu periodo de teste gratuito foi ativado com 30 emails.
+          {isTrial
+            ? 'Seu periodo de teste gratuito foi ativado com 30 emails.'
+            : `Sua assinatura do plano ${planName || 'selecionado'} foi ativada com sucesso.`}
         </p>
 
         <div style={{

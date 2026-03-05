@@ -13,6 +13,7 @@ import {
   getCustomerByEmail,
   updateCustomer,
   createSubscription,
+  updateSubscription,
 } from '../_shared/asaas.ts';
 
 interface CreditCardInput {
@@ -259,25 +260,18 @@ serve(async (req) => {
       subscriptionDescription = `Replyna - Plano ${plan.name} (Cupom: -${discountApplied.toFixed(2)})`;
     }
 
-    // Subscription always at full price; coupon discount applied only to first payment via Asaas discount
-    const subscriptionValue = baseValue;
-
-    // Build Asaas discount for first payment only (if coupon applied)
-    const discount = (!is_trial && discountApplied > 0) ? {
-      value: discountApplied,
-      dueDateLimitDays: 0,
-      type: 'FIXED' as const,
-    } : undefined;
+    // For coupon: create at discounted value, then update to full price
+    // This way first payment = discounted, future payments = full price
+    const firstPaymentValue = (!is_trial && discountApplied > 0) ? finalValue : baseValue;
 
     try {
       const subscription = await createSubscription({
         customer: customer.id,
         billingType: 'CREDIT_CARD',
-        value: subscriptionValue,
+        value: firstPaymentValue,
         cycle: 'MONTHLY',
         description: subscriptionDescription,
         nextDueDate,
-        ...(discount ? { discount } : {}),
         creditCard: {
           holderName: creditCard.holderName,
           number: creditCard.number,
@@ -297,6 +291,16 @@ serve(async (req) => {
       });
 
       console.log(`[CreateSubscription] Subscription created: ${subscription.id}, trial: ${is_trial}`);
+
+      // If coupon was applied, update subscription to full price for future payments
+      if (!is_trial && discountApplied > 0 && firstPaymentValue < baseValue) {
+        await updateSubscription(subscription.id, {
+          value: baseValue,
+          updatePendingPayments: false,
+          description: `Replyna - Plano ${plan.name}`,
+        });
+        console.log(`[CreateSubscription] Updated subscription to full price: ${baseValue}`);
+      }
 
       return new Response(
         JSON.stringify({
