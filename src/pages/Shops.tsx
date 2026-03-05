@@ -192,7 +192,7 @@ export default function Shops() {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-shop`,
         {
-          method: 'DELETE',
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
