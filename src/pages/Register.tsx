@@ -237,6 +237,7 @@ export default function Register() {
           user_name: name,
           whatsapp_number: getFullPhoneNumber() || undefined,
           coupon_code: !isTrialFlow && couponValidation?.is_valid ? couponCode.toUpperCase() : undefined,
+          is_trial: isTrialFlow || undefined,
         }),
       })
 

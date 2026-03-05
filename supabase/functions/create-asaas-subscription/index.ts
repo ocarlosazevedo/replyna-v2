@@ -20,6 +20,7 @@ interface CreateSubscriptionRequest {
   user_name?: string;
   whatsapp_number?: string;
   coupon_code?: string;
+  is_trial?: boolean;
 }
 
 function getSupabaseAdmin() {
@@ -50,7 +51,7 @@ serve(async (req) => {
 
   try {
     const body = (await req.json()) as CreateSubscriptionRequest;
-    const { plan_id, user_email, user_name, whatsapp_number, coupon_code } = body;
+    const { plan_id, user_email, user_name, whatsapp_number, coupon_code, is_trial } = body;
 
     if (!plan_id || !user_email) {
       return new Response(
@@ -139,32 +140,6 @@ serve(async (req) => {
       });
     }
 
-    // nextDueDate 1 ano no futuro: usuario comeca como trial, so cobrado no upgrade
-    const futureDate = new Date();
-    futureDate.setFullYear(futureDate.getFullYear() + 1);
-    const nextDueDate = formatDateYYYYMMDD(futureDate);
-
-    // Criar assinatura (valor ja com desconto aplicado, sem usar discount do Asaas para evitar desconto duplicado)
-    const subscription = await createSubscription({
-      customer: customer.id,
-      billingType: 'CREDIT_CARD',
-      value: finalValue,
-      cycle: 'MONTHLY',
-      description: couponId
-        ? `Replyna - Plano ${plan.name} (Cupom aplicado: -${discountApplied.toFixed(2)})`
-        : `Replyna - Plano ${plan.name}`,
-      nextDueDate,
-      callback: {
-        successUrl: 'https://app.replyna.me/checkout/success',
-        autoRedirect: true,
-      },
-    });
-
-    // Buscar primeira cobranca
-    const payments = await getPaymentsBySubscription(subscription.id, { limit: 1, order: 'desc' });
-    const firstPayment = payments.data?.[0];
-    const invoiceUrl = firstPayment?.invoiceUrl || null;
-
     // Criar usuario no Auth (nunca reutilizar)
     const tempPassword = crypto.randomUUID().slice(0, 12) + 'Aa1!';
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -189,9 +164,79 @@ serve(async (req) => {
       throw new Error('Erro ao criar usuario no Auth: ID ausente');
     }
 
-    // Insert na tabela users como trial ativo
-    // Cartao foi adicionado no Asaas, cobranca so no upgrade
     const now = new Date();
+
+    // === TRIAL: criar apenas customer no Asaas, sem assinatura/fatura ===
+    if (is_trial) {
+      console.log(`[CreateSubscription] Trial flow for ${normalizedEmail}`);
+
+      await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          email: normalizedEmail,
+          name: user_name || null,
+          plan: 'Free Trial',
+          emails_limit: 30,
+          shops_limit: 1,
+          emails_used: 0,
+          extra_emails_purchased: 0,
+          extra_emails_used: 0,
+          pending_extra_emails: 0,
+          asaas_customer_id: customer.id,
+          status: 'active',
+          is_trial: true,
+          trial_started_at: now.toISOString(),
+          whatsapp_number: whatsapp_number || null,
+          updated_at: now.toISOString(),
+        });
+
+      // Gerar magic link para login automatico
+      const { data: linkData } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: normalizedEmail,
+        options: {
+          redirectTo: `${origin || 'https://app.replyna.me'}/dashboard`,
+        },
+      });
+      const magicLink = linkData?.properties?.action_link || null;
+
+      return new Response(
+        JSON.stringify({
+          url: null,
+          subscription_id: null,
+          magic_link: magicLink,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // === PAGO: criar assinatura no Asaas com cobranca futura ===
+    const futureDate = new Date();
+    futureDate.setFullYear(futureDate.getFullYear() + 1);
+    const nextDueDate = formatDateYYYYMMDD(futureDate);
+
+    const subscription = await createSubscription({
+      customer: customer.id,
+      billingType: 'CREDIT_CARD',
+      value: finalValue,
+      cycle: 'MONTHLY',
+      description: couponId
+        ? `Replyna - Plano ${plan.name} (Cupom aplicado: -${discountApplied.toFixed(2)})`
+        : `Replyna - Plano ${plan.name}`,
+      nextDueDate,
+      callback: {
+        successUrl: 'https://app.replyna.me/checkout/success',
+        autoRedirect: true,
+      },
+    });
+
+    // Buscar primeira cobranca
+    const payments = await getPaymentsBySubscription(subscription.id, { limit: 1, order: 'desc' });
+    const firstPayment = payments.data?.[0];
+    const invoiceUrl = firstPayment?.invoiceUrl || null;
+
+    // Insert na tabela users como trial ativo
     await supabase
       .from('users')
       .insert({
@@ -213,11 +258,10 @@ serve(async (req) => {
         updated_at: now.toISOString(),
       });
 
-    // Criar/atualizar assinatura no banco
+    // Criar assinatura no banco
     const periodEnd = new Date(now);
     periodEnd.setDate(periodEnd.getDate() + 30);
 
-    // Status 'trialing' - usuario em trial, assinatura sera ativada no upgrade
     const subscriptionData = {
       user_id: userId,
       plan_id: plan.id,
