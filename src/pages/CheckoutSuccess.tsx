@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { CheckCircle, ArrowRight, Loader2, AlertCircle } from 'lucide-react'
+import { CheckCircle, ArrowRight, AlertCircle } from 'lucide-react'
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams()
