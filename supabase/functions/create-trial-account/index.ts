@@ -3,11 +3,13 @@
  *
  * Cria uma conta de teste gratuito (30 emails, 1 loja).
  * Sem necessidade de cartao de credito.
+ * Cria o cliente no Asaas (sem cobranca) para facilitar conversao futura.
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { createCustomer, getCustomerByEmail } from '../_shared/asaas.ts';
 
 interface CreateTrialRequest {
   email: string;
@@ -73,6 +75,35 @@ serve(async (req) => {
       throw new Error('Erro ao criar usuario: ID ausente');
     }
 
+    // Criar cliente no Asaas (sem cobranca, apenas cadastro)
+    let asaasCustomerId: string | null = null;
+    try {
+      // Limpar telefone: remover codigo do pais e caracteres nao numericos
+      const digitsOnly = (whatsapp_number || '').replace(/\D/g, '');
+      let cleanPhone = digitsOnly;
+      if (digitsOnly.length > 11) {
+        const candidates = [3, 2, 1]
+          .map(prefix => digitsOnly.slice(prefix))
+          .filter(value => value.length === 10 || value.length === 11);
+        cleanPhone = candidates[0] || digitsOnly.slice(-11);
+      }
+
+      // Verificar se ja existe cliente no Asaas com esse email
+      let customer = await getCustomerByEmail(normalizedEmail);
+      if (!customer) {
+        customer = await createCustomer({
+          name,
+          email: normalizedEmail,
+          mobilePhone: cleanPhone || undefined,
+        });
+      }
+      asaasCustomerId = customer.id;
+      console.log(`[CreateTrialAccount] Cliente criado no Asaas: ${asaasCustomerId}`);
+    } catch (asaasError) {
+      // Se falhar no Asaas, continua criando a conta (nao bloqueia o trial)
+      console.error('[CreateTrialAccount] Erro ao criar cliente no Asaas (continuando sem):', asaasError);
+    }
+
     // Insert user as trial
     const now = new Date().toISOString();
     await supabase.from('users').insert({
@@ -86,6 +117,7 @@ serve(async (req) => {
       extra_emails_purchased: 0,
       extra_emails_used: 0,
       pending_extra_emails: 0,
+      asaas_customer_id: asaasCustomerId,
       status: 'active',
       is_trial: true,
       trial_started_at: now,
@@ -93,7 +125,7 @@ serve(async (req) => {
       updated_at: now,
     });
 
-    // Generate password reset link so user can set their password
+    // Generate magic link so user can access the dashboard
     const { data: linkData } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: normalizedEmail,
@@ -108,6 +140,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         user_id: userId,
+        asaas_customer_id: asaasCustomerId,
         magic_link: magicLink,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
