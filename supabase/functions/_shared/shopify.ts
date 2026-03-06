@@ -276,7 +276,13 @@ async function getAccessToken(credentials: ShopifyCredentials): Promise<string> 
   if (!response.ok) {
     const error = await response.text();
     console.error(`[Shopify Auth] Falha ao obter token para ${credentials.domain}: ${response.status} - ${error.substring(0, 200)}`);
-    throw new Error(`Erro ao obter access token Shopify: ${response.status} - ${error}`);
+    if (response.status === 403) {
+      throw new Error('Acesso negado pelo Shopify (403). Verifique se as credenciais da API estão corretas e se o app ainda está instalado na loja.');
+    }
+    if (response.status === 401) {
+      throw new Error('Credenciais Shopify inválidas (401). Reconfigure a integração.');
+    }
+    throw new Error(`Erro ao obter access token Shopify: ${response.status}`);
   }
 
   const data = await response.json();
