@@ -2217,6 +2217,7 @@ export default function LandingPage() {
                       marginTop: 'auto',
                       boxSizing: 'border-box',
                       transition: 'all 0.3s ease',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     Começar grátis
