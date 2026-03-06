@@ -44,7 +44,6 @@ const plans = [
     extraPrice: '-',
     popular: false,
     features: [
-      'Sem cartão de crédito',
       '30 emails inclusos',
       'Integração com 1 loja',
       'Teste grátis por tempo limitado',
@@ -635,11 +634,136 @@ export default function LandingPage() {
           align-items: stretch;
         }
 
-        /* Steps Grid */
+        /* Steps Timeline */
         .lp-steps-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          position: relative;
+          max-width: 700px;
+          margin: 0 auto;
+        }
+
+        .lp-steps-grid::before {
+          content: '';
+          position: absolute;
+          left: 50%;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: linear-gradient(180deg, transparent 0%, rgba(70, 114, 236, 0.3) 10%, rgba(139, 92, 246, 0.3) 90%, transparent 100%);
+          transform: translateX(-50%);
+        }
+
+        .lp-step-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 40px;
+          padding: 40px 0;
+          position: relative;
+          opacity: 0;
+          transform: translateY(40px);
+          transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .lp-step-item.visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        .lp-step-item:nth-child(odd) {
+          flex-direction: row-reverse;
+          text-align: right;
+        }
+
+        .lp-step-item:nth-child(even) {
+          text-align: left;
+        }
+
+        .lp-step-content {
+          flex: 1;
+        }
+
+        .lp-step-center {
+          position: relative;
+          z-index: 2;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .lp-step-number {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #4672ec 0%, #8b5cf6 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+          font-weight: 700;
+          box-shadow: 0 0 20px rgba(70, 114, 236, 0.5), 0 0 40px rgba(70, 114, 236, 0.2);
+          position: relative;
+        }
+
+        .lp-step-number::before {
+          content: '';
+          position: absolute;
+          inset: -4px;
+          border-radius: 50%;
+          border: 2px solid rgba(70, 114, 236, 0.3);
+          animation: lp-pulse-ring 2s ease-in-out infinite;
+        }
+
+        @keyframes lp-pulse-ring {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.3); opacity: 0; }
+        }
+
+        .lp-step-icon-box {
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, rgba(70, 114, 236, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+          border: 1px solid rgba(70, 114, 236, 0.15);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #4672ec;
+          margin-bottom: 16px;
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .lp-step-item.visible .lp-step-icon-box {
+          animation: lp-icon-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+        }
+
+        @keyframes lp-icon-pop {
+          0% { transform: scale(0.5); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+
+        .lp-step-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #4672ec;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          margin-bottom: 8px;
+        }
+
+        .lp-step-title {
+          font-size: 22px;
+          font-weight: 700;
+          margin-bottom: 8px;
+          letter-spacing: -0.01em;
+        }
+
+        .lp-step-desc {
+          font-size: 14px;
+          color: rgba(255,255,255,0.45);
+          line-height: 1.6;
         }
 
         /* Benefits Grid */
@@ -847,8 +971,24 @@ export default function LandingPage() {
           }
 
           .lp-steps-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            max-width: 100%;
+          }
+
+          .lp-steps-grid::before {
+            left: 22px;
+            transform: none;
+          }
+
+          .lp-step-item,
+          .lp-step-item:nth-child(odd) {
+            flex-direction: row !important;
+            text-align: left !important;
+            gap: 20px;
+            padding: 24px 0;
+          }
+
+          .lp-step-content {
+            flex: 1;
           }
 
           .lp-benefits-grid {
@@ -930,9 +1070,8 @@ export default function LandingPage() {
             text-align: center;
           }
 
-          .lp-steps-grid {
-            grid-template-columns: 1fr;
-            gap: 12px;
+          .lp-steps-grid::before {
+            left: 22px;
           }
         }
       `}</style>
@@ -1589,59 +1728,38 @@ export default function LandingPage() {
             Configure em minutos, proteja seu negócio para sempre
           </p>
 
-          <div className="lp-steps-grid">
+          <div className="lp-steps-grid" ref={(el) => {
+            if (!el) return;
+            const items = el.querySelectorAll('.lp-step-item');
+            const observer = new IntersectionObserver((entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                  entry.target.classList.add('visible');
+                }
+              });
+            }, { threshold: 0.2 });
+            items.forEach((item) => observer.observe(item));
+          }}>
             {[
-              { icon: <Store size={28} />, title: 'Conecte sua loja', desc: 'Integre com Shopify em apenas 1 clique' },
-              { icon: <Mail size={28} />, title: 'Email chega', desc: 'Monitoramos sua caixa de entrada 24/7' },
-              { icon: <Bot size={28} />, title: 'IA classifica', desc: 'Identifica automaticamente o problema' },
-              { icon: <Zap size={28} />, title: 'Responde rápido', desc: 'Resposta enviada em menos de 2 min' },
+              { icon: <Store size={24} />, title: 'Conecte sua loja', desc: 'Integre com Shopify em apenas 1 clique. Sem código, sem complicação.' },
+              { icon: <Mail size={24} />, title: 'Email chega', desc: 'Monitoramos sua caixa de entrada 24/7. Nenhuma mensagem passa despercebida.' },
+              { icon: <Bot size={24} />, title: 'IA classifica', desc: 'Identifica automaticamente o tipo de problema e o sentimento do cliente.' },
+              { icon: <Zap size={24} />, title: 'Responde rápido', desc: 'Resposta personalizada enviada em menos de 2 minutos, com dados reais do pedido.' },
             ].map((step, i) => (
-              <div key={i} style={{ position: 'relative', paddingTop: '14px' }}>
-                {/* Number badge outside the card */}
-                <div style={{
-                  position: 'absolute',
-                  top: '0',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #4672ec 0%, #8b5cf6 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  boxShadow: '0 4px 15px rgba(70, 114, 236, 0.4)',
-                  zIndex: 10,
-                }}>
-                  {i + 1}
-                </div>
-                {/* Card */}
-                <div className="lp-card-shine lp-gradient-border" style={{
-                  padding: '32px 24px',
-                  height: '100%',
-                  boxSizing: 'border-box',
-                }}>
-                  <div style={{
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '16px',
-                    background: 'linear-gradient(135deg, rgba(70, 114, 236, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '8px auto 20px',
-                    color: '#4672ec',
-                  }}>
+              <div key={i} className="lp-step-item" style={{ transitionDelay: `${i * 0.15}s` }}>
+                <div className="lp-step-content">
+                  <div className="lp-step-icon-box">
                     {step.icon}
                   </div>
-                  <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>
-                    {step.title}
-                  </h3>
-                  <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-                    {step.desc}
-                  </p>
+                  <div className="lp-step-label">— 0{i + 1}</div>
+                  <h3 className="lp-step-title">{step.title}</h3>
+                  <p className="lp-step-desc">{step.desc}</p>
+                </div>
+                <div className="lp-step-center">
+                  <div className="lp-step-number">{i + 1}</div>
+                </div>
+                <div className="lp-step-content" style={{ visibility: 'hidden' }} aria-hidden="true">
+                  {/* Spacer for layout symmetry */}
                 </div>
               </div>
             ))}

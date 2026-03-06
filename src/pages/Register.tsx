@@ -314,7 +314,7 @@ export default function Register() {
               </div>
 
               <div style={{ marginBottom: '20px', flex: 1 }}>
-                {['Sem cartao de credito', '30 emails inclusos', 'Integracao com 1 loja'].map((feature, index) => (
+                {['30 emails inclusos', 'Integracao com 1 loja', 'Teste gratis por tempo limitado'].map((feature, index) => (
                   <div
                     key={index}
                     style={{
