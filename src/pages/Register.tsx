@@ -1,15 +1,32 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Sun, Moon, ArrowRight, ArrowLeft, Check } from 'lucide-react'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { Sun, Moon, Star, ArrowRight, ArrowLeft, MessageCircle, Check } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { supabase } from '../lib/supabase'
 
+interface Plan {
+  id: string
+  name: string
+  description: string | null
+  price_monthly: number
+  emails_limit: number | null
+  shops_limit: number | null
+  features: string[]
+  is_popular: boolean
+  is_active: boolean
+}
+
 export default function Register() {
   const { theme, setTheme } = useTheme()
+  const [searchParams] = useSearchParams()
+  const preselectedPlan = searchParams.get('plan')
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
+
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [loadingPlans, setLoadingPlans] = useState(true)
 
   useEffect(() => {
+    loadPlans()
     // Google Ads conversion tracking
     if (typeof window.gtag === 'function') {
       window.gtag('event', 'conversion', {
@@ -18,29 +35,90 @@ export default function Register() {
     }
   }, [])
 
-  const handleStartTrial = async () => {
-    setLoading(true)
+  useEffect(() => {
+    if (preselectedPlan && plans.length > 0) {
+      const normalizedPreselected = preselectedPlan.toLowerCase().replace(/[-\s]/g, '')
+      const plan = plans.find(p => p.name.toLowerCase().replace(/[-\s]/g, '') === normalizedPreselected)
+      if (plan) {
+        if (isEnterprisePlan(plan)) return
+        navigate('/checkout', { state: { plan, isTrialFlow: false } })
+      }
+    }
+  }, [preselectedPlan, plans, navigate])
+
+  const loadPlans = async () => {
     try {
       const { data, error } = await supabase
         .from('plans')
         .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
         .eq('is_active', true)
-        .gt('price_monthly', 0)
         .order('sort_order', { ascending: true })
-        .limit(1)
-        .single()
 
       if (error) throw error
-      navigate('/checkout', { state: { plan: data, isTrialFlow: true } })
+      setPlans(data || [])
     } catch (err) {
-      console.error('Erro ao iniciar trial:', err)
+      console.error('Erro ao carregar planos:', err)
     } finally {
-      setLoading(false)
+      setLoadingPlans(false)
+    }
+  }
+
+  const isEnterprisePlan = (plan: Plan) => {
+    return !plan.is_active || plan.price_monthly === 0
+  }
+
+  const handleSelectPlan = (plan: Plan) => {
+    if (isEnterprisePlan(plan)) {
+      window.open('https://wa.me/5531973210191?text=Olá! Tenho interesse no plano Enterprise da Replyna.', '_blank')
+      return
+    }
+    navigate('/checkout', { state: { plan, isTrialFlow: false } })
+  }
+
+  const handleStartTrial = () => {
+    const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
+    if (basePlan) {
+      navigate('/checkout', { state: { plan: basePlan, isTrialFlow: true } })
     }
   }
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light')
+  }
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+    }).format(price)
+  }
+
+  // Loading state
+  if (loadingPlans) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'var(--bg-primary)',
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid var(--border-color)',
+          borderTopColor: 'var(--accent)',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+        }} />
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    )
   }
 
   return (
@@ -104,89 +182,300 @@ export default function Register() {
       </div>
 
       {/* Page content */}
-      <div style={{
-        padding: '0 20px 40px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 'calc(100vh - 80px)',
-      }}>
-        <div style={{
-          maxWidth: '480px',
-          width: '100%',
-          textAlign: 'center',
-        }}>
+      <div style={{ padding: '0 20px 40px' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <h1 style={{
-            fontSize: '32px',
+            fontSize: '28px',
             fontWeight: 700,
             color: 'var(--text-primary)',
-            marginBottom: '12px',
+            marginBottom: '8px',
           }}>
-            Teste a Replyna gratis
+            Escolha seu plano
           </h1>
-          <p style={{
-            color: 'var(--text-secondary)',
-            fontSize: '16px',
-            marginBottom: '32px',
-            lineHeight: '1.5',
-          }}>
-            Comece agora sem compromisso. Sem necessidade de cartao de credito.
+          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
+            Comece com 30 emails gratis. Sem necessidade de cartao de credito.
           </p>
+        </div>
 
-          <div style={{
-            backgroundColor: 'var(--bg-card)',
-            borderRadius: '16px',
-            padding: '28px',
-            border: '1px solid var(--border-color)',
-            marginBottom: '24px',
-            textAlign: 'left',
+        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          <div className="plans-grid-wrapper" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(6, 1fr)',
+            gap: '20px',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollSnapType: 'x mandatory',
+            paddingTop: '14px',
+            paddingBottom: '4px',
           }}>
-            {['30 emails inclusos para teste', 'Integracao com 1 loja Shopify', 'Respostas automaticas com IA', 'Configuracao em minutos'].map((feature, index) => (
-              <div
-                key={index}
+          <style>{`
+            @media (max-width: 900px) {
+              .plans-grid-wrapper { grid-template-columns: repeat(6, 260px) !important; }
+            }
+            .plans-grid-wrapper > div { scroll-snap-align: start; }
+            .plans-grid-wrapper::-webkit-scrollbar { height: 6px; }
+            .plans-grid-wrapper::-webkit-scrollbar-track { background: transparent; }
+            .plans-grid-wrapper::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+          `}</style>
+
+            {/* Free Trial button */}
+            <div
+              onClick={handleStartTrial}
+              style={{
+                backgroundColor: 'var(--bg-card)',
+                borderRadius: '16px',
+                padding: '24px',
+                border: '2px solid #22c55e',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '16px',
+                minHeight: '200px',
+              }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: '-12px',
+                right: '16px',
+                backgroundColor: '#22c55e',
+                color: '#fff',
+                padding: '4px 12px',
+                borderRadius: '999px',
+                fontSize: '12px',
+                fontWeight: 600,
+              }}>
+                Gratis
+              </div>
+
+              <h3 style={{
+                fontSize: '22px',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                textAlign: 'center',
+              }}>
+                Free Trial
+              </h3>
+
+              <p style={{
+                fontSize: '14px',
+                color: 'var(--text-secondary)',
+                textAlign: 'center',
+              }}>
+                30 emails gratis para testar a plataforma
+              </p>
+
+              <button
                 style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  backgroundColor: '#22c55e',
+                  color: '#fff',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
-                  marginBottom: index < 3 ? '14px' : 0,
+                  justifyContent: 'center',
+                  gap: '8px',
+                  marginTop: 'auto',
                 }}
               >
-                <Check size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
-                <span style={{ fontSize: '15px', color: 'var(--text-primary)' }}>
-                  {feature}
-                </span>
+                Comecar gratis
+                <ArrowRight size={16} />
+              </button>
+            </div>
+
+            {plans.map((plan) => (
+              <div
+                key={plan.id}
+                onClick={() => handleSelectPlan(plan)}
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  border: plan.is_popular
+                    ? '2px solid var(--accent)'
+                    : '1px solid var(--border-color)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                {plan.is_popular && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-12px',
+                    right: '16px',
+                    backgroundColor: '#f59e0b',
+                    color: '#fff',
+                    padding: '4px 12px',
+                    borderRadius: '999px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}>
+                    <Star size={12} />
+                    Popular
+                  </div>
+                )}
+
+                <h3 style={{
+                  fontSize: '22px',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  marginBottom: '8px',
+                }}>
+                  {plan.name}
+                </h3>
+
+                {plan.description && (
+                  <p style={{
+                    fontSize: '14px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '20px',
+                  }}>
+                    {plan.description}
+                  </p>
+                )}
+
+                <div style={{ marginBottom: '20px' }}>
+                  {isEnterprisePlan(plan) ? (
+                    <span style={{
+                      fontSize: '28px',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                    }}>
+                      Personalizado
+                    </span>
+                  ) : (
+                    <>
+                      <span style={{
+                        fontSize: '36px',
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                      }}>
+                        {formatPrice(plan.price_monthly)}
+                      </span>
+                      <span style={{
+                        fontSize: '14px',
+                        color: 'var(--text-secondary)',
+                        marginLeft: '4px',
+                      }}>
+                        /mes
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: 'rgba(70, 114, 236, 0.06)',
+                  borderRadius: '10px',
+                  marginBottom: '20px',
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: '8px',
+                  }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      Emails/mes
+                    </span>
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: plan.emails_limit === null ? '#22c55e' : 'var(--text-primary)',
+                    }}>
+                      {isEnterprisePlan(plan) || plan.emails_limit === null ? 'Ilimitado' : plan.emails_limit.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      Lojas
+                    </span>
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: plan.shops_limit === null ? '#22c55e' : 'var(--text-primary)',
+                    }}>
+                      {isEnterprisePlan(plan) || plan.shops_limit === null ? 'Ilimitado' : plan.shops_limit}
+                    </span>
+                  </div>
+                </div>
+
+                {plan.features && plan.features.length > 0 && (
+                  <div style={{ marginBottom: '20px', flex: 1 }}>
+                    {plan.features.slice(0, 4).map((feature, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
+                        <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                          {feature}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: isEnterprisePlan(plan)
+                      ? '#25D366'
+                      : plan.is_popular
+                        ? 'var(--accent)'
+                        : 'var(--bg-primary)',
+                    color: isEnterprisePlan(plan) || plan.is_popular ? '#fff' : 'var(--text-primary)',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginTop: 'auto',
+                  }}
+                >
+                  {isEnterprisePlan(plan) ? (
+                    <>
+                      <MessageCircle size={16} />
+                      Fale conosco
+                    </>
+                  ) : (
+                    <>
+                      Selecionar
+                      <ArrowRight size={16} />
+                    </>
+                  )}
+                </button>
               </div>
             ))}
           </div>
 
-          <button
-            onClick={handleStartTrial}
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '16px 24px',
-              borderRadius: '12px',
-              border: 'none',
-              backgroundColor: '#22c55e',
-              color: '#fff',
-              fontWeight: 600,
-              fontSize: '16px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              opacity: loading ? 0.7 : 1,
-              transition: 'opacity 0.2s ease',
-            }}
-          >
-            {loading ? 'Carregando...' : 'Comecar teste gratis'}
-            {!loading && <ArrowRight size={18} />}
-          </button>
-
           <div style={{
-            marginTop: '24px',
+            marginTop: '32px',
+            textAlign: 'center',
             fontSize: '14px',
             color: 'var(--text-secondary)',
           }}>
