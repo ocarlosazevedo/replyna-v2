@@ -199,9 +199,32 @@ export default function Register() {
         </div>
 
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          {/* Free Trial button */}
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <button
+              onClick={handleStartTrial}
+              style={{
+                padding: '14px 32px',
+                borderRadius: '12px',
+                border: 'none',
+                backgroundColor: '#22c55e',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: '16px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              Comecar teste gratis — 30 emails
+              <ArrowRight size={18} />
+            </button>
+          </div>
+
           <div className="plans-grid-wrapper" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(6, 1fr)',
+            gridTemplateColumns: 'repeat(5, 1fr)',
             gap: '20px',
             overflowX: 'auto',
             WebkitOverflowScrolling: 'touch',
@@ -211,86 +234,13 @@ export default function Register() {
           }}>
           <style>{`
             @media (max-width: 900px) {
-              .plans-grid-wrapper { grid-template-columns: repeat(6, 260px) !important; }
+              .plans-grid-wrapper { grid-template-columns: repeat(5, 260px) !important; }
             }
             .plans-grid-wrapper > div { scroll-snap-align: start; }
             .plans-grid-wrapper::-webkit-scrollbar { height: 6px; }
             .plans-grid-wrapper::-webkit-scrollbar-track { background: transparent; }
             .plans-grid-wrapper::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
           `}</style>
-
-            {/* Free Trial button */}
-            <div
-              onClick={handleStartTrial}
-              style={{
-                backgroundColor: 'var(--bg-card)',
-                borderRadius: '16px',
-                padding: '24px',
-                border: '2px solid #22c55e',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '16px',
-                minHeight: '200px',
-              }}
-            >
-              <div style={{
-                position: 'absolute',
-                top: '-12px',
-                right: '16px',
-                backgroundColor: '#22c55e',
-                color: '#fff',
-                padding: '4px 12px',
-                borderRadius: '999px',
-                fontSize: '12px',
-                fontWeight: 600,
-              }}>
-                Gratis
-              </div>
-
-              <h3 style={{
-                fontSize: '22px',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                textAlign: 'center',
-              }}>
-                Free Trial
-              </h3>
-
-              <p style={{
-                fontSize: '14px',
-                color: 'var(--text-secondary)',
-                textAlign: 'center',
-              }}>
-                30 emails gratis para testar a plataforma
-              </p>
-
-              <button
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  backgroundColor: '#22c55e',
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  marginTop: 'auto',
-                }}
-              >
-                Comecar gratis
-                <ArrowRight size={16} />
-              </button>
-            </div>
 
             {plans.map((plan) => (
               <div
