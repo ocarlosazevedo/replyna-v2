@@ -4087,7 +4087,7 @@ function PricingCard({ plan, index }: { plan: { name: string; desc: string; pric
             ))}
           </div>
           <a
-            href={plan.name === 'Enterprise' ? '#contato' : getAppUrl('/register')}
+            href={plan.name === 'Enterprise' ? '#contato' : getAppUrl(`/register?plan=${encodeURIComponent(plan.name)}`)}
             className={plan.highlight ? 'pricing-btn pricing-btn--primary' : 'pricing-btn'}
             style={{ position: 'relative', zIndex: 3 }}
           >

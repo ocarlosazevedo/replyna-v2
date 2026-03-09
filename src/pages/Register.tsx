@@ -36,7 +36,18 @@ export default function Register() {
   }, [])
 
   useEffect(() => {
-    if (preselectedPlan && plans.length > 0) {
+    if (plans.length === 0) return
+
+    const isTrial = searchParams.get('trial') === 'true'
+    if (isTrial) {
+      const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
+      if (basePlan) {
+        navigate('/checkout', { state: { plan: basePlan, isTrialFlow: true } })
+      }
+      return
+    }
+
+    if (preselectedPlan) {
       const normalizedPreselected = preselectedPlan.toLowerCase().replace(/[-\s]/g, '')
       const plan = plans.find(p => p.name.toLowerCase().replace(/[-\s]/g, '') === normalizedPreselected)
       if (plan) {
@@ -44,7 +55,7 @@ export default function Register() {
         navigate('/checkout', { state: { plan, isTrialFlow: false } })
       }
     }
-  }, [preselectedPlan, plans, navigate])
+  }, [preselectedPlan, plans, navigate, searchParams])
 
   const loadPlans = async () => {
     try {
