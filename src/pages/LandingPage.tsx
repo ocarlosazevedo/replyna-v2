@@ -43,6 +43,185 @@ const getAppUrl = (path: string) => {
   return `https://app.replyna.me${path}`
 }
 
+// Dados dos planos
+const plans = [
+  {
+    name: 'Free Trial',
+    description: 'Teste a plataforma sem compromisso',
+    price: 0,
+    emails: 30,
+    shops: 1,
+    extraPrice: '-',
+    popular: false,
+    features: [
+      '30 emails inclusos',
+      'Integração com 1 loja',
+      'Teste grátis por tempo limitado',
+    ],
+    isTrial: true,
+  },
+  {
+    name: 'Starter',
+    description: 'Ideal para quem está começando',
+    price: 197,
+    emails: 300,
+    shops: 1,
+    extraPrice: 'R$1,00',
+    popular: false,
+    features: [
+      'Integração com 1 loja',
+      '300 e-mails/mês inclusos',
+      'R$1,00 por email extra',
+      'Atendimento 24 horas por dia',
+    ],
+  },
+  {
+    name: 'Business',
+    description: 'Para operações em crescimento',
+    price: 397,
+    emails: 900,
+    shops: 3,
+    extraPrice: 'R$0,70',
+    popular: true,
+    features: [
+      'Integração com 3 lojas',
+      '900 e-mails/mês inclusos',
+      'R$0,70 por e-mail extra',
+      'Atendimento 24 horas por dia',
+    ],
+  },
+  {
+    name: 'Scale',
+    description: 'Escale sem limites',
+    price: 597,
+    emails: 1500,
+    shops: 5,
+    extraPrice: 'R$0,60',
+    popular: false,
+    features: [
+      'Integração com 5 lojas',
+      '1.500 e-mails/mês inclusos',
+      'R$0,60 por email extra',
+      'Atendimento 24 horas por dia',
+    ],
+  },
+  {
+    name: 'High Scale',
+    description: 'Para grandes operações',
+    price: 997,
+    emails: 3000,
+    shops: 10,
+    extraPrice: 'R$0,50',
+    popular: false,
+    features: [
+      'Integração com 10 lojas',
+      '3.000 e-mails/mês inclusos',
+      'R$0,50 por email extra',
+      'Atendimento 24 horas por dia',
+    ],
+  },
+  {
+    name: 'Enterprise',
+    description: 'Solução personalizada',
+    price: 1497,
+    emails: 'Ilimitado',
+    shops: 'Ilimitado',
+    extraPrice: 'Incluso',
+    popular: false,
+    features: [
+      'Lojas ilimitadas',
+      'Emails ilimitados',
+      'Sem custo extra por email',
+      'Atendimento 24 horas por dia',
+    ],
+    isEnterprise: true,
+  },
+]
+
+// Dados dos influenciadores
+const influencers = [
+  {
+    name: 'Carlos Azevedo',
+    role: 'Mentor de +1.000 alunos em Dropshipping Global. Referência em operações internacionais e escala de e-commerce.',
+    image: '/influencers/carlos-azevedo.webp',
+    instagram: 'https://www.instagram.com/ocarlosazevedo/',
+  },
+  {
+    name: 'Lhucas Maciel',
+    role: 'Especialista em Dropshipping Global com foco em estratégias de crescimento acelerado e alta performance.',
+    image: '/influencers/lhucas-maciel.webp',
+    instagram: 'https://www.instagram.com/lhucas_maciel/',
+  },
+  {
+    name: 'Guilherme Smith',
+    role: 'Mentor e gestor de múltiplas operações de Dropshipping Global. Expert em vendas e conversão.',
+    image: '/influencers/guilherme-smith.webp',
+    instagram: 'https://www.instagram.com/oguilhermesmith/',
+  },
+]
+
+// Depoimentos
+const testimonials = [
+  {
+    text: 'Antes da Replyna eu tinha 3-4 chargebacks por semana. Agora tenho menos de 1 por mês. Salvou minha conta no Shopify Payments.',
+    name: 'Ricardo M.',
+    role: 'Dropshipper, São Paulo',
+  },
+  {
+    text: 'A IA responde melhor que meus funcionários respondiam. Os clientes ficam satisfeitos e eu durmo tranquilo.',
+    name: 'Ana Paula S.',
+    role: 'E-commerce de moda',
+  },
+  {
+    text: 'ROI absurdo. Em um mês a Replyna evitou pelo menos 5 chargebacks que me custariam R$2.000+ cada.',
+    name: 'Fernando L.',
+    role: 'Múltiplas lojas',
+  },
+  {
+    text: 'Minha taxa de chargeback caiu de 2.1% para 0.3%. O Shopify Payments parou de me ameaçar.',
+    name: 'Marcos T.',
+    role: 'Dropshipping Global',
+  },
+  {
+    text: 'Configurei em 15 minutos e já no primeiro dia a IA respondeu 47 emails. Impressionante.',
+    name: 'Juliana R.',
+    role: 'Loja de acessórios',
+  },
+  {
+    text: 'Tentei contratar atendentes mas ninguém respondia tão rápido quanto a Replyna. Melhor investimento.',
+    name: 'Pedro H.',
+    role: 'E-commerce de eletrônicos',
+  },
+]
+
+// FAQ
+const faqs = [
+  {
+    question: 'Como a Replyna reduz chargebacks em até 90%?',
+    answer: 'A Replyna usa inteligência artificial para responder automaticamente emails de clientes insatisfeitos antes que eles abram disputas. Quando o cliente recebe uma resposta rápida e eficiente oferecendo solução, a maioria desiste de abrir chargeback.',
+  },
+  {
+    question: 'A Replyna funciona com Shopify Payments?',
+    answer: 'Sim! A Replyna foi desenvolvida especialmente para lojas que usam Shopify Payments. Reduzindo chargebacks, você mantém sua conta ativa e evita o risco de ter o Shopify Payments desabilitado.',
+  },
+  {
+    question: 'Quanto tempo leva para configurar?',
+    answer: 'A configuração é simples e leva cerca de 10 minutos. Basta conectar sua loja Shopify, configurar seu email e a IA já começa a responder automaticamente.',
+  },
+  {
+    question: 'A IA responde qualquer tipo de email?',
+    answer: 'A Replyna classifica automaticamente os emails em categorias como "Onde está meu pedido?", "Quero cancelar", "Produto com defeito", etc. Para cada categoria, ela gera respostas personalizadas e contextualizadas.',
+  },
+  {
+    question: 'E se eu quiser revisar as respostas antes de enviar?',
+    answer: 'Você pode configurar o modo de aprovação manual, onde todas as respostas passam por você antes de serem enviadas. Assim você mantém controle total sobre a comunicação.',
+  },
+  {
+    question: 'Posso usar em lojas de dropshipping internacional?',
+    answer: 'Sim! A Replyna é perfeita para dropshipping global. Ela responde em português, inglês e outros idiomas, e sabe lidar com prazos de entrega mais longos típicos do dropshipping.',
+  },
+]
+
 export default function LandingPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [scrolled, setScrolled] = useState(false)
@@ -570,6 +749,555 @@ void main() {
         /* CTA below */
         .net-cta {
           text-align: center; margin-top: 100px; position: relative; z-index: 3;
+        }
+
+
+        /* Noise Texture Overlay */
+        .lp-noise {
+          position: fixed;
+          inset: 0;
+          opacity: 0.03;
+          pointer-events: none;
+          z-index: 1000;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Grid Pattern */
+        .lp-grid-pattern {
+          position: absolute;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+          background-size: 80px 80px;
+          mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent 100%);
+          z-index: 0;
+        }
+
+        /* Fade In Animation */
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(40px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .lp-fade-in {
+          animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .lp-fade-in-delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .lp-fade-in-delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .lp-fade-in-delay-3 { animation-delay: 0.35s; opacity: 0; }
+        .lp-fade-in-delay-4 { animation-delay: 0.5s; opacity: 0; }
+        .lp-fade-in-delay-5 { animation-delay: 0.65s; opacity: 0; }
+
+        /* Glow Effects */
+        .lp-glow-blue {
+          box-shadow: 0 0 80px rgba(70, 114, 236, 0.25), 0 0 160px rgba(70, 114, 236, 0.1);
+        }
+        .lp-glow-text {
+          text-shadow: 0 0 60px rgba(70, 114, 236, 0.6), 0 0 120px rgba(70, 114, 236, 0.3);
+        }
+
+        /* Glassmorphism Card */
+        .lp-glass {
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Card with Shine Effect */
+        .lp-card-shine {
+          position: relative;
+          overflow: hidden;
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .lp-card-shine::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.05),
+            transparent
+          );
+          transition: left 0.6s ease;
+        }
+        .lp-card-shine:hover::before {
+          left: 100%;
+        }
+        .lp-card-shine:hover {
+          transform: translateY(-8px);
+          border-color: rgba(70, 114, 236, 0.3);
+          box-shadow: 0 25px 50px rgba(0,0,0,0.4), 0 0 60px rgba(70, 114, 236, 0.15);
+        }
+
+        /* Gradient Border Card */
+        .lp-gradient-border {
+          position: relative;
+          background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+          border-radius: 20px;
+        }
+        .lp-gradient-border::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 20px;
+          padding: 1px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 100%);
+          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask-composite: exclude;
+          -webkit-mask-composite: xor;
+          pointer-events: none;
+        }
+
+        /* Primary Button */
+        .lp-btn-primary {
+          position: relative;
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          background: linear-gradient(135deg, #4672ec 0%, #3b5fd9 100%);
+        }
+        .lp-btn-primary::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .lp-btn-primary:hover::before {
+          opacity: 1;
+        }
+        .lp-btn-primary:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 15px 40px rgba(70, 114, 236, 0.4), 0 0 20px rgba(70, 114, 236, 0.3);
+        }
+
+        /* Secondary Button */
+        .lp-btn-secondary {
+          position: relative;
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+        .lp-btn-secondary:hover {
+          background: rgba(255,255,255,0.1);
+          border-color: rgba(255,255,255,0.2);
+          transform: translateY(-2px);
+        }
+
+        /* Animated Badge */
+        .lp-badge {
+          position: relative;
+          overflow: hidden;
+        }
+        .lp-badge::after {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: linear-gradient(
+            45deg,
+            transparent 40%,
+            rgba(255,255,255,0.1) 50%,
+            transparent 60%
+          );
+          animation: badgeShine 3s ease-in-out infinite;
+        }
+        @keyframes badgeShine {
+          0%, 100% { transform: translateX(-100%) rotate(45deg); }
+          50% { transform: translateX(100%) rotate(45deg); }
+        }
+
+        /* Number Counter Animation */
+        .lp-number {
+          background: linear-gradient(135deg, #4672ec 0%, #8b5cf6 50%, #06b6d4 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        /* Header Mobile Menu */
+        .lp-nav-desktop {
+          display: flex;
+          gap: 32px;
+          align-items: center;
+        }
+        .lp-nav-mobile-toggle {
+          display: none;
+          background: none;
+          border: none;
+          color: #fff;
+          cursor: pointer;
+          padding: 8px;
+        }
+        .lp-nav-link {
+          color: rgba(255,255,255,0.6);
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          transition: color 0.2s ease;
+          position: relative;
+        }
+        .lp-nav-link:hover {
+          color: #fff;
+        }
+        .lp-nav-link::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          left: 0;
+          width: 0;
+          height: 2px;
+          background: linear-gradient(90deg, #4672ec, #8b5cf6);
+          transition: width 0.3s ease;
+        }
+        .lp-nav-link:hover::after {
+          width: 100%;
+        }
+
+        /* Stats Grid */
+        .lp-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+          max-width: 700px;
+          margin: 48px auto 0;
+        }
+
+        /* Problem/Solution Grid */
+        .lp-problem-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 32px;
+          align-items: stretch;
+        }
+
+        /* Steps Timeline */
+        .lp-steps-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          position: relative;
+          max-width: 700px;
+          margin: 0 auto;
+        }
+
+        .lp-steps-grid::before {
+          content: '';
+          position: absolute;
+          left: 50%;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: linear-gradient(180deg, transparent 0%, rgba(70, 114, 236, 0.3) 10%, rgba(139, 92, 246, 0.3) 90%, transparent 100%);
+          transform: translateX(-50%);
+        }
+
+        .lp-step-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 40px;
+          padding: 40px 0;
+          position: relative;
+          opacity: 0;
+          transform: translateY(40px);
+          transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .lp-step-item.visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        .lp-step-item:nth-child(odd) {
+          flex-direction: row-reverse;
+          text-align: right;
+        }
+
+        .lp-step-item:nth-child(even) {
+          text-align: left;
+        }
+
+        .lp-step-content {
+          flex: 1;
+        }
+
+        .lp-step-center {
+          position: relative;
+          z-index: 2;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .lp-step-number {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #4672ec 0%, #8b5cf6 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+          font-weight: 700;
+          box-shadow: 0 0 20px rgba(70, 114, 236, 0.5), 0 0 40px rgba(70, 114, 236, 0.2);
+          position: relative;
+        }
+
+        .lp-step-number::before {
+          content: '';
+          position: absolute;
+          inset: -4px;
+          border-radius: 50%;
+          border: 2px solid rgba(70, 114, 236, 0.3);
+          animation: lp-pulse-ring 2s ease-in-out infinite;
+        }
+
+        @keyframes lp-pulse-ring {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.3); opacity: 0; }
+        }
+
+        .lp-step-icon-box {
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, rgba(70, 114, 236, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+          border: 1px solid rgba(70, 114, 236, 0.15);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #4672ec;
+          margin-bottom: 16px;
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .lp-step-item.visible .lp-step-icon-box {
+          animation: lp-icon-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+        }
+
+        @keyframes lp-icon-pop {
+          0% { transform: scale(0.5); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+
+        .lp-step-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #4672ec;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          margin-bottom: 8px;
+        }
+
+        .lp-step-title {
+          font-size: 22px;
+          font-weight: 700;
+          margin-bottom: 8px;
+          letter-spacing: -0.01em;
+        }
+
+        .lp-step-desc {
+          font-size: 14px;
+          color: rgba(255,255,255,0.45);
+          line-height: 1.6;
+        }
+
+        /* Benefits Grid */
+        .lp-benefits-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+        }
+
+        /* Influencers Grid */
+        .lp-influencers-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+        }
+
+        /* Plans Grid */
+        .lp-plans-grid {
+          display: grid;
+          grid-template-columns: repeat(6, 1fr);
+          gap: 20px;
+          align-items: stretch;
+        }
+        .lp-plans-grid > * {
+          display: flex;
+          flex-direction: column;
+        }
+
+        /* Testimonials Grid for Mobile */
+        .lp-testimonials-grid {
+          display: none;
+        }
+
+        /* Carousel Animation */
+        @keyframes scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .testimonial-carousel {
+          display: flex;
+          gap: 24px;
+          animation: scroll 40s linear infinite;
+        }
+        .testimonial-carousel:hover {
+          animation-play-state: paused;
+        }
+
+        /* Floating Elements */
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-15px); }
+        }
+        .lp-float {
+          animation: float 5s ease-in-out infinite;
+        }
+
+        /* Pulse Ring Animation */
+        @keyframes pulseRing {
+          0% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
+        .lp-pulse-ring {
+          position: relative;
+        }
+        .lp-pulse-ring::before,
+        .lp-pulse-ring::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          border: 2px solid rgba(70, 114, 236, 0.3);
+        }
+        .lp-pulse-ring::before {
+          animation: pulseRing 2s ease-out infinite;
+        }
+        .lp-pulse-ring::after {
+          animation: pulseRing 2s ease-out infinite 1s;
+        }
+
+        /* WhatsApp Floating Button */
+        @keyframes whatsappPulse {
+          0% { transform: scale(1); opacity: 0.6; }
+          100% { transform: scale(2); opacity: 0; }
+        }
+        .lp-whatsapp-btn {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          background-color: #25D366;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+          cursor: pointer;
+          z-index: 999;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          text-decoration: none;
+        }
+        .lp-whatsapp-btn:hover {
+          transform: scale(1.1);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+        .lp-whatsapp-btn::before,
+        .lp-whatsapp-btn::after {
+          content: '';
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          background-color: #25D366;
+          animation: whatsappPulse 2s ease-out infinite;
+          z-index: -1;
+        }
+        .lp-whatsapp-btn::after {
+          animation-delay: 1s;
+        }
+        .lp-whatsapp-tooltip {
+          position: absolute;
+          right: 68px;
+          background: #fff;
+          color: #1a1a2e;
+          padding: 8px 14px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          white-space: nowrap;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          opacity: 0;
+          pointer-events: none;
+          transform: translateX(8px);
+          transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .lp-whatsapp-tooltip::after {
+          content: '';
+          position: absolute;
+          right: -6px;
+          top: 50%;
+          transform: translateY(-50%);
+          border: 6px solid transparent;
+          border-left-color: #fff;
+          border-right: none;
+        }
+        .lp-whatsapp-btn:hover .lp-whatsapp-tooltip {
+          opacity: 1;
+          transform: translateX(0);
+        }
+
+        /* Section Divider */
+        .lp-section-divider {
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+          margin: 0 auto;
+          max-width: 1200px;
+        }
+
+        /* Dashboard Preview Grid */
+        .lp-dashboard-preview {
+          display: grid;
+          grid-template-columns: 1fr 1.3fr;
+          gap: 60px;
+          align-items: center;
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 1280px) {
+          .lp-plans-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+          }
+        }
+
+        @media (max-width: 1024px) {
+          .lp-plans-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+          }
+          .lp-benefits-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+          }
         }
 
         @media (max-width: 768px) {
@@ -1972,6 +2700,60 @@ void main() {
             top: 0;
             text-align: center;
           }
+
+          .lp-steps-grid {
+            max-width: 100%;
+          }
+
+          .lp-steps-grid::before {
+            left: 22px;
+            transform: none;
+          }
+
+          .lp-step-item,
+          .lp-step-item:nth-child(odd) {
+            flex-direction: row !important;
+            text-align: left !important;
+            gap: 20px;
+            padding: 24px 0;
+          }
+
+          .lp-step-content {
+            flex: 1;
+          }
+
+          .lp-benefits-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+
+          .lp-influencers-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+
+          .lp-plans-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+
+          .lp-section-title {
+            font-size: 28px !important;
+          }
+
+          .lp-hero-buttons {
+            flex-direction: column;
+            width: 100%;
+          }
+          .lp-hero-buttons a {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .lp-footer-content {
+            flex-direction: column;
+            text-align: center;
+          }
           .faq-card-btn { padding: 18px 20px; }
           .faq-card-answer { padding: 0 20px 20px 52px; }
           .faq-card-num { width: 24px; }
@@ -2524,6 +3306,12 @@ void main() {
         .cta-btn:hover {
           transform: translateY(-3px) scale(1.02);
           box-shadow: 0 0 60px rgba(59,130,246,0.4), 0 0 120px rgba(99,102,241,0.15), 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 480px) {
+          .lp-steps-grid::before {
+            left: 22px;
+          }
         }
       `}</style>
 

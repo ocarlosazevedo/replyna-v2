@@ -115,6 +115,25 @@ export default function ShopSetup() {
   const [oauthRedirecting, setOauthRedirecting] = useState(false)
   const [shopifyMethod, setShopifyMethod] = useState<'custom_app' | 'distribution'>('custom_app')
   const [emailProvider, setEmailProvider] = useState('')
+  const [trialDomainError, setTrialDomainError] = useState('')
+  const [checkingTrialDomain, setCheckingTrialDomain] = useState(false)
+  const [isTrialUser, setIsTrialUser] = useState(false)
+
+  // Buscar se usuario e trial
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('users')
+      .select('is_trial')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.is_trial) {
+          setIsTrialUser(true)
+          updateField('email_start_mode', 'from_integration_date')
+        }
+      })
+  }, [user?.id])
 
   // Email providers configuration
   const emailProviders = [
@@ -133,6 +152,33 @@ export default function ShopSetup() {
     { value: 'migadu', label: 'Migadu', imap_host: 'imap.migadu.com', imap_port: '993', smtp_host: 'smtp.migadu.com', smtp_port: '465' },
     { value: 'outro', label: 'Outro (manual)', imap_host: '', imap_port: '993', smtp_host: '', smtp_port: '465' },
   ]
+
+  const checkTrialDomain = async (domain: string) => {
+    if (!domain || !user) return
+    setCheckingTrialDomain(true)
+    setTrialDomainError('')
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-trial-domain`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ shopify_domain: domain, user_id: user.id }),
+        }
+      )
+      const data = await response.json()
+      if (!data.available) {
+        setTrialDomainError(data.reason || 'Este dominio ja foi usado em um periodo de teste.')
+      }
+    } catch (err) {
+      console.error('Erro ao verificar dominio trial:', err)
+    } finally {
+      setCheckingTrialDomain(false)
+    }
+  }
 
   const handleProviderChange = (providerValue: string) => {
     setEmailProvider(providerValue)
@@ -301,20 +347,22 @@ export default function ShopSetup() {
     setSaving(true)
     setError('')
 
-    // Verificar limite de lojas do plano (apenas para criação, não edição)
+    // Verificar limite de lojas do plano e status trial (apenas para criação, não edição)
+    let isUserTrial = false
     if (!isEditing) {
       try {
         // Buscar limite e status do usuário
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('shops_limit, status')
+          .select('shops_limit, status, is_trial')
           .eq('id', user.id)
           .single()
 
         if (userError) throw userError
+        isUserTrial = !!userData?.is_trial
 
-        // Bloquear se assinatura não está ativa
-        if (userData?.status !== 'active') {
+        // Bloquear se assinatura não está ativa (trial users tem status null/active)
+        if (userData?.status !== 'active' && !userData?.is_trial) {
           setError('Sua assinatura não está ativa. Regularize seu pagamento para adicionar novas lojas.')
           setSaving(false)
           return
@@ -343,6 +391,31 @@ export default function ShopSetup() {
         setError('Erro ao verificar limite de lojas. Tente novamente.')
         setSaving(false)
         return
+      }
+    }
+
+    // Verificar dominio trial (apenas para criação, não edição)
+    if (!isEditing && shopData.shopify_domain) {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-trial-domain`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ shopify_domain: shopData.shopify_domain, user_id: user.id }),
+          }
+        )
+        const trialData = await response.json()
+        if (!trialData.available) {
+          setError(trialData.reason || 'Este dominio Shopify ja foi usado em um periodo de teste. Assine um plano para continuar.')
+          setSaving(false)
+          return
+        }
+      } catch (err) {
+        console.error('Erro ao verificar dominio trial:', err)
       }
     }
 
@@ -381,8 +454,8 @@ export default function ShopSetup() {
         smtp_user: shopData.smtp_user || null,
         smtp_password: shopData.smtp_password || null,
         mail_status: hasEmailConfig && emailTestResult === 'success' ? 'ok' : null,
-        email_start_mode: shopData.email_start_mode,
-        email_start_date: shopData.email_start_mode === 'from_integration_date' ? new Date().toISOString() : null,
+        email_start_mode: isUserTrial ? 'from_integration_date' : shopData.email_start_mode,
+        email_start_date: (isUserTrial || shopData.email_start_mode === 'from_integration_date') ? new Date().toISOString() : null,
         delivery_time: shopData.delivery_time || null,
         dispatch_time: shopData.dispatch_time || null,
         warranty_info: shopData.warranty_info || null,
@@ -407,6 +480,24 @@ export default function ShopSetup() {
           .insert(shopPayload)
 
         if (error) throw error
+
+        // Registrar dominio no trial_domains se usuario e trial
+        if (shopData.shopify_domain) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('is_trial')
+            .eq('id', user.id)
+            .single()
+
+          if (userData?.is_trial) {
+            await supabase
+              .from('trial_domains')
+              .insert({
+                shopify_domain: shopData.shopify_domain,
+                user_id: user.id,
+              })
+          }
+        }
       }
 
       navigate('/shops')
@@ -512,6 +603,28 @@ export default function ShopSetup() {
     try {
       // Save the shop as draft first so the callback can find it
       if (!user) return
+
+      // Verificar dominio trial antes do OAuth (apenas para criação)
+      if (!shopId && shopData.shopify_domain) {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-trial-domain`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ shopify_domain: shopData.shopify_domain, user_id: user.id }),
+          }
+        )
+        const trialData = await response.json()
+        if (!trialData.available) {
+          setError(trialData.reason || 'Este dominio Shopify ja foi usado em um periodo de teste. Assine um plano para continuar.')
+          setOauthRedirecting(false)
+          return
+        }
+      }
+
       let savedShopId = shopId
 
       if (!savedShopId) {
@@ -531,6 +644,22 @@ export default function ShopSetup() {
 
         if (insertError) throw insertError
         savedShopId = newShop.id
+
+        // Registrar dominio no trial_domains se usuario e trial
+        const { data: userData } = await supabase
+          .from('users')
+          .select('is_trial')
+          .eq('id', user.id)
+          .single()
+
+        if (userData?.is_trial && shopData.shopify_domain) {
+          await supabase
+            .from('trial_domains')
+            .insert({
+              shopify_domain: shopData.shopify_domain,
+              user_id: user.id,
+            })
+        }
       } else {
         // Update existing shop with current Shopify fields
         await supabase
@@ -1046,13 +1175,34 @@ export default function ShopSetup() {
         <input
           type="text"
           value={shopData.shopify_domain}
-          onChange={(e) => updateField('shopify_domain', e.target.value)}
-          style={inputStyle}
+          onChange={(e) => {
+            updateField('shopify_domain', e.target.value)
+            setTrialDomainError('')
+          }}
+          onBlur={(e) => {
+            if (e.target.value && !isEditing) {
+              checkTrialDomain(e.target.value)
+            }
+          }}
+          style={{
+            ...inputStyle,
+            ...(trialDomainError ? { borderColor: '#ef4444' } : {}),
+          }}
           placeholder="mystore.myshopify.com"
         />
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-          Seu domínio .myshopify.com completo
-        </p>
+        {trialDomainError ? (
+          <p style={{ fontSize: '12px', color: '#ef4444', marginTop: '6px', fontWeight: 600 }}>
+            {trialDomainError}
+          </p>
+        ) : checkingTrialDomain ? (
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+            Verificando dominio...
+          </p>
+        ) : (
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+            Seu domínio .myshopify.com completo
+          </p>
+        )}
       </div>
 
       {/* Client ID */}
@@ -1464,11 +1614,12 @@ export default function ShopSetup() {
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '12px',
-                    cursor: 'pointer',
+                    cursor: isTrialUser ? 'not-allowed' : 'pointer',
                     padding: '12px',
                     borderRadius: '10px',
                     backgroundColor: shopData.email_start_mode === 'all_unread' ? 'rgba(70, 114, 236, 0.08)' : 'transparent',
                     border: shopData.email_start_mode === 'all_unread' ? '1px solid var(--accent)' : '1px solid var(--border-color)',
+                    opacity: isTrialUser ? 0.5 : 1,
                   }}
                 >
                   <input
@@ -1476,17 +1627,23 @@ export default function ShopSetup() {
                     name="email_start_mode"
                     value="all_unread"
                     checked={shopData.email_start_mode === 'all_unread'}
-                    onChange={() => updateField('email_start_mode', 'all_unread')}
+                    onChange={() => !isTrialUser && updateField('email_start_mode', 'all_unread')}
+                    disabled={isTrialUser}
                     style={{ marginTop: '3px', accentColor: 'var(--accent)' }}
                   />
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>
-                      Responder todos os emails não lidos (Recomendado)
+                      Responder todos os emails não lidos {!isTrialUser && '(Recomendado)'}
                     </div>
                     <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
                       A Replyna processará e responderá todos os emails não lidos na caixa de entrada.
                       Garante que nenhum cliente fique sem resposta.
                     </p>
+                    {isTrialUser && (
+                      <p style={{ fontSize: '12px', color: '#f59e0b', margin: '4px 0 0 0', fontWeight: 600 }}>
+                        Disponivel apenas em planos pagos. No periodo de teste, apenas emails novos serao respondidos.
+                      </p>
+                    )}
                   </div>
                 </label>
 

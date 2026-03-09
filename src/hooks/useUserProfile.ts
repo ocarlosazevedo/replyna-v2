@@ -12,6 +12,8 @@ interface UserProfile {
   shops_limit: number | null
   status: string | null
   created_at: string | null
+  is_trial: boolean | null
+  trial_started_at: string | null
 }
 
 interface Shop {
@@ -52,7 +54,7 @@ export function useUserProfile(): UseUserProfileResult {
       const [profileResult, shopsResult] = await Promise.all([
         supabase
           .from('users')
-          .select('id, email, name, plan, emails_limit, emails_used, shops_limit, status, created_at')
+          .select('id, email, name, plan, emails_limit, emails_used, shops_limit, status, created_at, is_trial, trial_started_at')
           .eq('id', user.id)
           .single(),
         supabase

@@ -85,7 +85,7 @@ export interface Conversation {
   subject: string | null;
   category: string | null;
   status: 'open' | 'resolved' | 'pending_human' | 'closed';
-  ticket_status: 'pending' | 'answered' | 'closed' | null;
+  ticket_status: 'pending' | 'answered' | 'closed' | 'reopened' | null;
   archived: boolean;
   data_request_count: number;
   retention_contact_count: number;
@@ -93,6 +93,7 @@ export interface Conversation {
   shopify_order_id: string | null;
   shopify_customer_id: string | null;
   human_paused_until: string | null;
+  frozen_until: string | null;
   last_message_at: string;
   created_at: string;
   updated_at: string;

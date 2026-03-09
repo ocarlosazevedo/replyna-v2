@@ -22,6 +22,10 @@ verify_jwt = false
 [functions.process-queue]
 verify_jwt = false
 
+# Asaas Webhook - Público (Asaas não envia JWT, autenticação via ASAAS_WEBHOOK_TOKEN)
+[functions.asaas-webhook]
+verify_jwt = false
+
 # Request Password Reset - Público (usuários não autenticados)
 [functions.request-password-reset]
 verify_jwt = false

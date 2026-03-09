@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Ticket, Store, Headphones, MessageSquare } from 'lucide-react'
+import { Ticket, Store, MessageSquare, Clock, CheckCircle, RefreshCw, XCircle } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile } from '../hooks/useUserProfile'
@@ -23,8 +23,44 @@ interface TicketRow {
 const TICKET_STATUS: Record<string, { label: string; bg: string; color: string }> = {
   pending:  { label: 'Pendente',   bg: 'rgba(239,68,68,0.15)',   color: '#ef4444' },
   answered: { label: 'Respondido', bg: 'rgba(34,197,94,0.15)',   color: '#16a34a' },
+  reopened: { label: 'Reaberto',   bg: 'rgba(249,115,22,0.15)',  color: '#f97316' },
   closed:   { label: 'Fechado',    bg: 'rgba(107,114,128,0.15)', color: '#6b7280' },
 }
+
+const FILTER_CARDS = [
+  {
+    key: 'pending',
+    icon: Clock,
+    color: '#ef4444',
+    bg: 'rgba(239,68,68,0.1)',
+    title: 'Pendentes',
+    description: 'Emails que ainda nao foram respondidos pela equipe. Precisam de atencao imediata.',
+  },
+  {
+    key: 'answered',
+    icon: CheckCircle,
+    color: '#16a34a',
+    bg: 'rgba(34,197,94,0.1)',
+    title: 'Respondidos',
+    description: 'Emails que ja receberam uma resposta manual. O cliente pode responder novamente.',
+  },
+  {
+    key: 'reopened',
+    icon: RefreshCw,
+    color: '#f97316',
+    bg: 'rgba(249,115,22,0.1)',
+    title: 'Reabertos',
+    description: 'Quando um cliente responde um email que ja foi respondido, o ticket reabre automaticamente.',
+  },
+  {
+    key: 'close',
+    icon: XCircle,
+    color: '#6b7280',
+    bg: 'rgba(107,114,128,0.1)',
+    title: 'Encerrar ticket',
+    description: 'Ao encerrar um ticket, ele desaparece da lista e o cliente entra em frozen por 7 dias (emails ignorados).',
+  },
+]
 
 const formatDateTime = (date: Date) =>
   new Intl.DateTimeFormat('pt-BR', {
@@ -75,7 +111,8 @@ export default function Tickets() {
 
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      // Active tickets (not archived)
+      const { data: activeData, error: activeError } = await supabase
         .from('conversations')
         .select('id, shop_id, customer_email, customer_name, subject, category, status, ticket_status, created_at')
         .eq('status', 'pending_human')
@@ -84,9 +121,22 @@ export default function Tickets() {
         .in('category', ['suporte_humano', 'edicao_pedido'])
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (activeError) throw activeError
 
-      const rows: TicketRow[] = (data || []).map((c) => ({
+      // Closed tickets (archived)
+      const { data: closedData, error: closedError } = await supabase
+        .from('conversations')
+        .select('id, shop_id, customer_email, customer_name, subject, category, status, ticket_status, created_at')
+        .eq('ticket_status', 'closed')
+        .eq('archived', true)
+        .in('shop_id', shopIds)
+        .in('category', ['suporte_humano', 'edicao_pedido'])
+        .order('created_at', { ascending: false })
+
+      if (closedError) throw closedError
+
+      const all = [...(activeData || []), ...(closedData || [])]
+      const rows: TicketRow[] = all.map((c) => ({
         ...c,
         shop_name: shopNameMap[c.shop_id] || 'Loja',
       }))
@@ -170,6 +220,8 @@ export default function Tickets() {
       all: base.length,
       pending: base.filter((t) => (t.ticket_status || 'pending') === 'pending').length,
       answered: base.filter((t) => (t.ticket_status || 'pending') === 'answered').length,
+      reopened: base.filter((t) => (t.ticket_status || 'pending') === 'reopened').length,
+      closed: base.filter((t) => t.ticket_status === 'closed').length,
     }
   }, [tickets, selectedShopId])
 
@@ -214,7 +266,7 @@ export default function Tickets() {
                 fontSize: '13px',
                 fontWeight: 700,
               }}>
-                {statusCounts.pending}
+                {statusCounts.pending + statusCounts.reopened}
               </span>
             )}
           </div>
@@ -235,6 +287,8 @@ export default function Tickets() {
             <option value="all">Todos os status ({statusCounts.all})</option>
             <option value="pending">Pendentes ({statusCounts.pending})</option>
             <option value="answered">Respondidos ({statusCounts.answered})</option>
+            <option value="reopened">Reabertos ({statusCounts.reopened})</option>
+            <option value="closed">Encerrados ({statusCounts.closed})</option>
           </select>
 
           <select
@@ -254,37 +308,49 @@ export default function Tickets() {
         </div>
       </div>
 
-      {/* Explicacao */}
-      <div style={{
-        backgroundColor: 'var(--bg-card)',
-        borderRadius: isMobile ? '12px' : '16px',
-        padding: isMobile ? '14px' : '18px 20px',
-        border: '1px solid var(--border-color)',
-        display: 'flex',
-        alignItems: isMobile ? 'flex-start' : 'center',
-        gap: isMobile ? '12px' : '16px',
-        flexDirection: isMobile ? 'column' : 'row',
-      }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          borderRadius: '10px',
-          backgroundColor: 'rgba(236, 72, 153, 0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <Headphones size={20} style={{ color: '#ec4899' }} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>
-            O que são tickets?
-          </div>
-          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-            Tickets são conversas que a IA identificou como necessitando de atendimento humano — como edições de pedidos, suporte especializado ou situações após o fluxo de retenção. Clique em uma conversa para visualizar e responder manualmente.
-          </div>
-        </div>
+      {/* Info cards grid */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+          gap: isMobile ? '10px' : '14px',
+        }}
+      >
+        {FILTER_CARDS.map((card) => {
+          const Icon = card.icon
+          return (
+            <div
+              key={card.key}
+              style={{
+                backgroundColor: 'var(--bg-card)',
+                borderRadius: '14px',
+                padding: isMobile ? '12px' : '16px',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <div style={{
+                  width: isMobile ? '28px' : '34px',
+                  height: isMobile ? '28px' : '34px',
+                  borderRadius: '9px',
+                  backgroundColor: card.bg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <Icon size={isMobile ? 14 : 17} style={{ color: card.color }} />
+                </div>
+                <div style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: 700, color: card.color }}>
+                  {card.title}
+                </div>
+              </div>
+              <div style={{ fontSize: isMobile ? '11px' : '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                {card.description}
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* Card da tabela */}
@@ -354,14 +420,22 @@ export default function Tickets() {
                 ? 'Nenhum ticket pendente'
                 : selectedStatus === 'answered'
                   ? 'Nenhum ticket respondido'
-                  : 'Nenhum ticket encontrado'}
+                  : selectedStatus === 'reopened'
+                    ? 'Nenhum ticket reaberto'
+                    : selectedStatus === 'closed'
+                      ? 'Nenhum ticket encerrado'
+                      : 'Nenhum ticket encontrado'}
             </div>
             <div style={{ fontSize: '14px', color: 'var(--text-secondary)', maxWidth: '380px', margin: '0 auto', lineHeight: '1.5' }}>
               {selectedStatus === 'all'
                 ? 'Quando uma conversa precisar de atenção humana, ela aparecerá aqui automaticamente.'
                 : selectedStatus === 'pending'
                   ? 'Não há tickets aguardando resposta no momento.'
-                  : 'Não há tickets respondidos no momento.'}
+                  : selectedStatus === 'reopened'
+                    ? 'Não há tickets reabertos no momento.'
+                    : selectedStatus === 'closed'
+                      ? 'Nenhum ticket foi encerrado ainda.'
+                      : 'Não há tickets respondidos no momento.'}
             </div>
           </div>
         ) : (

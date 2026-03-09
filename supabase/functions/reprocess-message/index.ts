@@ -268,6 +268,7 @@ Deno.serve(async (req) => {
           conversationHistory,
           message.body_html || undefined,
           conversation.language || null,
+          shop.imap_user || shop.support_email || null, // Email da loja para detecção de idioma por domínio
         );
         category = classification.category;
         detectedSentiment = classification.sentiment || 'calm';
@@ -398,6 +399,7 @@ Deno.serve(async (req) => {
           signature_html: shop.signature_html,
           is_cod: shop.is_cod,
           store_email: shop.imap_user || shop.support_email,
+          return_form_url: `https://app.replyna.me/return-request?shop=${shop.id}`,
         },
         message.subject || '',
         cleanBody,

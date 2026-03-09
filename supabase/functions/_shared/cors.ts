@@ -11,6 +11,7 @@ const ALLOWED_ORIGINS = [
   'https://app.replyna.me',
   'https://replyna.me',
   'http://localhost:5173', // desenvolvimento Vite
+  'http://localhost:5174', // desenvolvimento Vite (porta alternativa)
   'http://localhost:3000', // desenvolvimento alternativo
 ];
 

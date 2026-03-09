@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Sun, Moon, Shield, Lock, ShieldCheck, Eye } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { useReturnForm } from './return-request/useReturnForm'
@@ -21,7 +22,9 @@ export default function ReturnRequest() {
   const t = getTranslations(form.locale)
   const termsText = getTermsText(form.locale)
 
-  const storeName = form.selectedOrder?.store_name || form.orders[0]?.store_name || null
+  const storeName = form.shopName || form.selectedOrder?.store_name || form.orders[0]?.store_name || null
+  const logoUrl = form.shopLogoUrl || null
+  const [logoError, setLogoError] = useState(false)
   const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light')
 
   const renderStep = () => {
@@ -150,7 +153,18 @@ export default function ReturnRequest() {
       case 'loading':
         return <LoadingScreen t={t} />
       case 'success':
-        return <SuccessScreen t={t} returnId={form.returnId} customerEmail={form.customerEmail} />
+        return (
+          <SuccessScreen
+            t={t}
+            returnId={form.returnId}
+            customerEmail={form.customerEmail}
+            fields={form.fields}
+            selectedOrder={form.selectedOrder}
+            signature={form.signature}
+            shopName={form.shopName}
+            locale={form.locale}
+          />
+        )
       case 'out-of-period':
         return <OutOfPeriodScreen t={t} onReset={() => form.goToStep(0)} />
       default:
@@ -241,27 +255,48 @@ export default function ReturnRequest() {
                   fontWeight: 800,
                   color: '#fff',
                   border: '1px solid rgba(255,255,255,0.1)',
+                  overflow: 'hidden',
                 }}>
-                  {storeName ? storeName.charAt(0).toUpperCase() : 'R'}
+                  {form.shopLoading ? (
+                    <div className="skeleton-shimmer" style={{ width: '100%', height: '100%' }} />
+                  ) : logoUrl && !logoError ? (
+                    <img
+                      src={logoUrl}
+                      alt={storeName || ''}
+                      style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '4px' }}
+                      onError={() => setLogoError(true)}
+                    />
+                  ) : (
+                    storeName ? storeName.charAt(0).toUpperCase() : 'R'
+                  )}
                 </div>
                 <div>
-                  <div style={{
-                    fontSize: '22px',
-                    fontWeight: 800,
-                    color: '#fff',
-                    letterSpacing: '-0.5px',
-                    lineHeight: '1.2',
-                  }}>
-                    {storeName || t('header.returnPortal')}
-                  </div>
-                  <div style={{
-                    fontSize: '14px',
-                    color: 'rgba(255,255,255,0.7)',
-                    fontWeight: 500,
-                    marginTop: '4px',
-                  }}>
-                    {t('header.subtitle')}
-                  </div>
+                  {form.shopLoading ? (
+                    <>
+                      <div className="skeleton-shimmer" style={{ width: '160px', height: '22px', borderRadius: '6px' }} />
+                      <div className="skeleton-shimmer" style={{ width: '120px', height: '14px', borderRadius: '4px', marginTop: '6px' }} />
+                    </>
+                  ) : (
+                    <>
+                      <div style={{
+                        fontSize: '22px',
+                        fontWeight: 800,
+                        color: '#fff',
+                        letterSpacing: '-0.5px',
+                        lineHeight: '1.2',
+                      }}>
+                        {storeName || t('header.returnPortal')}
+                      </div>
+                      <div style={{
+                        fontSize: '14px',
+                        color: 'rgba(255,255,255,0.7)',
+                        fontWeight: 500,
+                        marginTop: '4px',
+                      }}>
+                        {t('header.subtitle')}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -379,9 +414,11 @@ export default function ReturnRequest() {
           </div>
 
           <div style={{ fontSize: '12px', lineHeight: '1.4' }}>
-            {storeName
-              ? `© ${new Date().getFullYear()} ${storeName}. ${t('header.allRightsReserved')}`
-              : t('header.securePortal')
+            {form.shopLoading
+              ? <div className="skeleton-shimmer" style={{ width: '200px', height: '14px', borderRadius: '4px', margin: '0 auto', background: 'linear-gradient(90deg, var(--border-color) 25%, var(--bg-card) 50%, var(--border-color) 75%)', backgroundSize: '200% 100%' }} />
+              : storeName
+                ? `© ${new Date().getFullYear()} ${storeName}. ${t('header.allRightsReserved')}`
+                : t('header.securePortal')
             }
           </div>
           <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.6 }}>
@@ -399,6 +436,15 @@ export default function ReturnRequest() {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .skeleton-shimmer {
+          background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.08) 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s ease-in-out infinite;
         }
         input:focus, select:focus, textarea:focus {
           border-color: var(--accent) !important;

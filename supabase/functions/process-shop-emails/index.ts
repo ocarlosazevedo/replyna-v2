@@ -446,6 +446,15 @@ async function processMessage(
   const conversation = message.conversation as Conversation | undefined;
   if (!conversation) return 'skipped';
 
+  // Check if conversation is frozen (ticket closed, 7-day freeze - ignore completely)
+  if (conversation.frozen_until) {
+    const frozenUntil = new Date(conversation.frozen_until);
+    if (frozenUntil > new Date()) {
+      console.log(`[Worker] Conversa ${conversation.id} está frozen até ${conversation.frozen_until}, ignorando msg ${message.id}`);
+      return 'skipped';
+    }
+  }
+
   if (!message.from_email || !message.from_email.includes('@')) {
     console.log(`[Worker] Pulando mensagem ${message.id}: from_email inválido`);
     await updateMessage(message.id, {
@@ -624,6 +633,7 @@ async function processMessage(
     conversationHistory.slice(0, -1),
     message.body_text || '', // rawEmailBody para fallback de idioma
     conversation.language || null, // Idioma da conversa para continuidade
+    shop.imap_user || shop.support_email || null, // Email da loja para detecção de idioma por domínio (.de→alemão, .fr→francês)
   );
 
   await updateMessage(message.id, {
@@ -773,6 +783,7 @@ async function processMessage(
         signature_html: shop.signature_html,
         is_cod: shop.is_cod,
         store_email: shop.imap_user || shop.support_email,
+        return_form_url: `https://app.replyna.me/return-request?shop=${shop.id}`,
       },
       message.subject || '',
       cleanBody,

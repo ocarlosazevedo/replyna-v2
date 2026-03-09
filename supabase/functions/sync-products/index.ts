@@ -188,9 +188,23 @@ Deno.serve(async (req) => {
       // Ignore
     }
 
+    // Limpar mensagem de erro (pode conter HTML do Shopify)
+    let errorMessage = error.message || 'Internal server error';
+    if (errorMessage.includes('<!DOCTYPE') || errorMessage.includes('<html')) {
+      if (errorMessage.includes('403')) {
+        errorMessage = 'Acesso negado pelo Shopify (403). Verifique se as credenciais da API estão corretas e se o app ainda está instalado na loja.';
+      } else if (errorMessage.includes('401')) {
+        errorMessage = 'Credenciais Shopify inválidas (401). Reconfigure a integração.';
+      } else if (errorMessage.includes('404')) {
+        errorMessage = 'Loja Shopify não encontrada (404). Verifique o domínio configurado.';
+      } else {
+        errorMessage = 'Erro de comunicação com o Shopify. Verifique suas credenciais e tente novamente.';
+      }
+    }
+
     return new Response(
       JSON.stringify({
-        error: error.message || 'Internal server error',
+        error: errorMessage,
       }),
       { status: 500, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
     );

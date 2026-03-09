@@ -403,6 +403,8 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
   const [sendingReply, setSendingReply] = useState(false)
   const [replyError, setReplyError] = useState<string | null>(null)
   const [replySuccess, setReplySuccess] = useState(false)
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [closingTicket, setClosingTicket] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -779,6 +781,31 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     }
   }
 
+  const handleCloseTicket = async () => {
+    if (!conversation || closingTicket) return
+
+    setClosingTicket(true)
+    try {
+      const frozenUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      const { error } = await supabase
+        .from('conversations')
+        .update({
+          ticket_status: 'closed',
+          frozen_until: frozenUntil,
+          archived: true,
+        })
+        .eq('id', conversation.id)
+
+      if (error) throw error
+      setShowCloseConfirm(false)
+      onClose()
+    } catch (err) {
+      console.error('Erro ao encerrar ticket:', err)
+    } finally {
+      setClosingTicket(false)
+    }
+  }
+
   if (!conversationId) return null
 
   const isSpam = conversation?.category === 'spam'
@@ -981,6 +1008,34 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                 )}
               </div>
             )}
+            {conversation && conversation.ticket_status !== 'closed' && (
+              <button
+                type="button"
+                onClick={() => setShowCloseConfirm(true)}
+                title="Encerrar ticket e congelar cliente por 7 dias"
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                  color: '#dc2626',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+                Encerrar
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -1003,6 +1058,62 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
             </button>
           </div>
         </div>
+
+        {/* Confirmação de encerramento */}
+        {showCloseConfirm && (
+          <div
+            style={{
+              padding: '14px 20px',
+              backgroundColor: 'rgba(220, 38, 38, 0.06)',
+              borderBottom: '1px solid rgba(220, 38, 38, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ fontSize: '13px', color: '#dc2626', fontWeight: 500 }}>
+              Tem certeza? O ticket será encerrado e o cliente ficará em frozen por 7 dias (emails ignorados).
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setShowCloseConfirm(false)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleCloseTicket}
+                disabled={closingTicket}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: closingTicket ? 'not-allowed' : 'pointer',
+                  opacity: closingTicket ? 0.7 : 1,
+                }}
+              >
+                {closingTicket ? 'Encerrando...' : 'Confirmar encerramento'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Aviso de Spam */}
         {!loading && isSpam && (

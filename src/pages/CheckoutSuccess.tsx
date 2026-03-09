@@ -1,35 +1,135 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react'
+import { CheckCircle, ArrowRight, AlertCircle } from 'lucide-react'
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams()
   const sessionId = searchParams.get('session_id')
 
-  const [status, setStatus] = useState<'processing' | 'success'>('processing')
+  const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [isTrial, setIsTrial] = useState(false)
+  const [planName, setPlanName] = useState('')
 
   useEffect(() => {
-    // Limpar dados temporários do registro
-    localStorage.removeItem('pending_registration')
+    const confirmRegistration = async () => {
+      try {
+        const pendingData = localStorage.getItem('pending_registration')
+        if (!pendingData) {
+          // Sem dados pendentes - pode ser reload ou acesso direto
+          setStatus('success')
+          return
+        }
 
-    // Google Ads conversion tracking - checkout success
-    if (typeof window.gtag === 'function') {
-      window.gtag('event', 'conversion', {
-        'send_to': 'AW-17979181556/6bTqCK72oIIcEPSTkv1C',
-        'value': 450.0,
-        'currency': 'BRL'
-      })
+        const parsed = JSON.parse(pendingData)
+        setIsTrial(parsed.is_trial || false)
+        setPlanName(parsed.plan_name || '')
+        localStorage.removeItem('pending_registration')
+
+        // Google Ads conversion tracking
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'conversion', {
+            'send_to': 'AW-17979181556/6bTqCK72oIIcEPSTkv1C',
+            'value': 450.0,
+            'currency': 'BRL'
+          })
+        }
+
+        // Chamar confirm-registration para criar a conta
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-registration`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            email: parsed.email,
+            name: parsed.name,
+            whatsapp_number: parsed.whatsapp_number || undefined,
+            plan_id: parsed.plan_id,
+            asaas_customer_id: parsed.asaas_customer_id,
+            asaas_subscription_id: parsed.asaas_subscription_id,
+            coupon_id: parsed.coupon_id || undefined,
+            discount_applied: parsed.discount_applied || undefined,
+            is_trial: parsed.is_trial || false,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao criar conta')
+        }
+
+        // Login automatico via magic link
+        if (data.magic_link) {
+          window.location.href = data.magic_link
+          return
+        }
+
+        setStatus('success')
+      } catch (err) {
+        console.error('Erro ao confirmar registro:', err)
+        setErrorMessage(err instanceof Error ? err.message : 'Erro ao criar conta')
+        setStatus('error')
+      }
     }
 
-    // Mostrar sucesso após pequeno delay para UX
-    const timer = setTimeout(() => {
-      setStatus('success')
-    }, 1500)
-
-    return () => clearTimeout(timer)
+    confirmRegistration()
   }, [])
 
   if (status === 'processing') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'var(--bg-primary)',
+        padding: '20px',
+      }}>
+        <div style={{
+          maxWidth: '420px',
+          width: '100%',
+          textAlign: 'center',
+        }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            margin: '0 auto 32px',
+            position: 'relative',
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              border: '3px solid rgba(70, 114, 236, 0.15)',
+              borderTopColor: 'var(--accent)',
+              animation: 'spin 0.8s linear infinite',
+            }} />
+          </div>
+          <h2 style={{
+            fontSize: '22px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginBottom: '12px',
+          }}>
+            Criando sua conta...
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.5 }}>
+            Isso leva apenas alguns segundos
+          </p>
+          <style>{`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'error') {
     return (
       <div style={{
         minHeight: '100vh',
@@ -48,30 +148,56 @@ export default function CheckoutSuccess() {
           textAlign: 'center',
           border: '1px solid var(--border-color)',
         }}>
-          <Loader2
-            size={48}
-            style={{
-              color: 'var(--accent)',
-              animation: 'spin 1s linear infinite',
-              marginBottom: '24px',
-            }}
-          />
+          <div style={{
+            width: '72px',
+            height: '72px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 24px',
+          }}>
+            <AlertCircle size={40} style={{ color: '#ef4444' }} />
+          </div>
+
           <h2 style={{
-            fontSize: '20px',
+            fontSize: '24px',
             fontWeight: 700,
             color: 'var(--text-primary)',
             marginBottom: '8px',
           }}>
-            Confirmando pagamento...
+            Erro ao criar conta
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-            Aguarde um momento
+
+          <p style={{
+            color: 'var(--text-secondary)',
+            fontSize: '15px',
+            marginBottom: '24px',
+            lineHeight: 1.6,
+          }}>
+            {errorMessage || 'Ocorreu um erro ao configurar sua conta. Entre em contato com o suporte.'}
           </p>
-          <style>{`
-            @keyframes spin {
-              to { transform: rotate(360deg); }
-            }
-          `}</style>
+
+          <Link
+            to="/register"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              backgroundColor: 'var(--accent)',
+              color: '#fff',
+              padding: '14px 24px',
+              borderRadius: '10px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              fontSize: '15px',
+            }}
+          >
+            Tentar novamente
+            <ArrowRight size={18} />
+          </Link>
         </div>
       </div>
     )
@@ -114,7 +240,7 @@ export default function CheckoutSuccess() {
           color: 'var(--text-primary)',
           marginBottom: '8px',
         }}>
-          Pagamento confirmado!
+          Conta criada com sucesso!
         </h2>
 
         <p style={{
@@ -123,7 +249,9 @@ export default function CheckoutSuccess() {
           marginBottom: '24px',
           lineHeight: 1.6,
         }}>
-          Sua assinatura foi ativada com sucesso.
+          {isTrial
+            ? 'Seu periodo de teste gratuito foi ativado com 30 emails.'
+            : `Sua assinatura do plano ${planName || 'selecionado'} foi ativada com sucesso.`}
         </p>
 
         <div style={{
