@@ -128,19 +128,21 @@ serve(async (req) => {
       );
     }
 
-    // Credit card is required for all flows (paid and trial)
-    if (!creditCard || !creditCard.number || !creditCard.holderName || !creditCard.expiryMonth || !creditCard.expiryYear || !creditCard.ccv) {
-      return new Response(
-        JSON.stringify({ error: 'Dados do cartao de credito sao obrigatorios' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Credit card is required for paid flows only
+    if (!is_trial) {
+      if (!creditCard || !creditCard.number || !creditCard.holderName || !creditCard.expiryMonth || !creditCard.expiryYear || !creditCard.ccv) {
+        return new Response(
+          JSON.stringify({ error: 'Dados do cartao de credito sao obrigatorios' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
-    if (!creditCardHolderInfo || !creditCardHolderInfo.cpfCnpj || !creditCardHolderInfo.postalCode) {
-      return new Response(
-        JSON.stringify({ error: 'Dados do titular do cartao sao obrigatorios (CPF/CNPJ e CEP)' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (!creditCardHolderInfo || !creditCardHolderInfo.cpfCnpj || !creditCardHolderInfo.postalCode) {
+        return new Response(
+          JSON.stringify({ error: 'Dados do titular do cartao sao obrigatorios (CPF/CNPJ e CEP)' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const supabase = getSupabaseAdmin();
@@ -249,20 +251,36 @@ serve(async (req) => {
       });
     }
 
-    // Next due date: today for immediate charge
+    // Trial flow: only save customer data, do NOT create a subscription (no charge)
+    if (is_trial) {
+      console.log(`[CreateSubscription] Trial flow - customer created: ${customer.id}, skipping subscription (no charge)`);
+
+      return new Response(
+        JSON.stringify({
+          asaas_customer_id: customer.id,
+          asaas_subscription_id: null,
+          plan_id: plan.id,
+          plan_name: plan.name,
+          coupon_id: null,
+          discount_applied: 0,
+          is_trial: true,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Paid flow: create subscription with immediate charge
     const nextDueDate = formatDateYYYYMMDD(new Date());
 
     // Build subscription description
     let subscriptionDescription = `Replyna - Plano ${plan.name}`;
-    if (is_trial) {
-      subscriptionDescription = `Replyna - Free Trial (${plan.name})`;
-    } else if (couponId) {
+    if (couponId) {
       subscriptionDescription = `Replyna - Plano ${plan.name} (Cupom: -${discountApplied.toFixed(2)})`;
     }
 
     // For coupon: create at discounted value, then update to full price
     // This way first payment = discounted, future payments = full price
-    const firstPaymentValue = (!is_trial && discountApplied > 0) ? finalValue : baseValue;
+    const firstPaymentValue = (discountApplied > 0) ? finalValue : baseValue;
 
     try {
       const subscription = await createSubscription({
@@ -290,10 +308,10 @@ serve(async (req) => {
         },
       });
 
-      console.log(`[CreateSubscription] Subscription created: ${subscription.id}, trial: ${is_trial}`);
+      console.log(`[CreateSubscription] Subscription created: ${subscription.id}`);
 
       // If coupon was applied, update subscription to full price for future payments
-      if (!is_trial && discountApplied > 0 && firstPaymentValue < baseValue) {
+      if (discountApplied > 0 && firstPaymentValue < baseValue) {
         await updateSubscription(subscription.id, {
           value: baseValue,
           updatePendingPayments: false,
@@ -310,7 +328,7 @@ serve(async (req) => {
           plan_name: plan.name,
           coupon_id: couponId,
           discount_applied: discountApplied,
-          is_trial: is_trial || false,
+          is_trial: false,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

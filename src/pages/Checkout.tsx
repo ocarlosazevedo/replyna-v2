@@ -115,12 +115,12 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
-  // Steps definition - trial also collects card (saved for later)
+  // Steps definition - trial skips payment (no charge)
   const getSteps = (): Step[] => {
     const steps: Step[] = [
       { id: 'personal', label: 'Dados', icon: User },
       { id: 'address', label: 'Endereco', icon: MapPin },
-      { id: 'payment', label: 'Pagamento', icon: CreditCard },
+      ...(!isTrialFlow ? [{ id: 'payment' as StepId, label: 'Pagamento', icon: CreditCard }] : []),
       { id: 'review', label: 'Revisao', icon: Check },
     ]
     return steps
@@ -251,8 +251,8 @@ export default function Checkout() {
     setError('')
 
     try {
-      const { month: expiryMonth, year: expiryYear } = parseExpiryDate(card.expiry)
       const cpfDigits = cpfCnpj.replace(/\D/g, '')
+      const { month: expiryMonth, year: expiryYear } = !isTrialFlow ? parseExpiryDate(card.expiry) : { month: '', year: '' }
 
       const body: Record<string, unknown> = {
         plan_id: plan.id,
@@ -263,8 +263,8 @@ export default function Checkout() {
         is_trial: isTrialFlow || undefined,
       }
 
-      // Always send card data (for trial it's saved for later, not charged)
-      if (card.number) {
+      // Only send card data for paid flows (trial = no charge)
+      if (!isTrialFlow && card.number) {
         body.creditCard = {
           holderName: card.holderName,
           number: card.number.replace(/\D/g, ''),
@@ -792,7 +792,8 @@ export default function Checkout() {
                       </div>
                     </div>
 
-                    {/* Card summary */}
+                    {/* Card summary - only for paid */}
+                    {!isTrialFlow && (
                     <div style={{
                       backgroundColor: 'var(--bg-card)',
                       borderRadius: '16px',
@@ -824,6 +825,7 @@ export default function Checkout() {
                         </div>
                       </div>
                     </div>
+                    )}
 
                     {/* Coupon - only for paid */}
                     {!isTrialFlow && (

@@ -16,7 +16,7 @@ interface ConfirmRegistrationRequest {
   whatsapp_number?: string;
   plan_id: string;
   asaas_customer_id: string;
-  asaas_subscription_id: string;
+  asaas_subscription_id?: string;
   coupon_id?: string;
   discount_applied?: number;
   is_trial?: boolean;
