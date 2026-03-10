@@ -235,7 +235,7 @@ export default function Register() {
 
           <div className="plans-grid-wrapper" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(5, 1fr)',
+            gridTemplateColumns: 'repeat(4, 1fr)',
             gap: '20px',
             overflowX: 'auto',
             WebkitOverflowScrolling: 'touch',
@@ -245,7 +245,7 @@ export default function Register() {
           }}>
           <style>{`
             @media (max-width: 900px) {
-              .plans-grid-wrapper { grid-template-columns: repeat(5, 260px) !important; }
+              .plans-grid-wrapper { grid-template-columns: repeat(4, 260px) !important; }
             }
             .plans-grid-wrapper > div { scroll-snap-align: start; }
             .plans-grid-wrapper::-webkit-scrollbar { height: 6px; }
@@ -253,7 +253,7 @@ export default function Register() {
             .plans-grid-wrapper::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
           `}</style>
 
-            {plans.map((plan) => (
+            {plans.filter((plan) => plan.name !== 'Enterprise').map((plan) => (
               <div
                 key={plan.id}
                 onClick={() => handleSelectPlan(plan)}
