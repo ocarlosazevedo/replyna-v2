@@ -3202,11 +3202,11 @@ void main() {
       )}
 
       {/* HERO */}
-      <section className="lp-hero-section" style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', paddingBottom: '10vh' }}>
+      <section className="lp-hero-section" style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
         <img src="/hero-banner-1.png" alt="Hero" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0, objectFit: 'cover' }} />
 
         {/* Hero text content */}
-        <div className="lp-hero-content" style={{ position: 'relative', zIndex: 10, padding: '0 24px', paddingLeft: '8vw', width: '65vw', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: '8vh' }}>
+        <div className="lp-hero-content" style={{ position: 'relative', zIndex: 10, paddingTop: '18vh', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '760px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
 
           {/* Title */}
           <div
@@ -3221,7 +3221,7 @@ void main() {
               lineHeight: 1.15,
               letterSpacing: '-0.035em',
               margin: 0,
-              textShadow: '0 2px 30px rgba(0,0,0,0.6)',
+              textShadow: '0 2px 30px rgba(0,0,0,0.4)',
             }}>
               {heroLine1}
               <br />
@@ -3238,12 +3238,11 @@ void main() {
               fontFamily: '"Inter", sans-serif',
               fontSize: '20px',
               lineHeight: 1.7,
-              color: 'rgba(255,255,255,0.75)',
+              color: 'rgba(255,255,255,0.80)',
               fontWeight: 400,
-              maxWidth: '520px',
-              textShadow: '0 2px 20px rgba(0,0,0,0.5)',
+              textShadow: '0 2px 20px rgba(0,0,0,0.4)',
               margin: 0,
-              marginTop: '28px',
+              marginTop: '20px',
             }}>
               Automatize o atendimento pos-venda da sua loja com inteligencia artificial. Resolva reclamacoes em segundos e proteja seu Shopify Payments.
             </p>
@@ -3254,7 +3253,7 @@ void main() {
             className="lp-hero-fadeup"
             style={{ animationDelay: heroVisible ? '0.5s' : '99s', animationPlayState: heroVisible ? 'running' : 'paused' }}
           >
-            <div className="lp-hero-btns" style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '40px' }}>
+            <div className="lp-hero-btns" style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '36px', justifyContent: 'center' }}>
               <a
                 href={getAppUrl('/register')}
                 className="lp-btn-primary"
