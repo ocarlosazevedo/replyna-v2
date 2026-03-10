@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, MapPin, CreditCard, ShieldCheck, Lock } from 'lucide-react'
 import { formatCpfCnpj, validateCPF, parseExpiryDate } from '../utils/cardUtils'
