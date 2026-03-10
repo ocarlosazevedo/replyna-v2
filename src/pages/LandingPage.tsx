@@ -3210,50 +3210,36 @@ void main() {
         <div className="lp-hero-content" style={{ position: 'relative', zIndex: 10, paddingTop: '18vh', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '760px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
 
           {/* Title */}
-          <div
-            className="lp-hero-fadeup"
-            style={{ animationDelay: heroVisible ? '0.1s' : '99s', animationPlayState: heroVisible ? 'running' : 'paused' }}
-          >
-            <h1 style={{
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-              fontSize: 'clamp(2.8rem, 5vw, 4rem)',
-              fontWeight: 800,
-              color: '#ffffff',
-              lineHeight: 1.15,
-              letterSpacing: '-0.035em',
-              margin: 0,
-              textShadow: '0 2px 30px rgba(0,0,0,0.4)',
-            }}>
-              {heroLine1}
-              <br />
-              {heroLine2}
-            </h1>
-          </div>
+          <h1 style={{
+            fontFamily: '"Plus Jakarta Sans", sans-serif',
+            fontSize: 'clamp(2.6rem, 5.5vw, 4.2rem)',
+            fontWeight: 700,
+            color: '#ffffff',
+            lineHeight: 1.12,
+            letterSpacing: '-0.02em',
+            margin: 0,
+          }}>
+            {heroLine1}
+            <br />
+            {heroLine2}
+          </h1>
 
           {/* Subtitle */}
-          <div
-            className="lp-hero-fadeup"
-            style={{ animationDelay: heroVisible ? '0.3s' : '99s', animationPlayState: heroVisible ? 'running' : 'paused' }}
-          >
-            <p style={{
-              fontFamily: '"Inter", sans-serif',
-              fontSize: '20px',
-              lineHeight: 1.7,
-              color: 'rgba(255,255,255,0.80)',
-              fontWeight: 400,
-              textShadow: '0 2px 20px rgba(0,0,0,0.4)',
-              margin: 0,
-              marginTop: '20px',
-            }}>
-              Automatize o atendimento pos-venda da sua loja com inteligencia artificial. Resolva reclamacoes em segundos e proteja seu Shopify Payments.
-            </p>
-          </div>
+          <p style={{
+            fontFamily: '"Plus Jakarta Sans", sans-serif',
+            fontSize: '18px',
+            lineHeight: 1.6,
+            color: 'rgba(255,255,255,0.75)',
+            fontWeight: 400,
+            margin: 0,
+            marginTop: '20px',
+            maxWidth: '560px',
+          }}>
+            Automatize o atendimento pos-venda da sua loja com inteligencia artificial. Resolva reclamacoes em segundos e proteja seu Shopify Payments.
+          </p>
 
           {/* CTA buttons */}
-          <div
-            className="lp-hero-fadeup"
-            style={{ animationDelay: heroVisible ? '0.5s' : '99s', animationPlayState: heroVisible ? 'running' : 'paused' }}
-          >
+          <div>
             <div className="lp-hero-btns" style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '36px', justifyContent: 'center' }}>
               <a
                 href={getAppUrl('/register')}
