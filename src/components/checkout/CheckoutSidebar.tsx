@@ -163,7 +163,7 @@ export default function CheckoutSidebar({ plan, isTrialFlow, couponValidation, i
               transition={{ type: 'spring', stiffness: 200, damping: 15 }}
               style={{ fontSize: '32px', fontWeight: 700, color: '#22c55e', display: 'block' }}
             >
-              Gratis
+              Grátis
             </motion.span>
           </div>
         ) : (

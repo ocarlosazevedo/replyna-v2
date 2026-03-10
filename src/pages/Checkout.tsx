@@ -121,7 +121,7 @@ export default function Checkout() {
       { id: 'personal', label: 'Dados', icon: User },
       { id: 'address', label: 'Endereço', icon: MapPin },
       { id: 'payment', label: 'Pagamento', icon: CreditCard },
-      { id: 'review', label: 'Revisao', icon: Check },
+      { id: 'review', label: 'Revisão', icon: Check },
     ]
     return steps
   }
@@ -613,7 +613,7 @@ export default function Checkout() {
                         Dados pessoais
                       </h3>
                       <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-                        Informacoes da sua conta
+                        Informações da sua conta
                       </p>
                     </div>
                   </div>
