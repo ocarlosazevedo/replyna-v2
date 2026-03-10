@@ -7,7 +7,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { getBalance, getPaymentStatistics, getPaymentsByDateRange } from '../_shared/asaas.ts';
+import { getBalance, getPaymentStatistics, getPaymentsByDateRange, getSubscription } from '../_shared/asaas.ts';
 
 interface FinancialStats {
   balance: {
@@ -160,8 +160,25 @@ serve(async (req) => {
     };
     const planCounts: Record<string, number> = {};
 
+    // Fetch real values from Asaas for active subscriptions
+    const activeSubs = subs.filter(s => s.status === 'active' && !!s.asaas_subscription_id);
+    const asaasValues: Record<string, number> = {};
+
+    // Fetch actual subscription values from Asaas in parallel (batches of 10)
+    for (let i = 0; i < activeSubs.length; i += 10) {
+      const batch = activeSubs.slice(i, i + 10);
+      const results = await Promise.allSettled(
+        batch.map(s => getSubscription(s.asaas_subscription_id))
+      );
+      for (let j = 0; j < results.length; j++) {
+        const result = results[j];
+        if (result.status === 'fulfilled' && result.value?.value) {
+          asaasValues[batch[j].asaas_subscription_id] = Number(result.value.value);
+        }
+      }
+    }
+
     for (const sub of subs) {
-      // Only count subscriptions with real Asaas billing for status/MRR
       const hasAsaasBilling = !!sub.asaas_subscription_id;
 
       const status = sub.status as keyof typeof subscriptionsByStatus;
@@ -171,7 +188,8 @@ serve(async (req) => {
 
       if (sub.status === 'active' && hasAsaasBilling) {
         const planName = sub.plans?.name || 'Starter';
-        const price = Number(sub.plans?.price_monthly || 0);
+        // Use real Asaas value if available, fallback to plan price
+        const price = asaasValues[sub.asaas_subscription_id] ?? Number(sub.plans?.price_monthly || 0);
         mrr += price;
         planCounts[planName] = (planCounts[planName] || 0) + 1;
       }
