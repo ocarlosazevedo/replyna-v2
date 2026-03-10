@@ -15,6 +15,7 @@ import Shops from './pages/Shops'
 import ShopSetup from './pages/ShopSetup'
 import ShopDetails from './pages/ShopDetails'
 import Account from './pages/Account'
+import Plans from './pages/Plans'
 import ConversationDetails from './pages/ConversationDetails'
 import LandingPage from './pages/LandingPage'
 import ChargebackPage from './pages/ChargebackPage'
@@ -249,6 +250,13 @@ function App() {
             <PrivateRoute>
               <DashboardLayout>
                 <Account />
+              </DashboardLayout>
+            </PrivateRoute>
+          } />
+          <Route path="/plans" element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Plans />
               </DashboardLayout>
             </PrivateRoute>
           } />
