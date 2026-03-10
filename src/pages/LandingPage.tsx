@@ -269,6 +269,7 @@ void main() {
           }
           .lp-hero-btn-desktop { display: none !important; }
           .lp-hero-btn-mobile { display: inline-flex !important; }
+          .lp-hero-title { font-size: 4.8vw !important; }
         }
         .lp-hero-btn-mobile { display: none !important; }
         .lp-hero-btn-desktop { display: inline-flex !important; }
