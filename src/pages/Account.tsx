@@ -1,9 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
-import { Sun, Moon } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { supabase } from '../lib/supabase'
-import { useTheme } from '../context/ThemeContext'
 
 interface UserProfile {
   name: string | null
@@ -80,7 +78,6 @@ const Skeleton = ({ height = 16, width = '100%' }: { height?: number | string; w
 export default function Account() {
   console.log('🔄 Account.tsx carregado - versão 3 (com sync fix)')
   const { user } = useAuth()
-  const { theme, setTheme } = useTheme()
   const isMobile = useIsMobile()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -1691,63 +1688,6 @@ export default function Account() {
             )}
           </section>
 
-          <section style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', height: 'fit-content' }}>
-            <div style={{ marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Aparência</h2>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px' }}>Personalize a interface do sistema</p>
-            </div>
-            <div style={{ display: 'grid', gap: '10px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Tema</span>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-color)',
-                  overflow: 'hidden',
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setTheme('light')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    padding: '12px',
-                    border: 'none',
-                    backgroundColor: theme === 'light' ? 'var(--accent)' : 'transparent',
-                    color: theme === 'light' ? '#ffffff' : 'var(--text-secondary)',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Sun size={16} />
-                  Claro
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTheme('dark')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    padding: '12px',
-                    border: 'none',
-                    backgroundColor: theme === 'dark' ? 'var(--accent)' : 'transparent',
-                    color: theme === 'dark' ? '#ffffff' : 'var(--text-secondary)',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Moon size={16} />
-                  Escuro
-                </button>
-              </div>
-            </div>
-          </section>
         </div>
       </div>
 

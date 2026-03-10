@@ -1,12 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Sun, Moon, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { useTheme } from '../context/ThemeContext'
 
 export default function Login() {
   const { signIn } = useAuth()
-  const { theme, setTheme } = useTheme()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -28,34 +26,8 @@ export default function Login() {
     }
   }
 
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
-  }
-
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)', position: 'relative', padding: '20px' }}>
-      {/* Toggle de tema */}
-      <button
-        onClick={toggleTheme}
-        style={{
-          position: 'absolute',
-          top: '16px',
-          right: '16px',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '10px',
-          padding: '10px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-secondary)',
-        }}
-        title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
-      >
-        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-      </button>
-
       <div style={{ maxWidth: '400px', width: '100%', backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <img

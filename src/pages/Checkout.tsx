@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sun, Moon, ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, MapPin, CreditCard, ShieldCheck, Lock } from 'lucide-react'
-import { useTheme } from '../context/ThemeContext'
+import { ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, MapPin, CreditCard, ShieldCheck, Lock } from 'lucide-react'
 import { formatCpfCnpj, validateCPF, parseExpiryDate } from '../utils/cardUtils'
 import CheckoutSidebar from '../components/checkout/CheckoutSidebar'
 import AddressSection, { type AddressData } from '../components/checkout/AddressSection'
@@ -77,7 +76,6 @@ const slideVariants = {
 }
 
 export default function Checkout() {
-  const { theme, setTheme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams] = useState(() => new URLSearchParams(location.search))
@@ -512,22 +510,6 @@ export default function Checkout() {
         <Link to="/register" style={{ display: 'flex', alignItems: 'center' }}>
           <img src="/replyna-logo.webp" alt="Replyna" style={{ width: '120px', height: 'auto' }} />
         </Link>
-        <button
-          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '10px',
-            padding: '10px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-        </button>
       </div>
 
       {/* Content */}
@@ -536,27 +518,6 @@ export default function Checkout() {
         margin: '0 auto',
         padding: '0 20px 60px',
       }}>
-        {/* Back button */}
-        <button
-          onClick={goBack}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            marginBottom: '24px',
-            padding: 0,
-            fontSize: '14px',
-            fontFamily: 'inherit',
-          }}
-        >
-          <ArrowLeft size={16} />
-          {currentStepIndex === 0 ? 'Voltar para planos' : 'Voltar'}
-        </button>
-
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}

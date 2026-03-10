@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Sun, Moon, Mail } from 'lucide-react'
+import { Mail } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { useTheme } from '../context/ThemeContext'
 
 export default function ForgotPassword() {
   const { resetPassword } = useAuth()
-  const { theme, setTheme } = useTheme()
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -45,35 +43,9 @@ export default function ForgotPassword() {
     }
   }
 
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
-  }
-
   if (success) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)', position: 'relative', padding: '20px' }}>
-        {/* Toggle de tema */}
-        <button
-          onClick={toggleTheme}
-          style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '10px',
-            padding: '10px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-secondary)',
-          }}
-          title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
-        >
-          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-        </button>
-
         <div style={{ maxWidth: '400px', width: '100%', backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '24px', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)' }}>
           <div style={{
             width: '72px',
@@ -105,28 +77,6 @@ export default function ForgotPassword() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)', position: 'relative', padding: '20px' }}>
-      {/* Toggle de tema */}
-      <button
-        onClick={toggleTheme}
-        style={{
-          position: 'absolute',
-          top: '16px',
-          right: '16px',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '10px',
-          padding: '10px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-secondary)',
-        }}
-        title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
-      >
-        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-      </button>
-
       <div style={{ maxWidth: '400px', width: '100%', backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <img

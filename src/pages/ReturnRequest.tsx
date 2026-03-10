@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Sun, Moon, Shield, Lock, ShieldCheck, Eye } from 'lucide-react'
-import { useTheme } from '../context/ThemeContext'
+import { Shield, Lock, ShieldCheck, Eye } from 'lucide-react'
 import { useReturnForm } from './return-request/useReturnForm'
 import { getTranslations, getTermsText } from './return-request/i18n'
 
@@ -17,7 +16,6 @@ import StepTermsSignature from './return-request/StepTermsSignature'
 import { LoadingScreen, SuccessScreen, OutOfPeriodScreen } from './return-request/StatusScreens'
 
 export default function ReturnRequest() {
-  const { theme, setTheme } = useTheme()
   const form = useReturnForm()
   const t = getTranslations(form.locale)
   const termsText = getTermsText(form.locale)
@@ -25,7 +23,6 @@ export default function ReturnRequest() {
   const storeName = form.shopName || form.selectedOrder?.store_name || form.orders[0]?.store_name || null
   const logoUrl = form.shopLogoUrl || null
   const [logoError, setLogoError] = useState(false)
-  const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light')
 
   const renderStep = () => {
     switch (form.currentStep) {
@@ -178,30 +175,6 @@ export default function ReturnRequest() {
       backgroundColor: 'var(--bg-primary)',
       padding: '32px 20px 24px',
     }}>
-      {/* Theme toggle */}
-      <button
-        onClick={toggleTheme}
-        style={{
-          position: 'fixed',
-          top: '16px',
-          right: '16px',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '10px',
-          padding: '10px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-secondary)',
-          zIndex: 10,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-        }}
-        title={theme === 'light' ? t('header.darkMode') : t('header.lightMode')}
-      >
-        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-      </button>
-
       <div style={{ maxWidth: '680px', margin: '0 auto' }}>
         {/* ── Header ── */}
         <div style={{

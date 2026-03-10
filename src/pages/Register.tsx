@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { Sun, Moon, Star, ArrowRight, ArrowLeft, MessageCircle, Check } from 'lucide-react'
-import { useTheme } from '../context/ThemeContext'
+import { Star, ArrowRight, ArrowLeft, MessageCircle, Check } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 interface Plan {
@@ -17,7 +16,6 @@ interface Plan {
 }
 
 export default function Register() {
-  const { theme, setTheme } = useTheme()
   const [searchParams] = useSearchParams()
   const preselectedPlan = searchParams.get('plan')
   const navigate = useNavigate()
@@ -102,10 +100,6 @@ export default function Register() {
     }
   }
 
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
-  }
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -182,23 +176,6 @@ export default function Register() {
             />
           </Link>
         </div>
-        <button
-          onClick={toggleTheme}
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '10px',
-            padding: '10px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-secondary)',
-          }}
-          title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
-        >
-          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-        </button>
       </div>
 
       {/* Page content */}
