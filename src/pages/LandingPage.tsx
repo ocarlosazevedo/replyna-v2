@@ -3144,17 +3144,18 @@ void main() {
         borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : 'none',
         transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '32px', width: 'auto' }} />
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px 24px', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
+          <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '32px', width: 'auto', justifySelf: 'start' }} />
           <nav className="lp-nav-desktop" style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
             <a href="#como-funciona" onClick={(e) => scrollTo(e, 'como-funciona')} className="lp-nav-link">Como funciona</a>
             <a href="/chargeback" className="lp-nav-link">Calculadora</a>
             <a href="#precos" onClick={(e) => scrollTo(e, 'precos')} className="lp-nav-link">Precos</a>
             <a href="#faq" onClick={(e) => scrollTo(e, 'faq')} className="lp-nav-link">FAQ</a>
             <a href={getAppUrl('/login')} className="lp-nav-link">Entrar</a>
-            <a href={getAppUrl('/register')} className="lp-btn-primary" style={{ color: '#fff', padding: '10px 22px', borderRadius: '10px', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Comecar agora</a>
-            <a href={getAppUrl('/register?trial=true')} style={{ color: '#fff', padding: '10px 22px', borderRadius: '10px', textDecoration: 'none', fontSize: '14px', fontWeight: 600, background: '#22c55e' }}>Testar gratis</a>
           </nav>
+          <div style={{ justifySelf: 'end' }}>
+            <a href={getAppUrl('/register?trial=true')} style={{ color: '#fff', padding: '10px 22px', borderRadius: '10px', textDecoration: 'none', fontSize: '14px', fontWeight: 600, background: '#22c55e' }}>Testar gratis</a>
+          </div>
           <button
             className="lp-nav-mobile-toggle"
             onClick={() => setMobileMenuOpen(true)}
