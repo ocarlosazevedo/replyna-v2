@@ -338,7 +338,7 @@ export default function AdminPlans() {
             <div style={{ marginBottom: '16px' }}>
               <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 R$ {plan.price_monthly.toFixed(2)}
-                <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>/mes</span>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>/mês</span>
               </div>
               {plan.price_yearly && (
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
@@ -354,7 +354,7 @@ export default function AdminPlans() {
               marginBottom: '16px',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Emails/mes</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Emails/mês</span>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: plan.emails_limit === null ? '#22c55e' : 'var(--text-primary)' }}>
                   {plan.emails_limit === null ? 'Ilimitado' : plan.emails_limit.toLocaleString('pt-BR')}
                 </span>
@@ -376,7 +376,7 @@ export default function AdminPlans() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Email extra</span>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    Nao configurado
+                    Não configurado
                   </span>
                 </div>
               )}
@@ -526,7 +526,7 @@ export default function AdminPlans() {
 
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={labelStyle}>Preco Mensal (R$)</label>
+                  <label style={labelStyle}>Preço Mensal (R$)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -536,7 +536,7 @@ export default function AdminPlans() {
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>Preco Anual (R$)</label>
+                  <label style={labelStyle}>Preço Anual (R$)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -549,7 +549,7 @@ export default function AdminPlans() {
 
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={labelStyle}>Limite de Emails/mes</label>
+                  <label style={labelStyle}>Limite de Emails/mês</label>
                   <input
                     type="text"
                     value={formData.emails_limit}
@@ -641,11 +641,11 @@ export default function AdminPlans() {
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
                 <label style={{ ...labelStyle, marginBottom: '12px' }}>Emails Extras</label>
                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                  Configure a cobranca automatica quando o usuario exceder o limite do plano
+                  Configure a cobrança automática quando o usuário exceder o limite do plano
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                   <div>
-                    <label style={{ ...labelStyle, fontSize: '12px', color: 'var(--text-secondary)' }}>Preco por Email Extra (R$)</label>
+                    <label style={{ ...labelStyle, fontSize: '12px', color: 'var(--text-secondary)' }}>Preço por Email Extra (R$)</label>
                     <input
                       type="number"
                       step="0.01"

@@ -214,7 +214,7 @@ export default function Register() {
             Escolha seu plano
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-            Comece com 30 emails gratis. Sem necessidade de cartao de credito.
+            Comece com 30 emails grátis. Sem necessidade de cartão de crédito.
           </p>
         </div>
 
@@ -237,7 +237,7 @@ export default function Register() {
                 gap: '8px',
               }}
             >
-              Comecar teste gratis — 30 emails
+              Começar teste grátis — 30 emails
               <ArrowRight size={18} />
             </button>
           </div>
@@ -342,7 +342,7 @@ export default function Register() {
                         color: 'var(--text-secondary)',
                         marginLeft: '4px',
                       }}>
-                        /mes
+                        /mês
                       </span>
                     </>
                   )}
@@ -360,7 +360,7 @@ export default function Register() {
                     marginBottom: '8px',
                   }}>
                     <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                      Emails/mes
+                      Emails/mês
                     </span>
                     <span style={{
                       fontSize: '13px',
@@ -449,7 +449,7 @@ export default function Register() {
             fontSize: '14px',
             color: 'var(--text-secondary)',
           }}>
-            Ja tem conta?{' '}
+            Já tem conta?{' '}
             <Link
               to="/login"
               style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '500' }}

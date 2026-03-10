@@ -34,7 +34,7 @@ const FILTER_CARDS = [
     color: '#ef4444',
     bg: 'rgba(239,68,68,0.1)',
     title: 'Pendentes',
-    description: 'Emails que ainda nao foram respondidos pela equipe. Precisam de atencao imediata.',
+    description: 'Emails que ainda não foram respondidos pela equipe. Precisam de atenção imediata.',
   },
   {
     key: 'answered',
@@ -42,7 +42,7 @@ const FILTER_CARDS = [
     color: '#16a34a',
     bg: 'rgba(34,197,94,0.1)',
     title: 'Respondidos',
-    description: 'Emails que ja receberam uma resposta manual. O cliente pode responder novamente.',
+    description: 'Emails que já receberam uma resposta manual. O cliente pode responder novamente.',
   },
   {
     key: 'reopened',

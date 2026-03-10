@@ -71,7 +71,7 @@ export default function AddressSection({ address, onChange, isInternational }: A
       const data: ViaCepResponse = await res.json()
 
       if (data.erro) {
-        setCepError('CEP nao encontrado')
+        setCepError('CEP não encontrado')
         return
       }
 
@@ -145,10 +145,10 @@ export default function AddressSection({ address, onChange, isInternational }: A
         </div>
         <div>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-            {isInternational ? 'Address' : 'Endereco'}
+            {isInternational ? 'Address' : 'Endereço'}
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-            {isInternational ? 'Billing address' : 'Endereco de cobranca'}
+            {isInternational ? 'Billing address' : 'Endereço de cobrança'}
           </p>
         </div>
       </div>

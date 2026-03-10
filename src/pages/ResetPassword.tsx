@@ -99,7 +99,7 @@ export default function ResetPassword() {
     }
 
     if (password !== confirmPassword) {
-      setError('As senhas nao coincidem')
+      setError('As senhas não coincidem')
       return
     }
 
@@ -319,7 +319,7 @@ export default function ResetPassword() {
             fontSize: '15px',
             marginBottom: '24px',
           }}>
-            Sua senha foi alterada com sucesso. Voce sera redirecionado para o login.
+            Sua senha foi alterada com sucesso. Você será redirecionado para o login.
           </p>
 
           <button
@@ -424,7 +424,7 @@ export default function ResetPassword() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimo 6 caracteres"
+                placeholder="Mínimo 6 caracteres"
                 style={inputStyle}
                 required
                 minLength={6}

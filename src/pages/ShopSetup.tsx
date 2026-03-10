@@ -171,7 +171,7 @@ export default function ShopSetup() {
       )
       const data = await response.json()
       if (!data.available) {
-        setTrialDomainError(data.reason || 'Este dominio ja foi usado em um periodo de teste.')
+        setTrialDomainError(data.reason || 'Este domínio já foi usado em um período de teste.')
       }
     } catch (err) {
       console.error('Erro ao verificar dominio trial:', err)
@@ -410,7 +410,7 @@ export default function ShopSetup() {
         )
         const trialData = await response.json()
         if (!trialData.available) {
-          setError(trialData.reason || 'Este dominio Shopify ja foi usado em um periodo de teste. Assine um plano para continuar.')
+          setError(trialData.reason || 'Este domínio Shopify já foi usado em um período de teste. Assine um plano para continuar.')
           setSaving(false)
           return
         }
@@ -619,7 +619,7 @@ export default function ShopSetup() {
         )
         const trialData = await response.json()
         if (!trialData.available) {
-          setError(trialData.reason || 'Este dominio Shopify ja foi usado em um periodo de teste. Assine um plano para continuar.')
+          setError(trialData.reason || 'Este domínio Shopify já foi usado em um período de teste. Assine um plano para continuar.')
           setOauthRedirecting(false)
           return
         }
@@ -1196,7 +1196,7 @@ export default function ShopSetup() {
           </p>
         ) : checkingTrialDomain ? (
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-            Verificando dominio...
+            Verificando domínio...
           </p>
         ) : (
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
@@ -1641,7 +1641,7 @@ export default function ShopSetup() {
                     </p>
                     {isTrialUser && (
                       <p style={{ fontSize: '12px', color: '#f59e0b', margin: '4px 0 0 0', fontWeight: 600 }}>
-                        Disponivel apenas em planos pagos. No periodo de teste, apenas emails novos serao respondidos.
+                        Disponível apenas em planos pagos. No período de teste, apenas emails novos serão respondidos.
                       </p>
                     )}
                   </div>

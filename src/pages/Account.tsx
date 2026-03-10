@@ -1329,11 +1329,11 @@ export default function Account() {
                       backgroundColor: '#f59e0b',
                       color: '#ffffff',
                     }}>
-                      Periodo de Teste
+                      Período de Teste
                     </span>
                   </div>
                   <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                    Voce possui <strong style={{ color: 'var(--text-primary)' }}>{30 - (profile?.emails_used ?? 0)}</strong> emails restantes no seu periodo de teste gratuito.
+                    Você possui <strong style={{ color: 'var(--text-primary)' }}>{30 - (profile?.emails_used ?? 0)}</strong> emails restantes no seu período de teste gratuito.
                   </p>
                   <div style={{ marginBottom: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -1363,7 +1363,7 @@ export default function Account() {
                       marginBottom: '12px',
                     }}>
                       <p style={{ margin: 0, fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>
-                        Seu periodo de teste acabou. Assine um plano para continuar respondendo emails automaticamente.
+                        Seu período de teste acabou. Assine um plano para continuar respondendo emails automaticamente.
                       </p>
                     </div>
                   )}

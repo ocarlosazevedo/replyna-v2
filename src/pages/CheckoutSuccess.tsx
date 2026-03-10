@@ -250,7 +250,7 @@ export default function CheckoutSuccess() {
           lineHeight: 1.6,
         }}>
           {isTrial
-            ? 'Seu periodo de teste gratuito foi ativado com 30 emails.'
+            ? 'Seu período de teste gratuito foi ativado com 30 emails.'
             : `Sua assinatura do plano ${planName || 'selecionado'} foi ativada com sucesso.`}
         </p>
 
@@ -274,7 +274,7 @@ export default function CheckoutSuccess() {
             color: 'var(--text-secondary)',
             lineHeight: 1.5,
           }}>
-            Enviamos um email para voce definir sua senha de acesso. Verifique sua caixa de entrada (e spam) e clique no link para criar sua senha.
+            Enviamos um email para você definir sua senha de acesso. Verifique sua caixa de entrada (e spam) e clique no link para criar sua senha.
           </p>
         </div>
 
@@ -288,7 +288,7 @@ export default function CheckoutSuccess() {
             fontSize: '13px',
             color: 'var(--text-secondary)',
           }}>
-            Nao recebeu o email? Acesse a pagina de login e clique em "Esqueci minha senha" para receber um novo link.
+            Não recebeu o email? Acesse a página de login e clique em "Esqueci minha senha" para receber um novo link.
           </p>
         </div>
 
@@ -318,7 +318,7 @@ export default function CheckoutSuccess() {
             fontSize: '12px',
             color: 'var(--text-secondary)',
           }}>
-            ID da transacao: {sessionId.slice(0, 20)}...
+            ID da transação: {sessionId.slice(0, 20)}...
           </p>
         )}
       </div>

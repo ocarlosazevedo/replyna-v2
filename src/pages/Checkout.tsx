@@ -121,7 +121,7 @@ export default function Checkout() {
   const getSteps = (): Step[] => {
     const steps: Step[] = [
       { id: 'personal', label: 'Dados', icon: User },
-      { id: 'address', label: 'Endereco', icon: MapPin },
+      { id: 'address', label: 'Endereço', icon: MapPin },
       { id: 'payment', label: 'Pagamento', icon: CreditCard },
       { id: 'review', label: 'Revisao', icon: Check },
     ]
@@ -197,34 +197,34 @@ export default function Checkout() {
   const validateStep = (stepId: StepId): string | null => {
     if (stepId === 'personal') {
       if (!name.trim()) return 'Informe seu nome completo'
-      if (!email.trim() || !email.includes('@')) return 'Informe um email valido'
-      if (!phoneNumber.trim()) return 'Informe seu numero de celular'
+      if (!email.trim() || !email.includes('@')) return 'Informe um email válido'
+      if (!phoneNumber.trim()) return 'Informe seu número de celular'
       if (!isInternational) {
         const cpfDigits = cpfCnpj.replace(/\D/g, '')
-        if (cpfDigits.length === 11 && !validateCPF(cpfCnpj)) return 'CPF invalido'
+        if (cpfDigits.length === 11 && !validateCPF(cpfCnpj)) return 'CPF inválido'
         if (cpfDigits.length < 11) return 'Informe seu CPF completo'
       }
     }
     if (stepId === 'address') {
       if (!isInternational && !address.cep) return 'Informe o CEP'
       if (!address.logradouro) return 'Informe o logradouro'
-      if (!address.numero) return 'Informe o numero'
+      if (!address.numero) return 'Informe o número'
       if (!address.cidade) return 'Informe a cidade'
       if (!address.estado) return 'Informe o estado'
     }
     if (stepId === 'payment') {
       const cardDigits = card.number.replace(/\D/g, '')
-      if (cardDigits.length < 13) return 'Informe o numero do cartao completo'
-      if (!card.holderName.trim()) return 'Informe o nome no cartao'
-      if (card.expiry.length < 5) return 'Informe a validade do cartao'
+      if (cardDigits.length < 13) return 'Informe o número do cartão completo'
+      if (!card.holderName.trim()) return 'Informe o nome no cartão'
+      if (card.expiry.length < 5) return 'Informe a validade do cartão'
       if (card.cvv.length < 3) return 'Informe o CVV'
       const { month, year } = parseExpiryDate(card.expiry)
       const expMonth = parseInt(month)
       const expYear = parseInt(year)
-      if (expMonth < 1 || expMonth > 12) return 'Mes de validade invalido'
+      if (expMonth < 1 || expMonth > 12) return 'Mês de validade inválido'
       const now = new Date()
       const expDate = new Date(expYear, expMonth - 1)
-      if (expDate < now) return 'Cartao expirado'
+      if (expDate < now) return 'Cartão expirado'
     }
     return null
   }
@@ -564,11 +564,11 @@ export default function Checkout() {
           style={{ marginBottom: '8px', textAlign: 'center' }}
         >
           <h1 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>
-            {isTrialFlow ? 'Crie sua conta gratis' : 'Finalize sua assinatura'}
+            {isTrialFlow ? 'Crie sua conta grátis' : 'Finalize sua assinatura'}
           </h1>
           <p style={{ fontSize: '15px', color: 'var(--text-secondary)', margin: '0 0 24px' }}>
             {isTrialFlow
-              ? 'Preencha seus dados para comecar. Nenhuma cobranca sera feita.'
+              ? 'Preencha seus dados para começar. Nenhuma cobrança será feita.'
               : 'Preencha seus dados e finalize o pagamento.'}
           </p>
         </motion.div>
@@ -724,7 +724,7 @@ export default function Checkout() {
                     >
                       <Info size={18} style={{ color: '#f59e0b', flexShrink: 0, marginTop: '1px' }} />
                       <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                        Cartao internacional detectado. Taxas adicionais podem ser aplicadas.
+                        Cartão internacional detectado. Taxas adicionais podem ser aplicadas.
                       </span>
                     </motion.div>
                   )}
@@ -754,8 +754,8 @@ export default function Checkout() {
                     }}>
                       <ShieldCheck size={18} style={{ color: '#22c55e', flexShrink: 0, marginTop: '1px' }} />
                       <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                        <strong style={{ color: 'var(--text-primary)' }}>Nenhuma cobranca sera feita agora.</strong>{' '}
-                        Precisamos do cartao apenas para salvar seus dados de pagamento. Voce so sera cobrado quando o periodo de teste terminar.
+                        <strong style={{ color: 'var(--text-primary)' }}>Nenhuma cobrança será feita agora.</strong>{' '}
+                        Precisamos do cartão apenas para salvar seus dados de pagamento. Você só será cobrado quando o período de teste terminar.
                       </span>
                     </div>
                   )}
@@ -819,7 +819,7 @@ export default function Checkout() {
                       border: '1px solid var(--border-color)',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Endereco</h4>
+                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Endereço</h4>
                         <button
                           type="button"
                           onClick={() => goToStep('address')}
@@ -847,7 +847,7 @@ export default function Checkout() {
                       border: '1px solid var(--border-color)',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Cartao</h4>
+                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Cartão</h4>
                         <button
                           type="button"
                           onClick={() => goToStep('payment')}
@@ -872,7 +872,7 @@ export default function Checkout() {
                       </div>
                       {isTrialFlow && (
                         <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '10px 0 0', lineHeight: 1.5 }}>
-                          Seu cartao sera salvo para quando o periodo de teste terminar. Nenhuma cobranca sera feita agora.
+                          Seu cartão será salvo para quando o período de teste terminar. Nenhuma cobrança será feita agora.
                         </p>
                       )}
                     </div>
@@ -898,7 +898,7 @@ export default function Checkout() {
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                           <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Plano {plan!.name}</span>
-                          <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{formatPrice(plan!.price_monthly)}/mes</span>
+                          <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{formatPrice(plan!.price_monthly)}/mês</span>
                         </div>
                         {couponValidation?.is_valid && couponValidation.discount_value && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -916,7 +916,7 @@ export default function Checkout() {
                         }}>
                           <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Total</span>
                           <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                            {formatPrice(calculateFinalPrice())}/mes
+                            {formatPrice(calculateFinalPrice())}/mês
                           </span>
                         </div>
                       </div>
@@ -1017,7 +1017,7 @@ export default function Checkout() {
                       style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
                       <Lock size={15} />
-                      {isTrialFlow ? 'Comecar gratis' : 'Finalizar assinatura'}
+                      {isTrialFlow ? 'Começar grátis' : 'Finalizar assinatura'}
                     </motion.div>
                   ) : (
                     <motion.div

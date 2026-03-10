@@ -244,7 +244,7 @@ export default function CouponSection({ planId, onCouponValidated, onCouponRemov
                   exit={{ opacity: 0, height: 0 }}
                   style={{ marginTop: '8px', fontSize: '13px', color: '#ef4444', margin: '8px 0 0' }}
                 >
-                  {validation.error_message || 'Cupom invalido'}
+                  {validation.error_message || 'Cupom inválido'}
                 </motion.p>
               )}
             </AnimatePresence>

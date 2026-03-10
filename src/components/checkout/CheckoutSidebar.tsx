@@ -87,7 +87,7 @@ export default function CheckoutSidebar({ plan, isTrialFlow, couponValidation, i
         </div>
         {plan.description && (
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-            {isTrialFlow ? '30 emails gratis, 1 loja. Sem cartao de credito.' : plan.description}
+            {isTrialFlow ? '30 emails grátis, 1 loja. Sem cartão de crédito.' : plan.description}
           </p>
         )}
       </div>
@@ -100,7 +100,7 @@ export default function CheckoutSidebar({ plan, isTrialFlow, couponValidation, i
         marginBottom: '24px',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Emails/mes</span>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Emails/mês</span>
           <span style={{
             fontSize: '13px',
             fontWeight: 600,
@@ -211,7 +211,7 @@ export default function CheckoutSidebar({ plan, isTrialFlow, couponValidation, i
                     {formatPrice(finalPrice)}
                   </motion.span>
                 </AnimatePresence>
-                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>/mes</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>/mês</span>
               </div>
             </div>
           </>
@@ -244,7 +244,7 @@ export default function CheckoutSidebar({ plan, isTrialFlow, couponValidation, i
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Check size={10} style={{ color: 'var(--text-secondary)' }} />
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Dados protegidos e nao armazenados</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Dados protegidos e não armazenados</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Check size={10} style={{ color: 'var(--text-secondary)' }} />

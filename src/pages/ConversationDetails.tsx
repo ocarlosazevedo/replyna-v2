@@ -89,7 +89,7 @@ export default function ConversationDetails() {
         .single()
 
       if (!shopData || shopData.user_id !== user.id) {
-        setError('Conversa nao encontrada')
+        setError('Conversa não encontrada')
         return
       }
 
@@ -182,7 +182,7 @@ export default function ConversationDetails() {
             marginBottom: '16px',
           }}
         >
-          {error || 'Conversa nao encontrada'}
+          {error || 'Conversa não encontrada'}
         </div>
         <button
           type="button"

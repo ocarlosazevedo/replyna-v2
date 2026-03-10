@@ -395,7 +395,7 @@ export default function CardInput({ card, onChange, onBrandDetected }: CardInput
             Pagamento
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-            Cartao de credito
+            Cartão de crédito
           </p>
         </div>
         <motion.div
@@ -424,7 +424,7 @@ export default function CardInput({ card, onChange, onBrandDetected }: CardInput
         transition={{ delay: 0.1 }}
         style={{ marginBottom: '16px' }}
       >
-        <label style={labelStyle}>Numero do cartao</label>
+        <label style={labelStyle}>Número do cartão</label>
         <input
           type="text"
           inputMode="numeric"
@@ -449,7 +449,7 @@ export default function CardInput({ card, onChange, onBrandDetected }: CardInput
         transition={{ delay: 0.15 }}
         style={{ marginBottom: '16px' }}
       >
-        <label style={labelStyle}>Nome no cartao</label>
+        <label style={labelStyle}>Nome no cartão</label>
         <input
           ref={holderNameRef}
           type="text"
