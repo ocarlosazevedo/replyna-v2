@@ -218,11 +218,15 @@ void main() {
         .lp-hero-fadeup { opacity: 0; animation: heroFadeUp 1s cubic-bezier(0.16,1,0.3,1) forwards; }
         @media (max-width: 768px) {
           .lp-hero-section {
-            min-height: auto !important;
+            min-height: 100svh !important;
             align-items: flex-start !important;
             justify-content: flex-start !important;
-            padding-top: 120px !important;
-            padding-bottom: 60px !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+          }
+          .lp-hero-section picture img {
+            object-fit: cover !important;
+            object-position: top center !important;
           }
           .lp-hero-content {
             padding: 32px 24px !important;
@@ -3179,7 +3183,7 @@ void main() {
       {/* HERO */}
       <section className="lp-hero-section" style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
         <picture style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }}>
-          <source srcSet="/hero-banner-1-mobile.png" media="(max-width: 768px)" />
+          <source srcSet="/banner-mobile-hero.png" media="(max-width: 768px)" />
           <img src="/hero-banner-1.png" alt="Hero" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </picture>
 
