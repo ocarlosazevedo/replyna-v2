@@ -251,247 +251,283 @@ export default function Plans() {
         </div>
       )}
 
-      <div className="plans-page-grid" style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-        gap: '20px',
-        paddingTop: '14px',
-      }}>
-        <style>{`
-          @media (min-width: 1100px) {
-            .plans-page-grid { grid-template-columns: repeat(${plans.filter(p => p.price_monthly > 0).length}, 1fr) !important; }
-          }
-        `}</style>
+      {(() => {
+        const filteredPlans = plans.filter(p => p.price_monthly > 0)
+        const colCount = filteredPlans.length
 
-        {plans.filter(p => p.price_monthly > 0).map((plan) => {
-          const isCurrent = isCurrentPlan(plan)
-          const enterprise = isEnterprise(plan)
-          const priceDiff = currentPlanData && !isCurrent && !enterprise
-            ? plan.price_monthly - currentPlanData.price_monthly
-            : null
+        return (
+          <div className="plans-page-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${colCount}, 1fr)`,
+            gap: '20px',
+            paddingTop: '14px',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+          }}>
+            <style>{`
+              @media (max-width: 900px) {
+                .plans-page-grid {
+                  grid-template-columns: repeat(${colCount}, 240px) !important;
+                }
+              }
+              .plans-page-grid > div { scroll-snap-align: start; }
+              .plans-page-grid::-webkit-scrollbar { height: 6px; }
+              .plans-page-grid::-webkit-scrollbar-track { background: transparent; }
+              .plans-page-grid::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+            `}</style>
 
-          return (
-            <div
-              key={plan.id}
-              style={{
-                backgroundColor: isCurrent ? 'rgba(70, 114, 236, 0.06)' : 'var(--bg-card)',
-                borderRadius: '16px',
-                padding: '24px',
-                border: isCurrent
-                  ? '2px solid var(--accent)'
-                  : plan.is_popular
-                  ? '2px solid var(--accent)'
-                  : '1px solid var(--border-color)',
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              {isCurrent && (
-                <div style={{
-                  position: 'absolute',
-                  top: '-12px',
-                  left: '16px',
-                  backgroundColor: 'var(--accent)',
-                  color: '#fff',
-                  padding: '4px 12px',
-                  borderRadius: '999px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                }}>
-                  Seu plano atual
-                </div>
-              )}
-              {plan.is_popular && !isCurrent && (
-                <div style={{
-                  position: 'absolute',
-                  top: '-12px',
-                  right: '16px',
-                  backgroundColor: '#f59e0b',
-                  color: '#fff',
-                  padding: '4px 12px',
-                  borderRadius: '999px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}>
-                  <Star size={12} />
-                  Popular
-                </div>
-              )}
+            {filteredPlans.map((plan) => {
+              const isCurrent = isCurrentPlan(plan)
+              const enterprise = isEnterprise(plan)
+              const priceDiff = currentPlanData && !isCurrent && !enterprise
+                ? plan.price_monthly - currentPlanData.price_monthly
+                : null
 
-              <h3 style={{
-                fontSize: '22px',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                marginBottom: '8px',
-                marginTop: isCurrent || (plan.is_popular && !isCurrent) ? '8px' : 0,
-              }}>
-                {plan.name}
-              </h3>
-
-              {plan.description && (
-                <p style={{
-                  fontSize: '14px',
-                  color: 'var(--text-secondary)',
-                  marginBottom: '20px',
-                  marginTop: 0,
-                }}>
-                  {plan.description}
-                </p>
-              )}
-
-              <div style={{ marginBottom: '20px' }}>
-                {enterprise ? (
-                  <span style={{
-                    fontSize: '28px',
-                    fontWeight: 700,
-                    color: 'var(--text-primary)',
-                  }}>
-                    Personalizado
-                  </span>
-                ) : (
-                  <>
-                    <span style={{
-                      fontSize: '36px',
-                      fontWeight: 700,
-                      color: 'var(--text-primary)',
-                    }}>
-                      {formatPrice(plan.price_monthly)}
-                    </span>
-                    <span style={{
-                      fontSize: '14px',
-                      color: 'var(--text-secondary)',
-                      marginLeft: '4px',
-                    }}>
-                      /mês
-                    </span>
-                    {priceDiff !== null && priceDiff !== 0 && (
+              return (
+                <div
+                  key={plan.id}
+                  style={{
+                    backgroundColor: isCurrent ? 'rgba(70, 114, 236, 0.06)' : 'var(--bg-card)',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    border: isCurrent
+                      ? '2px solid var(--accent)'
+                      : plan.is_popular
+                      ? '2px solid var(--accent)'
+                      : '1px solid var(--border-color)',
+                    position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
+                  {/* Badge area - altura fixa para alinhar cards com/sem badge */}
+                  <div style={{ height: '20px', marginBottom: '4px' }}>
+                    {isCurrent && (
                       <div style={{
-                        fontSize: '13px',
+                        position: 'absolute',
+                        top: '-12px',
+                        left: '16px',
+                        backgroundColor: 'var(--accent)',
+                        color: '#fff',
+                        padding: '4px 12px',
+                        borderRadius: '999px',
+                        fontSize: '12px',
                         fontWeight: 600,
-                        color: priceDiff > 0 ? '#f59e0b' : '#22c55e',
-                        marginTop: '4px',
                       }}>
-                        {priceDiff > 0
-                          ? `+R$ ${priceDiff.toFixed(2).replace('.', ',')} do seu plano`
-                          : `-R$ ${Math.abs(priceDiff).toFixed(2).replace('.', ',')} do seu plano`}
+                        Seu plano atual
                       </div>
                     )}
-                  </>
-                )}
-              </div>
-
-              <div style={{
-                padding: '12px',
-                backgroundColor: 'rgba(70, 114, 236, 0.06)',
-                borderRadius: '10px',
-                marginBottom: '20px',
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '8px',
-                }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    Emails/mês
-                  </span>
-                  <span style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: enterprise || plan.emails_limit === null ? '#22c55e' : 'var(--text-primary)',
-                  }}>
-                    {enterprise || plan.emails_limit === null ? 'Ilimitado' : plan.emails_limit.toLocaleString('pt-BR')}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    Lojas
-                  </span>
-                  <span style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: enterprise || plan.shops_limit === null ? '#22c55e' : 'var(--text-primary)',
-                  }}>
-                    {enterprise || plan.shops_limit === null ? 'Ilimitado' : plan.shops_limit}
-                  </span>
-                </div>
-              </div>
-
-              {plan.features && plan.features.length > 0 && (
-                <div style={{ marginBottom: '20px', flex: 1 }}>
-                  {plan.features.slice(0, 4).map((feature, index) => (
-                    <div
-                      key={index}
-                      style={{
+                    {plan.is_popular && !isCurrent && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '-12px',
+                        right: '16px',
+                        backgroundColor: '#f59e0b',
+                        color: '#fff',
+                        padding: '4px 12px',
+                        borderRadius: '999px',
+                        fontSize: '12px',
+                        fontWeight: 600,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '8px',
-                      }}
-                    >
-                      <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
-                      <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
-                        {feature}
+                        gap: '4px',
+                      }}>
+                        <Star size={12} />
+                        Popular
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Nome do plano - altura fixa */}
+                  <div style={{ height: '32px', marginBottom: '8px' }}>
+                    <h3 style={{
+                      fontSize: '22px',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                      margin: 0,
+                    }}>
+                      {plan.name}
+                    </h3>
+                  </div>
+
+                  {/* Descrição - altura fixa */}
+                  <div style={{ height: '40px', marginBottom: '16px' }}>
+                    {plan.description && (
+                      <p style={{
+                        fontSize: '14px',
+                        color: 'var(--text-secondary)',
+                        margin: 0,
+                        lineHeight: 1.4,
+                        overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}>
+                        {plan.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Preço - altura fixa */}
+                  <div style={{ height: '70px', marginBottom: '16px' }}>
+                    {enterprise ? (
+                      <span style={{
+                        fontSize: '28px',
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                      }}>
+                        Personalizado
+                      </span>
+                    ) : (
+                      <>
+                        <div>
+                          <span style={{
+                            fontSize: '36px',
+                            fontWeight: 700,
+                            color: 'var(--text-primary)',
+                          }}>
+                            {formatPrice(plan.price_monthly)}
+                          </span>
+                          <span style={{
+                            fontSize: '14px',
+                            color: 'var(--text-secondary)',
+                            marginLeft: '4px',
+                          }}>
+                            /mês
+                          </span>
+                        </div>
+                        <div style={{ height: '20px' }}>
+                          {priceDiff !== null && priceDiff !== 0 && (
+                            <span style={{
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              color: priceDiff > 0 ? '#f59e0b' : '#22c55e',
+                            }}>
+                              {priceDiff > 0
+                                ? `+R$ ${priceDiff.toFixed(2).replace('.', ',')} do seu plano`
+                                : `-R$ ${Math.abs(priceDiff).toFixed(2).replace('.', ',')} do seu plano`}
+                            </span>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Limites - altura fixa */}
+                  <div style={{
+                    padding: '12px',
+                    backgroundColor: 'rgba(70, 114, 236, 0.06)',
+                    borderRadius: '10px',
+                    marginBottom: '16px',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginBottom: '8px',
+                    }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        Emails/mês
+                      </span>
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: enterprise || plan.emails_limit === null ? '#22c55e' : 'var(--text-primary)',
+                      }}>
+                        {enterprise || plan.emails_limit === null ? 'Ilimitado' : plan.emails_limit.toLocaleString('pt-BR')}
                       </span>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        Lojas
+                      </span>
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: enterprise || plan.shops_limit === null ? '#22c55e' : 'var(--text-primary)',
+                      }}>
+                        {enterprise || plan.shops_limit === null ? 'Ilimitado' : plan.shops_limit}
+                      </span>
+                    </div>
+                  </div>
 
-              <button
-                onClick={() => handleSelectPlan(plan)}
-                disabled={isCurrent || (changingPlanId !== null && changingPlanId !== plan.id)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  backgroundColor: isCurrent
-                    ? 'var(--border-color)'
-                    : enterprise
-                    ? '#25D366'
-                    : plan.is_popular
-                    ? 'var(--accent)'
-                    : 'var(--bg-primary)',
-                  color: isCurrent
-                    ? 'var(--text-secondary)'
-                    : enterprise || plan.is_popular
-                    ? '#fff'
-                    : 'var(--text-primary)',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: isCurrent || changingPlanId !== null ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  marginTop: 'auto',
-                  opacity: changingPlanId !== null && changingPlanId !== plan.id ? 0.6 : 1,
-                }}
-              >
-                {isCurrent ? (
-                  'Plano atual'
-                ) : changingPlanId === plan.id ? (
-                  'Alterando...'
-                ) : enterprise ? (
-                  <>
-                    <MessageCircle size={16} />
-                    Fale conosco
-                  </>
-                ) : (
-                  <>
-                    Selecionar
-                    <ArrowRight size={16} />
-                  </>
-                )}
-              </button>
-            </div>
-          )
-        })}
-      </div>
+                  {/* Features - flex: 1 para ocupar espaço restante e alinhar botão */}
+                  <div style={{ flex: 1, marginBottom: '16px', minHeight: '120px' }}>
+                    {plan.features && plan.features.length > 0 && (
+                      <>
+                        {plan.features.slice(0, 4).map((feature, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              marginBottom: '8px',
+                            }}
+                          >
+                            <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
+                            <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                              {feature}
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Botão - sempre no final do card */}
+                  <button
+                    onClick={() => handleSelectPlan(plan)}
+                    disabled={isCurrent || (changingPlanId !== null && changingPlanId !== plan.id)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: isCurrent
+                        ? 'var(--border-color)'
+                        : enterprise
+                        ? '#25D366'
+                        : plan.is_popular
+                        ? 'var(--accent)'
+                        : 'var(--bg-primary)',
+                      color: isCurrent
+                        ? 'var(--text-secondary)'
+                        : enterprise || plan.is_popular
+                        ? '#fff'
+                        : 'var(--text-primary)',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      cursor: isCurrent || changingPlanId !== null ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      marginTop: 'auto',
+                      opacity: changingPlanId !== null && changingPlanId !== plan.id ? 0.6 : 1,
+                    }}
+                  >
+                    {isCurrent ? (
+                      'Plano atual'
+                    ) : changingPlanId === plan.id ? (
+                      'Alterando...'
+                    ) : enterprise ? (
+                      <>
+                        <MessageCircle size={16} />
+                        Fale conosco
+                      </>
+                    ) : (
+                      <>
+                        Selecionar
+                        <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
     </div>
   )
 }
