@@ -115,12 +115,12 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
-  // Steps definition - trial skips payment (no charge)
+  // Steps definition - payment step is always included (trial tokenizes card without charging)
   const getSteps = (): Step[] => {
     const steps: Step[] = [
       { id: 'personal', label: 'Dados', icon: User },
       { id: 'address', label: 'Endereco', icon: MapPin },
-      ...(!isTrialFlow ? [{ id: 'payment' as StepId, label: 'Pagamento', icon: CreditCard }] : []),
+      { id: 'payment', label: 'Pagamento', icon: CreditCard },
       { id: 'review', label: 'Revisao', icon: Check },
     ]
     return steps
@@ -252,7 +252,7 @@ export default function Checkout() {
 
     try {
       const cpfDigits = cpfCnpj.replace(/\D/g, '')
-      const { month: expiryMonth, year: expiryYear } = !isTrialFlow ? parseExpiryDate(card.expiry) : { month: '', year: '' }
+      const { month: expiryMonth, year: expiryYear } = parseExpiryDate(card.expiry)
 
       const body: Record<string, unknown> = {
         plan_id: plan.id,
@@ -274,8 +274,8 @@ export default function Checkout() {
         addressComplement: address.complemento || undefined,
       }
 
-      // Only send card data for paid flows (trial = no charge)
-      if (!isTrialFlow && card.number) {
+      // Always send card data (trial tokenizes without charging, paid creates subscription)
+      if (card.number) {
         body.creditCard = {
           holderName: card.holderName,
           number: card.number.replace(/\D/g, ''),
@@ -544,7 +544,7 @@ export default function Checkout() {
           </h1>
           <p style={{ fontSize: '15px', color: 'var(--text-secondary)', margin: '0 0 24px' }}>
             {isTrialFlow
-              ? 'Preencha seus dados para comecar a usar a Replyna.'
+              ? 'Preencha seus dados para comecar. Nenhuma cobranca sera feita.'
               : 'Preencha seus dados e finalize o pagamento.'}
           </p>
         </motion.div>
@@ -717,6 +717,24 @@ export default function Checkout() {
                   exit="exit"
                   transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
                 >
+                  {isTrialFlow && (
+                    <div style={{
+                      padding: '14px 16px',
+                      marginBottom: '16px',
+                      backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                      border: '1px solid rgba(34, 197, 94, 0.2)',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '10px',
+                    }}>
+                      <ShieldCheck size={18} style={{ color: '#22c55e', flexShrink: 0, marginTop: '1px' }} />
+                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        <strong style={{ color: 'var(--text-primary)' }}>Nenhuma cobranca sera feita agora.</strong>{' '}
+                        Precisamos do cartao apenas para salvar seus dados de pagamento. Voce so sera cobrado quando o periodo de teste terminar.
+                      </span>
+                    </div>
+                  )}
                   <CardInput
                     card={card}
                     onChange={setCard}
@@ -797,8 +815,7 @@ export default function Checkout() {
                       </div>
                     </div>
 
-                    {/* Card summary - only for paid */}
-                    {!isTrialFlow && (
+                    {/* Card summary */}
                     <div style={{
                       backgroundColor: 'var(--bg-card)',
                       borderRadius: '16px',
@@ -829,8 +846,12 @@ export default function Checkout() {
                           </span>
                         </div>
                       </div>
+                      {isTrialFlow && (
+                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '10px 0 0', lineHeight: 1.5 }}>
+                          Seu cartao sera salvo para quando o periodo de teste terminar. Nenhuma cobranca sera feita agora.
+                        </p>
+                      )}
                     </div>
-                    )}
 
                     {/* Coupon - only for paid */}
                     {!isTrialFlow && (
@@ -961,7 +982,7 @@ export default function Checkout() {
                       style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
                       <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                      {isTrialFlow ? 'Criando conta...' : 'Processando pagamento...'}
+                      {isTrialFlow ? 'Criando conta...' : 'Processando...'}
                     </motion.div>
                   ) : isLastStep ? (
                     <motion.div

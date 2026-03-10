@@ -14,6 +14,7 @@ import {
   updateCustomer,
   createSubscription,
   updateSubscription,
+  tokenizeCreditCard,
 } from '../_shared/asaas.ts';
 
 interface CreditCardInput {
@@ -128,21 +129,19 @@ serve(async (req) => {
       );
     }
 
-    // Credit card is required for paid flows only
-    if (!is_trial) {
-      if (!creditCard || !creditCard.number || !creditCard.holderName || !creditCard.expiryMonth || !creditCard.expiryYear || !creditCard.ccv) {
-        return new Response(
-          JSON.stringify({ error: 'Dados do cartao de credito sao obrigatorios' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    // Credit card is required for both paid and trial flows
+    if (!creditCard || !creditCard.number || !creditCard.holderName || !creditCard.expiryMonth || !creditCard.expiryYear || !creditCard.ccv) {
+      return new Response(
+        JSON.stringify({ error: 'Dados do cartao de credito sao obrigatorios' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-      if (!creditCardHolderInfo || !creditCardHolderInfo.cpfCnpj || !creditCardHolderInfo.postalCode) {
-        return new Response(
-          JSON.stringify({ error: 'Dados do titular do cartao sao obrigatorios (CPF/CNPJ e CEP)' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    if (!creditCardHolderInfo || !creditCardHolderInfo.cpfCnpj || !creditCardHolderInfo.postalCode) {
+      return new Response(
+        JSON.stringify({ error: 'Dados do titular do cartao sao obrigatorios (CPF/CNPJ e CEP)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const supabase = getSupabaseAdmin();
@@ -251,22 +250,51 @@ serve(async (req) => {
       });
     }
 
-    // Trial flow: only save customer data, do NOT create a subscription (no charge)
+    // Trial flow: save card via tokenization (no charge), do NOT create a subscription
     if (is_trial) {
-      console.log(`[CreateSubscription] Trial flow - customer created: ${customer.id}, skipping subscription (no charge)`);
+      try {
+        const tokenResult = await tokenizeCreditCard({
+          customer: customer.id,
+          creditCard: {
+            holderName: creditCard!.holderName,
+            number: creditCard!.number,
+            expiryMonth: creditCard!.expiryMonth,
+            expiryYear: creditCard!.expiryYear,
+            ccv: creditCard!.ccv,
+          },
+          creditCardHolderInfo: {
+            name: creditCardHolderInfo!.name,
+            email: normalizedEmail,
+            cpfCnpj: creditCardHolderInfo!.cpfCnpj,
+            postalCode: creditCardHolderInfo!.postalCode,
+            addressNumber: creditCardHolderInfo!.addressNumber,
+            phone: creditCardHolderInfo!.phone || cleanPhone,
+            addressComplement: creditCardHolderInfo!.addressComplement || undefined,
+          },
+        });
 
-      return new Response(
-        JSON.stringify({
-          asaas_customer_id: customer.id,
-          asaas_subscription_id: null,
-          plan_id: plan.id,
-          plan_name: plan.name,
-          coupon_id: null,
-          discount_applied: 0,
-          is_trial: true,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+        console.log(`[CreateSubscription] Trial flow - customer: ${customer.id}, card tokenized (brand: ${tokenResult.creditCardBrand}), no charge`);
+
+        return new Response(
+          JSON.stringify({
+            asaas_customer_id: customer.id,
+            asaas_subscription_id: null,
+            plan_id: plan.id,
+            plan_name: plan.name,
+            coupon_id: null,
+            discount_applied: 0,
+            is_trial: true,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (cardError) {
+        console.error('[CreateSubscription] Trial card tokenization error:', cardError);
+        const friendlyMessage = parseAsaasError(cardError?.message || cardError);
+        return new Response(
+          JSON.stringify({ error: friendlyMessage }),
+          { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Paid flow: create subscription with immediate charge
