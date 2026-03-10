@@ -230,7 +230,7 @@ void main() {
             object-position: top center !important;
           }
           .lp-hero-content {
-            padding: 80px 24px 40px !important;
+            padding: 120px 24px 40px !important;
             width: 100% !important;
             text-align: center !important;
             align-items: center !important;
