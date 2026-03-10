@@ -262,10 +262,8 @@ void main() {
             font-size: 14px !important;
           }
         }
-        .lp-nav-link { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; position: relative; }
-        .lp-nav-link:hover { color: #fff; }
-        .lp-nav-link::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: linear-gradient(90deg, #4672ec, #8b5cf6); transition: width 0.3s; }
-        .lp-nav-link:hover::after { width: 100%; }
+        .lp-nav-link { color: rgba(255,255,255,0.9); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s, background 0.2s; position: relative; padding: 6px 12px; border-radius: 20px; border: 1px solid transparent; }
+        .lp-nav-link:hover { color: #fff; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); }
         .lp-btn-primary { position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.16,1,0.3,1); background: linear-gradient(135deg, #4672ec 0%, #3b5fd9 100%); }
         .lp-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(70,114,236,0.4); }
         @media (max-width: 768px) {
@@ -743,28 +741,20 @@ void main() {
           padding: 8px;
         }
         .lp-nav-link {
-          color: rgba(255,255,255,0.6);
+          color: rgba(255,255,255,0.9);
           text-decoration: none;
           font-size: 14px;
           font-weight: 500;
-          transition: color 0.2s ease;
+          transition: color 0.2s ease, background 0.2s ease;
           position: relative;
+          padding: 6px 12px;
+          border-radius: 20px;
+          border: 1px solid transparent;
         }
         .lp-nav-link:hover {
           color: #fff;
-        }
-        .lp-nav-link::after {
-          content: '';
-          position: absolute;
-          bottom: -4px;
-          left: 0;
-          width: 0;
-          height: 2px;
-          background: linear-gradient(90deg, #4672ec, #8b5cf6);
-          transition: width 0.3s ease;
-        }
-        .lp-nav-link:hover::after {
-          width: 100%;
+          background: rgba(255,255,255,0.12);
+          border: 1px solid rgba(255,255,255,0.25);
         }
 
         /* Stats Grid */
