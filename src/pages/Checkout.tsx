@@ -8,6 +8,7 @@ import CheckoutSidebar from '../components/checkout/CheckoutSidebar'
 import AddressSection, { type AddressData } from '../components/checkout/AddressSection'
 import CardInput, { type CardData } from '../components/checkout/CardInput'
 import CouponSection from '../components/checkout/CouponSection'
+import { supabase } from '../lib/supabase'
 
 interface Plan {
   id: string
@@ -79,6 +80,7 @@ export default function Checkout() {
   const { theme, setTheme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams] = useState(() => new URLSearchParams(location.search))
   const state = location.state as LocationState | null
 
   const [plan, setPlan] = useState<Plan | null>(null)
@@ -132,17 +134,39 @@ export default function Checkout() {
       setIsTrialFlow(state.isTrialFlow || false)
       sessionStorage.setItem('checkout_plan', JSON.stringify(state.plan))
       sessionStorage.setItem('checkout_trial', String(state.isTrialFlow || false))
-    } else {
-      const savedPlan = sessionStorage.getItem('checkout_plan')
-      const savedTrial = sessionStorage.getItem('checkout_trial')
-      if (savedPlan) {
-        setPlan(JSON.parse(savedPlan))
-        setIsTrialFlow(savedTrial === 'true')
-      } else {
-        navigate('/register')
-      }
+      return
     }
-  }, [state, navigate])
+
+    const planParam = searchParams.get('plan')
+    if (planParam) {
+      supabase
+        .from('plans')
+        .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
+        .eq('is_active', true)
+        .ilike('name', planParam)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setPlan(data)
+            setIsTrialFlow(true)
+            sessionStorage.setItem('checkout_plan', JSON.stringify(data))
+            sessionStorage.setItem('checkout_trial', 'true')
+          } else {
+            navigate('/register')
+          }
+        })
+      return
+    }
+
+    const savedPlan = sessionStorage.getItem('checkout_plan')
+    const savedTrial = sessionStorage.getItem('checkout_trial')
+    if (savedPlan) {
+      setPlan(JSON.parse(savedPlan))
+      setIsTrialFlow(savedTrial === 'true')
+    } else {
+      navigate('/register')
+    }
+  }, [state, navigate, searchParams])
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768)
