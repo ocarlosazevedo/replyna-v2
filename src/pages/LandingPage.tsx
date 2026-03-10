@@ -3187,12 +3187,8 @@ void main() {
           <source srcSet="/banner-mobile-hero.png" media="(max-width: 768px)" />
           <img src="/hero-banner-1.png" alt="Hero" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </picture>
-        {/* Blur vinheta — esquerda */}
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '22%', height: '100%', zIndex: 1, backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', maskImage: 'linear-gradient(to right, black 0%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 0%, transparent 100%)' }} />
-        {/* Blur vinheta — direita */}
-        <div style={{ position: 'absolute', top: 0, right: 0, width: '22%', height: '100%', zIndex: 1, backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', maskImage: 'linear-gradient(to left, black 0%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to left, black 0%, transparent 100%)' }} />
         {/* Blur vinheta — topo */}
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '30%', zIndex: 1, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '35%', zIndex: 1, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)' }} />
 
         {/* Hero text content */}
         <div className="lp-hero-content" style={{ position: 'relative', zIndex: 10, paddingTop: '18vh', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '760px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
