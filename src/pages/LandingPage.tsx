@@ -3119,8 +3119,8 @@ void main() {
       {/* NAVBAR */}
       <header style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        backgroundColor: scrolled ? 'rgba(14,23,42,0.92)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
+        backgroundColor: scrolled ? '#0e172a' : 'transparent',
+        backdropFilter: 'none',
         borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : 'none',
         transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
       }}>
