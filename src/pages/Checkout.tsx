@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, MapPin, CreditCard, ShieldCheck, Lock } from 'lucide-react'
-import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { formatCpfCnpj, validateCPF, parseExpiryDate } from '../utils/cardUtils'
 import CheckoutSidebar from '../components/checkout/CheckoutSidebar'
@@ -79,7 +78,6 @@ const slideVariants = {
 }
 
 export default function Checkout() {
-  const { user } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams] = useState(() => new URLSearchParams(location.search))
