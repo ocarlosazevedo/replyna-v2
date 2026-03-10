@@ -225,27 +225,28 @@ void main() {
             padding-bottom: 60px !important;
           }
           .lp-hero-content {
-            padding: 32px 28px !important;
+            padding: 32px 24px !important;
             width: 100% !important;
             text-align: center !important;
             align-items: center !important;
             margin-bottom: 0 !important;
-            background: radial-gradient(ellipse 120% 100% at 50% 50%, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
-            border-radius: 24px;
+            background: none !important;
+            border-radius: 0 !important;
           }
           .lp-hero-content h1 {
-            font-size: clamp(1.9rem, 8vw, 2.5rem) !important;
+            font-size: clamp(1.8rem, 7vw, 2.4rem) !important;
             line-height: 1.2 !important;
-            text-shadow: 0 2px 40px rgba(0,0,0,0.9), 0 0 80px rgba(0,0,0,0.5) !important;
+            text-shadow: none !important;
           }
           .lp-hero-content p {
             font-size: 15px !important;
             max-width: 100% !important;
-            margin-top: 20px !important;
-            line-height: 1.7 !important;
-            color: rgba(255,255,255,0.85) !important;
-            text-shadow: 0 1px 20px rgba(0,0,0,0.8) !important;
+            margin-top: 16px !important;
+            line-height: 1.6 !important;
+            color: rgba(255,255,255,0.8) !important;
+            text-shadow: none !important;
           }
+          .lp-nav-actions { display: none !important; }
           .lp-hero-btns {
             justify-content: center !important;
             margin-top: 32px !important;
@@ -3124,7 +3125,7 @@ void main() {
             <a href="#precos" onClick={(e) => scrollTo(e, 'precos')} className="lp-nav-link">Precos</a>
             <a href="#faq" onClick={(e) => scrollTo(e, 'faq')} className="lp-nav-link">FAQ</a>
           </nav>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="lp-nav-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <a href={getAppUrl('/login')} className="lp-nav-link">Entrar</a>
             <a href={getAppUrl('/register?trial=true')} className="lp-btn-primary" style={{ color: '#fff', padding: '10px 22px', borderRadius: '10px', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Testar gratis</a>
           </div>
@@ -3141,14 +3142,14 @@ void main() {
 
       {/* MOBILE MENU */}
       {mobileMenuOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(5,5,8,0.98)', backdropFilter: 'blur(20px)', zIndex: 200, display: 'flex', flexDirection: 'column', padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
-            <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '32px', width: 'auto' }} />
-            <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', cursor: 'pointer', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Fechar menu">
-              <X size={20} />
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: '#0f1117', zIndex: 200, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '28px', width: 'auto' }} />
+            <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Fechar menu">
+              <X size={22} />
             </button>
           </div>
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+          <nav style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
             {[
               { label: 'Como funciona', id: 'como-funciona' },
               { label: 'Calculadora', href: '/chargeback' },
@@ -3160,17 +3161,18 @@ void main() {
                 key={i}
                 href={item.href || `#${item.id}`}
                 onClick={item.id ? (e) => scrollTo(e, item.id!) : undefined}
-                style={{ color: '#fff', textDecoration: 'none', fontSize: '18px', fontWeight: 500, padding: '16px', borderRadius: '12px', transition: 'background 0.2s' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none', fontSize: '17px', fontWeight: 400, padding: '18px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
                 {item.label}
+                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '18px' }}>›</span>
               </a>
             ))}
           </nav>
-          <a href={getAppUrl('/register')} className="lp-btn-primary" style={{ color: '#fff', padding: '16px', borderRadius: '12px', textDecoration: 'none', fontSize: '16px', fontWeight: 600, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            Comecar agora <ArrowRight size={18} />
-          </a>
+          <div style={{ padding: '24px' }}>
+            <a href={getAppUrl('/register?trial=true')} className="lp-btn-primary" style={{ color: '#fff', padding: '16px', borderRadius: '12px', textDecoration: 'none', fontSize: '16px', fontWeight: 600, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              Testar gratis
+            </a>
+          </div>
         </div>
       )}
 
