@@ -256,12 +256,34 @@ void main() {
             justify-content: center !important;
             margin-top: 32px !important;
             gap: 12px !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            width: 100% !important;
           }
           .lp-hero-btns a {
-            padding: 14px 24px !important;
-            font-size: 14px !important;
+            padding: 16px 32px !important;
+            font-size: 16px !important;
+            width: 100% !important;
+            max-width: 320px !important;
+            justify-content: center !important;
           }
+          .lp-btn-primary {
+            background: rgba(255,255,255,0.15) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(255,255,255,0.3) !important;
+            box-shadow: none !important;
+          }
+          .lp-btn-primary:hover {
+            background: rgba(255,255,255,0.22) !important;
+            transform: none !important;
+            box-shadow: none !important;
+          }
+          .lp-hero-btn-desktop { display: none !important; }
+          .lp-hero-btn-mobile { display: inline-flex !important; }
         }
+        .lp-hero-btn-mobile { display: none !important; }
+        .lp-hero-btn-desktop { display: inline-flex !important; }
         .lp-nav-link { color: rgba(255,255,255,0.9); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s, background 0.2s; position: relative; padding: 6px 12px; border-radius: 20px; border: 1px solid transparent; }
         .lp-nav-link:hover { color: #fff; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); }
         .lp-btn-primary { position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.16,1,0.3,1); background: linear-gradient(135deg, #4672ec 0%, #3b5fd9 100%); }
@@ -3230,9 +3252,11 @@ void main() {
               >
                 Quero testar grátis <ArrowRight size={16} />
               </a>
+              {/* Desktop: Ver como funciona */}
               <a
                 href="#como-funciona"
                 onClick={(e) => scrollTo(e, 'como-funciona')}
+                className="lp-hero-btn-desktop"
                 style={{
                   color: 'rgba(255,255,255,0.8)', padding: '16px 32px', borderRadius: '9999px',
                   textDecoration: 'none', fontSize: '16px', fontWeight: 500,
@@ -3244,6 +3268,19 @@ void main() {
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
               >
                 Ver como funciona
+              </a>
+              {/* Mobile: Entrar */}
+              <a
+                href={getAppUrl('/login')}
+                className="lp-hero-btn-mobile"
+                style={{
+                  color: 'rgba(255,255,255,0.85)', padding: '16px 32px', borderRadius: '9999px',
+                  textDecoration: 'none', fontSize: '16px', fontWeight: 500,
+                  display: 'none', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)',
+                }}
+              >
+                Entrar
               </a>
             </div>
           </div>
