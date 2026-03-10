@@ -264,7 +264,7 @@ export default function Checkout() {
       }
 
       // Always send holder info (needed for Asaas customer creation, even for trial)
-      body.creditCardHolderInfo = {
+      const holderInfo = {
         name: name,
         email,
         cpfCnpj: cpfDigits,
@@ -283,8 +283,10 @@ export default function Checkout() {
           expiryYear,
           ccv: card.cvv,
         }
-        body.creditCardHolderInfo.name = card.holderName || name
+        holderInfo.name = card.holderName || name
       }
+
+      body.creditCardHolderInfo = holderInfo
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-asaas-subscription`, {
         method: 'POST',
