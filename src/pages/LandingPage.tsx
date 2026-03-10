@@ -281,7 +281,6 @@ void main() {
           }
           .lp-hero-btn-desktop { display: none !important; }
           .lp-hero-btn-mobile { display: inline-flex !important; }
-          .lp-hero-title { font-size: 1.75rem !important; }
         }
         .lp-hero-btn-mobile { display: none !important; }
         .lp-hero-btn-desktop { display: inline-flex !important; }
@@ -3208,12 +3207,12 @@ void main() {
         </picture>
 
         {/* Hero text content */}
-        <div className="lp-hero-content" style={{ position: 'relative', zIndex: 10, paddingTop: '18vh', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '760px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+        <div className="lp-hero-content" style={{ position: 'relative', zIndex: 10, paddingTop: '18vh', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '960px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
 
           {/* Title */}
           <h1 className="lp-hero-title" style={{
             fontFamily: '"Plus Jakarta Sans", sans-serif',
-            fontSize: 'clamp(2rem, 3.8vw, 3.5rem)',
+            fontSize: 'clamp(1.35rem, 3.2vw, 3.2rem)',
             fontWeight: 700,
             color: '#ffffff',
             lineHeight: 1.15,
