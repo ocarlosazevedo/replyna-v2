@@ -3124,12 +3124,12 @@ void main() {
         borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : 'none',
         transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
       }}>
-        <div className="lp-nav-inner" style={{ width: '100%', padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="lp-nav-inner" style={{ width: '100%', padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
           <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '32px', width: 'auto' }} />
-          <nav className="lp-nav-desktop" style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+          <nav className="lp-nav-desktop" style={{ display: 'flex', gap: '32px', alignItems: 'center', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
             <a href="#como-funciona" onClick={(e) => scrollTo(e, 'como-funciona')} className="lp-nav-link">Como funciona</a>
             <a href="/chargeback" className="lp-nav-link">Calculadora</a>
-            <a href="#precos" onClick={(e) => scrollTo(e, 'precos')} className="lp-nav-link">Precos</a>
+            <a href="#precos" onClick={(e) => scrollTo(e, 'precos')} className="lp-nav-link">Preços</a>
             <a href="#faq" onClick={(e) => scrollTo(e, 'faq')} className="lp-nav-link">FAQ</a>
           </nav>
           <div className="lp-nav-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -3160,7 +3160,7 @@ void main() {
             {[
               { label: 'Como funciona', id: 'como-funciona' },
               { label: 'Calculadora', href: '/chargeback' },
-              { label: 'Precos', id: 'precos' },
+              { label: 'Preços', id: 'precos' },
               { label: 'FAQ', id: 'faq' },
             ].map((item, i) => (
               <a
@@ -3275,8 +3275,6 @@ void main() {
           </div>
         </div>
 
-        {/* Bottom fade */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '150px', background: 'linear-gradient(to bottom, transparent, #0e172a)', zIndex: 2, pointerEvents: 'none' }} />
       </section>
 
       {/* INTEGRATIONS MARQUEE */}
@@ -3321,8 +3319,8 @@ void main() {
 
         <AnimateIn>
           <div className="net-section-header">
-            <h2>Tudo conectado ao<br />seu pos-venda</h2>
-            <p>A Replyna integra e-mail, loja e IA em um unico fluxo automatizado.</p>
+            <h2>Tudo conectado ao<br />seu pós-venda</h2>
+            <p>A Replyna integra e-mail, loja e IA em um único fluxo automatizado.</p>
           </div>
         </AnimateIn>
 
@@ -3419,7 +3417,7 @@ void main() {
                 fontWeight: 600, textDecoration: 'none', border: 'none', cursor: 'pointer',
               }}
             >
-              Comecar agora <ArrowRight size={16} />
+              Começar agora <ArrowRight size={16} />
             </a>
           </div>
         </AnimateIn>
@@ -3457,7 +3455,7 @@ void main() {
                 Simples e transparente
               </h2>
               <p style={{ fontFamily: '"Inter", sans-serif', fontSize: '17px', color: 'rgba(255,255,255,0.4)', maxWidth: '480px', margin: '16px auto 0', lineHeight: 1.6 }}>
-                Escolha o plano ideal para o tamanho da sua operacao.
+                Escolha o plano ideal para o tamanho da sua operação.
               </p>
             </div>
           </AnimateIn>
@@ -3466,22 +3464,22 @@ void main() {
             {[
               {
                 name: 'Starter',
-                desc: 'Ideal para quem esta comecando',
+                desc: 'Ideal para quem está começando',
                 price: 'R$ 197',
                 period: '/mes',
                 emails: '300',
                 lojas: '1',
-                features: ['Integracao com 1 loja', '300 e-mails/mes inclusos', 'R$1,00 por email extra', 'Atendimento 24 horas por dia'],
+                features: ['Integração com 1 loja', '300 e-mails/mês inclusos', 'R$1,00 por email extra', 'Atendimento 24 horas por dia'],
                 highlight: false,
               },
               {
                 name: 'Business',
-                desc: 'Para operacoes em crescimento',
+                desc: 'Para operações em crescimento',
                 price: 'R$ 397',
                 period: '/mes',
                 emails: '900',
                 lojas: '3',
-                features: ['Integracao com 3 lojas', '900 e-mails/mes inclusos', 'R$0,70 por e-mail extra', 'Atendimento 24 horas por dia'],
+                features: ['Integração com 3 lojas', '900 e-mails/mês inclusos', 'R$0,70 por e-mail extra', 'Atendimento 24 horas por dia'],
                 highlight: true,
               },
               {
@@ -3491,22 +3489,22 @@ void main() {
                 period: '/mes',
                 emails: '1.500',
                 lojas: '5',
-                features: ['Integracao com 5 lojas', '1.500 e-mails/mes inclusos', 'R$0,60 por email extra', 'Atendimento 24 horas por dia'],
+                features: ['Integração com 5 lojas', '1.500 e-mails/mês inclusos', 'R$0,60 por email extra', 'Atendimento 24 horas por dia'],
                 highlight: false,
               },
               {
                 name: 'High Scale',
-                desc: 'Para grandes operacoes',
+                desc: 'Para grandes operações',
                 price: 'R$ 997',
                 period: '/mes',
                 emails: '3.000',
                 lojas: '10',
-                features: ['Integracao com 10 lojas', '3.000 e-mails/mes inclusos', 'R$0,50 por email extra', 'Atendimento 24 horas por dia'],
+                features: ['Integração com 10 lojas', '3.000 e-mails/mês inclusos', 'R$0,50 por email extra', 'Atendimento 24 horas por dia'],
                 highlight: false,
               },
               {
                 name: 'Enterprise',
-                desc: 'Solucao personalizada',
+                desc: 'Solução personalizada',
                 price: 'Sob consulta',
                 period: '',
                 emails: 'Ilimitado',
@@ -3535,10 +3533,10 @@ void main() {
                   Perguntas<br />frequentes
                 </h2>
                 <p className="faq-subtitle">
-                  Tudo o que voce precisa saber sobre a Replyna e como ela pode transformar seu pos-venda.
+                  Tudo o que você precisa saber sobre a Replyna e como ela pode transformar seu pós-venda.
                 </p>
                 <a href="#contato" className="faq-contact-link">
-                  Ainda tem duvidas? Fale conosco <ArrowRight size={16} />
+                  Ainda tem dúvidas? Fale conosco <ArrowRight size={16} />
                 </a>
               </div>
             </AnimateIn>
@@ -3546,13 +3544,13 @@ void main() {
             {/* Right accordion column */}
             <div className="faq-accordion">
               {[
-                { q: 'Quanto tempo leva para integrar com minha loja?', a: 'A integracao leva menos de 2 minutos. Basta conectar sua loja Shopify e seu provedor de email, e a IA ja comeca a processar e responder as mensagens automaticamente. Nao precisa de conhecimento tecnico.' },
-                { q: 'A IA realmente entende reclamacoes e devolucoes?', a: 'Sim. A Replyna foi treinada com milhares de conversas reais de pos-venda do e-commerce brasileiro. Ela entende contexto, tom do cliente e sabe diferenciar uma reclamacao de uma duvida simples, respondendo de forma personalizada para cada situacao.' },
-                { q: 'Posso enviar respostas manualmente?', a: 'Sim! Alem do modo automatico onde a IA responde sozinha, a Replyna tambem oferece a opcao de envio manual. Voce pode escrever e enviar suas proprias respostas diretamente pela plataforma sempre que preferir.' },
-                { q: 'Como funciona o limite de emails por plano?', a: 'Cada plano inclui uma quantidade mensal de emails. Se ultrapassar o limite, emails extras sao cobrados a um valor reduzido por unidade. No plano Enterprise, o volume e ilimitado.' },
-                { q: 'A Replyna funciona com quais plataformas?', a: 'Atualmente a Replyna integra exclusivamente com a Shopify. Novas plataformas estao sendo planejadas e serao adicionadas em breve.' },
-                { q: 'Meus dados e dos meus clientes estao seguros?', a: 'Sim. Utilizamos criptografia de ponta a ponta e infraestrutura em nuvem com certificacoes de seguranca. Nenhum dado de cliente e compartilhado com terceiros ou usado para treinar modelos externos.' },
-                { q: 'Existe periodo de teste gratuito?', a: 'Sim! Voce tem 7 dias de free trial com 30 emails inclusos para testar a plataforma sem compromisso. Nao precisa de cartao de credito para comecar.' },
+                { q: 'Quanto tempo leva para integrar com minha loja?', a: 'A integração leva menos de 2 minutos. Basta conectar sua loja Shopify e seu provedor de email, e a IA já começa a processar e responder as mensagens automaticamente. Não precisa de conhecimento técnico.' },
+                { q: 'A IA realmente entende reclamações e devoluções?', a: 'Sim. A Replyna foi treinada com milhares de conversas reais de pós-venda do e-commerce brasileiro. Ela entende contexto, tom do cliente e sabe diferenciar uma reclamação de uma dúvida simples, respondendo de forma personalizada para cada situação.' },
+                { q: 'Posso enviar respostas manualmente?', a: 'Sim! Além do modo automático onde a IA responde sozinha, a Replyna também oferece a opção de envio manual. Você pode escrever e enviar suas próprias respostas diretamente pela plataforma sempre que preferir.' },
+                { q: 'Como funciona o limite de emails por plano?', a: 'Cada plano inclui uma quantidade mensal de emails. Se ultrapassar o limite, emails extras são cobrados a um valor reduzido por unidade. No plano Enterprise, o volume é ilimitado.' },
+                { q: 'A Replyna funciona com quais plataformas?', a: 'Atualmente a Replyna integra exclusivamente com a Shopify. Novas plataformas estão sendo planejadas e serão adicionadas em breve.' },
+                { q: 'Meus dados e dos meus clientes estão seguros?', a: 'Sim. Utilizamos criptografia de ponta a ponta e infraestrutura em nuvem com certificações de segurança. Nenhum dado de cliente é compartilhado com terceiros ou usado para treinar modelos externos.' },
+                { q: 'Existe período de teste gratuito?', a: 'Sim! Você tem 7 dias de free trial com 30 emails inclusos para testar a plataforma sem compromisso. Não precisa de cartão de crédito para começar.' },
               ].map((item, i) => (
                 <AnimateIn key={i} delay={i * 0.06}>
                   <FaqCard num={String(i + 1).padStart(2, '0')} question={item.q} answer={item.a} />
@@ -3588,13 +3586,13 @@ void main() {
             <h2 className="cta-title">Pronto para automatizar?</h2>
             <span className="cta-line" />
             <p className="cta-desc">
-              Comece gratis e veja a IA resolver reclamacoes pela sua loja em segundos.
+              Comece grátis e veja a IA resolver reclamações pela sua loja em segundos.
             </p>
             <div className="cta-btn-wrap">
               <span className="cta-pulse" />
               <span className="cta-pulse" style={{ animationDelay: '1s' }} />
               <a href={getAppUrl('/register')} className="cta-btn">
-                Comecar agora gratis <ArrowRight size={18} />
+                Começar agora grátis <ArrowRight size={18} />
               </a>
             </div>
           </div>
@@ -3654,7 +3652,7 @@ void main() {
                 <img src="/replyna-logo.webp" alt="Replyna" style={{ width: 'auto', height: '32px', borderRadius: 0 }} />
               </div>
               <p className="footer-brand-desc">
-                Automatize seu pos-venda com IA. Respostas inteligentes para reclamacoes, trocas e devolucoes.
+                Automatize seu pós-venda com IA. Respostas inteligentes para reclamações, trocas e devoluções.
               </p>
               <div className="footer-socials">
                 {/* WhatsApp */}
@@ -3681,9 +3679,9 @@ void main() {
               <p className="footer-col-title">Produto</p>
               <ul className="footer-col-links">
                 <li><a href="#como-funciona">Como funciona</a></li>
-                <li><a href="#precos">Precos</a></li>
+                <li><a href="#precos">Preços</a></li>
                 <li><a href="#faq">FAQ</a></li>
-                <li><a href={getAppUrl('/register')}>Comecar gratis</a></li>
+                <li><a href={getAppUrl('/register')}>Começar grátis</a></li>
               </ul>
             </div>
 
@@ -3701,7 +3699,7 @@ void main() {
             <div>
               <p className="footer-col-title">Legal</p>
               <ul className="footer-col-links">
-                <li><a href="/privacidade">Politica de privacidade</a></li>
+                <li><a href="/privacidade">Política de privacidade</a></li>
                 <li><a href="/privacidade">LGPD</a></li>
               </ul>
             </div>
@@ -3954,21 +3952,21 @@ const INF_DATA = [
   {
     name: 'Guilherme Smith',
     img: '/influencers/guilherme-smith.webp',
-    desc: 'Mentor e gestor de multiplas operacoes de Dropshipping Global. Expert em vendas e conversao.',
+    desc: 'Mentor e gestor de múltiplas operações de Dropshipping Global. Expert em vendas e conversão.',
     followers: '120K',
     badge: 'Parceiro',
   },
   {
     name: 'Lhucas Maciel',
     img: '/influencers/lhucas-maciel.webp',
-    desc: 'Criador de conteudo sobre Shopify e automacoes para lojistas.',
+    desc: 'Criador de conteúdo sobre Shopify e automações para lojistas.',
     followers: '85K',
     badge: 'Creator',
   },
   {
     name: 'Carlos Azevedo',
     img: '/influencers/carlos-azevedo.webp',
-    desc: 'Especialista em e-commerce e consultor de operacoes digitais.',
+    desc: 'Especialista em e-commerce e consultor de operações digitais.',
     followers: '200K',
     badge: 'Especialista',
   },
@@ -4059,7 +4057,7 @@ function PricingCard({ plan, index }: { plan: { name: string; desc: string; pric
           </div>
           <div className="pricing-stats" style={{ position: 'relative', zIndex: 3 }}>
             <div className="pricing-stat pricing-stat--email">
-              <div className="pricing-stat-label">Emails/mes</div>
+              <div className="pricing-stat-label">E-mails/mês</div>
               <div className="pricing-stat-value">{counter.emails}</div>
             </div>
             <div className="pricing-stat pricing-stat--loja">
@@ -4092,11 +4090,11 @@ function PricingCard({ plan, index }: { plan: { name: string; desc: string; pric
 const ABOUT_FEED_DATA = [
   { color: 'green', text: '<strong>Troca aprovada</strong> — Pedido #7841', time: '2min' },
   { color: 'blue', text: '<strong>Reembolso processado</strong> — Pedido #7839', time: '5min' },
-  { color: 'yellow', text: '<strong>Duvida respondida</strong> — Rastreio enviado', time: '8min' },
-  { color: 'green', text: '<strong>Devolucao aceita</strong> — Pedido #7836', time: '12min' },
+  { color: 'yellow', text: '<strong>Dúvida respondida</strong> — Rastreio enviado', time: '8min' },
+  { color: 'green', text: '<strong>Devolução aceita</strong> — Pedido #7836', time: '12min' },
   { color: 'blue', text: '<strong>Ticket resolvido</strong> — Pedido #7833', time: '15min' },
   { color: 'yellow', text: '<strong>Status atualizado</strong> — Pedido #7830', time: '18min' },
-  { color: 'green', text: '<strong>Troca concluida</strong> — Pedido #7828', time: '22min' },
+  { color: 'green', text: '<strong>Troca concluída</strong> — Pedido #7828', time: '22min' },
 ]
 
 function AboutSection() {
@@ -4175,10 +4173,10 @@ function AboutSection() {
           <AnimateIn>
             <div className="about-badge">
               <Bot size={16} />
-              Pos-Venda Autonomo
+              Pós-Venda Autônomo
             </div>
 
-            <h2>Enquanto voce dorme,<br />a Replyna <span>resolve.</span></h2>
+            <h2>Enquanto você dorme,<br />a Replyna <span>resolve.</span></h2>
           </AnimateIn>
 
           <div className="about-features">
@@ -4186,21 +4184,21 @@ function AboutSection() {
               <div className="about-feat" onMouseMove={handleFeatMove} onMouseLeave={handleFeatLeave}>
                 <div className="about-feat-spotlight" />
                 <div className="about-feat-icon"><Zap size={18} /></div>
-                <p>Responde em menos de 30 segundos, 24 horas por dia, sem intervencao humana.</p>
+                <p>Responde em menos de 30 segundos, 24 horas por dia, sem intervenção humana.</p>
               </div>
             </AnimateIn>
             <AnimateIn delay={0.25}>
               <div className="about-feat" onMouseMove={handleFeatMove} onMouseLeave={handleFeatLeave}>
                 <div className="about-feat-spotlight" />
                 <div className="about-feat-icon"><MessageSquare size={18} /></div>
-                <p>Le, entende e responde com o tom da sua marca. Como alguem da sua equipe.</p>
+                <p>Lê, entende e responde com o tom da sua marca. Como alguém da sua equipe.</p>
               </div>
             </AnimateIn>
             <AnimateIn delay={0.35}>
               <div className="about-feat" onMouseMove={handleFeatMove} onMouseLeave={handleFeatLeave}>
                 <div className="about-feat-spotlight" />
                 <div className="about-feat-icon"><BarChart3 size={18} /></div>
-                <p>Resolve 95% dos casos sozinha. Voce so acompanha pelo dashboard.</p>
+                <p>Resolve 95% dos casos sozinha. Você só acompanha pelo dashboard.</p>
               </div>
             </AnimateIn>
           </div>
@@ -4222,8 +4220,8 @@ function AboutSection() {
               <div className="about-card-head">
                 <div className="about-card-avatar"><img src="/Logo Replyna.png" alt="Replyna" style={{ width: '38px', height: '38px', objectFit: 'contain' }} /></div>
                 <div className="about-card-greet">
-                  <strong>Bem-vindo a Replyna</strong>
-                  <span>Seu pos-venda esta no piloto automatico</span>
+                  <strong>Bem-vindo à Replyna</strong>
+                  <span>Seu pós-venda está no piloto automático</span>
                 </div>
               </div>
 
@@ -4234,15 +4232,15 @@ function AboutSection() {
                 </div>
                 <div className="about-card-stat">
                   <div className="about-card-stat-val"><span className="about-card-stat-accent">{stats.taxa}</span>%</div>
-                  <div className="about-card-stat-label">Taxa de resolucao</div>
+                  <div className="about-card-stat-label">Taxa de resolução</div>
                 </div>
                 <div className="about-card-stat">
                   <div className="about-card-stat-val">{stats.tempo}s</div>
-                  <div className="about-card-stat-label">Tempo medio resposta</div>
+                  <div className="about-card-stat-label">Tempo médio resposta</div>
                 </div>
                 <div className="about-card-stat">
                   <div className="about-card-stat-val">{stats.emails}<span className="about-card-stat-accent">k</span></div>
-                  <div className="about-card-stat-label">E-mails este mes</div>
+                  <div className="about-card-stat-label">E-mails este mês</div>
                 </div>
               </div>
 
@@ -4325,7 +4323,7 @@ function InfCarousel() {
         <button className="inf-nav-btn" aria-label="Anterior" onClick={prev}>
           <ChevronLeft size={22} />
         </button>
-        <button className="inf-nav-btn" aria-label="Proximo" onClick={next}>
+        <button className="inf-nav-btn" aria-label="Próximo" onClick={next}>
           <ChevronRight size={22} />
         </button>
       </div>
