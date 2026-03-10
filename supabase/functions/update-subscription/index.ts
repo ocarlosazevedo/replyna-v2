@@ -11,6 +11,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   updateSubscription as asaasUpdateSubscription,
+  createSubscription as asaasCreateSubscription,
+  deleteSubscription as asaasDeleteSubscription,
 } from '../_shared/asaas.ts';
 
 interface UpdateSubscriptionRequest {
@@ -96,12 +98,14 @@ serve(async (req) => {
       );
     }
 
-    // === TRIAL -> PAGO: ativar cobranca ===
+    // === TRIAL -> PAGO: deletar assinatura trial e criar nova paga ===
+    // O cartao ja esta salvo/tokenizado no Asaas desde o cadastro.
+    // Deletamos a assinatura trial (R$0) e criamos uma nova com o valor do plano.
+    // O Asaas cobra automaticamente o cartao salvo no customer.
     if (subscription.status === 'trialing') {
       console.log(`[UpdateSubscription] Trial user ${user_id} upgrading to ${newPlan.name}`);
 
-      // Verificar se o trial user tem cartao cadastrado no Asaas
-      // Se nao tiver, redirecionar para checkout para coletar dados de pagamento
+      // Buscar customer do Asaas
       const { data: userData } = await supabase
         .from('users')
         .select('email, name, asaas_customer_id')
@@ -109,6 +113,7 @@ serve(async (req) => {
         .single();
 
       if (!userData?.asaas_customer_id) {
+        // Sem customer no Asaas, precisa ir para checkout
         console.log(`[UpdateSubscription] Trial user ${user_id} sem customer Asaas, redirecionando para checkout...`);
         return new Response(
           JSON.stringify({
@@ -127,26 +132,38 @@ serve(async (req) => {
         );
       }
 
-      // Atualizar assinatura no Asaas: novo valor + nextDueDate = hoje (cobrar agora)
+      // 1. Deletar assinatura trial no Asaas
+      try {
+        await asaasDeleteSubscription(subscription.asaas_subscription_id);
+        console.log(`[UpdateSubscription] Assinatura trial deletada: ${subscription.asaas_subscription_id}`);
+      } catch (delErr) {
+        console.warn(`[UpdateSubscription] Erro ao deletar trial (pode ja estar inativa):`, delErr);
+      }
+
+      // 2. Criar nova assinatura paga (Asaas usa o cartao salvo no customer)
       const today = new Date();
       const nextDueDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-      await asaasUpdateSubscription(subscription.asaas_subscription_id, {
+      const newAsaasSub = await asaasCreateSubscription({
+        customer: userData.asaas_customer_id,
+        billingType: 'CREDIT_CARD',
         value: Number(newPlan.price_monthly || 0),
-        description: `Replyna - Plano ${newPlan.name}`,
         cycle: 'MONTHLY',
+        description: `Replyna - Plano ${newPlan.name}`,
         nextDueDate,
-        updatePendingPayments: true,
       });
+
+      console.log(`[UpdateSubscription] Nova assinatura paga criada: ${newAsaasSub.id}`);
 
       const periodEnd = new Date(today);
       periodEnd.setDate(periodEnd.getDate() + 30);
 
-      // Ativar subscription
+      // 3. Atualizar subscription no banco
       await supabase
         .from('subscriptions')
         .update({
           plan_id: new_plan_id,
+          asaas_subscription_id: newAsaasSub.id,
           status: 'active',
           billing_cycle: 'monthly',
           current_period_start: today.toISOString(),
@@ -155,7 +172,7 @@ serve(async (req) => {
         })
         .eq('id', subscription.id);
 
-      // Ativar user com plano pago
+      // 4. Atualizar usuario
       await supabase
         .from('users')
         .update({
@@ -170,7 +187,6 @@ serve(async (req) => {
         })
         .eq('id', user_id);
 
-      // Cartao ja esta cadastrado no Asaas, cobranca sera automatica
       return new Response(
         JSON.stringify({
           success: true,
