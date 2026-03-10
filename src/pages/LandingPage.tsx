@@ -3197,9 +3197,9 @@ void main() {
             letterSpacing: '-0.015em',
             margin: 0,
           }}>
-            Seus clientes reclamam.
+            Seus clientes pedem ajuda,
             <br />
-            A IA resolve em segundos.
+            nós resolvemos em segundos.
           </h1>
 
           {/* Subtitle */}
@@ -3213,7 +3213,7 @@ void main() {
             marginTop: '20px',
             maxWidth: '560px',
           }}>
-            Automatize o atendimento pos-venda da sua loja com inteligencia artificial. Resolva reclamacoes em segundos e proteja seu Shopify Payments.
+            Automatize o atendimento ao cliente da sua loja com inteligência artificial: reduza chargebacks e mantenha sua Shopify Payments ativa.
           </p>
 
           {/* CTA buttons */}
@@ -3228,7 +3228,7 @@ void main() {
                   display: 'inline-flex', alignItems: 'center', gap: '8px',
                 }}
               >
-                Comecar agora <ArrowRight size={16} />
+                Quero testar grátis <ArrowRight size={16} />
               </a>
               <a
                 href="#como-funciona"
@@ -3243,7 +3243,7 @@ void main() {
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
               >
-                Como funciona
+                Ver como funciona
               </a>
             </div>
           </div>
