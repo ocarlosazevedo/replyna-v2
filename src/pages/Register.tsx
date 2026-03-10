@@ -38,6 +38,15 @@ export default function Register() {
   useEffect(() => {
     if (plans.length === 0) return
 
+    const slug = searchParams.get('slug')
+    if (slug) {
+      const plan = plans.find(p => (p as any).slug === slug)
+      if (plan) {
+        navigate('/checkout', { state: { plan, isTrialFlow: true } })
+      }
+      return
+    }
+
     const isTrial = searchParams.get('trial') === 'true'
     if (isTrial) {
       const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
@@ -61,7 +70,7 @@ export default function Register() {
     try {
       const { data, error } = await supabase
         .from('plans')
-        .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
+        .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active, slug')
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
 
