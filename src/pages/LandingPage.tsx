@@ -3184,11 +3184,11 @@ void main() {
           {/* Title */}
           <h1 style={{
             fontFamily: '"Plus Jakarta Sans", sans-serif',
-            fontSize: 'clamp(2.6rem, 5.5vw, 4.2rem)',
+            fontSize: 'clamp(2rem, 3.8vw, 3.5rem)',
             fontWeight: 700,
             color: '#ffffff',
-            lineHeight: 1.12,
-            letterSpacing: '-0.02em',
+            lineHeight: 1.15,
+            letterSpacing: '-0.015em',
             margin: 0,
           }}>
             Seus clientes reclamam.
