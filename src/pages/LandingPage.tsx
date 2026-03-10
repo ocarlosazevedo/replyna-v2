@@ -3118,7 +3118,7 @@ void main() {
       {/* NAVBAR */}
       <header style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        backgroundColor: scrolled ? 'rgba(5,5,8,0.85)' : 'transparent',
+        backgroundColor: scrolled ? 'rgba(14,23,42,0.92)' : 'transparent',
         backdropFilter: scrolled ? 'blur(20px)' : 'none',
         borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : 'none',
         transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
@@ -3133,7 +3133,6 @@ void main() {
           </nav>
           <div className="lp-nav-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <a href={getAppUrl('/login')} className="lp-nav-link">Entrar</a>
-            <a href={getAppUrl('/register?trial=true')} className="lp-btn-primary" style={{ color: '#fff', padding: '10px 22px', borderRadius: '10px', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Testar gratis</a>
           </div>
           <button
             className="lp-nav-mobile-toggle"
@@ -3148,7 +3147,7 @@ void main() {
 
       {/* MOBILE MENU */}
       {mobileMenuOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: '#0f1117', zIndex: 200, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: '#0e172a', zIndex: 200, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '28px', width: 'auto' }} />
             <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Fechar menu">
