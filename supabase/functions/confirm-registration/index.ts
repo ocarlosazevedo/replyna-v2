@@ -17,6 +17,7 @@ interface ConfirmRegistrationRequest {
   plan_id: string;
   asaas_customer_id: string;
   asaas_subscription_id?: string;
+  asaas_credit_card_token?: string;
   coupon_id?: string;
   discount_applied?: number;
   is_trial?: boolean;
@@ -50,6 +51,7 @@ serve(async (req) => {
       plan_id,
       asaas_customer_id,
       asaas_subscription_id,
+      asaas_credit_card_token,
       coupon_id,
       discount_applied,
       is_trial,
@@ -167,6 +169,7 @@ serve(async (req) => {
       extra_emails_used: 0,
       pending_extra_emails: 0,
       asaas_customer_id,
+      asaas_credit_card_token: asaas_credit_card_token || null,
       status: 'active',
       is_trial: userIsTrial,
       trial_started_at: userIsTrial ? now.toISOString() : null,

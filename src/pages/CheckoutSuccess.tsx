@@ -49,6 +49,7 @@ export default function CheckoutSuccess() {
             plan_id: parsed.plan_id,
             asaas_customer_id: parsed.asaas_customer_id,
             asaas_subscription_id: parsed.asaas_subscription_id,
+            asaas_credit_card_token: parsed.asaas_credit_card_token || undefined,
             coupon_id: parsed.coupon_id || undefined,
             discount_applied: parsed.discount_applied || undefined,
             is_trial: parsed.is_trial || false,

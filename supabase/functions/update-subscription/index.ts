@@ -57,7 +57,7 @@ serve(async (req) => {
     // 1. Buscar dados do usuario
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('email, name, asaas_customer_id, is_trial')
+      .select('email, name, asaas_customer_id, asaas_credit_card_token, is_trial')
       .eq('id', user_id)
       .single();
 
@@ -131,18 +131,26 @@ serve(async (req) => {
         }
       }
 
-      // Criar nova assinatura paga (Asaas usa o cartao salvo no customer)
+      // Criar nova assinatura paga com o token do cartao salvo
       const today = new Date();
       const nextDueDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-      const newAsaasSub = await asaasCreateSubscription({
+      const subscriptionInput: Record<string, unknown> = {
         customer: userData.asaas_customer_id,
         billingType: 'CREDIT_CARD',
         value: Number(newPlan.price_monthly || 0),
         cycle: 'MONTHLY',
         description: `Replyna - Plano ${newPlan.name}`,
         nextDueDate,
-      });
+      };
+
+      // Usar o token do cartao salvo para cobrar automaticamente
+      if (userData.asaas_credit_card_token) {
+        subscriptionInput.creditCardToken = userData.asaas_credit_card_token;
+        console.log(`[UpdateSubscription] Usando creditCardToken para cobrar cartao salvo`);
+      }
+
+      const newAsaasSub = await asaasCreateSubscription(subscriptionInput as any);
 
       console.log(`[UpdateSubscription] Nova assinatura paga criada: ${newAsaasSub.id}`);
 

@@ -229,6 +229,7 @@ export async function createSubscription(input: {
   nextDueDate: string; // YYYY-MM-DD
   creditCard?: unknown;
   creditCardHolderInfo?: unknown;
+  creditCardToken?: string;
   discount?: AsaasDiscount;
   callback?: {
     successUrl: string;

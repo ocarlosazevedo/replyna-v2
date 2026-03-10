@@ -441,6 +441,7 @@ export default function Checkout() {
         plan_name: data.plan_name || plan.name,
         asaas_customer_id: data.asaas_customer_id,
         asaas_subscription_id: data.asaas_subscription_id,
+        asaas_credit_card_token: data.asaas_credit_card_token || null,
         coupon_id: data.coupon_id || null,
         discount_applied: data.discount_applied || 0,
         is_trial: data.is_trial || false,

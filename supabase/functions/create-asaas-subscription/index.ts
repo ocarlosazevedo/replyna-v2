@@ -279,6 +279,7 @@ serve(async (req) => {
           JSON.stringify({
             asaas_customer_id: customer.id,
             asaas_subscription_id: null,
+            asaas_credit_card_token: tokenResult.creditCardToken,
             plan_id: plan.id,
             plan_name: plan.name,
             coupon_id: null,
