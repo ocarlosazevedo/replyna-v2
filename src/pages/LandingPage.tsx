@@ -241,7 +241,7 @@ void main() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000000', color: '#fff', fontFamily: '"Inter", "Segoe UI", sans-serif' }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
         @keyframes heroFadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
         .lp-hero-fadeup { opacity: 0; animation: heroFadeUp 1s cubic-bezier(0.16,1,0.3,1) forwards; }
         @media (max-width: 768px) {
@@ -331,7 +331,7 @@ void main() {
           text-align: center; max-width: 640px; margin: 0 auto 100px; position: relative; z-index: 3;
         }
         .net-section-header h2 {
-          font-family: 'Playfair Display', sans-serif; font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(2.2rem, 4.5vw, 3.2rem);
           font-weight: 800; color: #fff; letter-spacing: -0.03em;
           line-height: 1.1; margin: 24px 0 0;
         }
@@ -1184,7 +1184,7 @@ void main() {
           text-align: center; max-width: 640px; margin: 0 auto 64px; position: relative; z-index: 2;
         }
         .inf-header h2 {
-          font-family: 'Playfair Display', sans-serif; font-size: clamp(2rem, 4vw, 3rem);
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(2rem, 4vw, 3rem);
           font-weight: 800; color: #fff; letter-spacing: -0.03em;
           line-height: 1.1; margin: 24px 0 0;
         }
@@ -1314,7 +1314,7 @@ void main() {
           border-radius: 0 0 24px 24px;
         }
         .inf-card-name {
-          font-family: 'Playfair Display', sans-serif; font-size: 17px;
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: 17px;
           font-weight: 700; color: #fff; line-height: 1.2;
         }
         .inf-card-desc {
@@ -1485,7 +1485,7 @@ void main() {
         }
         .about-badge svg { color: #6b93ff; }
         .about-left h2 {
-          font-family: 'Playfair Display', sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: clamp(2rem, 4vw, 2.8rem);
           font-weight: 800; color: #fff; letter-spacing: -0.03em;
           line-height: 1.15; margin: 0;
@@ -1908,7 +1908,7 @@ void main() {
         }
         .pricing-card--highlight .pricing-desc { color: rgba(255,255,255,0.45); }
         .pricing-price {
-          font-family: 'Playfair Display', sans-serif; font-size: 34px;
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: 34px;
           font-weight: 800; color: #fff; letter-spacing: -0.03em; margin-top: 14px;
           position: relative;
         }
@@ -2041,7 +2041,7 @@ void main() {
           flex-shrink: 0;
         }
         .lp-marquee-text h3 {
-          font-family: 'Playfair Display', sans-serif; font-size: 22px; font-weight: 700;
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700;
           color: #fff; margin: 0 0 8px; letter-spacing: -0.02em;
         }
         .lp-marquee-text p {
@@ -2065,7 +2065,7 @@ void main() {
           100% { transform: translateX(-50%); }
         }
         .lp-marquee-logo {
-          font-family: 'Playfair Display', sans-serif; font-size: 26px; font-weight: 700;
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 700;
           color: rgba(255,255,255,0.35); white-space: nowrap;
           transition: color 0.3s; flex-shrink: 0;
           display: flex; align-items: center; gap: 14px;
@@ -2084,7 +2084,7 @@ void main() {
         .st-inner { max-width: 1200px; margin: 0 auto; position: relative; }
         .st-header { text-align: center; margin-bottom: 100px; }
         .st-header h2 {
-          font-family: 'Playfair Display', sans-serif; font-size: clamp(2.5rem, 5vw, 3.8rem);
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(2.5rem, 5vw, 3.8rem);
           font-weight: 800; color: #fff; letter-spacing: -0.04em;
           line-height: 1.1; margin: 24px 0 0;
         }
@@ -2230,7 +2230,7 @@ void main() {
 
         .st-step-plus {
           display: flex; align-items: center; gap: 10px;
-          font-family: 'Playfair Display', sans-serif; font-size: 17px; font-weight: 600;
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 600;
           color: #fff; margin-bottom: 12px;
         }
         .st-step-plus svg { color: #6b93ff; flex-shrink: 0; filter: drop-shadow(0 0 4px rgba(107,147,255,0.6)); }
@@ -2243,7 +2243,7 @@ void main() {
         /* Ghost step number on opposite side */
         .st-step-ghost {
           position: absolute; top: 10px;
-          font-family: 'Playfair Display', sans-serif; font-size: clamp(100px, 12vw, 160px);
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(100px, 12vw, 160px);
           font-weight: 900; line-height: 1;
           color: rgba(70,114,236,0.06);
           opacity: 0; transform: translateY(30px);
@@ -2359,7 +2359,7 @@ void main() {
           animation: faqBadgeShimmer 4s ease-in-out infinite;
         }
         .faq-title {
-          font-family: 'Playfair Display', sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: clamp(2rem, 3.5vw, 2.8rem);
           font-weight: 800;
           color: #fff;
@@ -2835,7 +2835,7 @@ void main() {
           object-fit: contain;
         }
         .footer-logo span {
-          font-family: 'Playfair Display', sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: 22px;
           font-weight: 800;
           color: #fff;
@@ -3056,7 +3056,7 @@ void main() {
           z-index: 1;
         }
         .cta-title {
-          font-family: 'Playfair Display', sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: clamp(2.4rem, 5vw, 3.6rem);
           font-weight: 800;
           letter-spacing: -0.03em;
@@ -3215,7 +3215,7 @@ void main() {
             style={{ animationDelay: heroVisible ? '0.1s' : '99s', animationPlayState: heroVisible ? 'running' : 'paused' }}
           >
             <h1 style={{
-              fontFamily: '"Playfair Display", sans-serif',
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
               fontSize: 'clamp(2.8rem, 5vw, 4rem)',
               fontWeight: 800,
               color: '#ffffff',
@@ -3463,7 +3463,7 @@ void main() {
         <div style={{ maxWidth: '1280px', margin: '0 auto', position: 'relative' }}>
           <AnimateIn>
             <div style={{ textAlign: 'center', marginBottom: '72px' }}>
-              <h2 style={{ fontFamily: '"Playfair Display", sans-serif', fontSize: 'clamp(2.2rem, 4.5vw, 3.2rem)', fontWeight: 700, color: '#fff', letterSpacing: '-0.03em', margin: '24px 0 0' }}>
+              <h2 style={{ fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 'clamp(2.2rem, 4.5vw, 3.2rem)', fontWeight: 700, color: '#fff', letterSpacing: '-0.03em', margin: '24px 0 0' }}>
                 Simples e transparente
               </h2>
               <p style={{ fontFamily: '"Inter", sans-serif', fontSize: '17px', color: 'rgba(255,255,255,0.4)', maxWidth: '480px', margin: '16px auto 0', lineHeight: 1.6 }}>
