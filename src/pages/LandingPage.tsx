@@ -3178,7 +3178,10 @@ void main() {
 
       {/* HERO */}
       <section className="lp-hero-section" style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-        <img src="/hero-banner-1.png" alt="Hero" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0, objectFit: 'cover' }} />
+        <picture style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }}>
+          <source srcSet="/hero-banner-1-mobile.png" media="(max-width: 768px)" />
+          <img src="/hero-banner-1.png" alt="Hero" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </picture>
 
         {/* Hero text content */}
         <div className="lp-hero-content" style={{ position: 'relative', zIndex: 10, paddingTop: '18vh', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '760px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
