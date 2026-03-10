@@ -141,16 +141,17 @@ export default function Checkout() {
         .from('plans')
         .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
         .eq('is_active', true)
-        .ilike('name', planParam)
+        .or(`name.ilike.${planParam},slug.eq.${planParam}`)
         .single()
         .then(({ data }) => {
           if (data) {
+            const isTrial = data.price_monthly === 0
             setPlan(data)
-            setIsTrialFlow(true)
+            setIsTrialFlow(isTrial)
             sessionStorage.setItem('checkout_plan', JSON.stringify(data))
-            sessionStorage.setItem('checkout_trial', 'true')
+            sessionStorage.setItem('checkout_trial', String(isTrial))
           } else {
-            navigate('/register')
+            navigate('/')
           }
         })
       return

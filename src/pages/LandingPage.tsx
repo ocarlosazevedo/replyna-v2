@@ -3231,7 +3231,7 @@ void main() {
           <div>
             <div className="lp-hero-btns" style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '36px', justifyContent: 'center' }}>
               <a
-                href={getAppUrl('/checkout?plan=starter')}
+                href={getAppUrl('/checkout?plan=trial')}
                 className="lp-btn-primary"
                 style={{
                   color: '#fff', padding: '16px 32px', borderRadius: '9999px',
@@ -3591,7 +3591,7 @@ void main() {
             <div className="cta-btn-wrap">
               <span className="cta-pulse" />
               <span className="cta-pulse" style={{ animationDelay: '1s' }} />
-              <a href={getAppUrl('/checkout?plan=starter')} className="cta-btn">
+              <a href={getAppUrl('/checkout?plan=trial')} className="cta-btn">
                 Começar agora grátis <ArrowRight size={18} />
               </a>
             </div>
@@ -3681,7 +3681,7 @@ void main() {
                 <li><a href="#como-funciona">Como funciona</a></li>
                 <li><a href="#precos">Preços</a></li>
                 <li><a href="#faq">FAQ</a></li>
-                <li><a href={getAppUrl('/checkout?plan=starter')}>Começar grátis</a></li>
+                <li><a href={getAppUrl('/checkout?plan=trial')}>Começar grátis</a></li>
               </ul>
             </div>
 
@@ -3690,7 +3690,7 @@ void main() {
               <p className="footer-col-title">Conta</p>
               <ul className="footer-col-links">
                 <li><a href={getAppUrl('/login')}>Login</a></li>
-                <li><a href={getAppUrl('/checkout?plan=starter')}>Criar conta</a></li>
+                <li><a href={getAppUrl('/checkout?plan=trial')}>Criar conta</a></li>
                 <li><a href="/masterclass">Masterclass</a></li>
               </ul>
             </div>
@@ -4075,7 +4075,7 @@ function PricingCard({ plan, index }: { plan: { name: string; desc: string; pric
             ))}
           </div>
           <a
-            href={plan.name === 'Enterprise' ? '#contato' : getAppUrl(`/register?plan=${encodeURIComponent(plan.name)}`)}
+            href={plan.name === 'Enterprise' ? '#contato' : getAppUrl(`/checkout?plan=${encodeURIComponent(plan.name)}`)}
             className={plan.highlight ? 'pricing-btn pricing-btn--primary' : 'pricing-btn'}
             style={{ position: 'relative', zIndex: 3 }}
           >
