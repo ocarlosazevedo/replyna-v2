@@ -3147,11 +3147,12 @@ void main() {
 
       {/* MOBILE MENU */}
       {mobileMenuOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: '#0e172a', zIndex: 200, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '28px', width: 'auto' }} />
-            <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Fechar menu">
-              <X size={22} />
+        <div style={{ position: 'fixed', inset: 0, background: 'linear-gradient(180deg, #0e1e3c 0%, #0e172a 100%)', zIndex: 200, display: 'flex', flexDirection: 'column', animation: 'menuSlideIn 0.28s cubic-bezier(0.16,1,0.3,1)' }}>
+          <style>{`@keyframes menuSlideIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '32px', width: 'auto' }} />
+            <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Fechar menu">
+              <X size={24} />
             </button>
           </div>
           <nav style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -3160,7 +3161,6 @@ void main() {
               { label: 'Calculadora', href: '/chargeback' },
               { label: 'Precos', id: 'precos' },
               { label: 'FAQ', id: 'faq' },
-              { label: 'Entrar', href: getAppUrl('/login') },
             ].map((item, i) => (
               <a
                 key={i}
