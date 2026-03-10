@@ -3151,10 +3151,10 @@ void main() {
             <a href="/chargeback" className="lp-nav-link">Calculadora</a>
             <a href="#precos" onClick={(e) => scrollTo(e, 'precos')} className="lp-nav-link">Precos</a>
             <a href="#faq" onClick={(e) => scrollTo(e, 'faq')} className="lp-nav-link">FAQ</a>
-            <a href={getAppUrl('/login')} className="lp-nav-link">Entrar</a>
           </nav>
-          <div style={{ justifySelf: 'end' }}>
-            <a href={getAppUrl('/register?trial=true')} style={{ color: '#fff', padding: '10px 22px', borderRadius: '10px', textDecoration: 'none', fontSize: '14px', fontWeight: 600, background: '#22c55e' }}>Testar gratis</a>
+          <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <a href={getAppUrl('/login')} className="lp-nav-link">Entrar</a>
+            <a href={getAppUrl('/register?trial=true')} className="lp-btn-primary" style={{ color: '#fff', padding: '10px 22px', borderRadius: '10px', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Testar gratis</a>
           </div>
           <button
             className="lp-nav-mobile-toggle"
