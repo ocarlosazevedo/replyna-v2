@@ -218,7 +218,8 @@ void main() {
         .lp-hero-fadeup { opacity: 0; animation: heroFadeUp 1s cubic-bezier(0.16,1,0.3,1) forwards; }
         @media (max-width: 768px) {
           .lp-hero-section {
-            min-height: 100svh !important;
+            height: 100svh !important;
+            min-height: unset !important;
             align-items: flex-start !important;
             justify-content: flex-start !important;
             padding-top: 0 !important;
