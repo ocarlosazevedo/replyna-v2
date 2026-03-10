@@ -195,7 +195,7 @@ function App() {
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/checkout" element={<PublicRoute><Checkout /></PublicRoute>} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/migrate" element={<Migrate />} />
           <Route path="/migrate/:code" element={<MigrationAccept />} />

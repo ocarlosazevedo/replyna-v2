@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, MapPin, CreditCard, ShieldCheck, Lock } from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
 import { formatCpfCnpj, validateCPF, parseExpiryDate } from '../utils/cardUtils'
 import CheckoutSidebar from '../components/checkout/CheckoutSidebar'
 import AddressSection, { type AddressData } from '../components/checkout/AddressSection'
 import CardInput, { type CardData } from '../components/checkout/CardInput'
 import CouponSection from '../components/checkout/CouponSection'
-import { supabase } from '../lib/supabase'
 
 interface Plan {
   id: string
@@ -32,6 +33,8 @@ interface CouponValidation {
 interface LocationState {
   plan: Plan
   isTrialFlow: boolean
+  isUpgrade?: boolean
+  userId?: string
 }
 
 type StepId = 'personal' | 'address' | 'payment' | 'review'
@@ -76,6 +79,7 @@ const slideVariants = {
 }
 
 export default function Checkout() {
+  const { user } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams] = useState(() => new URLSearchParams(location.search))
@@ -83,6 +87,8 @@ export default function Checkout() {
 
   const [plan, setPlan] = useState<Plan | null>(null)
   const [isTrialFlow, setIsTrialFlow] = useState(false)
+  const [isUpgrade, setIsUpgrade] = useState(false)
+  const [upgradeUserId, setUpgradeUserId] = useState<string | null>(null)
 
   // Current step
   const [currentStep, setCurrentStep] = useState<StepId>('personal')
@@ -130,8 +136,12 @@ export default function Checkout() {
     if (state?.plan) {
       setPlan(state.plan)
       setIsTrialFlow(state.isTrialFlow || false)
+      setIsUpgrade(state.isUpgrade || false)
+      setUpgradeUserId(state.userId || null)
       sessionStorage.setItem('checkout_plan', JSON.stringify(state.plan))
       sessionStorage.setItem('checkout_trial', String(state.isTrialFlow || false))
+      sessionStorage.setItem('checkout_upgrade', String(state.isUpgrade || false))
+      sessionStorage.setItem('checkout_upgrade_user_id', state.userId || '')
       return
     }
 
@@ -172,13 +182,46 @@ export default function Checkout() {
 
     const savedPlan = sessionStorage.getItem('checkout_plan')
     const savedTrial = sessionStorage.getItem('checkout_trial')
+    const savedUpgrade = sessionStorage.getItem('checkout_upgrade')
+    const savedUserId = sessionStorage.getItem('checkout_upgrade_user_id')
     if (savedPlan) {
       setPlan(JSON.parse(savedPlan))
       setIsTrialFlow(savedTrial === 'true')
+      setIsUpgrade(savedUpgrade === 'true')
+      setUpgradeUserId(savedUserId || null)
     } else {
       navigate('/register')
     }
   }, [state, navigate, searchParams])
+
+  // Pre-fill user data when in upgrade mode
+  useEffect(() => {
+    if (!isUpgrade || !upgradeUserId) return
+
+    const loadUserData = async () => {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('name, email, whatsapp_number')
+        .eq('id', upgradeUserId)
+        .single()
+
+      if (profile) {
+        if (profile.name) setName(profile.name)
+        if (profile.email) setEmail(profile.email)
+        if (profile.whatsapp_number) {
+          const match = profile.whatsapp_number.match(/^(\+\d{1,4})\s*(.*)$/)
+          if (match) {
+            setCountryCode(match[1])
+            setPhoneNumber(match[2])
+          } else {
+            setPhoneNumber(profile.whatsapp_number)
+          }
+        }
+      }
+    }
+
+    loadUserData()
+  }, [isUpgrade, upgradeUserId])
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768)
@@ -274,7 +317,7 @@ export default function Checkout() {
       setCurrentStep(steps[currentIndex - 1].id)
       setError('')
     } else {
-      navigate('/register')
+      navigate(isUpgrade ? '/account' : '/register')
     }
   }
 
@@ -290,6 +333,59 @@ export default function Checkout() {
       const cpfDigits = cpfCnpj.replace(/\D/g, '')
       const { month: expiryMonth, year: expiryYear } = parseExpiryDate(card.expiry)
 
+      // === UPGRADE FLOW: usuario ja existe, criar assinatura com cartao ===
+      if (isUpgrade && upgradeUserId) {
+        const upgradeBody: Record<string, unknown> = {
+          user_id: upgradeUserId,
+          plan_id: plan.id,
+          user_email: email,
+          user_name: name,
+          whatsapp_number: getFullPhoneNumber() || undefined,
+          creditCard: {
+            holderName: card.holderName,
+            number: card.number.replace(/\D/g, ''),
+            expiryMonth,
+            expiryYear,
+            ccv: card.cvv,
+          },
+          creditCardHolderInfo: {
+            name: card.holderName || name,
+            email,
+            cpfCnpj: cpfDigits,
+            postalCode: address.cep.replace(/\D/g, ''),
+            addressNumber: address.numero,
+            phone: phoneNumber.replace(/\D/g, ''),
+            addressComplement: address.complemento || undefined,
+          },
+        }
+
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upgrade-with-checkout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify(upgradeBody),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao processar pagamento')
+        }
+
+        // Limpar sessionStorage do checkout
+        sessionStorage.removeItem('checkout_plan')
+        sessionStorage.removeItem('checkout_trial')
+        sessionStorage.removeItem('checkout_upgrade')
+        sessionStorage.removeItem('checkout_upgrade_user_id')
+
+        // Redirecionar para conta com mensagem de sucesso
+        navigate('/account', { state: { upgradeSuccess: true, planName: plan.name } })
+        return
+      }
+
+      // === FLUXO NORMAL: novo usuario ===
       const body: Record<string, unknown> = {
         plan_id: plan.id,
         user_email: email,

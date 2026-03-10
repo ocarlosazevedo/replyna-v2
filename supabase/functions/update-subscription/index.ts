@@ -11,10 +11,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.90.1';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   updateSubscription as asaasUpdateSubscription,
-  createSubscription as asaasCreateSubscription,
-  createCustomer,
-  getCustomerByEmail,
-  getPaymentsBySubscription,
 } from '../_shared/asaas.ts';
 
 interface UpdateSubscriptionRequest {
@@ -78,90 +74,23 @@ serve(async (req) => {
       );
     }
 
-    // === SEM ASSINATURA ATIVA: criar nova assinatura no Asaas ===
+    // === SEM ASSINATURA ATIVA: pedir checkout com dados de pagamento ===
     if (!subscription || !subscription.asaas_subscription_id) {
-      console.log(`[UpdateSubscription] Usuario ${user_id} sem assinatura ativa, criando nova...`);
+      console.log(`[UpdateSubscription] Usuario ${user_id} sem assinatura ativa, redirecionando para checkout...`);
 
-      // Buscar dados do usuario
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('email, name, asaas_customer_id')
-        .eq('id', user_id)
-        .single();
-
-      if (userError || !userData) {
-        return new Response(
-          JSON.stringify({ error: 'Usuario nao encontrado' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Garantir que o usuario tem customer no Asaas
-      let customerId = userData.asaas_customer_id;
-      if (!customerId) {
-        let customer = await getCustomerByEmail(userData.email);
-        if (!customer) {
-          customer = await createCustomer({
-            name: userData.name || userData.email,
-            email: userData.email,
-          });
-          console.log(`[UpdateSubscription] Cliente Asaas criado: ${customer.id}`);
-        }
-        customerId = customer.id;
-        await supabase.from('users').update({ asaas_customer_id: customerId }).eq('id', user_id);
-      }
-
-      // Criar assinatura no Asaas
-      const now = new Date();
-      const nextDueDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-      const newAsaasSub = await asaasCreateSubscription({
-        customer: customerId,
-        billingType: 'CREDIT_CARD',
-        value: Number(newPlan.price_monthly || 0),
-        cycle: 'MONTHLY',
-        description: `Replyna - Plano ${newPlan.name}`,
-        nextDueDate,
-        callback: {
-          successUrl: 'https://app.replyna.me/checkout/success',
-          autoRedirect: true,
-        },
-      });
-
-      // Buscar URL de pagamento
-      const payments = await getPaymentsBySubscription(newAsaasSub.id, { limit: 1, order: 'desc' });
-      const firstPayment = payments.data?.[0];
-      const invoiceUrl = firstPayment?.invoiceUrl || null;
-
-      // Criar registro da assinatura no banco
-      const periodEnd = new Date(now);
-      periodEnd.setDate(periodEnd.getDate() + 30);
-
-      await supabase.from('subscriptions').insert({
-        user_id,
-        plan_id: new_plan_id,
-        asaas_customer_id: customerId,
-        asaas_subscription_id: newAsaasSub.id,
-        status: 'incomplete',
-        billing_cycle: 'monthly',
-        current_period_start: now.toISOString(),
-        current_period_end: periodEnd.toISOString(),
-        cancel_at_period_end: false,
-      });
-
-      // NAO atualizar plano do usuario aqui - o webhook de pagamento confirmado
-      // (PAYMENT_RECEIVED) vai atualizar o plano quando o pagamento for concluido.
-      // Isso evita que o usuario tenha o plano alterado sem pagar.
-
-      console.log(`[UpdateSubscription] Nova assinatura criada: ${newAsaasSub.id}, invoice: ${invoiceUrl}`);
-
-      // Retornar URL de pagamento para o frontend redirecionar
+      // Retornar flag para o frontend redirecionar ao checkout customizado
       return new Response(
         JSON.stringify({
           success: true,
-          requires_payment_method: true,
-          checkout_url: invoiceUrl,
+          needs_checkout: true,
           plan: newPlan.name,
+          new_plan: {
+            id: newPlan.id,
+            name: newPlan.name,
+            emails_limit: newPlan.emails_limit,
+            shops_limit: newPlan.shops_limit,
+            price_monthly: newPlan.price_monthly,
+          },
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -170,6 +99,33 @@ serve(async (req) => {
     // === TRIAL -> PAGO: ativar cobranca ===
     if (subscription.status === 'trialing') {
       console.log(`[UpdateSubscription] Trial user ${user_id} upgrading to ${newPlan.name}`);
+
+      // Verificar se o trial user tem cartao cadastrado no Asaas
+      // Se nao tiver, redirecionar para checkout para coletar dados de pagamento
+      const { data: userData } = await supabase
+        .from('users')
+        .select('email, name, asaas_customer_id')
+        .eq('id', user_id)
+        .single();
+
+      if (!userData?.asaas_customer_id) {
+        console.log(`[UpdateSubscription] Trial user ${user_id} sem customer Asaas, redirecionando para checkout...`);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            needs_checkout: true,
+            plan: newPlan.name,
+            new_plan: {
+              id: newPlan.id,
+              name: newPlan.name,
+              emails_limit: newPlan.emails_limit,
+              shops_limit: newPlan.shops_limit,
+              price_monthly: newPlan.price_monthly,
+            },
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
       // Atualizar assinatura no Asaas: novo valor + nextDueDate = hoje (cobrar agora)
       const today = new Date();
@@ -214,17 +170,18 @@ serve(async (req) => {
         })
         .eq('id', user_id);
 
-      // Buscar URL de pagamento para o usuario pagar
-      const payments = await getPaymentsBySubscription(subscription.asaas_subscription_id, { limit: 1, order: 'desc' });
-      const firstPayment = payments.data?.[0];
-      const invoiceUrl = firstPayment?.invoiceUrl || null;
-
+      // Cartao ja esta cadastrado no Asaas, cobranca sera automatica
       return new Response(
         JSON.stringify({
           success: true,
-          requires_payment_method: !!invoiceUrl,
-          checkout_url: invoiceUrl,
           plan: newPlan.name,
+          new_plan: {
+            id: newPlan.id,
+            name: newPlan.name,
+            emails_limit: newPlan.emails_limit,
+            shops_limit: newPlan.shops_limit,
+            price_monthly: newPlan.price_monthly,
+          },
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

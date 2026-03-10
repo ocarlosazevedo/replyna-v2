@@ -246,6 +246,7 @@ export async function updateSubscription(id: string, input: {
   value?: number;
   description?: string;
   cycle?: 'MONTHLY' | 'WEEKLY' | 'YEARLY';
+  nextDueDate?: string; // YYYY-MM-DD
   discount?: AsaasDiscount;
   updatePendingPayments?: boolean;
   billingType?: 'CREDIT_CARD' | 'BOLETO' | 'PIX';

@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { supabase } from '../lib/supabase'
@@ -76,8 +77,10 @@ const Skeleton = ({ height = 16, width = '100%' }: { height?: number | string; w
 )
 
 export default function Account() {
-  console.log('🔄 Account.tsx carregado - versão 3 (com sync fix)')
+  console.log('🔄 Account.tsx carregado - versão 4 (checkout upgrade)')
   const { user } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
   const isMobile = useIsMobile()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -196,6 +199,19 @@ export default function Account() {
     phone: '',
   })
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
+
+  // Mostrar mensagem de sucesso se veio do checkout de upgrade
+  useEffect(() => {
+    const state = location.state as { upgradeSuccess?: boolean; planName?: string } | null
+    if (state?.upgradeSuccess) {
+      setNotice({
+        type: 'success',
+        message: `Upgrade para o plano ${state.planName || ''} realizado com sucesso!`,
+      })
+      // Limpar o state para nao mostrar novamente
+      window.history.replaceState({}, '')
+    }
+  }, [location.state])
 
   // Função para abrir a ultima fatura do Asaas
   const handleOpenBillingPortal = async () => {
@@ -877,23 +893,17 @@ export default function Account() {
         throw new Error(result.error || 'Erro ao alterar plano')
       }
 
-      // Se precisa adicionar método de pagamento, redirecionar para checkout
-      if (result.requires_payment_method && result.checkout_url) {
-        setNotice({
-          type: 'info',
-          message: 'Redirecionando para adicionar método de pagamento...',
+      // Se precisa adicionar método de pagamento, redirecionar para o checkout customizado
+      if (result.needs_checkout) {
+        setShowPlanModal(false)
+        navigate('/checkout', {
+          state: {
+            plan,
+            isTrialFlow: false,
+            isUpgrade: true,
+            userId: user.id,
+          },
         })
-        window.location.href = result.checkout_url
-        return
-      }
-
-      // Se pagamento está pendente, redirecionar para página de pagamento
-      if (result.payment_required && result.payment_url) {
-        setNotice({
-          type: 'info',
-          message: 'Redirecionando para completar o pagamento...',
-        })
-        window.location.href = result.payment_url
         return
       }
 
