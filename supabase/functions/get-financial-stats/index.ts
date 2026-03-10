@@ -141,7 +141,7 @@ serve(async (req) => {
       getBalance(),
       supabase
         .from('subscriptions')
-        .select('status, plan_id, plans(name, price_monthly)')
+        .select('status, plan_id, asaas_subscription_id, plans(name, price_monthly)')
         .in('status', ['active', 'trialing', 'past_due', 'canceled']),
       supabase
         .from('users')
@@ -161,12 +161,15 @@ serve(async (req) => {
     const planCounts: Record<string, number> = {};
 
     for (const sub of subs) {
+      // Only count subscriptions with real Asaas billing for status/MRR
+      const hasAsaasBilling = !!sub.asaas_subscription_id;
+
       const status = sub.status as keyof typeof subscriptionsByStatus;
-      if (subscriptionsByStatus[status] !== undefined) {
+      if (hasAsaasBilling && subscriptionsByStatus[status] !== undefined) {
         subscriptionsByStatus[status] += 1;
       }
 
-      if (sub.status === 'active') {
+      if (sub.status === 'active' && hasAsaasBilling) {
         const planName = sub.plans?.name || 'Starter';
         const price = Number(sub.plans?.price_monthly || 0);
         mrr += price;
@@ -197,12 +200,14 @@ serve(async (req) => {
     const newSubscriptionsResult = await supabase
       .from('subscriptions')
       .select('id', { count: 'exact', head: true })
+      .not('asaas_subscription_id', 'is', null)
       .gte('created_at', periodStart.toISOString())
       .lte('created_at', periodEnd.toISOString());
 
     const canceledSubscriptionsResult = await supabase
       .from('subscriptions')
       .select('id', { count: 'exact', head: true })
+      .not('asaas_subscription_id', 'is', null)
       .gte('canceled_at', periodStart.toISOString())
       .lte('canceled_at', periodEnd.toISOString());
 
