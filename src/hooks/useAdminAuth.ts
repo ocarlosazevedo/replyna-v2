@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+
 export interface Admin {
   id: string
   email: string
@@ -79,22 +82,26 @@ export function useAdminAuth() {
 
     console.log('Tentando login com:', { email: email.toLowerCase(), tokenHash })
 
-    // Chamar função RPC diretamente
-    const { data, error } = await supabase.rpc('admin_login_with_session', {
-      p_email: email.toLowerCase(),
-      p_password: password,
-      p_token_hash: tokenHash,
-      p_user_agent: navigator.userAgent
+    // Chamar edge function admin-login (usa service_role internamente)
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        email: email.toLowerCase(),
+        password,
+        token_hash: tokenHash,
+        user_agent: navigator.userAgent,
+      }),
     })
 
-    console.log('Resposta do login:', { data, error })
+    const data = await response.json()
 
-    if (error) {
-      console.error('Erro RPC:', error)
-      throw new Error(error.message || 'Erro ao conectar com o servidor')
-    }
+    console.log('Resposta do login:', { data, status: response.status })
 
-    if (!data || !data.success) {
+    if (!response.ok || !data.success) {
       throw new Error(data?.error || 'Email ou senha inválidos')
     }
 
