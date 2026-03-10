@@ -498,9 +498,6 @@ export default function Dashboard() {
         query = query.not('category', 'is', null)
       }
 
-      // Excluir formulários de devolução — aparecem apenas na página Formulários
-      query = query.neq('category', 'troca_devolucao_reembolso')
-
       const { data, error } =
         selectedShopId === 'all'
           ? await query.in('shop_id', effectiveShopIds)
