@@ -3183,12 +3183,16 @@ void main() {
 
       {/* HERO */}
       <section className="lp-hero-section" style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+        {/* Imagem base */}
         <picture style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }}>
           <source srcSet="/banner-mobile-hero.png" media="(max-width: 768px)" />
           <img src="/hero-banner-1.png" alt="Hero" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </picture>
-        {/* Blur vinheta — topo */}
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '35%', zIndex: 1, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', maskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 100%)' }} />
+        {/* Imagem duplicada com blur — aparece só no topo via máscara */}
+        <picture style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1, maskImage: 'linear-gradient(to bottom, black 0%, black 20%, transparent 55%)', WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 20%, transparent 55%)' }}>
+          <source srcSet="/banner-mobile-hero.png" media="(max-width: 768px)" />
+          <img src="/hero-banner-1.png" alt="Hero" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(18px)', transform: 'scale(1.05)' }} />
+        </picture>
 
         {/* Hero text content */}
         <div className="lp-hero-content" style={{ position: 'relative', zIndex: 10, paddingTop: '18vh', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '760px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
