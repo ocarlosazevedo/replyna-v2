@@ -2,7 +2,9 @@
  * Edge Function: Update Subscription (Asaas)
  *
  * Atualiza a assinatura do Asaas para um novo plano.
- * - UPGRADE: cobra imediatamente (updatePendingPayments = true)
+ * - Se usuario tem cartao salvo (asaas_customer_id): cobra direto
+ * - Se nao tem: redireciona para checkout
+ * - UPGRADE entre planos pagos: cobra diferenca imediatamente
  * - DOWNGRADE: aplica novo valor, sem cobranca imediata
  */
 
@@ -52,16 +54,21 @@ serve(async (req) => {
 
     const supabase = getSupabaseAdmin();
 
-    const { data: subscriptions, error: subError } = await supabase
-      .from('subscriptions')
-      .select('id, asaas_subscription_id, plan_id, status')
-      .eq('user_id', user_id)
-      .in('status', ['active', 'trialing', 'past_due'])
-      .order('created_at', { ascending: false })
-      .limit(1);
+    // 1. Buscar dados do usuario
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('email, name, asaas_customer_id, is_trial')
+      .eq('id', user_id)
+      .single();
 
-    const subscription = subscriptions?.[0] || null;
+    if (userError || !userData) {
+      return new Response(
+        JSON.stringify({ error: 'Usuario nao encontrado' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
+    // 2. Buscar novo plano
     const { data: newPlan, error: planError } = await supabase
       .from('plans')
       .select('*')
@@ -76,11 +83,9 @@ serve(async (req) => {
       );
     }
 
-    // === SEM ASSINATURA ATIVA: pedir checkout com dados de pagamento ===
-    if (!subscription || !subscription.asaas_subscription_id) {
-      console.log(`[UpdateSubscription] Usuario ${user_id} sem assinatura ativa, redirecionando para checkout...`);
-
-      // Retornar flag para o frontend redirecionar ao checkout customizado
+    // 3. SEM CARTAO SALVO: precisa ir para checkout
+    if (!userData.asaas_customer_id) {
+      console.log(`[UpdateSubscription] Usuario ${user_id} sem customer Asaas, redirecionando para checkout...`);
       return new Response(
         JSON.stringify({
           success: true,
@@ -98,49 +103,35 @@ serve(async (req) => {
       );
     }
 
-    // === TRIAL -> PAGO: deletar assinatura trial e criar nova paga ===
-    // O cartao ja esta salvo/tokenizado no Asaas desde o cadastro.
-    // Deletamos a assinatura trial (R$0) e criamos uma nova com o valor do plano.
-    // O Asaas cobra automaticamente o cartao salvo no customer.
-    if (subscription.status === 'trialing') {
-      console.log(`[UpdateSubscription] Trial user ${user_id} upgrading to ${newPlan.name}`);
+    // 4. Buscar assinatura existente (qualquer status)
+    const { data: subscriptions } = await supabase
+      .from('subscriptions')
+      .select('id, asaas_subscription_id, plan_id, status')
+      .eq('user_id', user_id)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-      // Buscar customer do Asaas
-      const { data: userData } = await supabase
-        .from('users')
-        .select('email, name, asaas_customer_id')
-        .eq('id', user_id)
-        .single();
+    const subscription = subscriptions?.[0] || null;
 
-      if (!userData?.asaas_customer_id) {
-        // Sem customer no Asaas, precisa ir para checkout
-        console.log(`[UpdateSubscription] Trial user ${user_id} sem customer Asaas, redirecionando para checkout...`);
-        return new Response(
-          JSON.stringify({
-            success: true,
-            needs_checkout: true,
-            plan: newPlan.name,
-            new_plan: {
-              id: newPlan.id,
-              name: newPlan.name,
-              emails_limit: newPlan.emails_limit,
-              shops_limit: newPlan.shops_limit,
-              price_monthly: newPlan.price_monthly,
-            },
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+    // 5. TRIAL ou SEM ASSINATURA PAGA: deletar trial antiga e criar nova assinatura paga
+    // O cartao ja esta tokenizado no Asaas (asaas_customer_id existe)
+    if (!subscription || !subscription.asaas_subscription_id ||
+        subscription.status === 'trialing' || subscription.status === 'incomplete' ||
+        userData.is_trial) {
+
+      console.log(`[UpdateSubscription] Usuario ${user_id} (trial/sem sub) upgrading to ${newPlan.name}`);
+
+      // Deletar assinatura antiga no Asaas se existir
+      if (subscription?.asaas_subscription_id) {
+        try {
+          await asaasDeleteSubscription(subscription.asaas_subscription_id);
+          console.log(`[UpdateSubscription] Assinatura antiga deletada: ${subscription.asaas_subscription_id}`);
+        } catch (delErr) {
+          console.warn(`[UpdateSubscription] Erro ao deletar assinatura antiga:`, delErr);
+        }
       }
 
-      // 1. Deletar assinatura trial no Asaas
-      try {
-        await asaasDeleteSubscription(subscription.asaas_subscription_id);
-        console.log(`[UpdateSubscription] Assinatura trial deletada: ${subscription.asaas_subscription_id}`);
-      } catch (delErr) {
-        console.warn(`[UpdateSubscription] Erro ao deletar trial (pode ja estar inativa):`, delErr);
-      }
-
-      // 2. Criar nova assinatura paga (Asaas usa o cartao salvo no customer)
+      // Criar nova assinatura paga (Asaas usa o cartao salvo no customer)
       const today = new Date();
       const nextDueDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
@@ -158,21 +149,36 @@ serve(async (req) => {
       const periodEnd = new Date(today);
       periodEnd.setDate(periodEnd.getDate() + 30);
 
-      // 3. Atualizar subscription no banco
-      await supabase
-        .from('subscriptions')
-        .update({
+      // Atualizar ou criar subscription no banco
+      if (subscription) {
+        await supabase
+          .from('subscriptions')
+          .update({
+            plan_id: new_plan_id,
+            asaas_subscription_id: newAsaasSub.id,
+            asaas_customer_id: userData.asaas_customer_id,
+            status: 'active',
+            billing_cycle: 'monthly',
+            current_period_start: today.toISOString(),
+            current_period_end: periodEnd.toISOString(),
+            updated_at: today.toISOString(),
+          })
+          .eq('id', subscription.id);
+      } else {
+        await supabase.from('subscriptions').insert({
+          user_id,
           plan_id: new_plan_id,
+          asaas_customer_id: userData.asaas_customer_id,
           asaas_subscription_id: newAsaasSub.id,
           status: 'active',
           billing_cycle: 'monthly',
           current_period_start: today.toISOString(),
           current_period_end: periodEnd.toISOString(),
-          updated_at: today.toISOString(),
-        })
-        .eq('id', subscription.id);
+          cancel_at_period_end: false,
+        });
+      }
 
-      // 4. Atualizar usuario
+      // Atualizar usuario
       await supabase
         .from('users')
         .update({
@@ -203,7 +209,7 @@ serve(async (req) => {
       );
     }
 
-    // === COM ASSINATURA ATIVA: atualizar plano existente ===
+    // === COM ASSINATURA ATIVA PAGA: atualizar plano existente ===
     let currentPlan = null;
     if (subscription.plan_id) {
       const { data: currentPlanData } = await supabase
