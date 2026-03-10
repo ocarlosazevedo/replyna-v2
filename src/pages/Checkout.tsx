@@ -137,23 +137,36 @@ export default function Checkout() {
 
     const planParam = searchParams.get('plan')
     if (planParam) {
-      supabase
-        .from('plans')
-        .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
-        .eq('is_active', true)
-        .or(`name.ilike.${planParam},slug.eq.${planParam}`)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            const isTrial = data.price_monthly === 0
-            setPlan(data)
-            setIsTrialFlow(isTrial)
-            sessionStorage.setItem('checkout_plan', JSON.stringify(data))
-            sessionStorage.setItem('checkout_trial', String(isTrial))
-          } else {
-            navigate('/')
-          }
-        })
+      const loadPlan = async () => {
+        // Try by slug first, then by name
+        let { data } = await supabase
+          .from('plans')
+          .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
+          .eq('is_active', true)
+          .eq('slug', planParam)
+          .maybeSingle()
+
+        if (!data) {
+          const res = await supabase
+            .from('plans')
+            .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
+            .eq('is_active', true)
+            .ilike('name', planParam)
+            .maybeSingle()
+          data = res.data
+        }
+
+        if (data) {
+          const isTrial = data.price_monthly === 0
+          setPlan(data)
+          setIsTrialFlow(isTrial)
+          sessionStorage.setItem('checkout_plan', JSON.stringify(data))
+          sessionStorage.setItem('checkout_trial', String(isTrial))
+        } else {
+          window.location.href = 'https://replyna.me'
+        }
+      }
+      loadPlan()
       return
     }
 
