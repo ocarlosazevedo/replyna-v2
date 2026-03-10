@@ -211,7 +211,7 @@ void main() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000000', color: '#fff', fontFamily: '"Inter", "Segoe UI", sans-serif' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0e172a', color: '#fff', fontFamily: '"Inter", "Segoe UI", sans-serif' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
         @keyframes heroFadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
@@ -281,6 +281,7 @@ void main() {
           }
           .lp-hero-btn-desktop { display: none !important; }
           .lp-hero-btn-mobile { display: inline-flex !important; }
+          .lp-hero-title { font-size: 1.75rem !important; }
         }
         .lp-hero-btn-mobile { display: none !important; }
         .lp-hero-btn-desktop { display: inline-flex !important; }
@@ -315,7 +316,7 @@ void main() {
         /* ── Network Grid Section ── */
         .net-section {
           position: relative; padding: 80px 24px 60px; overflow: hidden;
-          background: linear-gradient(180deg, #000 0%, #060618 30%, #080822 50%, #060618 70%, #000 100%);
+          background: linear-gradient(180deg, #0e172a 0%, #0b1322 30%, #0d1526 50%, #0b1322 70%, #0e172a 100%);
         }
         /* Radial light behind hub */
         .net-section::before {
@@ -1150,7 +1151,7 @@ void main() {
 
         .inf-section {
           position: relative; padding: 60px 24px; overflow: hidden;
-          background: linear-gradient(180deg, #000 0%, #060612 50%, #000 100%);
+          background: linear-gradient(180deg, #0e172a 0%, #0b1220 50%, #0e172a 100%);
         }
         /* Subtle moving grid background */
         .inf-section::before {
@@ -1417,7 +1418,7 @@ void main() {
         }
         .about-section {
           position: relative; padding: 60px 24px; overflow: hidden;
-          background: linear-gradient(180deg, #000 0%, #050510 30%, #080818 50%, #050510 70%, #000 100%);
+          background: linear-gradient(180deg, #0e172a 0%, #0b1322 30%, #0d1526 50%, #0b1322 70%, #0e172a 100%);
         }
         /* Dot grid background */
         .about-section::before {
@@ -3210,7 +3211,7 @@ void main() {
         <div className="lp-hero-content" style={{ position: 'relative', zIndex: 10, paddingTop: '18vh', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '760px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
 
           {/* Title */}
-          <h1 style={{
+          <h1 className="lp-hero-title" style={{
             fontFamily: '"Plus Jakarta Sans", sans-serif',
             fontSize: 'clamp(2rem, 3.8vw, 3.5rem)',
             fontWeight: 700,
@@ -3287,7 +3288,7 @@ void main() {
         </div>
 
         {/* Bottom fade */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '150px', background: 'linear-gradient(to bottom, transparent, #000000)', zIndex: 2, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '150px', background: 'linear-gradient(to bottom, transparent, #0e172a)', zIndex: 2, pointerEvents: 'none' }} />
       </section>
 
       {/* INTEGRATIONS MARQUEE */}
@@ -3308,7 +3309,7 @@ void main() {
                   { name: 'GoDaddy', icon: <svg width="24" height="24" viewBox="0 0 256 256"><path d="M128 0C57.3 0 0 57.3 0 128s57.3 128 128 128 128-57.3 128-128S198.7 0 128 0z" fill="#1BDBDB"/><path d="M183.2 96.8c-6-14.7-20.3-23.2-40.4-23.2-11 0-21 2.7-29.6 7.3-2.3-4.7-7.2-7.3-13.6-7.3-5.3 0-9.4 1.6-12.6 4.3V78h-18v90.4h18.8v-49.2c0-10.3 5.5-16 14.5-16 8.4 0 12.7 5 12.7 14.8v50.4h18.8v-49.2c0-10 5.3-16 14.3-16 8.6 0 13 5 13 14.8v50.4H180v-54.2c0-4.4-.3-8-1-11.2l4.2 5.8z" fill="#111"/></svg> },
                   { name: 'Hostinger', icon: <svg width="24" height="24" viewBox="0 0 256 303"><path d="M0 0v220.2l128 82.8 128-82.8V0H128L42.7 52.3V183l85.3 52.3 85.3-52.3V89.3L128 141.6 85.3 115V68l42.7-26L213.3 94v131.5L128 277.8 42.7 225.5V78.5L128 26l85.3 52.3" fill="#673DE6"/></svg> },
                   { name: 'Titan Email', icon: <svg width="24" height="24" viewBox="0 0 256 256"><path d="M128 0L0 74v108l128 74 128-74V74L128 0z" fill="#6C47FF"/><path d="M128 96l-48 28v56l48 28 48-28v-56l-48-28zm32 70.4L128 184l-32-17.6v-38.8L128 110l32 17.6v38.8z" fill="#FFF"/></svg> },
-                  { name: 'IMAP / SMTP', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="#6b93ff" strokeWidth="1.5"/><path d="M2 7l10 6 10-6" stroke="#6b93ff" strokeWidth="1.5"/><circle cx="18" cy="8" r="3.5" fill="#000000" stroke="#4ade80" strokeWidth="1.2"/><path d="M16.5 8l1 1 2-2" stroke="#4ade80" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+                  { name: 'IMAP / SMTP', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="#6b93ff" strokeWidth="1.5"/><path d="M2 7l10 6 10-6" stroke="#6b93ff" strokeWidth="1.5"/><circle cx="18" cy="8" r="3.5" fill="#0e172a" stroke="#4ade80" strokeWidth="1.2"/><path d="M16.5 8l1 1 2-2" stroke="#4ade80" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/></svg> },
                 ].map((logo, i) => (
                   <span key={`${setIdx}-${i}`} className="lp-marquee-logo">
                     {logo.icon} {logo.name}
