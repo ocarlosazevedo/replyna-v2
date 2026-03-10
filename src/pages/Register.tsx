@@ -239,7 +239,7 @@ export default function Register() {
             .plans-grid-wrapper::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
           `}</style>
 
-            {plans.map((plan) => (
+            {plans.filter((plan) => plan.price_monthly > 0).map((plan) => (
               <div
                 key={plan.id}
                 onClick={() => handleSelectPlan(plan)}
