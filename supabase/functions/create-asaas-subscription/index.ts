@@ -235,19 +235,19 @@ serve(async (req) => {
       customer = await createCustomer({
         name: user_name || user_email,
         email: normalizedEmail,
-        cpfCnpj: creditCardHolderInfo.cpfCnpj,
+        cpfCnpj: creditCardHolderInfo?.cpfCnpj || undefined,
         mobilePhone: cleanPhone || undefined,
-        postalCode: creditCardHolderInfo.postalCode,
-        addressNumber: creditCardHolderInfo.addressNumber,
+        postalCode: creditCardHolderInfo?.postalCode || undefined,
+        addressNumber: creditCardHolderInfo?.addressNumber || undefined,
       });
     } else {
       // Update existing customer with CPF and address if missing
       await updateCustomer(customer.id, {
         name: user_name || customer.name,
-        cpfCnpj: creditCardHolderInfo.cpfCnpj,
+        cpfCnpj: creditCardHolderInfo?.cpfCnpj || undefined,
         mobilePhone: cleanPhone || undefined,
-        postalCode: creditCardHolderInfo.postalCode,
-        addressNumber: creditCardHolderInfo.addressNumber,
+        postalCode: creditCardHolderInfo?.postalCode || undefined,
+        addressNumber: creditCardHolderInfo?.addressNumber || undefined,
       });
     }
 

@@ -263,6 +263,17 @@ export default function Checkout() {
         is_trial: isTrialFlow || undefined,
       }
 
+      // Always send holder info (needed for Asaas customer creation, even for trial)
+      body.creditCardHolderInfo = {
+        name: name,
+        email,
+        cpfCnpj: cpfDigits,
+        postalCode: address.cep.replace(/\D/g, ''),
+        addressNumber: address.numero,
+        phone: phoneNumber.replace(/\D/g, ''),
+        addressComplement: address.complemento || undefined,
+      }
+
       // Only send card data for paid flows (trial = no charge)
       if (!isTrialFlow && card.number) {
         body.creditCard = {
@@ -272,15 +283,7 @@ export default function Checkout() {
           expiryYear,
           ccv: card.cvv,
         }
-        body.creditCardHolderInfo = {
-          name: card.holderName || name,
-          email,
-          cpfCnpj: cpfDigits,
-          postalCode: address.cep.replace(/\D/g, ''),
-          addressNumber: address.numero,
-          phone: phoneNumber.replace(/\D/g, ''),
-          addressComplement: address.complemento || undefined,
-        }
+        body.creditCardHolderInfo.name = card.holderName || name
       }
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-asaas-subscription`, {
