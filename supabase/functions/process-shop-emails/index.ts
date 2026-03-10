@@ -771,6 +771,16 @@ async function processMessage(
     console.log(`[process-shop-emails] Message ${message.id} marked as pending_human (max data requests exceeded)`);
     return 'forwarded_human';
   } else {
+    // Lógica de retenção: incrementar contador se for cancelamento/devolução
+    let retentionContactCount = conversation.retention_contact_count || 0;
+    if (classification.category === 'troca_devolucao_reembolso') {
+      retentionContactCount += 1;
+      await updateConversation(conversation.id, {
+        retention_contact_count: retentionContactCount,
+      });
+      console.log(`[process-shop-emails] Retenção: contato #${retentionContactCount} para conversa ${conversation.id}`);
+    }
+
     responseResult = await generateResponse(
       {
         name: shop.name,
@@ -783,6 +793,10 @@ async function processMessage(
         signature_html: shop.signature_html,
         is_cod: shop.is_cod,
         store_email: shop.imap_user || shop.support_email,
+        support_email: shop.support_email && shop.support_email !== shop.imap_user ? shop.support_email : undefined,
+        retention_coupon_code: shop.retention_coupon_code,
+        retention_coupon_type: shop.retention_coupon_type,
+        retention_coupon_value: shop.retention_coupon_value,
         return_form_url: `https://app.replyna.me/return-request?shop=${shop.id}`,
       },
       message.subject || '',
@@ -791,7 +805,7 @@ async function processMessage(
       conversationHistory,
       shopifyData,
       classification.language,
-      0, // retentionContactCount
+      retentionContactCount,
       [], // additionalOrders
       [], // emailImages
       classification.sentiment || 'calm',
