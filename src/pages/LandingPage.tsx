@@ -47,9 +47,6 @@ export default function LandingPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [heroLine1, setHeroLine1] = useState('')
-  const [heroLine2, setHeroLine2] = useState('')
-  const [heroVisible, setHeroVisible] = useState(false)
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -206,31 +203,6 @@ void main() {
     }
   }, [])
 
-  // Typewriter text animation
-  useEffect(() => {
-    const t1 = 'Seus clientes reclamam.'
-    const t2 = 'A IA resolve em segundos.'
-    let i1 = 0, i2 = 0, phase = 1
-    const delay = setTimeout(() => {
-      const iv = setInterval(() => {
-        if (phase === 1) {
-          i1++; setHeroLine1(t1.slice(0, i1))
-          if (i1 >= t1.length) phase = 2
-        } else {
-          i2++; setHeroLine2(t2.slice(0, i2))
-          if (i2 >= t2.length) clearInterval(iv)
-        }
-      }, 55)
-      return () => clearInterval(iv)
-    }, 600)
-    return () => clearTimeout(delay)
-  }, [])
-
-  // Staggered entrance
-  useEffect(() => {
-    const t = setTimeout(() => setHeroVisible(true), 200)
-    return () => clearTimeout(t)
-  }, [])
 
   const scrollTo = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault(); setMobileMenuOpen(false)
@@ -3219,9 +3191,9 @@ void main() {
             letterSpacing: '-0.02em',
             margin: 0,
           }}>
-            {heroLine1}
+            Seus clientes reclamam.
             <br />
-            {heroLine2}
+            A IA resolve em segundos.
           </h1>
 
           {/* Subtitle */}
