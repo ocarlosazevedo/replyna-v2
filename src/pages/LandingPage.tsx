@@ -267,18 +267,6 @@ void main() {
             max-width: 320px !important;
             justify-content: center !important;
           }
-          .lp-btn-primary {
-            background: rgba(255,255,255,0.15) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
-            border: 1px solid rgba(255,255,255,0.3) !important;
-            box-shadow: none !important;
-          }
-          .lp-btn-primary:hover {
-            background: rgba(255,255,255,0.22) !important;
-            transform: none !important;
-            box-shadow: none !important;
-          }
           .lp-hero-btn-desktop { display: none !important; }
           .lp-hero-btn-mobile { display: inline-flex !important; }
         }
@@ -291,6 +279,7 @@ void main() {
         @media (max-width: 768px) {
           .lp-nav-desktop { display: none !important; }
           .lp-nav-mobile-toggle { display: flex !important; }
+          .lp-nav-inner { padding: 16px !important; }
           .lp-grid-3 { grid-template-columns: 1fr !important; }
           .lp-grid-2 { grid-template-columns: 1fr !important; }
           .lp-section { padding: 40px 20px !important; }
@@ -3134,7 +3123,7 @@ void main() {
         borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : 'none',
         transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
       }}>
-        <div style={{ width: '100%', padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="lp-nav-inner" style={{ width: '100%', padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '32px', width: 'auto' }} />
           <nav className="lp-nav-desktop" style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
             <a href="#como-funciona" onClick={(e) => scrollTo(e, 'como-funciona')} className="lp-nav-link">Como funciona</a>
@@ -3186,8 +3175,8 @@ void main() {
             ))}
           </nav>
           <div style={{ padding: '24px' }}>
-            <a href={getAppUrl('/register?trial=true')} className="lp-btn-primary" style={{ color: '#fff', padding: '16px', borderRadius: '12px', textDecoration: 'none', fontSize: '16px', fontWeight: 600, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              Testar gratis
+            <a href={getAppUrl('/login')} style={{ color: '#fff', padding: '16px', borderRadius: '12px', textDecoration: 'none', fontSize: '16px', fontWeight: 600, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}>
+              Entrar
             </a>
           </div>
         </div>
