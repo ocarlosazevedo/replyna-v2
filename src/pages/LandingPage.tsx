@@ -3203,7 +3203,7 @@ void main() {
 
       {/* HERO */}
       <section className="lp-hero-section" style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', paddingBottom: '10vh' }}>
-        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }} />
+        <img src="/hero-banner-1.png" alt="Hero" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0, objectFit: 'cover' }} />
 
         {/* Hero text content */}
         <div className="lp-hero-content" style={{ position: 'relative', zIndex: 10, padding: '0 24px', paddingLeft: '8vw', width: '65vw', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: '8vh' }}>
