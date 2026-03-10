@@ -507,9 +507,9 @@ export default function Checkout() {
         maxWidth: '1100px',
         margin: '0 auto',
       }}>
-        <Link to="/register" style={{ display: 'flex', alignItems: 'center' }}>
+        <a href="https://replyna.me" style={{ display: 'flex', alignItems: 'center' }}>
           <img src="/replyna-logo.webp" alt="Replyna" style={{ width: '120px', height: 'auto' }} />
-        </Link>
+        </a>
       </div>
 
       {/* Content */}
