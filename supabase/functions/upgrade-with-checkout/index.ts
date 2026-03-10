@@ -13,7 +13,7 @@ import {
   getCustomerByEmail,
   updateCustomer,
   createSubscription,
-  updateSubscription,
+  deleteSubscription,
 } from '../_shared/asaas.ts';
 
 interface CreditCardInput {
@@ -28,8 +28,8 @@ interface CreditCardHolderInfoInput {
   name: string;
   email: string;
   cpfCnpj: string;
-  postalCode: string;
-  addressNumber: string;
+  postalCode?: string;
+  addressNumber?: string;
   phone: string;
   addressComplement?: string;
 }
@@ -125,9 +125,9 @@ serve(async (req) => {
       );
     }
 
-    if (!creditCardHolderInfo || !creditCardHolderInfo.cpfCnpj || !creditCardHolderInfo.postalCode) {
+    if (!creditCardHolderInfo || !creditCardHolderInfo.cpfCnpj) {
       return new Response(
-        JSON.stringify({ error: 'Dados do titular do cartao sao obrigatorios (CPF/CNPJ e CEP)' }),
+        JSON.stringify({ error: 'Dados do titular do cartao sao obrigatorios (CPF/CNPJ)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -246,8 +246,8 @@ serve(async (req) => {
             name: creditCardHolderInfo.name,
             email: normalizedEmail,
             cpfCnpj: creditCardHolderInfo.cpfCnpj,
-            postalCode: creditCardHolderInfo.postalCode,
-            addressNumber: creditCardHolderInfo.addressNumber,
+            postalCode: creditCardHolderInfo.postalCode || undefined,
+            addressNumber: creditCardHolderInfo.addressNumber || undefined,
             phone: creditCardHolderInfo.phone || cleanPhone,
             addressComplement: creditCardHolderInfo.addressComplement || undefined,
           },
@@ -290,8 +290,8 @@ serve(async (req) => {
             name: creditCardHolderInfo.name,
             email: normalizedEmail,
             cpfCnpj: creditCardHolderInfo.cpfCnpj,
-            postalCode: creditCardHolderInfo.postalCode,
-            addressNumber: creditCardHolderInfo.addressNumber,
+            postalCode: creditCardHolderInfo.postalCode || undefined,
+            addressNumber: creditCardHolderInfo.addressNumber || undefined,
             phone: creditCardHolderInfo.phone || cleanPhone,
             addressComplement: creditCardHolderInfo.addressComplement || undefined,
           },

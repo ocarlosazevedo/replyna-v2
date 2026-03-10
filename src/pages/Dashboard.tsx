@@ -378,7 +378,6 @@ export default function Dashboard() {
     setLoadingChart(true)
 
     const loadPendingHuman = async () => {
-      // Excluir troca_devolucao_reembolso da contagem de atendimento humano
       const baseQuery = () =>
         supabase
           .from('conversations')
@@ -386,7 +385,6 @@ export default function Dashboard() {
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
           .eq('status', 'pending_human')
-          .neq('category', 'troca_devolucao_reembolso')
 
       const pendingQuery =
         selectedShopId === 'all'

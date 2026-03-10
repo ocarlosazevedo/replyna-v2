@@ -145,10 +145,10 @@ export default function AddressSection({ address, onChange, isInternational }: A
         </div>
         <div>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-            {isInternational ? 'Address' : 'Endereço'}
+            Endereço
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-            {isInternational ? 'Billing address' : 'Endereço de cobrança'}
+            Endereço de cobrança
           </p>
         </div>
       </div>
@@ -235,19 +235,19 @@ export default function AddressSection({ address, onChange, isInternational }: A
             transition={{ duration: 0.3 }}
           >
             <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>{isInternational ? 'Street' : 'Logradouro'}</label>
+              <label style={labelStyle}>Logradouro</label>
               <input
                 type="text"
                 value={address.logradouro}
                 onChange={(e) => updateField('logradouro', e.target.value)}
                 style={inputStyle}
-                placeholder={isInternational ? 'Street address' : 'Rua, Avenida...'}
+                placeholder="Rua, Avenida..."
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '16px' }}>
               <div>
-                <label style={labelStyle}>{isInternational ? 'Number' : 'Numero'}</label>
+                <label style={labelStyle}>Numero</label>
                 <input
                   type="text"
                   value={address.numero}
@@ -257,48 +257,48 @@ export default function AddressSection({ address, onChange, isInternational }: A
                 />
               </div>
               <div>
-                <label style={labelStyle}>{isInternational ? 'Complement' : 'Complemento'}</label>
+                <label style={labelStyle}>Complemento</label>
                 <input
                   type="text"
                   value={address.complemento}
                   onChange={(e) => updateField('complemento', e.target.value)}
                   style={inputStyle}
-                  placeholder={isInternational ? 'Apt, Suite...' : 'Apto, Sala...'}
+                  placeholder="Apto, Sala..."
                 />
               </div>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>{isInternational ? 'Neighborhood' : 'Bairro'}</label>
+              <label style={labelStyle}>Bairro</label>
               <input
                 type="text"
                 value={address.bairro}
                 onChange={(e) => updateField('bairro', e.target.value)}
                 style={inputStyle}
-                placeholder={isInternational ? 'Neighborhood' : 'Bairro'}
+                placeholder="Bairro"
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
               <div>
-                <label style={labelStyle}>{isInternational ? 'City' : 'Cidade'}</label>
+                <label style={labelStyle}>Cidade</label>
                 <input
                   type="text"
                   value={address.cidade}
                   onChange={(e) => updateField('cidade', e.target.value)}
                   style={inputStyle}
-                  placeholder={isInternational ? 'City' : 'Cidade'}
+                  placeholder="Cidade"
                 />
               </div>
               <div>
-                <label style={labelStyle}>{isInternational ? 'State' : 'Estado'}</label>
+                <label style={labelStyle}>Estado</label>
                 <input
                   type="text"
                   value={address.estado}
                   onChange={(e) => updateField('estado', e.target.value)}
                   style={inputStyle}
-                  placeholder={isInternational ? 'State' : 'UF'}
-                  maxLength={isInternational ? undefined : 2}
+                  placeholder="UF"
+                  maxLength={2}
                 />
               </div>
             </div>

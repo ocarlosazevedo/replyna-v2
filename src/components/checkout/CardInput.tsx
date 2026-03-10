@@ -7,6 +7,7 @@ import {
   formatExpiryDate,
   getCvvLength,
   getCardNumberMaxLength,
+  isInternationalCard,
   type CardBrand,
 } from '../../utils/cardUtils'
 
@@ -290,7 +291,7 @@ function CardPreview({ card, brand, isFlipped, focusedField }: { card: CardData;
   )
 }
 
-export default function CardInput({ card, onChange, onBrandDetected }: CardInputProps) {
+export default function CardInput({ card, onChange, onBrandDetected, onInternationalDetected }: CardInputProps) {
   const [brand, setBrand] = useState<CardBrand>('unknown')
   const [showCvv, setShowCvv] = useState(false)
   const [isFlipped, setIsFlipped] = useState(false)
@@ -308,6 +309,9 @@ export default function CardInput({ card, onChange, onBrandDetected }: CardInput
 
     setBrand(detected)
     onBrandDetected?.(detected)
+    if (limited.length >= 6) {
+      onInternationalDetected?.(isInternationalCard(limited))
+    }
     onChange({ ...card, number: formatted })
 
     // Auto-advance to holder name when card number is complete

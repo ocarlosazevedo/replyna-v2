@@ -252,11 +252,9 @@ export default function Checkout() {
       if (!name.trim()) return 'Informe seu nome completo'
       if (!email.trim() || !email.includes('@')) return 'Informe um email válido'
       if (!phoneNumber.trim()) return 'Informe seu número de celular'
-      if (!isInternational) {
-        const cpfDigits = cpfCnpj.replace(/\D/g, '')
-        if (cpfDigits.length === 11 && !validateCPF(cpfCnpj)) return 'CPF inválido'
-        if (cpfDigits.length < 11) return 'Informe seu CPF completo'
-      }
+      const cpfDigits = cpfCnpj.replace(/\D/g, '')
+      if (cpfDigits.length === 11 && !validateCPF(cpfCnpj)) return 'CPF inválido'
+      if (cpfDigits.length < 11) return 'Informe seu CPF completo'
     }
     if (stepId === 'address') {
       if (!isInternational && !address.cep) return 'Informe o CEP'
@@ -759,12 +757,12 @@ export default function Checkout() {
 
                   <div>
                     <label style={labelStyle}>
-                      {isInternational ? 'Tax ID (optional)' : 'CPF ou CNPJ'}
+                      CPF ou CNPJ
                     </label>
                     <input type="text" value={cpfCnpj}
                       onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))}
                       style={inputStyle}
-                      placeholder={isInternational ? 'Tax ID' : '000.000.000-00'} />
+                      placeholder="000.000.000-00" />
                   </div>
                 </motion.div>
               )}
