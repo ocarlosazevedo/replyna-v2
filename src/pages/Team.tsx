@@ -343,15 +343,14 @@ export default function Team() {
           style={{
             display: 'flex', alignItems: 'center', gap: '8px',
             padding: '11px 22px', borderRadius: '10px',
-            background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
+            backgroundColor: 'var(--accent)',
             color: '#fff', border: 'none', cursor: 'pointer',
             fontWeight: 600, fontSize: '14px',
-            boxShadow: '0 2px 8px rgba(124, 58, 237, 0.25)',
-            transition: 'transform 0.15s, box-shadow 0.15s',
+            transition: 'opacity 0.15s',
             width: isMobile ? '100%' : 'auto', justifyContent: 'center',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(124, 58, 237, 0.35)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(124, 58, 237, 0.25)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
         >
           <UserPlus size={16} />
           Convidar membro
@@ -376,11 +375,11 @@ export default function Team() {
       {lastCreatedInvite && (
         <div style={{
           padding: '18px 20px', borderRadius: '12px', marginBottom: '20px',
-          background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(59, 130, 246, 0.08))',
-          border: '1px solid rgba(124, 58, 237, 0.2)',
+          backgroundColor: 'rgba(70, 114, 236, 0.06)',
+          border: '1px solid rgba(70, 114, 236, 0.15)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-            <Link2 size={16} style={{ color: '#8b5cf6' }} />
+            <Link2 size={16} style={{ color: 'var(--accent)' }} />
             <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
               Convite criado para {lastCreatedInvite.email}
             </span>
@@ -419,7 +418,7 @@ export default function Team() {
       {/* Formulário de convite */}
       {showInviteForm && (
         <div style={{
-          backgroundColor: 'var(--bg-card)', borderRadius: '14px',
+          backgroundColor: 'var(--bg-card)', borderRadius: '16px',
           border: '1px solid var(--border-color)', padding: isMobile ? '20px' : '28px',
           marginBottom: '24px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
@@ -591,7 +590,7 @@ export default function Team() {
                         display: 'flex', alignItems: 'center', gap: '12px',
                         padding: '12px 14px', borderRadius: '10px',
                         border: `1.5px solid ${isSelected ? 'var(--accent)' : 'var(--border-color)'}`,
-                        backgroundColor: isSelected ? 'rgba(124, 58, 237, 0.04)' : 'transparent',
+                        backgroundColor: isSelected ? 'rgba(70, 114, 236, 0.04)' : 'transparent',
                         cursor: 'pointer', transition: 'all 0.15s',
                       }}
                     >
@@ -637,10 +636,9 @@ export default function Team() {
               style={{
                 padding: '11px 26px', borderRadius: '10px',
                 border: 'none',
-                background: (sending || !inviteEmail || selectedShops.length === 0) ? 'var(--border-color)' : 'linear-gradient(135deg, var(--accent), #7c3aed)',
+                backgroundColor: (sending || !inviteEmail || selectedShops.length === 0) ? 'var(--border-color)' : 'var(--accent)',
                 color: '#fff', cursor: (sending || !inviteEmail || selectedShops.length === 0) ? 'not-allowed' : 'pointer',
                 fontSize: '14px', fontWeight: 600,
-                boxShadow: (sending || !inviteEmail || selectedShops.length === 0) ? 'none' : '0 2px 8px rgba(124, 58, 237, 0.25)',
               }}
             >
               {sending ? 'Criando convite...' : 'Criar convite'}
@@ -681,7 +679,7 @@ export default function Team() {
 
       {/* Membros atuais */}
       <div style={{
-        backgroundColor: 'var(--bg-card)', borderRadius: '14px',
+        backgroundColor: 'var(--bg-card)', borderRadius: '16px',
         border: '1px solid var(--border-color)', marginBottom: '24px',
         overflow: 'hidden',
       }}>
@@ -705,7 +703,7 @@ export default function Team() {
           <div style={{ padding: '50px 24px', textAlign: 'center' }}>
             <div style={{
               width: '64px', height: '64px', borderRadius: '50%', margin: '0 auto 16px',
-              background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(59, 130, 246, 0.1))',
+              background: 'linear-gradient(135deg, rgba(70, 114, 236, 0.1), rgba(59, 130, 246, 0.1))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <Users size={28} style={{ color: 'var(--accent)' }} />
@@ -855,7 +853,7 @@ export default function Team() {
                               display: 'flex', alignItems: 'center', gap: '12px',
                               padding: '10px 14px', borderRadius: '10px',
                               border: `1.5px solid ${isSelected ? 'var(--accent)' : 'var(--border-color)'}`,
-                              backgroundColor: isSelected ? 'rgba(124, 58, 237, 0.04)' : 'transparent',
+                              backgroundColor: isSelected ? 'rgba(70, 114, 236, 0.04)' : 'transparent',
                               cursor: 'pointer', transition: 'all 0.15s',
                             }}
                           >
@@ -889,7 +887,7 @@ export default function Team() {
       {/* Convites pendentes */}
       {pendingInvites.length > 0 && (
         <div style={{
-          backgroundColor: 'var(--bg-card)', borderRadius: '14px',
+          backgroundColor: 'var(--bg-card)', borderRadius: '16px',
           border: '1px solid var(--border-color)', overflow: 'hidden',
         }}>
           <div style={{
@@ -984,7 +982,7 @@ export default function Team() {
                         backgroundColor: 'transparent', cursor: 'pointer', color: 'var(--text-tertiary)',
                         fontSize: '12px', fontWeight: 500, transition: 'all 0.15s',
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(124,58,237,0.08)'; e.currentTarget.style.color = 'var(--accent)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(70,114,236,0.08)'; e.currentTarget.style.color = 'var(--accent)' }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-tertiary)' }}
                       title="Editar convite"
                     >

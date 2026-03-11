@@ -180,7 +180,7 @@ export default function TeamInvite() {
         <div className="animate-spin" style={{
           width: '32px', height: '32px',
           border: '3px solid var(--border-color)',
-          borderTopColor: 'var(--primary-color)',
+          borderTopColor: 'var(--accent)',
           borderRadius: '50%',
         }} />
       </div>
@@ -194,7 +194,7 @@ export default function TeamInvite() {
     }}>
       <div style={{
         maxWidth: '480px', width: '100%',
-        backgroundColor: 'var(--bg-secondary)', borderRadius: '16px',
+        backgroundColor: 'var(--bg-card)', borderRadius: '16px',
         border: '1px solid var(--border-color)', padding: '40px',
         textAlign: 'center',
       }}>
@@ -218,8 +218,8 @@ export default function TeamInvite() {
             <button
               onClick={() => navigate('/dashboard')}
               style={{
-                padding: '10px 24px', borderRadius: '8px',
-                backgroundColor: 'var(--primary-color)', color: '#fff',
+                padding: '12px 24px', borderRadius: '10px',
+                backgroundColor: 'var(--accent)', color: '#fff',
                 border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '14px',
               }}
             >
@@ -244,7 +244,7 @@ export default function TeamInvite() {
         {/* Dados do convite */}
         {inviteData && !success && (
           <div>
-            <Users size={48} style={{ color: 'var(--primary-color)', marginBottom: '16px' }} />
+            <Users size={48} style={{ color: 'var(--accent)', marginBottom: '16px' }} />
 
             <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px' }}>
               Convite para equipe
@@ -291,7 +291,7 @@ export default function TeamInvite() {
             {/* Erro inline */}
             {error && (
               <div style={{
-                padding: '10px 14px', borderRadius: '8px', marginBottom: '16px',
+                padding: '10px 14px', borderRadius: '10px', marginBottom: '16px',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
                 fontSize: '13px', textAlign: 'left',
               }}>
@@ -304,8 +304,8 @@ export default function TeamInvite() {
               <div>
                 <div style={{
                   padding: '14px 16px', borderRadius: '10px', marginBottom: '20px',
-                  backgroundColor: 'rgba(124, 58, 237, 0.08)',
-                  border: '1px solid rgba(124, 58, 237, 0.15)',
+                  backgroundColor: 'rgba(70, 114, 236, 0.06)',
+                  border: '1px solid rgba(70, 114, 236, 0.15)',
                   textAlign: 'left',
                 }}>
                   <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
@@ -317,7 +317,7 @@ export default function TeamInvite() {
 
                 {authError && (
                   <div style={{
-                    padding: '10px 14px', borderRadius: '8px', marginBottom: '16px',
+                    padding: '10px 14px', borderRadius: '10px', marginBottom: '16px',
                     backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
                     fontSize: '13px', textAlign: 'left',
                   }}>
@@ -328,7 +328,7 @@ export default function TeamInvite() {
                 <form onSubmit={handleAuthSubmit} style={{ textAlign: 'left' }}>
                   {authMode === 'register' && (
                     <div style={{ marginBottom: '12px' }}>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
                         Nome
                       </label>
                       <input
@@ -338,17 +338,17 @@ export default function TeamInvite() {
                         placeholder="Seu nome"
                         required
                         style={{
-                          width: '100%', padding: '10px 14px', borderRadius: '8px',
+                          width: '100%', padding: '11px 14px', borderRadius: '10px',
                           border: '1px solid var(--border-color)', fontSize: '14px',
                           backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)',
-                          boxSizing: 'border-box',
+                          boxSizing: 'border-box', outline: 'none',
                         }}
                       />
                     </div>
                   )}
 
                   <div style={{ marginBottom: '12px' }}>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
                       Email
                     </label>
                     <input
@@ -358,16 +358,16 @@ export default function TeamInvite() {
                       placeholder="seu@email.com"
                       required
                       style={{
-                        width: '100%', padding: '10px 14px', borderRadius: '8px',
+                        width: '100%', padding: '11px 14px', borderRadius: '10px',
                         border: '1px solid var(--border-color)', fontSize: '14px',
                         backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)',
-                        boxSizing: 'border-box',
+                        boxSizing: 'border-box', outline: 'none',
                       }}
                     />
                   </div>
 
                   <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
                       Senha
                     </label>
                     <div style={{ position: 'relative' }}>
@@ -378,10 +378,10 @@ export default function TeamInvite() {
                         placeholder={authMode === 'register' ? 'Mínimo 6 caracteres' : '••••••••'}
                         required
                         style={{
-                          width: '100%', padding: '10px 40px 10px 14px', borderRadius: '8px',
+                          width: '100%', padding: '11px 40px 11px 14px', borderRadius: '10px',
                           border: '1px solid var(--border-color)', fontSize: '14px',
                           backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)',
-                          boxSizing: 'border-box',
+                          boxSizing: 'border-box', outline: 'none',
                         }}
                       />
                       <button
@@ -402,8 +402,8 @@ export default function TeamInvite() {
                     type="submit"
                     disabled={authLoading2}
                     style={{
-                      width: '100%', padding: '12px', borderRadius: '8px',
-                      border: 'none', backgroundColor: '#7c3aed',
+                      width: '100%', padding: '12px', borderRadius: '10px',
+                      border: 'none', backgroundColor: 'var(--accent)',
                       color: '#fff', cursor: authLoading2 ? 'not-allowed' : 'pointer',
                       fontSize: '14px', fontWeight: 600,
                       opacity: authLoading2 ? 0.7 : 1,
@@ -420,9 +420,9 @@ export default function TeamInvite() {
 
                 <p style={{ margin: '14px 0 0', fontSize: '12px', color: 'var(--text-tertiary)', textAlign: 'center' }}>
                   {authMode === 'register' ? (
-                    <>Já tem conta? <button onClick={() => { setAuthMode('login'); setAuthError(null) }} style={{ color: 'var(--primary-color)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, fontSize: '12px', padding: 0 }}>Fazer login</button></>
+                    <>Já tem conta? <button onClick={() => { setAuthMode('login'); setAuthError(null) }} style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, fontSize: '12px', padding: 0 }}>Fazer login</button></>
                   ) : (
-                    <>Não tem conta? <button onClick={() => { setAuthMode('register'); setAuthError(null) }} style={{ color: 'var(--primary-color)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, fontSize: '12px', padding: 0 }}>Criar conta grátis</button></>
+                    <>Não tem conta? <button onClick={() => { setAuthMode('register'); setAuthError(null) }} style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, fontSize: '12px', padding: 0 }}>Criar conta grátis</button></>
                   )}
                 </p>
               </div>
@@ -432,7 +432,7 @@ export default function TeamInvite() {
                 <button
                   onClick={() => navigate('/dashboard')}
                   style={{
-                    flex: 1, padding: '12px', borderRadius: '8px',
+                    flex: 1, padding: '12px', borderRadius: '10px',
                     border: '1px solid var(--border-color)', backgroundColor: 'transparent',
                     color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '14px',
                   }}
@@ -443,8 +443,8 @@ export default function TeamInvite() {
                   onClick={handleAccept}
                   disabled={accepting}
                   style={{
-                    flex: 1, padding: '12px', borderRadius: '8px',
-                    border: 'none', backgroundColor: 'var(--primary-color)',
+                    flex: 1, padding: '12px', borderRadius: '10px',
+                    border: 'none', backgroundColor: 'var(--accent)',
                     color: '#fff', cursor: accepting ? 'not-allowed' : 'pointer',
                     fontSize: '14px', fontWeight: 600,
                     opacity: accepting ? 0.7 : 1,
