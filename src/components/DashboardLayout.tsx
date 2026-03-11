@@ -94,9 +94,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [isMobileMenuOpen])
 
-  const TEAM_BETA_EMAILS = ['gustavolsilva2003@gmail.com', 'horizonbluesolutionsllc@gmail.com']
-  const showTeamMenu = !isTeamContext && user?.email && TEAM_BETA_EMAILS.includes(user.email)
-
   const menuItems = [
     // Painel: sempre visível
     { path: '/dashboard', label: 'Painel de controle', icon: LayoutGrid },
@@ -106,8 +103,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     ...(!isTeamContext || hasPermission('forms', 'manage') ? [{ path: '/formularios', label: 'Formulários', icon: FileText, badge: formsCount }] : []),
     // Lojas: apenas se pode editar (manager)
     ...(!isTeamContext || hasPermission('shops', 'edit') ? [{ path: '/shops', label: isTeamContext ? 'Lojas' : 'Minhas lojas', icon: Store }] : []),
-    // Equipe: owners com acesso beta ou managers
-    ...(showTeamMenu || (isTeamContext && hasPermission('team', 'manage')) ? [{ path: '/team', label: 'Equipe', icon: Users }] : []),
+    // Equipe: owners sempre veem, membros só com permissão team.manage
+    ...(!isTeamContext || hasPermission('team', 'manage') ? [{ path: '/team', label: 'Equipe', icon: Users }] : []),
   ]
 
   const handleLogout = async () => {
