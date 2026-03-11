@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
+import { useTeamContext } from '../hooks/useTeamContext'
 
 interface UserProfile {
   name: string | null
@@ -81,7 +82,9 @@ export default function Account() {
   console.log('🔄 Account.tsx carregado - versão 3 (com sync fix)')
   const { user } = useAuth()
   const { theme, setTheme } = useTheme()
+  const { isTeamContext, hasPermission } = useTeamContext()
   const isMobile = useIsMobile()
+  const canSeeBilling = !isTeamContext || hasPermission('billing', 'read')
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -1305,7 +1308,7 @@ export default function Account() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <section style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', height: 'fit-content' }}>
+          {canSeeBilling && <section style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', height: 'fit-content' }}>
             <div style={{ marginBottom: '16px' }}>
               <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Plano e Cobrança</h2>
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px' }}>Gerencie sua assinatura</p>
@@ -1689,7 +1692,7 @@ export default function Account() {
                 )}
               </div>
             )}
-          </section>
+          </section>}
 
           <section style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', height: 'fit-content' }}>
             <div style={{ marginBottom: '16px' }}>

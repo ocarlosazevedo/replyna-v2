@@ -3,6 +3,7 @@ import { FileText, Store, ClipboardList, Link2, Copy, Check, ChevronDown, Chevro
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile } from '../hooks/useUserProfile'
+import { useTeamContext } from '../hooks/useTeamContext'
 import { supabase } from '../lib/supabase'
 import FormDetailModal from '../components/FormDetailModal'
 
@@ -88,7 +89,8 @@ const Skeleton = ({ height = 16, width = '100%' }: { height?: number; width?: nu
 
 export default function Formularios() {
   const { user } = useAuth()
-  const { shops, loading: loadingShops } = useUserProfile()
+  const { shops: ownShops, loading: loadingShops } = useUserProfile()
+  const { isTeamContext, allowedShopIds, loading: teamContextLoading } = useTeamContext()
   const isMobile = useIsMobile()
   const [forms, setForms] = useState<FormRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -97,7 +99,30 @@ export default function Formularios() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [showLinks, setShowLinks] = useState(false)
   const [copiedShopId, setCopiedShopId] = useState<string | null>(null)
+  const [teamShops, setTeamShops] = useState<Array<{ id: string; name: string; shopify_domain: string; is_active: boolean }>>([])
+  const [loadingTeamShops, setLoadingTeamShops] = useState(false)
 
+  // Carregar lojas da equipe quando em contexto de equipe
+  useEffect(() => {
+    if (!isTeamContext || !allowedShopIds || allowedShopIds.length === 0) {
+      setTeamShops([])
+      return
+    }
+    setLoadingTeamShops(true)
+    const loadTeamShops = async () => {
+      const { data } = await supabase
+        .from('shops')
+        .select('id, name, shopify_domain, is_active')
+        .in('id', allowedShopIds)
+        .order('name', { ascending: true })
+      setTeamShops(data || [])
+      setLoadingTeamShops(false)
+    }
+    loadTeamShops()
+  }, [isTeamContext, allowedShopIds])
+
+  const shops = isTeamContext ? teamShops : ownShops
+  const shopsReady = isTeamContext ? (!teamContextLoading && !loadingTeamShops && !!allowedShopIds) : !loadingShops
   const shopIds = useMemo(() => shops.map((s) => s.id), [shops])
 
   const shopNameMap = useMemo(() => {
@@ -160,10 +185,10 @@ export default function Formularios() {
   }, [user, shopIds, shopNameMap])
 
   useEffect(() => {
-    if (!loadingShops && shopIds.length > 0) {
+    if (shopsReady && shopIds.length > 0) {
       loadForms()
     }
-  }, [loadingShops, shopIds, loadForms])
+  }, [shopsReady, shopIds, loadForms])
 
   // Real-time subscription
   useEffect(() => {

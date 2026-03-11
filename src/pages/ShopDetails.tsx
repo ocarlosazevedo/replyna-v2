@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useTeamContext } from '../hooks/useTeamContext'
 import { ChevronLeft, Eye, EyeOff, Save, Store, ShoppingBag, Mail, Settings, Check, X, Edit3, Package, RefreshCw } from 'lucide-react'
 import { markRetentionCouponTipAsSeen } from '../components/FeatureTipBanner'
 
@@ -63,6 +64,8 @@ export default function ShopDetails() {
   const { shopId } = useParams()
   const [searchParams] = useSearchParams()
   const isMobile = useIsMobile()
+  const { isTeamContext, hasPermission, allowedShopIds } = useTeamContext()
+  const canEdit = !isTeamContext || hasPermission('shops', 'edit')
 
   const [shop, setShop] = useState<ShopData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -79,6 +82,13 @@ export default function ShopDetails() {
   const [oauthRequired, setOauthRequired] = useState(false)
   const [oauthRedirecting, setOauthRedirecting] = useState(false)
   const [syncingProducts, setSyncingProducts] = useState(false)
+
+  // Bloquear acesso a lojas não permitidas para membros de equipe
+  useEffect(() => {
+    if (isTeamContext && allowedShopIds && shopId && !allowedShopIds.includes(shopId)) {
+      navigate('/shops', { replace: true })
+    }
+  }, [isTeamContext, allowedShopIds, shopId, navigate])
 
   useEffect(() => {
     if (shopId) {
@@ -137,7 +147,7 @@ export default function ShopDetails() {
   }
 
   const startEditing = (section: string) => {
-    if (!shop) return
+    if (!shop || !canEdit) return
     setEditingSection(section)
     setEditData({ ...shop })
     setError('')
@@ -597,7 +607,7 @@ export default function ShopDetails() {
             <Store size={22} style={{ color: 'var(--accent)' }} />
             Informações Básicas
           </div>
-          {editingSection !== 'basic' ? (
+          {canEdit && (editingSection !== 'basic' ? (
             <button onClick={() => startEditing('basic')} style={buttonSecondary}>
               <Edit3 size={16} />
               Editar
@@ -613,7 +623,7 @@ export default function ShopDetails() {
                 {saving ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
-          )}
+          ))}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
@@ -654,7 +664,7 @@ export default function ShopDetails() {
             Integração Shopify
             <div style={{ marginLeft: '8px' }}>{statusBadge(shop.shopify_status)}</div>
           </div>
-          {editingSection !== 'shopify' ? (
+          {canEdit && (editingSection !== 'shopify' ? (
             <button onClick={() => startEditing('shopify')} style={buttonSecondary}>
               <Edit3 size={16} />
               Editar
@@ -670,7 +680,7 @@ export default function ShopDetails() {
                 {saving ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
-          )}
+          ))}
         </div>
 
         {editingSection === 'shopify' ? (
@@ -833,7 +843,7 @@ export default function ShopDetails() {
             Integração de Email
             <div style={{ marginLeft: '8px' }}>{emailStatusBadge()}</div>
           </div>
-          {editingSection !== 'email' ? (
+          {canEdit && (editingSection !== 'email' ? (
             <button onClick={() => startEditing('email')} style={buttonSecondary}>
               <Edit3 size={16} />
               Editar
@@ -849,7 +859,7 @@ export default function ShopDetails() {
                 {saving ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
-          )}
+          ))}
         </div>
 
         {/* Mensagem de erro de sincronização */}
@@ -995,7 +1005,7 @@ export default function ShopDetails() {
             <Settings size={22} style={{ color: 'var(--accent)' }} />
             Customizações
           </div>
-          {editingSection !== 'custom' ? (
+          {canEdit && (editingSection !== 'custom' ? (
             <button onClick={() => startEditing('custom')} style={buttonSecondary}>
               <Edit3 size={16} />
               Editar
@@ -1011,7 +1021,7 @@ export default function ShopDetails() {
                 {saving ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
-          )}
+          ))}
         </div>
 
         {editingSection === 'custom' ? (

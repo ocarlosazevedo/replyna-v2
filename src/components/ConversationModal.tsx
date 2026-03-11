@@ -21,6 +21,7 @@ interface ConversationModalProps {
   onClose: () => void
   onCategoryChange?: (conversationId: string, newCategory: string) => void
   isAdmin?: boolean
+  canReply?: boolean // false = esconde seção de resposta manual (ex: viewer)
 }
 
 const formatDateTime = (date: Date) =>
@@ -374,7 +375,7 @@ function cleanMessageBody(body: string | null): string {
 
 const TEST_ACCOUNT_EMAIL = 'gustavolsilva2003@gmail.com'
 
-export default function ConversationModal({ conversationId, onClose, onCategoryChange, isAdmin = false }: ConversationModalProps) {
+export default function ConversationModal({ conversationId, onClose, onCategoryChange, isAdmin = false, canReply = true }: ConversationModalProps) {
   const [isTestAccount, setIsTestAccount] = useState(false)
   const [conversation, setConversation] = useState<{
     id: string
@@ -1453,7 +1454,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
         </div>
 
         {/* Seção de Resposta Manual */}
-        {!isAdmin && !loading && conversation && (
+        {!isAdmin && canReply && !loading && conversation && (
           <div style={{
             padding: '12px 20px 16px',
             borderTop: '1px solid var(--border-color)',

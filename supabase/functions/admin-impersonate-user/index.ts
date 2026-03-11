@@ -39,7 +39,7 @@ serve(async (req) => {
       },
     });
 
-    const { userId } = await req.json();
+    const { userId, siteUrl: customSiteUrl } = await req.json();
 
     if (!userId) {
       return new Response(
@@ -112,7 +112,8 @@ serve(async (req) => {
 
     // Construir link que vai direto para o site e usa o fluxo de confirmação
     // O Supabase processa isso automaticamente se configurado corretamente
-    const appLink = `${SITE_URL}/auth/confirm?token_hash=${hashedToken || token}&type=${type}`;
+    const baseUrl = customSiteUrl || SITE_URL;
+    const appLink = `${baseUrl}/auth/confirm?token_hash=${hashedToken || token}&type=${type}`;
 
     console.log('Magic link gerado com sucesso para:', maskEmail(user.email));
     console.log('App link:', appLink);

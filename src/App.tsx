@@ -25,6 +25,8 @@ import Tickets from './pages/Tickets'
 import Formularios from './pages/Formularios'
 import Migrate from './pages/Migrate'
 import ReturnRequest from './pages/ReturnRequest'
+import Team from './pages/Team'
+import TeamInvite from './pages/TeamInvite'
 
 // Verifica se estamos no domínio da Landing Page (replyna.me sem subdomain)
 const isLandingDomain = () => {
@@ -66,6 +68,7 @@ import AuthConfirm from './pages/AuthConfirm'
 
 // Components
 import DashboardLayout from './components/DashboardLayout'
+import { TeamProvider } from './hooks/useTeamContext'
 import AdminLayout from './components/AdminLayout'
 import ErrorBoundary from './components/ErrorBoundary'
 
@@ -84,7 +87,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" />
   }
 
-  return <>{children}</>
+  return <TeamProvider>{children}</TeamProvider>
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -245,6 +248,15 @@ function App() {
               </DashboardLayout>
             </PrivateRoute>
           } />
+          
+          <Route path="/team" element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Team />
+              </DashboardLayout>
+            </PrivateRoute>
+          } />
+          <Route path="/team/invite/:code" element={<TeamInvite />} />
           <Route path="/account" element={
             <PrivateRoute>
               <DashboardLayout>

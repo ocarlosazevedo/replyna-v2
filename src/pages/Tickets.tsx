@@ -3,6 +3,7 @@ import { Ticket, Store, MessageSquare, Clock, CheckCircle, RefreshCw, XCircle } 
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile } from '../hooks/useUserProfile'
+import { useTeamContext } from '../hooks/useTeamContext'
 import { supabase } from '../lib/supabase'
 import ConversationModal from '../components/ConversationModal'
 import { getCategoryBadgeStyle, getCategoryLabel } from '../constants/categories'
@@ -85,7 +86,8 @@ const Skeleton = ({ height = 16, width = '100%' }: { height?: number; width?: nu
 
 export default function Tickets() {
   const { user } = useAuth()
-  const { shops, loading: loadingShops } = useUserProfile()
+  const { shops: ownShops, loading: loadingShops } = useUserProfile()
+  const { isTeamContext, allowedShopIds, hasPermission, loading: teamContextLoading } = useTeamContext()
   const isMobile = useIsMobile()
 
   const [tickets, setTickets] = useState<TicketRow[]>([])
@@ -93,7 +95,30 @@ export default function Tickets() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [selectedShopId, setSelectedShopId] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [teamShops, setTeamShops] = useState<Array<{ id: string; name: string; shopify_domain: string; is_active: boolean }>>([])
+  const [loadingTeamShops, setLoadingTeamShops] = useState(false)
 
+  // Carregar lojas da equipe quando em contexto de equipe
+  useEffect(() => {
+    if (!isTeamContext || !allowedShopIds || allowedShopIds.length === 0) {
+      setTeamShops([])
+      return
+    }
+    setLoadingTeamShops(true)
+    const loadTeamShops = async () => {
+      const { data } = await supabase
+        .from('shops')
+        .select('id, name, shopify_domain, is_active')
+        .in('id', allowedShopIds)
+        .order('name', { ascending: true })
+      setTeamShops(data || [])
+      setLoadingTeamShops(false)
+    }
+    loadTeamShops()
+  }, [isTeamContext, allowedShopIds])
+
+  const shops = isTeamContext ? teamShops : ownShops
+  const shopsReady = isTeamContext ? (!teamContextLoading && !loadingTeamShops && !!allowedShopIds) : !loadingShops
   const shopIds = useMemo(() => shops.map((s) => s.id), [shops])
 
   const shopNameMap = useMemo(() => {
@@ -150,10 +175,10 @@ export default function Tickets() {
   }, [user, shopIds, shopNameMap])
 
   useEffect(() => {
-    if (!loadingShops && shopIds.length > 0) {
+    if (shopsReady && shopIds.length > 0) {
       loadTickets()
     }
-  }, [loadingShops, shopIds, loadTickets])
+  }, [shopsReady, shopIds, loadTickets])
 
   // Real-time subscription
   useEffect(() => {
@@ -235,6 +260,7 @@ export default function Tickets() {
       <ConversationModal
         conversationId={selectedConversationId}
         onClose={() => setSelectedConversationId(null)}
+        canReply={hasPermission('conversations', 'reply')}
         onCategoryChange={(conversationId, newCategory) => {
           setTickets((prev) =>
             prev.map((t) => (t.id === conversationId ? { ...t, category: newCategory } : t))

@@ -101,10 +101,39 @@ serve(async (req) => {
       console.error('Erro ao buscar lojas:', shopsError);
     }
 
+    // Buscar memberships de equipe (equipes das quais o usuário é membro)
+    const { data: teamMemberships } = await supabaseAdmin
+      .from('team_members')
+      .select('id, owner_user_id, role, allowed_shop_ids, permissions, created_at')
+      .eq('member_user_id', user.id);
+
+    // Enriquecer memberships com dados do owner
+    const enrichedMemberships = [];
+    for (const membership of (teamMemberships || [])) {
+      const { data: owner } = await supabaseAdmin
+        .from('users')
+        .select('id, name, email')
+        .eq('id', membership.owner_user_id)
+        .single();
+
+      enrichedMemberships.push({
+        ...membership,
+        owner: owner ? { id: owner.id, name: owner.name, email: owner.email } : null,
+      });
+    }
+
+    // Contar membros da equipe do owner (para exibir no frontend)
+    const { count: teamMembersCount } = await supabaseAdmin
+      .from('team_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_user_id', user.id);
+
     return new Response(
       JSON.stringify({
         profile,
         shops: shops || [],
+        team_memberships: enrichedMemberships,
+        team_members_count: teamMembersCount || 0,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

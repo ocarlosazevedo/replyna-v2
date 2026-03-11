@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { Sun, Moon, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../context/ThemeContext'
@@ -7,6 +7,9 @@ import { useTheme } from '../context/ThemeContext'
 export default function Login() {
   const { signIn } = useAuth()
   const { theme, setTheme } = useTheme()
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const redirectTo = searchParams.get('redirect')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -20,6 +23,10 @@ export default function Login() {
 
     try {
       await signIn(email, password)
+      if (redirectTo) {
+        navigate(redirectTo)
+        return
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao fazer login'
       setError(errorMessage)

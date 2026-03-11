@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Search, Edit2, Mail, Store, Calendar, ChevronDown, ChevronUp, ExternalLink, Trash2, Key, RefreshCw, ArrowUpDown, LogIn, UserPlus } from 'lucide-react'
+import { Search, Edit2, Mail, Store, Calendar, ChevronDown, ChevronUp, ExternalLink, Trash2, Key, RefreshCw, ArrowUpDown, LogIn, UserPlus, Users } from 'lucide-react'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -27,6 +27,24 @@ interface Subscription {
   current_period_end: string
 }
 
+interface TeamMember {
+  id: string
+  member_user_id: string
+  member_name: string | null
+  member_email: string
+  role: string
+  allowed_shop_ids: string[]
+  created_at: string
+}
+
+interface TeamPendingInvite {
+  id: string
+  invited_email: string
+  invited_name: string | null
+  role: string
+  created_at: string
+}
+
 interface Client {
   id: string
   email: string
@@ -40,6 +58,8 @@ interface Client {
   last_login_at: string | null
   shops: Shop[]
   subscription: Subscription | null
+  team_members: TeamMember[]
+  team_pending_invites: TeamPendingInvite[]
 }
 
 interface Plan {
@@ -333,7 +353,7 @@ export default function AdminClients() {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: client.id }),
+          body: JSON.stringify({ userId: client.id, siteUrl: window.location.origin }),
         }
       )
 
@@ -398,6 +418,10 @@ export default function AdminClients() {
       // Filtro de plano
       const matchesPlan = filterPlan === 'all' || client.plan === filterPlan
 
+      // Esconder membros de equipe da lista principal (aparecem no dropdown do owner)
+      // Só mostra se o filtro de plano estiver especificamente em 'team_member'
+      if (client.plan === 'team_member' && filterPlan !== 'team_member') return false
+
       return matchesSearch && matchesStatus && matchesPlan
     })
     .sort((a, b) => {
@@ -447,6 +471,7 @@ export default function AdminClients() {
 
   const getPlanDisplayName = (planSlug: string | null) => {
     if (!planSlug) return 'Free'
+    if (planSlug === 'team_member') return 'Membro de Equipe'
     const plan = plans.find(p => p.name.toLowerCase() === planSlug.toLowerCase())
     return plan?.name || planSlug.charAt(0).toUpperCase() + planSlug.slice(1)
   }
@@ -465,6 +490,8 @@ export default function AdminClients() {
         return { bg: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' } // Rosa
       case 'enterprise':
         return { bg: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' } // Laranja
+      case 'team_member':
+        return { bg: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' } // Indigo
       case 'free':
         return { bg: 'rgba(107, 114, 128, 0.1)', color: '#6b7280' } // Cinza
       default:
@@ -654,6 +681,7 @@ export default function AdminClients() {
         >
           <option value="all">Todos os planos</option>
           <option value="free">Free</option>
+          <option value="team_member">Membro de Equipe</option>
           {plans.map((plan) => (
             <option key={plan.id} value={plan.name.toLowerCase()}>
               {plan.name}
@@ -843,7 +871,7 @@ export default function AdminClients() {
                 <>
                   <tr key={client.id} style={{ borderBottom: expandedClient === client.id ? 'none' : '1px solid var(--border-color)' }}>
                     <td style={{ padding: '16px 8px 16px 16px' }}>
-                      {client.shops.length > 0 && (
+                      {(client.shops.length > 0 || client.team_members?.length > 0 || client.team_pending_invites?.length > 0) && (
                         <button
                           onClick={() => toggleExpand(client.id)}
                           style={{
@@ -925,6 +953,14 @@ export default function AdminClients() {
                           {client.shops.length} / {client.shops_limit === null ? '∞' : client.shops_limit}
                         </span>
                       </div>
+                      {client.team_members?.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                          <Users size={12} style={{ color: '#6366f1' }} />
+                          <span style={{ fontSize: '11px', color: '#6366f1', fontWeight: 600 }}>
+                            {client.team_members.length} membro{client.team_members.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '16px' }}>
                       <span style={getStatusBadge(getEffectiveStatus(client))}>
@@ -1005,86 +1041,210 @@ export default function AdminClients() {
                       </div>
                     </td>
                   </tr>
-                  {expandedClient === client.id && client.shops.length > 0 && (
-                    <tr key={`${client.id}-shops`}>
+                  {expandedClient === client.id && (client.shops.length > 0 || client.team_members?.length > 0 || client.team_pending_invites?.length > 0) && (
+                    <tr key={`${client.id}-details`}>
                       <td colSpan={9} style={{ padding: '0 16px 16px 56px', borderBottom: '1px solid var(--border-color)' }}>
-                        <div style={{
-                          backgroundColor: 'var(--bg-primary)',
-                          borderRadius: '10px',
-                          padding: '12px',
-                        }}>
-                          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                            LOJAS CADASTRADAS
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            {client.shops.map((shop) => (
-                              <div
-                                key={shop.id}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '10px 12px',
-                                  backgroundColor: 'var(--bg-card)',
-                                  borderRadius: '8px',
-                                  border: '1px solid var(--border-color)',
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                  <div style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '8px',
-                                    backgroundColor: shop.is_active ? 'rgba(34, 197, 94, 0.1)' : 'rgba(107, 114, 128, 0.1)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                  }}>
-                                    <Store size={16} style={{ color: shop.is_active ? '#22c55e' : '#6b7280' }} />
-                                  </div>
-                                  <div>
-                                    <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
-                                      {shop.name}
-                                    </div>
-                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                      {shop.shopify_domain}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                  <span style={{
-                                    padding: '3px 8px',
-                                    borderRadius: '999px',
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                    backgroundColor: shop.is_active ? 'rgba(34, 197, 94, 0.16)' : 'rgba(107, 114, 128, 0.16)',
-                                    color: shop.is_active ? '#22c55e' : '#6b7280',
-                                  }}>
-                                    {shop.is_active ? 'Ativa' : 'Inativa'}
-                                  </span>
-                                  <a
-                                    href={`https://${shop.shopify_domain}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {/* Lojas */}
+                          {client.shops.length > 0 && (
+                            <div style={{
+                              backgroundColor: 'var(--bg-primary)',
+                              borderRadius: '10px',
+                              padding: '12px',
+                            }}>
+                              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                                LOJAS CADASTRADAS
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {client.shops.map((shop) => (
+                                  <div
+                                    key={shop.id}
                                     style={{
-                                      padding: '6px',
-                                      borderRadius: '6px',
-                                      border: '1px solid var(--border-color)',
-                                      backgroundColor: 'transparent',
-                                      color: 'var(--text-secondary)',
-                                      cursor: 'pointer',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      justifyContent: 'center',
-                                      textDecoration: 'none',
+                                      justifyContent: 'space-between',
+                                      padding: '10px 12px',
+                                      backgroundColor: 'var(--bg-card)',
+                                      borderRadius: '8px',
+                                      border: '1px solid var(--border-color)',
                                     }}
                                   >
-                                    <ExternalLink size={14} />
-                                  </a>
-                                </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                      <div style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '8px',
+                                        backgroundColor: shop.is_active ? 'rgba(34, 197, 94, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                      }}>
+                                        <Store size={16} style={{ color: shop.is_active ? '#22c55e' : '#6b7280' }} />
+                                      </div>
+                                      <div>
+                                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
+                                          {shop.name}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                          {shop.shopify_domain}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                      <span style={{
+                                        padding: '3px 8px',
+                                        borderRadius: '999px',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        backgroundColor: shop.is_active ? 'rgba(34, 197, 94, 0.16)' : 'rgba(107, 114, 128, 0.16)',
+                                        color: shop.is_active ? '#22c55e' : '#6b7280',
+                                      }}>
+                                        {shop.is_active ? 'Ativa' : 'Inativa'}
+                                      </span>
+                                      <a
+                                        href={`https://${shop.shopify_domain}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                          padding: '6px',
+                                          borderRadius: '6px',
+                                          border: '1px solid var(--border-color)',
+                                          backgroundColor: 'transparent',
+                                          color: 'var(--text-secondary)',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          textDecoration: 'none',
+                                        }}
+                                      >
+                                        <ExternalLink size={14} />
+                                      </a>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          )}
+
+                          {/* Membros da Equipe */}
+                          {(client.team_members?.length > 0 || client.team_pending_invites?.length > 0) && (
+                            <div style={{
+                              backgroundColor: 'var(--bg-primary)',
+                              borderRadius: '10px',
+                              padding: '12px',
+                            }}>
+                              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Users size={14} />
+                                EQUIPE ({client.team_members?.length || 0} membros{client.team_pending_invites?.length > 0 ? `, ${client.team_pending_invites.length} pendentes` : ''})
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {/* Membros ativos */}
+                                {client.team_members?.map((member) => (
+                                  <div
+                                    key={member.id}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '10px 12px',
+                                      backgroundColor: 'var(--bg-card)',
+                                      borderRadius: '8px',
+                                      border: '1px solid var(--border-color)',
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                      <div style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '8px',
+                                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                      }}>
+                                        <Users size={16} style={{ color: '#6366f1' }} />
+                                      </div>
+                                      <div>
+                                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
+                                          {member.member_name || 'Sem nome'}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                          {member.member_email}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{
+                                        padding: '3px 8px',
+                                        borderRadius: '999px',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        backgroundColor: member.role === 'manager' ? 'rgba(245, 158, 11, 0.16)' : member.role === 'operator' ? 'rgba(59, 130, 246, 0.16)' : 'rgba(107, 114, 128, 0.16)',
+                                        color: member.role === 'manager' ? '#f59e0b' : member.role === 'operator' ? '#3b82f6' : '#6b7280',
+                                      }}>
+                                        {member.role === 'manager' ? 'Gerente' : member.role === 'operator' ? 'Operador' : 'Visualizador'}
+                                      </span>
+                                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                        {member.allowed_shop_ids?.length || 0} lojas
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+
+                                {/* Convites pendentes */}
+                                {client.team_pending_invites?.map((invite) => (
+                                  <div
+                                    key={invite.id}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '10px 12px',
+                                      backgroundColor: 'var(--bg-card)',
+                                      borderRadius: '8px',
+                                      border: '1px dashed var(--border-color)',
+                                      opacity: 0.7,
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                      <div style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '8px',
+                                        backgroundColor: 'rgba(107, 114, 128, 0.1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                      }}>
+                                        <Mail size={16} style={{ color: '#6b7280' }} />
+                                      </div>
+                                      <div>
+                                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
+                                          {invite.invited_name || invite.invited_email}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                          {invite.invited_email}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{
+                                        padding: '3px 8px',
+                                        borderRadius: '999px',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        backgroundColor: 'rgba(245, 158, 11, 0.16)',
+                                        color: '#f59e0b',
+                                      }}>
+                                        Pendente
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>

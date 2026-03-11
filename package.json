@@ -17,7 +17,7 @@
     "@vercel/node": "^5.5.23",
     "chart.js": "^4.5.1",
     "date-fns": "^4.1.0",
-    "framer-motion": "^12.35.0",
+    "framer-motion": "^12.35.2",
     "imap": "^0.8.19",
     "jspdf": "^4.2.0",
     "lucide-react": "^0.562.0",

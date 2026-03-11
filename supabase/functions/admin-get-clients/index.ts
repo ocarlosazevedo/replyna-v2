@@ -30,7 +30,7 @@ serve(async (req) => {
     });
 
     // Buscar todos os dados em paralelo
-    const [usersResult, shopsResult, plansResult, subscriptionsResult] = await Promise.all([
+    const [usersResult, shopsResult, plansResult, subscriptionsResult, teamMembersResult, teamInvitesResult] = await Promise.all([
       supabase
         .from('users')
         .select('*')
@@ -46,6 +46,13 @@ serve(async (req) => {
       supabase
         .from('subscriptions')
         .select('user_id, asaas_subscription_id, status, current_period_end'),
+      supabase
+        .from('team_members')
+        .select('id, owner_user_id, member_user_id, role, allowed_shop_ids, created_at'),
+      supabase
+        .from('team_invites')
+        .select('id, owner_user_id, invited_email, invited_name, role, status, created_at')
+        .eq('status', 'pending'),
     ]);
 
     if (usersResult.error) {
@@ -105,6 +112,61 @@ serve(async (req) => {
       }
     });
 
+    // Agrupar team_members por owner
+    const teamMembersByOwner: Record<string, Array<{
+      id: string;
+      member_user_id: string;
+      member_name: string | null;
+      member_email: string;
+      role: string;
+      allowed_shop_ids: string[];
+      created_at: string;
+    }>> = {};
+
+    // Criar lookup de users para resolver nomes dos membros
+    const usersById: Record<string, { name: string | null; email: string }> = {};
+    (usersResult.data || []).forEach((u) => {
+      usersById[u.id] = { name: u.name, email: u.email };
+    });
+
+    (teamMembersResult.data || []).forEach((tm) => {
+      if (!teamMembersByOwner[tm.owner_user_id]) {
+        teamMembersByOwner[tm.owner_user_id] = [];
+      }
+      const memberInfo = usersById[tm.member_user_id];
+      teamMembersByOwner[tm.owner_user_id].push({
+        id: tm.id,
+        member_user_id: tm.member_user_id,
+        member_name: memberInfo?.name || null,
+        member_email: memberInfo?.email || 'Email desconhecido',
+        role: tm.role,
+        allowed_shop_ids: tm.allowed_shop_ids || [],
+        created_at: tm.created_at,
+      });
+    });
+
+    // Agrupar convites pendentes por owner
+    const pendingInvitesByOwner: Record<string, Array<{
+      id: string;
+      invited_email: string;
+      invited_name: string | null;
+      role: string;
+      created_at: string;
+    }>> = {};
+
+    (teamInvitesResult.data || []).forEach((inv) => {
+      if (!pendingInvitesByOwner[inv.owner_user_id]) {
+        pendingInvitesByOwner[inv.owner_user_id] = [];
+      }
+      pendingInvitesByOwner[inv.owner_user_id].push({
+        id: inv.id,
+        invited_email: inv.invited_email,
+        invited_name: inv.invited_name,
+        role: inv.role,
+        created_at: inv.created_at,
+      });
+    });
+
     // Combinar dados
     const clients = (usersResult.data || []).map((user) => ({
       id: user.id,
@@ -120,6 +182,8 @@ serve(async (req) => {
       stripe_customer_id: user.stripe_customer_id,
       shops: shopsByUser[user.id] || [],
       subscription: subscriptionsByUser[user.id] || null,
+      team_members: teamMembersByOwner[user.id] || [],
+      team_pending_invites: pendingInvitesByOwner[user.id] || [],
     }));
 
     return new Response(

@@ -5,6 +5,7 @@ import { Mail, CheckCircle, TrendingUp, Headphones, Package, RefreshCw, Truck, H
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useUserProfile, useUserShops } from '../hooks/useDashboardData'
+import { useTeamContext } from '../hooks/useTeamContext'
 import { useNotificationContext } from '../context/NotificationContext'
 import { supabase } from '../lib/supabase'
 import DateRangePicker from '../components/DateRangePicker'
@@ -119,8 +120,8 @@ const buildVolumeSeriesFromConversations = (
   const buckets = new Map<string, { date: Date; received: number; replied: number }>()
 
   conversations.forEach((conv) => {
-    // Ignorar spam e acknowledgment (coerente com métricas)
-    if (conv.category === 'spam' || conv.category === 'acknowledgment') return
+    // Ignorar spam, acknowledgment e troca_devolucao_reembolso (coerente com métricas)
+    if (conv.category === 'spam' || conv.category === 'acknowledgment' || conv.category === 'troca_devolucao_reembolso') return
 
     const date = new Date(conv.created_at)
     let key = ''
@@ -217,7 +218,33 @@ export default function Dashboard() {
 
   // SWR hooks para dados com cache automático
   const { data: profile, isLoading: loadingProfile } = useUserProfile(user?.id)
-  const { data: shops = [], isLoading: loadingShops } = useUserShops(user?.id)
+  const { data: ownShops = [], isLoading: loadingOwnShops } = useUserShops(user?.id)
+  const { isTeamContext, allowedShopIds, hasPermission, loading: teamContextLoading } = useTeamContext()
+
+  const [teamShops, setTeamShops] = useState<Array<{ id: string; name: string }>>([])
+  const [loadingTeamShops, setLoadingTeamShops] = useState(false)
+
+  // Carregar lojas da equipe quando em contexto de equipe
+  useEffect(() => {
+    if (!isTeamContext || !allowedShopIds || allowedShopIds.length === 0) {
+      setTeamShops([])
+      return
+    }
+    setLoadingTeamShops(true)
+    supabase
+      .from('shops')
+      .select('id, name')
+      .in('id', allowedShopIds)
+      .order('name', { ascending: true })
+      .then(({ data }) => {
+        setTeamShops(data || [])
+        setLoadingTeamShops(false)
+      })
+  }, [isTeamContext, allowedShopIds])
+
+  const shops = isTeamContext ? teamShops : ownShops
+  // Em contexto de equipe, considerar loading enquanto teamContext ou teamShops estão carregando
+  const loadingShops = isTeamContext ? (teamContextLoading || loadingTeamShops || !allowedShopIds) : loadingOwnShops
 
   const [selectedShopId, setSelectedShopId] = useState('all')
   const [range, setRange] = useState<DateRange>(getDefaultRange())
@@ -330,12 +357,14 @@ export default function Dashboard() {
   }, [selectedShopId, storagePrefix, user])
 
   useEffect(() => {
-    if (!user || loadingShops) return
+    if (!user) return
+    // Aguardar lojas carregarem antes de restaurar seleção
+    if (isTeamContext && (teamContextLoading || loadingTeamShops)) return
+    if (!isTeamContext && loadingOwnShops) return
 
     // Não redirecionar se não tem lojas - mostrar estado vazio no dashboard
     if (shops.length === 0) {
       setSelectedShopId('all')
-      // Parar loading states quando não há lojas
       setLoadingMetrics(false)
       setLoadingChart(false)
       setLoadingConversations(false)
@@ -348,10 +377,13 @@ export default function Dashboard() {
     } else {
       setSelectedShopId('all')
     }
-  }, [loadingShops, navigate, shops, storagePrefix, user])
+  }, [isTeamContext, teamContextLoading, loadingTeamShops, loadingOwnShops, navigate, shops, storagePrefix, user])
 
   useEffect(() => {
     if (!user || !dateStart || !dateEnd) return
+
+    // Para membros de equipe, aguardar o contexto resolver antes de carregar dados
+    if (isTeamContext && (teamContextLoading || loadingTeamShops)) return
 
     // Se não há lojas ativas, não carregar dados - já tratado pelo estado vazio
     if (effectiveShopIds.length === 0) {
@@ -378,7 +410,7 @@ export default function Dashboard() {
     setLoadingChart(true)
 
     const loadPendingHuman = async () => {
-      // Excluir troca_devolucao_reembolso da contagem de atendimento humano
+      // Mesmos filtros das métricas: excluir spam, acknowledgment e troca_devolucao_reembolso
       const baseQuery = () =>
         supabase
           .from('conversations')
@@ -386,7 +418,7 @@ export default function Dashboard() {
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
           .eq('status', 'pending_human')
-          .neq('category', 'troca_devolucao_reembolso')
+          .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
 
       const pendingQuery =
         selectedShopId === 'all'
@@ -406,8 +438,10 @@ export default function Dashboard() {
     }
 
     // Usar count queries para métricas baseadas em CONVERSAS (não mensagens)
+    // Filtros alinhados com o inbox: excluir spam, acknowledgment E troca_devolucao_reembolso
+    // (formulários de troca/devolução aparecem na página Formulários, não no dashboard)
     const loadConversationCounts = async () => {
-      // Count de conversas recebidas (excluindo spam, acknowledgment e nulls)
+      // Count de conversas recebidas (excluindo spam, acknowledgment, troca_devolucao_reembolso e nulls)
       const receivedBaseQuery = () =>
         supabase
           .from('conversations')
@@ -415,7 +449,7 @@ export default function Dashboard() {
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
           .not('category', 'is', null) // Excluir conversas ainda em processamento
-          .not('category', 'in', '("spam","acknowledgment")')
+          .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
 
       const receivedQuery =
         selectedShopId === 'all'
@@ -423,7 +457,6 @@ export default function Dashboard() {
           : receivedBaseQuery().eq('shop_id', selectedShopId)
 
       // Count de conversas atendidas (que têm pelo menos 1 mensagem outbound)
-      // Usamos uma subquery para verificar se existe resposta na conversa
       const repliedBaseQuery = () =>
         supabase
           .from('conversations')
@@ -431,7 +464,7 @@ export default function Dashboard() {
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
           .not('category', 'is', null) // Excluir conversas ainda em processamento
-          .not('category', 'in', '("spam","acknowledgment")')
+          .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
           .eq('messages.direction', 'outbound')
 
       const repliedQuery =
@@ -454,13 +487,13 @@ export default function Dashboard() {
     }
 
     const loadConversationsForChart = async () => {
-      // Carregar conversas para o gráfico de volume (mesmos filtros das métricas)
+      // Carregar conversas para o gráfico de volume (mesmos filtros das métricas e inbox)
       // Inclui mensagens para verificar se há resposta outbound (igual à métrica)
       const query = supabase
         .from('conversations')
         .select('created_at, category, messages(direction)')
         .not('category', 'is', null) // Excluir conversas ainda em processamento
-        .not('category', 'in', '("spam","acknowledgment")') // Mesmo filtro das métricas
+        .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")') // Mesmo filtro das métricas
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
         .limit(10000) // Limite maior para o gráfico
@@ -498,8 +531,8 @@ export default function Dashboard() {
         query = query.not('category', 'is', null)
       }
 
-      // Excluir formulários de devolução — aparecem apenas na página Formulários
-      query = query.neq('category', 'troca_devolucao_reembolso')
+      // Excluir spam, acknowledgment e formulários de devolução (mesmos filtros das métricas)
+      query = query.not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
 
       const { data, error } =
         selectedShopId === 'all'
@@ -562,10 +595,32 @@ export default function Dashboard() {
         setLoadingMetrics(false)
         setLoadingConversations(false)
       } catch (err) {
+        if (!isActive) return
         console.error('Erro ao carregar métricas:', err)
-        setError('Não foi possível carregar os dados do dashboard.')
-        setLoadingMetrics(false)
-        setLoadingConversations(false)
+        // Retry uma vez antes de mostrar erro ao usuário
+        try {
+          // Invalidar cache para forçar nova consulta
+          cacheRef.current.clear()
+          const [pendingHuman2, conversationCounts2, conversationRows2] = await Promise.all([
+            loadPendingHuman(),
+            loadConversationCounts(),
+            loadConversationsList(),
+          ])
+          if (!isActive) return
+          const { conversationsReceived, conversationsReplied } = conversationCounts2
+          const automationRate = conversationsReceived > 0 ? (conversationsReplied / conversationsReceived) * 100 : 0
+          const successRate = conversationsReplied > 0 ? ((conversationsReplied - pendingHuman2) / conversationsReplied) * 100 : 0
+          setMetrics({ conversationsReceived, conversationsReplied, automationRate, successRate, pendingHuman: pendingHuman2 })
+          setConversations(conversationRows2)
+          setLoadingMetrics(false)
+          setLoadingConversations(false)
+        } catch (retryErr) {
+          if (!isActive) return
+          console.error('Retry também falhou:', retryErr)
+          setError('Não foi possível carregar os dados do dashboard.')
+          setLoadingMetrics(false)
+          setLoadingConversations(false)
+        }
       }
     }
 
@@ -650,7 +705,7 @@ export default function Dashboard() {
       isActive = false
       supabase.removeChannel(channel)
     }
-  }, [cacheFetch, dateEnd, dateStart, effectiveShopIds, granularity, selectedShopId, user])
+  }, [cacheFetch, dateEnd, dateStart, effectiveShopIds, granularity, isTeamContext, teamContextLoading, loadingTeamShops, selectedShopId, user])
 
   // Calcular categorias a partir das conversas (excluindo spam e processando)
   const categoryStats = useMemo(() => {
@@ -747,6 +802,7 @@ export default function Dashboard() {
       <ConversationModal
         conversationId={selectedConversationId}
         onClose={() => setSelectedConversationId(null)}
+        canReply={hasPermission('conversations', 'reply')}
         onCategoryChange={(conversationId, newCategory) => {
           // Atualizar a lista de conversas localmente
           setConversations((prev) =>
@@ -761,8 +817,8 @@ export default function Dashboard() {
         }}
       />
 
-      {/* Banners de erro crítico - ACIMA DE TUDO */}
-      {!loadingProfile && profile && (
+      {/* Banners de erro crítico - ACIMA DE TUDO (escondido para membros de equipe) */}
+      {!isTeamContext && !teamContextLoading && !loadingProfile && profile && (
         <CreditsWarningBanner
           emailsUsed={profile.emails_used ?? 0}
           emailsLimit={profile.emails_limit}
@@ -776,8 +832,8 @@ export default function Dashboard() {
         </>
       )}
 
-      {/* Banner quando não há lojas ativas */}
-      {!loadingShops && shops.length === 0 && (
+      {/* Banner quando não há lojas ativas (escondido para membros de equipe) */}
+      {!isTeamContext && !loadingShops && shops.length === 0 && (
         <div
           style={{
             backgroundColor: 'var(--bg-card)',
@@ -1019,7 +1075,9 @@ export default function Dashboard() {
 
 
       {/* Bottom */}
-      <div className="replyna-dashboard-bottom">
+      <div className={isTeamContext ? '' : 'replyna-dashboard-bottom'}
+        style={isTeamContext ? { display: 'flex', flexDirection: 'column', gap: '24px' } : undefined}
+      >
         <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '14px' : '20px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: isMobile ? '12px' : '16px', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
@@ -1209,7 +1267,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '14px' : '20px', border: '1px solid var(--border-color)' }}>
+        {!isTeamContext && <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '14px' : '20px', border: '1px solid var(--border-color)' }}>
           <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: isMobile ? '12px' : '16px' }}>
             Consumo do Plano
           </div>
@@ -1284,7 +1342,7 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* Categorias por Conversa */}

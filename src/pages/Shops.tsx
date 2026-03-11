@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { Settings, Trash2, Power, PowerOff, Mail, ShoppingBag, Store, Plus, Snowflake } from 'lucide-react'
+import { useTeamContext } from '../hooks/useTeamContext'
 
 // Componente Skeleton para loading animado
 const Skeleton = ({ height = 16, width = '100%' }: { height?: number | string; width?: number | string }) => (
@@ -47,6 +48,7 @@ const businessFilterOptions: { value: BusinessFilter; label: string }[] = [
 export default function Shops() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { isTeamContext, allowedShopIds, loading: teamContextLoading } = useTeamContext()
   const [shops, setShops] = useState<Shop[]>([])
   const [loading, setLoading] = useState(true)
   const [shopsLimit, setShopsLimit] = useState<number | null>(null) // null = ainda carregando ou ilimitado
@@ -55,6 +57,9 @@ export default function Shops() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [businessFilter, setBusinessFilter] = useState<BusinessFilter>('all')
   const isMobile = useIsMobile()
+
+  // Em contexto de equipe, apenas owner pode deletar
+  const canDeleteShops = !isTeamContext
 
   // Verificar se é ilimitado (só após carregar os limites)
   const isUnlimited = limitsLoaded && shopsLimit === null
@@ -132,9 +137,11 @@ export default function Shops() {
   }
 
   useEffect(() => {
+    // Em contexto de equipe, esperar o contexto carregar antes de buscar lojas
+    if (isTeamContext && (teamContextLoading || !allowedShopIds)) return
     loadShops()
     loadUserLimit()
-  }, [user])
+  }, [user, isTeamContext, allowedShopIds, teamContextLoading])
 
 
   const loadUserLimit = async () => {
@@ -164,11 +171,19 @@ export default function Shops() {
     if (!user) return
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('shops')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: true })
+
+      if (isTeamContext && allowedShopIds) {
+        // Em contexto de equipe, busca apenas lojas permitidas
+        query = query.in('id', allowedShopIds)
+      } else {
+        query = query.eq('user_id', user.id)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
       setShops(data || [])
@@ -302,7 +317,7 @@ export default function Shops() {
         </div>
         {!limitsLoaded ? (
           <Skeleton height={42} width={isMobile ? '100%' : 180} />
-        ) : !isSubscriptionActive ? (
+        ) : isTeamContext ? null : !isSubscriptionActive ? (
           <button
             onClick={() => navigate('/account')}
             style={{
@@ -785,18 +800,20 @@ export default function Shops() {
                       {shop.is_active ? <Power size={18} /> : <PowerOff size={18} />}
                     </button>
                   )}
-                  <button
-                    onClick={() => handleDeleteShop(shop.id)}
-                    style={{ ...buttonIcon, color: '#ef4444', opacity: deletingShopId === shop.id ? 0.5 : 1 }}
-                    title="Excluir loja"
-                    disabled={deletingShopId === shop.id}
-                  >
-                    {deletingShopId === shop.id ? (
-                      <span style={{ fontSize: 12 }}>...</span>
-                    ) : (
-                      <Trash2 size={18} />
-                    )}
-                  </button>
+                  {canDeleteShops && (
+                    <button
+                      onClick={() => handleDeleteShop(shop.id)}
+                      style={{ ...buttonIcon, color: '#ef4444', opacity: deletingShopId === shop.id ? 0.5 : 1 }}
+                      title="Excluir loja"
+                      disabled={deletingShopId === shop.id}
+                    >
+                      {deletingShopId === shop.id ? (
+                        <span style={{ fontSize: 12 }}>...</span>
+                      ) : (
+                        <Trash2 size={18} />
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             )

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Store, Ticket, FileText, User, LogOut, Menu, X } from 'lucide-react'
+import { LayoutGrid, Store, Ticket, FileText, User, LogOut, Menu, X, Users } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useUserProfile } from '../hooks/useUserProfile'
+import { useTeamContext } from '../hooks/useTeamContext'
 import { supabase } from '../lib/supabase'
 import WhatsAppButton from './WhatsAppButton'
 
@@ -13,6 +14,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, signOut } = useAuth()
   const { shops } = useUserProfile()
+  const { isTeamContext, hasPermission, allowedShopIds, loading: teamLoading } = useTeamContext()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -31,7 +33,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // Buscar contagem de tickets e manter real-time
   useEffect(() => {
-    const shopIds = shops.map((s) => s.id)
+    // Em contexto de equipe, usar allowedShopIds; caso contrário, usar lojas próprias
+    const shopIds = isTeamContext && allowedShopIds ? allowedShopIds : shops.map((s) => s.id)
     if (shopIds.length === 0) return
 
     const fetchCount = async () => {
@@ -72,7 +75,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [shops])
+  }, [shops, isTeamContext, allowedShopIds])
 
   // Fechar menu ao mudar de página
   useEffect(() => {
@@ -91,11 +94,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [isMobileMenuOpen])
 
+  const TEAM_BETA_EMAILS = ['gustavolsilva2003@gmail.com', 'horizonbluesolutionsllc@gmail.com']
+  const showTeamMenu = !isTeamContext && user?.email && TEAM_BETA_EMAILS.includes(user.email)
+
   const menuItems = [
+    // Painel: sempre visível
     { path: '/dashboard', label: 'Painel de controle', icon: LayoutGrid },
-    { path: '/tickets', label: 'Tickets', icon: Ticket, badge: ticketCount },
-    { path: '/formularios', label: 'Formulários', icon: FileText, badge: formsCount },
-    { path: '/shops', label: 'Minhas lojas', icon: Store },
+    // Tickets: apenas se pode responder (operator/manager)
+    ...(!isTeamContext || hasPermission('tickets', 'reply') ? [{ path: '/tickets', label: 'Tickets', icon: Ticket, badge: ticketCount }] : []),
+    // Formulários: apenas se pode gerenciar (operator/manager)
+    ...(!isTeamContext || hasPermission('forms', 'manage') ? [{ path: '/formularios', label: 'Formulários', icon: FileText, badge: formsCount }] : []),
+    // Lojas: apenas se pode editar (manager)
+    ...(!isTeamContext || hasPermission('shops', 'edit') ? [{ path: '/shops', label: isTeamContext ? 'Lojas' : 'Minhas lojas', icon: Store }] : []),
+    // Equipe: owners com acesso beta ou managers
+    ...(showTeamMenu || (isTeamContext && hasPermission('team', 'manage')) ? [{ path: '/team', label: 'Equipe', icon: Users }] : []),
   ]
 
   const handleLogout = async () => {
@@ -138,65 +150,84 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         )}
       </div>
 
+
       {/* Menu */}
       <nav style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {menuItems.map((item) => (
-            <li key={item.path} style={{ marginBottom: '8px' }}>
-              <Link
-                to={item.path}
-                className={`replyna-sidebar-link${isActive(item.path) ? ' active' : ''}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  textDecoration: 'none',
-                  fontWeight: 500,
-                }}
-              >
-                <item.icon size={18} />
-                <span style={{ flex: 1 }}>{item.label}</span>
-                {'badge' in item && (item.badge ?? 0) > 0 && (
-                  <span style={{
-                    backgroundColor: 'rgba(236, 72, 153, 0.2)',
-                    color: '#f472b6',
-                    padding: '1px 7px',
-                    borderRadius: '999px',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    minWidth: '20px',
-                    textAlign: 'center',
-                  }}>
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        {teamLoading ? (
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {[1, 2, 3, 4].map((i) => (
+              <li key={i} style={{ marginBottom: '8px' }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '12px 16px', borderRadius: '8px',
+                }}>
+                  <div style={{ width: 18, height: 18, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', animation: 'replyna-pulse 1.6s ease-in-out infinite' }} />
+                  <div style={{ flex: 1, height: 14, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', animation: 'replyna-pulse 1.6s ease-in-out infinite' }} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {menuItems.map((item) => (
+              <li key={item.path} style={{ marginBottom: '8px' }}>
+                <Link
+                  to={item.path}
+                  className={`replyna-sidebar-link${isActive(item.path) ? ' active' : ''}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    fontWeight: 500,
+                  }}
+                >
+                  <item.icon size={18} />
+                  <span style={{ flex: 1 }}>{item.label}</span>
+                  {'badge' in item && (item.badge ?? 0) > 0 && (
+                    <span style={{
+                      backgroundColor: 'rgba(236, 72, 153, 0.2)',
+                      color: '#f472b6',
+                      padding: '1px 7px',
+                      borderRadius: '999px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      minWidth: '20px',
+                      textAlign: 'center',
+                    }}>
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </nav>
 
       {/* User & Logout */}
       <div style={{ padding: '16px', borderTop: '1px solid var(--sidebar-border)' }}>
-        <Link
-          to="/account"
-          className={`replyna-sidebar-link${isActive('/account') ? ' active' : ''}`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            fontWeight: 500,
-            gap: '12px',
-            marginBottom: '8px',
-          }}
-        >
-          <User size={18} />
-          Minha conta
-        </Link>
+        {!teamLoading && !isTeamContext && (
+          <Link
+            to="/account"
+            className={`replyna-sidebar-link${isActive('/account') ? ' active' : ''}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontWeight: 500,
+              gap: '12px',
+              marginBottom: '8px',
+            }}
+          >
+            <User size={18} />
+            Minha conta
+          </Link>
+        )}
         <button
           onClick={handleLogout}
           className="replyna-sidebar-link replyna-sidebar-logout"
