@@ -26,6 +26,10 @@ verify_jwt = false
 [functions.asaas-webhook]
 verify_jwt = false
 
+# Check Expired Subscriptions - Chamado via pg_cron
+[functions.check-expired-subscriptions]
+verify_jwt = false
+
 # Request Password Reset - Público (usuários não autenticados)
 [functions.request-password-reset]
 verify_jwt = false
