@@ -1599,6 +1599,11 @@ export function cleanEmailBody(bodyText: string, bodyHtml?: string): string {
     /^-+\s*Mensagem Original\s*-+/im, // "Mensagem Original"
     /^-+\s*Ursprüngliche Nachricht\s*-+/im, // "Ursprüngliche Nachricht" (Alemão)
     /^-+\s*Message d'origine\s*-+/im, // "Message d'origine" (Francês)
+    /^-+\s*Původní e-mail\s*-+/im, // "Původní e-mail" (Tcheco)
+    /^-+\s*Pôvodná správa\s*-+/im, // "Pôvodná správa" (Eslovaco)
+    /^-+\s*Oorspronkelijk bericht\s*-+/im, // "Oorspronkelijk bericht" (Holandês)
+    /^-+\s*Messaggio originale\s*-+/im, // "Messaggio originale" (Italiano)
+    /^-+\s*Mensaje original\s*-+/im, // "Mensaje original" (Espanhol)
     /^From:\s/m, // Headers de forward
     /^Von:\s/m, // Headers de forward (Alemão)
     /^De:\s/m, // Headers de forward (Português/Espanhol/Francês)

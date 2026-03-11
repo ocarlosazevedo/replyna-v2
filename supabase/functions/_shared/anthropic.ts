@@ -37,6 +37,8 @@ export interface ClaudeResponse {
   usage: {
     input_tokens: number;
     output_tokens: number;
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
   };
 }
 
@@ -398,6 +400,13 @@ function detectLanguageFromText(text: string): string | null {
     /\b(peníze|peněz|zpět)\b/i, // money, back
     /\b(postupovat|postup)\b/i, // proceed, procedure
     /\b(dobrý|dobré|potvrzena|potvrzení)\b/i, // good, confirmed
+    /\b(posílejte|pošlete|posíláte|pošlite)\b/i, // send (imperative/present forms)
+    /\b(původní|předmět|odpověď|odpovědět)\b/i, // original, subject, reply
+    /\b(stále|ještě|právě|vůbec|taky|také)\b/i, // still, yet, just, at all, also
+    /\b(nemám|mám|máte|nemáte)\b/i, // I have/don't have, you have/don't have
+    /\b(dostala|dostal|dostali|nedostala)\b/i, // received
+    /\b(správně|špatně|bohužel)\b/i, // correctly, wrongly, unfortunately
+    /\b(takže|protože|jestli|pokud|kdyby)\b/i, // so, because, if
   ];
 
   for (const pattern of czechUniquePatterns) {
@@ -1698,6 +1707,7 @@ async function callClaude(
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'prompt-caching-2024-07-31',
     },
     body: JSON.stringify({
       model: MODEL,
@@ -2223,8 +2233,16 @@ REGRAS CRÍTICAS:
         /^>+\s/m,
         /^-+\s*Original Message\s*-+/im,
         /^-+\s*Mensagem Original\s*-+/im,
+        /^-+\s*Původní e-mail\s*-+/im,
+        /^-+\s*Ursprüngliche Nachricht\s*-+/im,
+        /^-+\s*Message d'origine\s*-+/im,
+        /^-+\s*Mensaje original\s*-+/im,
+        /^-+\s*Messaggio originale\s*-+/im,
+        /^-+\s*Oorspronkelijk bericht\s*-+/im,
+        /^-+\s*Pôvodná správa\s*-+/im,
         /^From:\s/m,
         /^De:\s/m,
+        /^Od:\s/m,
         /^.{0,80}<\s*[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\s*>\s*(escreveu|wrote|schrieb|a écrit|escribió|ha scritto|schreef)\s*:/im,
       ];
       for (const marker of rawQuoteMarkers) {
