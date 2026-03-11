@@ -252,7 +252,7 @@ export default function AdminDashboard() {
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {stats?.conversationsReceived || 0}
             </div>
-            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>clientes no periodo</div>
+            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>clientes no período</div>
           </div>
         </div>
 
@@ -330,7 +330,7 @@ export default function AdminDashboard() {
         </h2>
         {totalCategorized === 0 ? (
           <div style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '24px' }}>
-            Nenhuma conversa no periodo selecionado
+            Nenhuma conversa no período selecionado
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -576,7 +576,7 @@ export default function AdminDashboard() {
         {filteredConversations.length === 0 ? (
           <div style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '40px' }}>
             {recentConversations.length === 0
-              ? 'Nenhuma conversa no periodo selecionado'
+              ? 'Nenhuma conversa no período selecionado'
               : 'Nenhuma conversa encontrada com os filtros aplicados'
             }
           </div>

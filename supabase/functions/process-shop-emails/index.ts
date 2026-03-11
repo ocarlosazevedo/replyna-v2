@@ -337,7 +337,54 @@ async function saveIncomingEmail(shopId: string, email: IncomingEmail): Promise<
   let finalFromEmail = email.from_email;
   let finalFromName = email.from_name;
 
-  if (!finalFromEmail || !finalFromEmail.includes('@')) {
+  // Detectar emails do Shopify (formulários de contato e notificações de pedido)
+  const isShopifyEmail = finalFromEmail && (
+    finalFromEmail.toLowerCase().includes('@t.shopifyemail.com') ||
+    finalFromEmail.toLowerCase().includes('@shopifyemail.com')
+  );
+
+  if (isShopifyEmail) {
+    const bodyContent = email.body_text || email.body_html || '';
+    const extracted = extractEmailFromShopifyContactForm(bodyContent);
+
+    if (extracted) {
+      // É um formulário de contato - usar email extraído do cliente
+      console.log(`[Worker] Email extraído do formulário Shopify: ${extracted.email}`);
+      finalFromEmail = extracted.email;
+      finalFromName = extracted.name || finalFromName;
+    } else {
+      // É uma notificação de pedido/sistema do Shopify - ignorar
+      console.log(`[Worker] Email ${email.message_id}: notificação do Shopify ignorada (${finalFromEmail})`);
+
+      const conversationId = await getOrCreateConversation(
+        shopId,
+        finalFromEmail,
+        email.subject || '',
+        email.in_reply_to || undefined
+      );
+
+      await saveMessage({
+        conversation_id: conversationId,
+        from_email: finalFromEmail,
+        from_name: email.from_name,
+        to_email: email.to_email,
+        subject: email.subject,
+        body_text: email.body_text,
+        body_html: email.body_html,
+        message_id: email.message_id,
+        in_reply_to: email.in_reply_to,
+        references_header: email.references,
+        has_attachments: email.has_attachments,
+        attachment_count: email.attachment_count,
+        direction: 'inbound',
+        status: 'failed',
+        error_message: 'Notificação automática do Shopify ignorada',
+        received_at: email.received_at.toISOString(),
+      });
+
+      return;
+    }
+  } else if (!finalFromEmail || !finalFromEmail.includes('@')) {
     const bodyContent = email.body_text || email.body_html || '';
     const extracted = extractEmailFromShopifyContactForm(bodyContent);
 
@@ -480,6 +527,8 @@ async function processMessage(
     'undeliverable',
     // Shopify system emails - NUNCA responder
     '@shopify.com',
+    '@t.shopifyemail.com',
+    '@shopifyemail.com',
     'mailer@shopify',
     'support@shopify',
     'notifications@shopify',
@@ -771,6 +820,16 @@ async function processMessage(
     console.log(`[process-shop-emails] Message ${message.id} marked as pending_human (max data requests exceeded)`);
     return 'forwarded_human';
   } else {
+    // Lógica de retenção: incrementar contador se for cancelamento/devolução
+    let retentionContactCount = conversation.retention_contact_count || 0;
+    if (classification.category === 'troca_devolucao_reembolso') {
+      retentionContactCount += 1;
+      await updateConversation(conversation.id, {
+        retention_contact_count: retentionContactCount,
+      });
+      console.log(`[process-shop-emails] Retenção: contato #${retentionContactCount} para conversa ${conversation.id}`);
+    }
+
     responseResult = await generateResponse(
       {
         name: shop.name,
@@ -783,6 +842,10 @@ async function processMessage(
         signature_html: shop.signature_html,
         is_cod: shop.is_cod,
         store_email: shop.imap_user || shop.support_email,
+        support_email: shop.support_email && shop.support_email !== shop.imap_user ? shop.support_email : undefined,
+        retention_coupon_code: shop.retention_coupon_code,
+        retention_coupon_type: shop.retention_coupon_type,
+        retention_coupon_value: shop.retention_coupon_value,
         return_form_url: `https://app.replyna.me/return-request?shop=${shop.id}`,
       },
       message.subject || '',
@@ -791,7 +854,7 @@ async function processMessage(
       conversationHistory,
       shopifyData,
       classification.language,
-      0, // retentionContactCount
+      retentionContactCount,
       [], // additionalOrders
       [], // emailImages
       classification.sentiment || 'calm',

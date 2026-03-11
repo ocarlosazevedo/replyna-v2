@@ -17,6 +17,7 @@ interface ConfirmRegistrationRequest {
   plan_id: string;
   asaas_customer_id: string;
   asaas_subscription_id?: string;
+  asaas_credit_card_token?: string;
   coupon_id?: string;
   discount_applied?: number;
   is_trial?: boolean;
@@ -50,6 +51,7 @@ serve(async (req) => {
       plan_id,
       asaas_customer_id,
       asaas_subscription_id,
+      asaas_credit_card_token,
       coupon_id,
       discount_applied,
       is_trial,
@@ -85,7 +87,21 @@ serve(async (req) => {
       .limit(1);
 
     if (existingUser && existingUser.length > 0) {
-      // Usuario ja existe - gerar magic link e retornar
+      // Usuario ja existe - atualizar dados do Asaas que possam estar faltando
+      const existingId = existingUser[0].id;
+      const updateData: Record<string, unknown> = {};
+      if (asaas_customer_id) updateData.asaas_customer_id = asaas_customer_id;
+      if (asaas_credit_card_token) updateData.asaas_credit_card_token = asaas_credit_card_token;
+      if (is_trial !== undefined) updateData.is_trial = is_trial;
+      if (whatsapp_number) updateData.whatsapp_number = whatsapp_number;
+      if (name) updateData.name = name;
+
+      if (Object.keys(updateData).length > 0) {
+        await supabase.from('users').update(updateData).eq('id', existingId);
+        console.log(`[ConfirmRegistration] Usuario existente atualizado com dados Asaas: ${existingId}`);
+      }
+
+      // Gerar magic link
       const { data: linkData } = await supabase.auth.admin.generateLink({
         type: 'magiclink',
         email: normalizedEmail,
@@ -167,6 +183,7 @@ serve(async (req) => {
       extra_emails_used: 0,
       pending_extra_emails: 0,
       asaas_customer_id,
+      asaas_credit_card_token: asaas_credit_card_token || null,
       status: 'active',
       is_trial: userIsTrial,
       trial_started_at: userIsTrial ? now.toISOString() : null,

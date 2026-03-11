@@ -117,7 +117,7 @@ export default function EmailErrorBanner({ shopIds }: EmailErrorBannerProps) {
             }}
           >
             <Mail size={14} />
-            {hasMultiple ? `${shopsWithErrors.length} lojas com erro de email` : 'Erro de conexao de email'}
+            {hasMultiple ? `${shopsWithErrors.length} lojas com erro de email` : 'Erro de conexão de email'}
           </p>
         </div>
 
@@ -153,7 +153,7 @@ export default function EmailErrorBanner({ shopIds }: EmailErrorBannerProps) {
                 lineHeight: '1.4',
               }}
             >
-              As seguintes lojas estao com problemas na conexao de email:
+              As seguintes lojas estão com problemas na conexão de email:
             </p>
             <ul style={{ margin: '0 0 8px 0', padding: '0 0 0 16px' }}>
               {shopsWithErrors.map((shop) => (
@@ -181,7 +181,7 @@ export default function EmailErrorBanner({ shopIds }: EmailErrorBannerProps) {
                 lineHeight: '1.4',
               }}
             >
-              A loja <strong>{firstShop.shop_name}</strong> esta com erro na conexao de email.
+              A loja <strong>{firstShop.shop_name}</strong> está com erro na conexão de email.
             </p>
             <p
               style={{
@@ -191,7 +191,7 @@ export default function EmailErrorBanner({ shopIds }: EmailErrorBannerProps) {
                 lineHeight: '1.4',
               }}
             >
-              Os emails <strong>nao estao sendo recebidos</strong> para resposta automatica.
+              Os emails <strong>não estão sendo recebidos</strong> para resposta automática.
             </p>
           </>
         )}
@@ -203,7 +203,7 @@ export default function EmailErrorBanner({ shopIds }: EmailErrorBannerProps) {
             marginTop: '8px',
           }}
         >
-          Verifique se as credenciais IMAP/SMTP estao corretas. Ultima tentativa: {formatDate(firstShop.last_email_sync_at)}
+          Verifique se as credenciais IMAP/SMTP estão corretas. Última tentativa: {formatDate(firstShop.last_email_sync_at)}
         </p>
       </div>
 

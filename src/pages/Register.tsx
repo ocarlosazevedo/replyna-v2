@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { Sun, Moon, Star, ArrowRight, ArrowLeft, MessageCircle, Check } from 'lucide-react'
-import { useTheme } from '../context/ThemeContext'
+import { Star, ArrowRight, ArrowLeft, MessageCircle, Check } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 interface Plan {
@@ -9,23 +8,18 @@ interface Plan {
   name: string
   description: string | null
   price_monthly: number
-  emails_limit: number | null  // null = ilimitado
-  shops_limit: number | null   // null = ilimitado
+  emails_limit: number | null
+  shops_limit: number | null
   features: string[]
   is_popular: boolean
   is_active: boolean
 }
 
 export default function Register() {
-  const { theme, setTheme } = useTheme()
   const [searchParams] = useSearchParams()
   const preselectedPlan = searchParams.get('plan')
   const navigate = useNavigate()
 
-  // Step management - now only 'plan' step, account goes to /checkout
-  const [step] = useState<'plan'>('plan')
-
-  // Plans
   const [plans, setPlans] = useState<Plan[]>([])
   const [loadingPlans, setLoadingPlans] = useState(true)
 
@@ -40,7 +34,27 @@ export default function Register() {
   }, [])
 
   useEffect(() => {
-    if (preselectedPlan && plans.length > 0) {
+    if (plans.length === 0) return
+
+    const slug = searchParams.get('slug')
+    if (slug) {
+      const plan = plans.find(p => (p as any).slug === slug)
+      if (plan) {
+        navigate('/checkout', { state: { plan, isTrialFlow: true } })
+      }
+      return
+    }
+
+    const isTrial = searchParams.get('trial') === 'true'
+    if (isTrial) {
+      const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
+      if (basePlan) {
+        navigate('/checkout', { state: { plan: basePlan, isTrialFlow: true } })
+      }
+      return
+    }
+
+    if (preselectedPlan) {
       const normalizedPreselected = preselectedPlan.toLowerCase().replace(/[-\s]/g, '')
       const plan = plans.find(p => p.name.toLowerCase().replace(/[-\s]/g, '') === normalizedPreselected)
       if (plan) {
@@ -48,13 +62,13 @@ export default function Register() {
         navigate('/checkout', { state: { plan, isTrialFlow: false } })
       }
     }
-  }, [preselectedPlan, plans, navigate])
+  }, [preselectedPlan, plans, navigate, searchParams])
 
   const loadPlans = async () => {
     try {
       const { data, error } = await supabase
         .from('plans')
-        .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
+        .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active, slug')
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
 
@@ -68,7 +82,7 @@ export default function Register() {
   }
 
   const isEnterprisePlan = (plan: Plan) => {
-    return !plan.is_active || plan.price_monthly === 0
+    return plan.name === 'Enterprise'
   }
 
   const handleSelectPlan = (plan: Plan) => {
@@ -79,8 +93,11 @@ export default function Register() {
     navigate('/checkout', { state: { plan, isTrialFlow: false } })
   }
 
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
+  const handleStartTrial = () => {
+    const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
+    if (basePlan) {
+      navigate('/checkout', { state: { plan: basePlan, isTrialFlow: true } })
+    }
   }
 
   const formatPrice = (price: number) => {
@@ -159,23 +176,6 @@ export default function Register() {
             />
           </Link>
         </div>
-        <button
-          onClick={toggleTheme}
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '10px',
-            padding: '10px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-secondary)',
-          }}
-          title={theme === 'light' ? 'Mudar para tema escuro' : 'Mudar para tema claro'}
-        >
-          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-        </button>
       </div>
 
       {/* Page content */}
@@ -191,16 +191,37 @@ export default function Register() {
             Escolha seu plano
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-            Comece com 30 emails gratis. Adicione seu cartao para garantir continuidade.
+            Comece com 30 emails grátis. Sem necessidade de cartão de crédito.
           </p>
         </div>
 
-      {/* Step: Select Plan */}
-      {step === 'plan' && (
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          {/* Free Trial button */}
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <button
+              onClick={handleStartTrial}
+              style={{
+                padding: '14px 32px',
+                borderRadius: '12px',
+                border: 'none',
+                backgroundColor: '#22c55e',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: '16px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              Começar teste grátis — 30 emails
+              <ArrowRight size={18} />
+            </button>
+          </div>
+
           <div className="plans-grid-wrapper" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(6, 1fr)',
+            gridTemplateColumns: 'repeat(5, 1fr)',
             gap: '20px',
             overflowX: 'auto',
             WebkitOverflowScrolling: 'touch',
@@ -210,152 +231,15 @@ export default function Register() {
           }}>
           <style>{`
             @media (max-width: 900px) {
-              .plans-grid-wrapper { grid-template-columns: repeat(6, 260px) !important; }
+              .plans-grid-wrapper { grid-template-columns: repeat(5, 260px) !important; }
             }
             .plans-grid-wrapper > div { scroll-snap-align: start; }
             .plans-grid-wrapper::-webkit-scrollbar { height: 6px; }
             .plans-grid-wrapper::-webkit-scrollbar-track { background: transparent; }
             .plans-grid-wrapper::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
           `}</style>
-            {/* Free Trial card */}
-            <div
-              onClick={() => {
-                const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
-                if (basePlan) {
-                  navigate('/checkout', { state: { plan: basePlan, isTrialFlow: true } })
-                }
-              }}
-              style={{
-                backgroundColor: 'var(--bg-card)',
-                borderRadius: '16px',
-                padding: '24px',
-                border: '2px solid #22c55e',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <div style={{
-                position: 'absolute',
-                top: '-12px',
-                right: '16px',
-                backgroundColor: '#22c55e',
-                color: '#fff',
-                padding: '4px 12px',
-                borderRadius: '999px',
-                fontSize: '12px',
-                fontWeight: 600,
-              }}>
-                Gratis
-              </div>
 
-              <h3 style={{
-                fontSize: '22px',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                marginBottom: '8px',
-              }}>
-                Free Trial
-              </h3>
-
-              <p style={{
-                fontSize: '14px',
-                color: 'var(--text-secondary)',
-                marginBottom: '20px',
-              }}>
-                Teste a plataforma sem compromisso
-              </p>
-
-              <div style={{ marginBottom: '20px' }}>
-                <span style={{
-                  fontSize: '36px',
-                  fontWeight: 700,
-                  color: '#22c55e',
-                }}>
-                  R$ 0
-                </span>
-                <span style={{
-                  fontSize: '14px',
-                  color: 'var(--text-secondary)',
-                  marginLeft: '4px',
-                }}>
-                  /mes
-                </span>
-              </div>
-
-              <div style={{
-                padding: '12px',
-                backgroundColor: 'rgba(34, 197, 94, 0.06)',
-                borderRadius: '10px',
-                marginBottom: '20px',
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '8px',
-                }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    Emails/mes
-                  </span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    30
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    Lojas
-                  </span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    1
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '20px', flex: 1 }}>
-                {['30 emails inclusos', 'Integracao com 1 loja', 'Teste gratis por tempo limitado'].map((feature, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginBottom: '8px',
-                    }}
-                  >
-                    <Check size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
-                    <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
-                      {feature}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  backgroundColor: '#22c55e',
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  marginTop: 'auto',
-                }}
-              >
-                Comecar gratis
-                <ArrowRight size={16} />
-              </button>
-            </div>
-
-            {plans.map((plan) => (
+            {plans.filter((plan) => plan.price_monthly > 0).map((plan) => (
               <div
                 key={plan.id}
                 onClick={() => handleSelectPlan(plan)}
@@ -435,7 +319,7 @@ export default function Register() {
                         color: 'var(--text-secondary)',
                         marginLeft: '4px',
                       }}>
-                        /mes
+                        /mês
                       </span>
                     </>
                   )}
@@ -453,7 +337,7 @@ export default function Register() {
                     marginBottom: '8px',
                   }}>
                     <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                      Emails/mes
+                      Emails/mês
                     </span>
                     <span style={{
                       fontSize: '13px',
@@ -542,7 +426,7 @@ export default function Register() {
             fontSize: '14px',
             color: 'var(--text-secondary)',
           }}>
-            Ja tem conta?{' '}
+            Já tem conta?{' '}
             <Link
               to="/login"
               style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '500' }}
@@ -551,8 +435,6 @@ export default function Register() {
             </Link>
           </div>
         </div>
-      )}
-
       </div>
     </div>
   )

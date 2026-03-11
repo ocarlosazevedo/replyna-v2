@@ -53,6 +53,13 @@ const availableCategories = [
   { value: 'spam', label: 'Spam' },
 ]
 
+const TICKET_STATUS: Record<string, { label: string; bg: string; color: string }> = {
+  pending:  { label: 'Pendente',   bg: 'rgba(239,68,68,0.15)',   color: '#ef4444' },
+  answered: { label: 'Respondido', bg: 'rgba(34,197,94,0.15)',   color: '#16a34a' },
+  reopened: { label: 'Reaberto',   bg: 'rgba(249,115,22,0.15)',  color: '#f97316' },
+  closed:   { label: 'Fechado',    bg: 'rgba(107,114,128,0.15)', color: '#6b7280' },
+}
+
 // Usando getCategoryBadgeStyle de src/constants/categories.ts para consistência
 
 /**
@@ -406,6 +413,8 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
   const [replySuccess, setReplySuccess] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [closingTicket, setClosingTicket] = useState(false)
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
+  const [changingStatus, setChangingStatus] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -538,13 +547,16 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onClose, showCategoryDropdown])
 
-  // Fechar dropdown ao clicar fora
+  // Fechar dropdowns ao clicar fora
   useEffect(() => {
-    if (!showCategoryDropdown) return
-    const handleClickOutside = () => setShowCategoryDropdown(false)
+    if (!showCategoryDropdown && !showStatusDropdown) return
+    const handleClickOutside = () => {
+      setShowCategoryDropdown(false)
+      setShowStatusDropdown(false)
+    }
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
-  }, [showCategoryDropdown])
+  }, [showCategoryDropdown, showStatusDropdown])
 
   const handleCategoryChange = async (newCategory: string) => {
     if (!conversation || changingCategory) return
@@ -807,6 +819,49 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
     }
   }
 
+  const handleStatusChange = async (newStatus: string) => {
+    if (!conversation || changingStatus) return
+
+    setChangingStatus(true)
+    try {
+      const update: Record<string, unknown> = { ticket_status: newStatus }
+
+      // Se mudar para 'closed', aplicar frozen e archived como no handleCloseTicket
+      if (newStatus === 'closed') {
+        update.frozen_until = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        update.archived = true
+      } else {
+        // Se reabrir de 'closed', remover frozen e desarquivar
+        if (conversation.ticket_status === 'closed') {
+          update.frozen_until = null
+          update.archived = false
+        }
+      }
+
+      const { error } = await supabase
+        .from('conversations')
+        .update(update)
+        .eq('id', conversation.id)
+
+      if (error) throw error
+
+      setConversation(prev => prev ? {
+        ...prev,
+        ticket_status: newStatus,
+      } : null)
+      setShowStatusDropdown(false)
+
+      // Se fechou o ticket, fechar o modal
+      if (newStatus === 'closed') {
+        onClose()
+      }
+    } catch (err) {
+      console.error('Erro ao alterar status do ticket:', err)
+    } finally {
+      setChangingStatus(false)
+    }
+  }
+
   if (!conversationId) return null
 
   const isSpam = conversation?.category === 'spam'
@@ -934,6 +989,7 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                   onClick={(e) => {
                     e.stopPropagation()
                     setShowCategoryDropdown(!showCategoryDropdown)
+                    setShowStatusDropdown(false)
                   }}
                   disabled={changingCategory}
                   style={{
@@ -1009,33 +1065,93 @@ export default function ConversationModal({ conversationId, onClose, onCategoryC
                 )}
               </div>
             )}
-            {conversation && conversation.ticket_status !== 'closed' && (
-              <button
-                type="button"
-                onClick={() => setShowCloseConfirm(true)}
-                title="Encerrar ticket e congelar cliente por 7 dias"
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: 'rgba(220, 38, 38, 0.1)',
-                  color: '#dc2626',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
-                Encerrar
-              </button>
+            {/* Dropdown de status do ticket */}
+            {conversation && conversation.ticket_status && (
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowStatusDropdown(!showStatusDropdown)
+                    setShowCategoryDropdown(false)
+                  }}
+                  disabled={changingStatus}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    border: 'none',
+                    backgroundColor: TICKET_STATUS[conversation.ticket_status]?.bg || 'rgba(107,114,128,0.15)',
+                    color: TICKET_STATUS[conversation.ticket_status]?.color || '#6b7280',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'opacity 0.15s ease',
+                    opacity: changingStatus ? 0.6 : 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {TICKET_STATUS[conversation.ticket_status]?.label || conversation.ticket_status}
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+
+                {showStatusDropdown && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '4px',
+                      backgroundColor: 'var(--bg-card)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '10px',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                      zIndex: 1001,
+                      minWidth: '160px',
+                      overflow: 'hidden',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {Object.entries(TICKET_STATUS).map(([key, cfg]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => handleStatusChange(key)}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          padding: '10px 14px',
+                          border: 'none',
+                          backgroundColor: conversation.ticket_status === key ? 'var(--bg-primary)' : 'transparent',
+                          color: 'var(--text-primary)',
+                          textAlign: 'left',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-primary)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = conversation.ticket_status === key ? 'var(--bg-primary)' : 'transparent'}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                          <span
+                            style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              backgroundColor: cfg.color,
+                            }}
+                          />
+                          {cfg.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
             <button
               type="button"

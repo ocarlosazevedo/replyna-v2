@@ -729,7 +729,7 @@ export default function AdminCoupons() {
             }}>
               <RefreshCw size={14} style={{ color: 'var(--accent)' }} />
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                O cupom sera salvo localmente no Supabase
+                O cupom será salvo localmente no Supabase
               </span>
             </div>
 

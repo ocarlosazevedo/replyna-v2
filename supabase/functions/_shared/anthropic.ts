@@ -37,6 +37,8 @@ export interface ClaudeResponse {
   usage: {
     input_tokens: number;
     output_tokens: number;
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
   };
 }
 
@@ -398,6 +400,13 @@ function detectLanguageFromText(text: string): string | null {
     /\b(peníze|peněz|zpět)\b/i, // money, back
     /\b(postupovat|postup)\b/i, // proceed, procedure
     /\b(dobrý|dobré|potvrzena|potvrzení)\b/i, // good, confirmed
+    /\b(posílejte|pošlete|posíláte|pošlite)\b/i, // send (imperative/present forms)
+    /\b(původní|předmět|odpověď|odpovědět)\b/i, // original, subject, reply
+    /\b(stále|ještě|právě|vůbec|taky|také)\b/i, // still, yet, just, at all, also
+    /\b(nemám|mám|máte|nemáte)\b/i, // I have/don't have, you have/don't have
+    /\b(dostala|dostal|dostali|nedostala)\b/i, // received
+    /\b(správně|špatně|bohužel)\b/i, // correctly, wrongly, unfortunately
+    /\b(takže|protože|jestli|pokud|kdyby)\b/i, // so, because, if
   ];
 
   for (const pattern of czechUniquePatterns) {
@@ -1698,6 +1707,7 @@ async function callClaude(
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'prompt-caching-2024-07-31',
     },
     body: JSON.stringify({
       model: MODEL,
@@ -2223,8 +2233,16 @@ REGRAS CRÍTICAS:
         /^>+\s/m,
         /^-+\s*Original Message\s*-+/im,
         /^-+\s*Mensagem Original\s*-+/im,
+        /^-+\s*Původní e-mail\s*-+/im,
+        /^-+\s*Ursprüngliche Nachricht\s*-+/im,
+        /^-+\s*Message d'origine\s*-+/im,
+        /^-+\s*Mensaje original\s*-+/im,
+        /^-+\s*Messaggio originale\s*-+/im,
+        /^-+\s*Oorspronkelijk bericht\s*-+/im,
+        /^-+\s*Pôvodná správa\s*-+/im,
         /^From:\s/m,
         /^De:\s/m,
+        /^Od:\s/m,
         /^.{0,80}<\s*[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\s*>\s*(escreveu|wrote|schrieb|a écrit|escribió|ha scritto|schreef)\s*:/im,
       ];
       for (const marker of rawQuoteMarkers) {
@@ -2717,8 +2735,10 @@ function detectHallucinations(
     const addressPatterns = [
       /\d{1,5}\s+(?:rue|rua|avenida|avenue|av\.|street|st\.|road|rd\.|boulevard|blvd|calle|straße|strasse|via)\s+[a-záàâãéèêíïóôõöúçñüß]+/i,
       /(?:rue|rua|avenida|avenue|street|road|boulevard|calle|straße|strasse|via)\s+(?:des?\s+|du\s+|de\s+la\s+|da\s+|do\s+|degli?\s+)?[a-záàâãéèêíïóôõöúçñüß]+\s*,?\s*\d{1,5}/i,
+      /\b[A-Za-zÀ-ÖØ-öø-ÿ]+(?:straße|strasse|stra(?:ß|ss)e|weg|platz|gasse)\s+\d{1,5}\b/i, // German addresses: Musterstraße 12
+      /\b[A-Za-zÀ-ÖØ-öø-ÿ]+(?:er|er)\s+(?:allee|straße|strasse|weg|platz)\s+\d{1,5}\b/i, // German: Berliner Allee 8
       /\b\d{5}[-\s]?\d{3}\b/, // CEP brasileiro
-      /\b\d{5}\s+[A-Z][a-z]+/, // CEP francês/europeu + cidade
+      /\b\d{5}\s+[A-Za-zÀ-ÖØ-öø-ÿ][a-záàâãéèêíïóôõöúçñüß]+/, // CEP europeu + cidade (case-insensitive first char)
       /\b(?:paris|prague|praga|lisboa|madrid|berlin|roma|london|new york|são paulo)\b.*\d{4,5}/i,
       /\d{4,5}\s+(?:paris|prague|praga|lisboa|madrid|berlin|roma|london|são paulo)/i,
     ];
@@ -4714,17 +4734,34 @@ Rewrite your response using ONLY facts you have. Be short and direct. NO promise
         }
       } else if (retryHallucinations.length > 0) {
         console.warn(`[generateResponse] Retry still has hallucinations: ${retryHallucinations.join(', ')}. Stripping problematic content.`);
-        // Se o retry ainda tem problemas, usar o retry mas remover frases proibidas simples
-        cleanedResponse = retryClean
-          .replace(/atenciosamente,?\s*/gi, '')
-          .replace(/sincerely,?\s*/gi, '')
-          .replace(/best regards,?\s*/gi, '')
-          .replace(/kind regards,?\s*/gi, '')
-          .replace(/mit freundlichen grüßen,?\s*/gi, '')
-          .replace(/cordialmente,?\s*/gi, '')
-          .replace(/cordialement,?\s*/gi, '')
-          .replace(/cordiali saluti,?\s*/gi, '')
-          .trim();
+        // Se o retry ainda tem ADDRESS_HALLUCINATION ou PHONE_HALLUCINATION, usar fallback seguro
+        const hasAddressOrPhone = retryHallucinations.some(h => h.includes('ADDRESS_HALLUCINATION') || h.includes('PHONE_HALLUCINATION'));
+        if (hasAddressOrPhone) {
+          console.warn(`[generateResponse] Retry has address/phone hallucination - using safe fallback`);
+          // Usar fallback factual seguro em vez de deixar endereço inventado passar
+          const safeFallbacks: Record<string, string> = {
+            pt: `Olá! Recebemos sua solicitação e encaminhamos para nossa equipe, que vai analisar e te responder por aqui mesmo!\n\n${shopContext.attendant_name}`,
+            en: `Hello! We received your request and our team will review it and respond through this same email!\n\n${shopContext.attendant_name}`,
+            de: `Hallo! Wir haben Ihre Anfrage erhalten und unser Team wird sich über diese E-Mail bei Ihnen melden!\n\n${shopContext.attendant_name}`,
+            es: `¡Hola! Recibimos tu solicitud y nuestro equipo la revisará y te responderá por este mismo correo!\n\n${shopContext.attendant_name}`,
+            fr: `Bonjour ! Nous avons bien reçu votre demande et notre équipe vous répondra par ce même email !\n\n${shopContext.attendant_name}`,
+            it: `Ciao! Abbiamo ricevuto la tua richiesta e il nostro team ti risponderà tramite questa stessa email!\n\n${shopContext.attendant_name}`,
+          };
+          cleanedResponse = safeFallbacks[language] || safeFallbacks[language?.split('-')[0]] || safeFallbacks['en'];
+          forwardToHuman = true;
+        } else {
+          // Se o retry tem só problemas menores (formal closings, etc.), remover frases proibidas simples
+          cleanedResponse = retryClean
+            .replace(/atenciosamente,?\s*/gi, '')
+            .replace(/sincerely,?\s*/gi, '')
+            .replace(/best regards,?\s*/gi, '')
+            .replace(/kind regards,?\s*/gi, '')
+            .replace(/mit freundlichen grüßen,?\s*/gi, '')
+            .replace(/cordialmente,?\s*/gi, '')
+            .replace(/cordialement,?\s*/gi, '')
+            .replace(/cordiali saluti,?\s*/gi, '')
+            .trim();
+        }
         response.usage.input_tokens += retryResponse.usage.input_tokens;
         response.usage.output_tokens += retryResponse.usage.output_tokens;
       }

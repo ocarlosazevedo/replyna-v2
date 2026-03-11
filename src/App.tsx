@@ -1,32 +1,61 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { AdminProvider, useAdmin } from './context/AdminContext'
 import { NotificationProvider } from './context/NotificationContext'
 
-// Pages
-import Login from './pages/Login'
-import Register from './pages/Register'
-import ForgotPassword from './pages/ForgotPassword'
-import ResetPassword from './pages/ResetPassword'
-import CheckoutSuccess from './pages/CheckoutSuccess'
-import Checkout from './pages/Checkout'
-import Dashboard from './pages/Dashboard'
-import Shops from './pages/Shops'
-import ShopSetup from './pages/ShopSetup'
-import ShopDetails from './pages/ShopDetails'
-import Account from './pages/Account'
-import ConversationDetails from './pages/ConversationDetails'
-import LandingPage from './pages/LandingPage'
-import ChargebackPage from './pages/ChargebackPage'
-import PrivacyPolicy from './pages/PrivacyPolicy'
-import Masterclass from './pages/Masterclass'
-import MasterclassWatch from './pages/MasterclassWatch'
-import Tickets from './pages/Tickets'
-import Formularios from './pages/Formularios'
-import Migrate from './pages/Migrate'
-import ReturnRequest from './pages/ReturnRequest'
-import Team from './pages/Team'
-import TeamInvite from './pages/TeamInvite'
+// Componentes essenciais (carregam imediatamente)
+import ErrorBoundary from './components/ErrorBoundary'
+import { TeamProvider } from './hooks/useTeamContext'
+
+// Loading spinner reutilizável
+const PageSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+  </div>
+)
+
+// Lazy load - Pages (carregam sob demanda)
+const Login = lazy(() => import('./pages/Login'))
+const Register = lazy(() => import('./pages/Register'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const CheckoutSuccess = lazy(() => import('./pages/CheckoutSuccess'))
+const Checkout = lazy(() => import('./pages/Checkout'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Shops = lazy(() => import('./pages/Shops'))
+const ShopSetup = lazy(() => import('./pages/ShopSetup'))
+const ShopDetails = lazy(() => import('./pages/ShopDetails'))
+const Account = lazy(() => import('./pages/Account'))
+const Plans = lazy(() => import('./pages/Plans'))
+const ConversationDetails = lazy(() => import('./pages/ConversationDetails'))
+const LandingPage = lazy(() => import('./pages/LandingPage'))
+const ChargebackPage = lazy(() => import('./pages/ChargebackPage'))
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
+const Masterclass = lazy(() => import('./pages/Masterclass'))
+const MasterclassWatch = lazy(() => import('./pages/MasterclassWatch'))
+const Tickets = lazy(() => import('./pages/Tickets'))
+const Formularios = lazy(() => import('./pages/Formularios'))
+const Migrate = lazy(() => import('./pages/Migrate'))
+const ReturnRequest = lazy(() => import('./pages/ReturnRequest'))
+const Team = lazy(() => import('./pages/Team'))
+const TeamInvite = lazy(() => import('./pages/TeamInvite'))
+
+// Lazy load - Admin Pages
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const AdminClients = lazy(() => import('./pages/admin/AdminClients'))
+const AdminAdministrators = lazy(() => import('./pages/admin/AdminAdministrators'))
+const AdminPlans = lazy(() => import('./pages/admin/AdminPlans'))
+const AdminCoupons = lazy(() => import('./pages/admin/AdminCoupons'))
+const AdminFinancial = lazy(() => import('./pages/admin/AdminFinancial'))
+const AdminMigration = lazy(() => import('./pages/admin/AdminMigration'))
+const MigrationAccept = lazy(() => import('./pages/MigrationAccept'))
+const AuthConfirm = lazy(() => import('./pages/AuthConfirm'))
+
+// Lazy load - Layouts (carregam quando necessário)
+const DashboardLayout = lazy(() => import('./components/DashboardLayout'))
+const AdminLayout = lazy(() => import('./components/AdminLayout'))
 
 // Verifica se estamos no domínio da Landing Page (replyna.me sem subdomain)
 const isLandingDomain = () => {
@@ -53,24 +82,6 @@ const isLandingPath = () => {
   ])
   return landingPaths.has(normalized)
 }
-
-// Admin Pages
-import AdminLogin from './pages/admin/AdminLogin'
-import AdminDashboard from './pages/admin/AdminDashboard'
-import AdminClients from './pages/admin/AdminClients'
-import AdminAdministrators from './pages/admin/AdminAdministrators'
-import AdminPlans from './pages/admin/AdminPlans'
-import AdminCoupons from './pages/admin/AdminCoupons'
-import AdminFinancial from './pages/admin/AdminFinancial'
-import AdminMigration from './pages/admin/AdminMigration'
-import MigrationAccept from './pages/MigrationAccept'
-import AuthConfirm from './pages/AuthConfirm'
-
-// Components
-import DashboardLayout from './components/DashboardLayout'
-import { TeamProvider } from './hooks/useTeamContext'
-import AdminLayout from './components/AdminLayout'
-import ErrorBoundary from './components/ErrorBoundary'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -175,6 +186,7 @@ function App() {
   if (isLandingDomain() || (isLocalhost() && isLandingPath())) {
     return (
       <BrowserRouter>
+        <Suspense fallback={<PageSpinner />}>
         <Routes>
           <Route path="/masterclass" element={<Masterclass />} />
           <Route path="/masterclass/assistir" element={<MasterclassWatch />} />
@@ -182,6 +194,7 @@ function App() {
           <Route path="/privacidade" element={<PrivacyPolicy />} />
           <Route path="*" element={<LandingPage />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     )
   }
@@ -192,13 +205,14 @@ function App() {
       <AdminProvider>
         <NotificationProvider>
         <ErrorBoundary>
+        <Suspense fallback={<PageSpinner />}>
         <Routes>
           {/* Rotas publicas */}
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/checkout" element={<PublicRoute><Checkout /></PublicRoute>} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/migrate" element={<Migrate />} />
           <Route path="/migrate/:code" element={<MigrationAccept />} />
@@ -261,6 +275,13 @@ function App() {
             <PrivateRoute>
               <DashboardLayout>
                 <Account />
+              </DashboardLayout>
+            </PrivateRoute>
+          } />
+          <Route path="/plans" element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Plans />
               </DashboardLayout>
             </PrivateRoute>
           } />
@@ -334,6 +355,7 @@ function App() {
           {/* Redirect padrao */}
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
+        </Suspense>
         </ErrorBoundary>
         </NotificationProvider>
       </AdminProvider>

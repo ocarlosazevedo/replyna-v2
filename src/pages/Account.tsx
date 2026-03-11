@@ -1,9 +1,8 @@
 import { useMemo, useState, useEffect } from 'react'
-import { Sun, Moon } from 'lucide-react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { supabase } from '../lib/supabase'
-import { useTheme } from '../context/ThemeContext'
 import { useTeamContext } from '../hooks/useTeamContext'
 
 interface UserProfile {
@@ -21,18 +20,6 @@ interface UserProfile {
   whatsapp_number: string | null
   is_trial: boolean | null
   trial_started_at: string | null
-}
-
-interface Plan {
-  id: string
-  name: string
-  description: string | null
-  price_monthly: number
-  price_yearly: number | null
-  emails_limit: number | null  // null = ilimitado
-  shops_limit: number | null   // null = ilimitado
-  features: string[]
-  is_popular: boolean
 }
 
 interface PendingInvoice {
@@ -79,10 +66,11 @@ const Skeleton = ({ height = 16, width = '100%' }: { height?: number | string; w
 )
 
 export default function Account() {
-  console.log('🔄 Account.tsx carregado - versão 3 (com sync fix)')
+  console.log('🔄 Account.tsx carregado - versão 4 (checkout upgrade)')
   const { user } = useAuth()
-  const { theme, setTheme } = useTheme()
   const { isTeamContext, hasPermission } = useTeamContext()
+  const navigate = useNavigate()
+  const location = useLocation()
   const isMobile = useIsMobile()
   const canSeeBilling = !isTeamContext || hasPermission('billing', 'read')
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -179,11 +167,6 @@ export default function Account() {
 
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
-  const [showPlanModal, setShowPlanModal] = useState(false)
-  const [plans, setPlans] = useState<Plan[]>([])
-  const [plansLoading, setPlansLoading] = useState(false)
-  const [changingPlanId, setChangingPlanId] = useState<string | null>(null)
-
   const [pendingInvoices, setPendingInvoices] = useState<PendingInvoice[]>([])
   const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null)
   const [buyingExtras, setBuyingExtras] = useState(false)
@@ -202,6 +185,19 @@ export default function Account() {
     phone: '',
   })
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
+
+  // Mostrar mensagem de sucesso se veio do checkout de upgrade
+  useEffect(() => {
+    const state = location.state as { upgradeSuccess?: boolean; planName?: string } | null
+    if (state?.upgradeSuccess) {
+      setNotice({
+        type: 'success',
+        message: `Upgrade para o plano ${state.planName || ''} realizado com sucesso!`,
+      })
+      // Limpar o state para nao mostrar novamente
+      window.history.replaceState({}, '')
+    }
+  }, [location.state])
 
   // Função para abrir a ultima fatura do Asaas
   const handleOpenBillingPortal = async () => {
@@ -300,11 +296,7 @@ export default function Account() {
         // Usuario sem assinatura ativa - direcionar para selecionar um plano
         setShowPaymentModal(false)
         setCardForm({ holderName: '', number: '', expiryMonth: '', expiryYear: '', ccv: '', cpfCnpj: '', postalCode: '', addressNumber: '', phone: '' })
-        setShowPlanModal(true)
-        setNotice({
-          type: 'info',
-          message: 'Você não possui uma assinatura ativa. Selecione um plano para assinar.',
-        })
+        navigate('/plans')
       } else {
         throw new Error(data.error || 'Erro ao atualizar cartão.')
       }
@@ -759,24 +751,8 @@ export default function Account() {
     }
   }
 
-  const handleOpenPlanModal = async () => {
-    setShowPlanModal(true)
-    setPlansLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('plans')
-        .select('id, name, description, price_monthly, price_yearly, emails_limit, shops_limit, features, is_popular')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true })
-
-      if (error) throw error
-      setPlans(data || [])
-    } catch (err) {
-      console.error('Erro ao carregar planos:', err)
-      setNotice({ type: 'error', message: 'Não foi possível carregar os planos disponíveis.' })
-    } finally {
-      setPlansLoading(false)
-    }
+  const handleOpenPlanModal = () => {
+    navigate('/plans')
   }
 
   const handlePayInvoice = async (invoice: PendingInvoice) => {
@@ -850,146 +826,6 @@ export default function Account() {
       setPayingInvoiceId(null)
     }
   }
-
-  const handleChangePlan = async (plan: Plan) => {
-    if (!user) return
-
-    console.log('handleChangePlan chamado:', { planId: plan.id, planName: plan.name, userId: user.id })
-    setChangingPlanId(plan.id)
-    setNotice(null)
-
-    try {
-      console.log('Enviando requisição para update-subscription...')
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subscription`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            user_id: user.id,
-            new_plan_id: plan.id,
-          }),
-        }
-      )
-
-      console.log('Response status:', response.status, response.statusText)
-      const result = await response.json()
-      console.log('Resposta update-subscription:', result)
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Erro ao alterar plano')
-      }
-
-      // Se precisa adicionar método de pagamento, redirecionar para checkout
-      if (result.requires_payment_method && result.checkout_url) {
-        setNotice({
-          type: 'info',
-          message: 'Redirecionando para adicionar método de pagamento...',
-        })
-        window.location.href = result.checkout_url
-        return
-      }
-
-      // Se pagamento está pendente, redirecionar para página de pagamento
-      if (result.payment_required && result.payment_url) {
-        setNotice({
-          type: 'info',
-          message: 'Redirecionando para completar o pagamento...',
-        })
-        window.location.href = result.payment_url
-        return
-      }
-
-      // Aguardar um pouco para garantir que o banco foi sincronizado
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Recarregar profile do banco para garantir dados sincronizados
-      const { data: updatedProfile, error: profileError } = await supabase
-        .from('users')
-        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number, is_trial, trial_started_at')
-        .eq('id', user.id)
-        .single()
-
-      console.log('Profile recarregado:', { updatedProfile, profileError })
-
-      if (updatedProfile) {
-        setProfile({
-          ...updatedProfile,
-          extra_email_price: profile?.extra_email_price ?? null,
-          extra_email_package_size: profile?.extra_email_package_size ?? null,
-          is_trial: updatedProfile.is_trial ?? false,
-          trial_started_at: updatedProfile.trial_started_at || null,
-        })
-      } else if (result.new_plan) {
-        // Fallback: atualizar localmente se não conseguir recarregar
-        setProfile((prev) =>
-          prev
-            ? {
-                ...prev,
-                plan: result.new_plan.name,
-                emails_limit: result.new_plan.emails_limit,
-                shops_limit: result.new_plan.shops_limit,
-              }
-            : prev
-        )
-      }
-
-      setShowPlanModal(false)
-
-      // Verificar se houve erro parcial (gateway atualizado mas banco falhou)
-      if (result.partial_error) {
-        setNotice({
-          type: 'info',
-          message: result.message || 'Plano atualizado parcialmente. Por favor recarregue a página.',
-        })
-        return
-      }
-
-      // Verificar se foi uma sincronização (gateway já estava no plano, banco foi atualizado)
-      if (result.synced) {
-        setNotice({
-          type: 'success',
-          message: `Seu plano ${plan.name} foi sincronizado com sucesso!`,
-        })
-        return
-      }
-
-      // Mensagem de sucesso diferenciada para upgrade e downgrade
-      const priceFormatted = result.new_plan?.price_monthly
-        ? `R$ ${result.new_plan.price_monthly.toFixed(2).replace('.', ',')}/mês`
-        : ''
-
-      let successMessage = `Plano alterado para ${plan.name} com sucesso!`
-
-      if (result.is_upgrade && result.price_difference > 0) {
-        // Upgrade: cobrança imediata
-        const diffFormatted = `R$ ${(result.price_difference || 0).toFixed(2).replace('.', ',')}`
-        successMessage = `Upgrade para ${plan.name} realizado! A diferença de ${diffFormatted} foi cobrada.`
-      } else if (result.is_downgrade) {
-        // Downgrade: novo valor na próxima fatura
-        successMessage = `Downgrade para ${plan.name} realizado! ${priceFormatted ? `O novo valor de ${priceFormatted} será aplicado na próxima fatura.` : ''}`
-      }
-
-      setNotice({
-        type: 'success',
-        message: successMessage,
-      })
-    } catch (err: unknown) {
-      console.error('Erro no handleChangePlan:', err)
-      const message = err instanceof Error ? err.message : 'Erro ao alterar plano. Tente novamente.'
-      setNotice({ type: 'error', message })
-    } finally {
-      setChangingPlanId(null)
-    }
-  }
-
-  // Encontrar plano atual para calcular diferença
-  const currentPlanData = useMemo(() => {
-    return plans.find(p => p.name.toLowerCase().trim() === planName.toLowerCase().trim()) || null
-  }, [plans, planName])
 
   // Skeleton loading completo da página
   if (loading) {
@@ -1332,11 +1168,11 @@ export default function Account() {
                       backgroundColor: '#f59e0b',
                       color: '#ffffff',
                     }}>
-                      Periodo de Teste
+                      Período de Teste
                     </span>
                   </div>
                   <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                    Voce possui <strong style={{ color: 'var(--text-primary)' }}>{30 - (profile?.emails_used ?? 0)}</strong> emails restantes no seu periodo de teste gratuito.
+                    Você possui <strong style={{ color: 'var(--text-primary)' }}>{30 - (profile?.emails_used ?? 0)}</strong> emails restantes no seu período de teste gratuito.
                   </p>
                   <div style={{ marginBottom: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -1366,7 +1202,7 @@ export default function Account() {
                       marginBottom: '12px',
                     }}>
                       <p style={{ margin: 0, fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>
-                        Seu periodo de teste acabou. Assine um plano para continuar respondendo emails automaticamente.
+                        Seu período de teste acabou. Assine um plano para continuar respondendo emails automaticamente.
                       </p>
                     </div>
                   )}
@@ -1694,301 +1530,8 @@ export default function Account() {
             )}
           </section>}
 
-          <section style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-color)', height: 'fit-content' }}>
-            <div style={{ marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Aparência</h2>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px' }}>Personalize a interface do sistema</p>
-            </div>
-            <div style={{ display: 'grid', gap: '10px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Tema</span>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-color)',
-                  overflow: 'hidden',
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setTheme('light')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    padding: '12px',
-                    border: 'none',
-                    backgroundColor: theme === 'light' ? 'var(--accent)' : 'transparent',
-                    color: theme === 'light' ? '#ffffff' : 'var(--text-secondary)',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Sun size={16} />
-                  Claro
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTheme('dark')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    padding: '12px',
-                    border: 'none',
-                    backgroundColor: theme === 'dark' ? 'var(--accent)' : 'transparent',
-                    color: theme === 'dark' ? '#ffffff' : 'var(--text-secondary)',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Moon size={16} />
-                  Escuro
-                </button>
-              </div>
-            </div>
-          </section>
         </div>
       </div>
-
-      {showPlanModal && (
-        <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
-          <div
-            className="replyna-scrollbar"
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              borderRadius: '16px',
-              padding: '24px',
-              border: '1px solid var(--border-color)',
-              width: 'min(600px, 94vw)',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              zIndex: 61,
-            }}
-          >
-            <h3 style={{ marginTop: 0, marginBottom: '8px', color: 'var(--text-primary)' }}>Alterar plano</h3>
-            <p style={{ marginTop: 0, marginBottom: '20px', color: 'var(--text-secondary)', fontSize: '14px' }}>
-              Selecione o novo plano. A diferença será ajustada automaticamente na sua próxima fatura.
-            </p>
-
-            {plansLoading ? (
-              <div style={{ display: 'grid', gap: '12px' }}>
-                <Skeleton height={120} />
-                <Skeleton height={120} />
-              </div>
-            ) : plans.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>
-                Nenhum plano disponível no momento.
-              </p>
-            ) : (
-              <div style={{ display: 'grid', gap: '12px' }}>
-                {plans.map((plan) => {
-                  const isCurrentPlan = plan.name.toLowerCase().trim() === planName.toLowerCase().trim()
-                  const isEnterprise = plan.name.toLowerCase().includes('enterprise')
-                  return (
-                    <div
-                      key={plan.id}
-                      style={{
-                        borderRadius: '12px',
-                        border: isCurrentPlan
-                          ? '2px solid var(--accent)'
-                          : `1px solid ${plan.is_popular ? 'var(--accent)' : 'var(--border-color)'}`,
-                        padding: '16px',
-                        backgroundColor: isCurrentPlan ? 'rgba(70, 114, 236, 0.08)' : 'var(--bg-primary)',
-                        position: 'relative',
-                      }}
-                    >
-                      {isCurrentPlan && (
-                        <span
-                          style={{
-                            position: 'absolute',
-                            top: '-10px',
-                            left: '16px',
-                            backgroundColor: 'var(--accent)',
-                            color: '#fff',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                          }}
-                        >
-                          Seu plano
-                        </span>
-                      )}
-                      {plan.is_popular && !isCurrentPlan && (
-                        <span
-                          style={{
-                            position: 'absolute',
-                            top: '-10px',
-                            right: '16px',
-                            backgroundColor: 'var(--accent)',
-                            color: '#fff',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                          }}
-                        >
-                          Popular
-                        </span>
-                      )}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
-                        <div style={{ flex: 1, minWidth: '200px' }}>
-                          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                            {plan.name}
-                            {isCurrentPlan && (
-                              <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: 500, color: 'var(--accent)' }}>
-                                (Atual)
-                              </span>
-                            )}
-                          </div>
-                          <ul style={{ paddingLeft: '16px', margin: 0, color: 'var(--text-secondary)', fontSize: '12px', display: 'grid', gap: '2px' }}>
-                            <li style={{ color: isEnterprise || plan.emails_limit === null ? '#22c55e' : 'inherit' }}>
-                              {isEnterprise || plan.emails_limit === null ? 'Emails ilimitados' : `${formatNumber(plan.emails_limit)} emails/mês`}
-                            </li>
-                            <li style={{ color: isEnterprise || plan.shops_limit === null ? '#22c55e' : 'inherit' }}>
-                              {isEnterprise || plan.shops_limit === null ? 'Lojas ilimitadas' : `${formatNumber(plan.shops_limit)} ${plan.shops_limit === 1 ? 'loja' : 'lojas'}`}
-                            </li>
-                            {Array.isArray(plan.features) && plan.features
-                              .filter((f) => {
-                                const lower = f.toLowerCase()
-                                // Filtra features que mencionam emails ou lojas (já exibidos acima)
-                                return !lower.includes('email') && !lower.includes('e-mail') && !lower.includes('loja')
-                              })
-                              .slice(0, 3)
-                              .map((feature, idx) => (
-                                <li key={idx}>{feature}</li>
-                              ))}
-                          </ul>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                          <div style={{ textAlign: 'right' }}>
-                            {isEnterprise ? (
-                              <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                Sob consulta
-                              </div>
-                            ) : (
-                              <>
-                                {/* Se não é o plano atual e tem diferença, mostra preço cortado + diferença */}
-                                {!isCurrentPlan && currentPlanData && plan.price_monthly !== currentPlanData.price_monthly ? (
-                                  <>
-                                    <div style={{
-                                      fontSize: '14px',
-                                      color: 'var(--text-secondary)',
-                                      textDecoration: 'line-through',
-                                      opacity: 0.7,
-                                    }}>
-                                      R$ {plan.price_monthly.toFixed(2).replace('.', ',')}
-                                    </div>
-                                    <div style={{
-                                      fontSize: '18px',
-                                      fontWeight: 700,
-                                      color: plan.price_monthly > currentPlanData.price_monthly ? '#22c55e' : 'var(--accent)',
-                                    }}>
-                                      {plan.price_monthly > currentPlanData.price_monthly
-                                        ? `+R$ ${(plan.price_monthly - currentPlanData.price_monthly).toFixed(2).replace('.', ',')}`
-                                        : `-R$ ${(currentPlanData.price_monthly - plan.price_monthly).toFixed(2).replace('.', ',')}`}
-                                    </div>
-                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                                      {plan.price_monthly > currentPlanData.price_monthly ? 'a mais por mês' : 'de economia por mês'}
-                                    </div>
-                                  </>
-                                ) : (
-                                  <>
-                                    <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                      R$ {plan.price_monthly.toFixed(2).replace('.', ',')}
-                                    </div>
-                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>por mês</div>
-                                  </>
-                                )}
-                              </>
-                            )}
-                          </div>
-                          {isEnterprise ? (
-                            <a
-                              href="https://wa.me/5511999999999?text=Olá!%20Tenho%20interesse%20no%20plano%20Enterprise%20da%20Replyna."
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                borderRadius: '8px',
-                                border: 'none',
-                                backgroundColor: '#25D366',
-                                color: '#fff',
-                                padding: '8px 16px',
-                                fontSize: '13px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                textDecoration: 'none',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                              }}
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                              </svg>
-                              Falar com vendas
-                            </a>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleChangePlan(plan)}
-                              disabled={isCurrentPlan || changingPlanId !== null}
-                              style={{
-                                borderRadius: '8px',
-                                border: 'none',
-                                backgroundColor: isCurrentPlan ? 'var(--border-color)' : 'var(--accent)',
-                                color: isCurrentPlan ? 'var(--text-secondary)' : '#fff',
-                                padding: '8px 16px',
-                                fontSize: '13px',
-                                fontWeight: 600,
-                                cursor: isCurrentPlan || changingPlanId !== null ? 'not-allowed' : 'pointer',
-                                opacity: changingPlanId !== null && changingPlanId !== plan.id ? 0.6 : 1,
-                              }}
-                            >
-                              {isCurrentPlan
-                                ? 'Plano atual'
-                                : changingPlanId === plan.id
-                                ? 'Alterando...'
-                                : 'Selecionar'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setShowPlanModal(false)}
-              style={{
-                marginTop: '16px',
-                width: '100%',
-                borderRadius: '10px',
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                padding: '10px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Fechar
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowPlanModal(false)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(14, 23, 41, 0.35)', border: 'none', zIndex: 60 }}
-          />
-        </div>
-      )}
 
       {showCancelModal && (
         <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>

@@ -95,7 +95,7 @@ export default function Migrate() {
         return
       }
 
-      throw new Error('Invoice nao encontrada. Entre em contato pelo WhatsApp.')
+      throw new Error('Invoice não encontrada. Entre em contato pelo WhatsApp.')
     } catch (err) {
       console.error('Erro ao iniciar migracao:', err)
       setErrorMessage('Erro ao processar. Entre em contato pelo WhatsApp: (31) 99771-9669')
@@ -147,7 +147,7 @@ export default function Migrate() {
         style={{ width: '160px', margin: '0 auto 20px', display: 'block' }}
       />
       <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>
-        Este link nao e valido ou ja foi utilizado
+        Este link não é válido ou já foi utilizado
       </h2>
       <p style={{ color: '#94a3b8', fontSize: '14px' }}>
         Entre em contato se precisar de ajuda.
@@ -195,10 +195,10 @@ export default function Migrate() {
             style={{ width: '160px', margin: '0 auto 20px', display: 'block' }}
           />
           <h2 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '12px' }}>
-            Ola {data?.name || 'cliente'}!
+            Olá {data?.name || 'cliente'}!
           </h2>
           <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '16px' }}>
-            Atualizamos nosso sistema de pagamento para melhorar sua experiencia.
+            Atualizamos nosso sistema de pagamento para melhorar sua experiência.
           </p>
           <div style={{
             backgroundColor: '#10101a',
@@ -208,11 +208,11 @@ export default function Migrate() {
           }}>
             <p style={{ margin: 0, fontSize: '14px', color: '#cbd5f5' }}>Seu plano</p>
             <p style={{ margin: '6px 0 0', fontSize: '18px', fontWeight: 600 }}>
-              {data?.plan_name || 'Plano'} - {formattedPrice}/mes
+              {data?.plan_name || 'Plano'} - {formattedPrice}/mês
             </p>
           </div>
           <p style={{ color: '#94a3b8', fontSize: '14px', marginTop: '16px' }}>
-            Seus emails e configuracoes continuam exatamente iguais.
+            Seus emails e configurações continuam exatamente iguais.
           </p>
           {errorMessage && (
             <div style={{

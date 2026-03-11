@@ -456,16 +456,17 @@ export default function Dashboard() {
           ? receivedBaseQuery().in('shop_id', effectiveShopIds)
           : receivedBaseQuery().eq('shop_id', selectedShopId)
 
-      // Count de conversas atendidas (que têm pelo menos 1 mensagem outbound)
+      // Count de conversas atendidas (status replied, pending_human ou closed = teve resposta)
+      // Evita JOIN com messages que causa timeout/500
       const repliedBaseQuery = () =>
         supabase
           .from('conversations')
-          .select('id, messages!inner(direction)', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
           .not('category', 'is', null) // Excluir conversas ainda em processamento
           .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
-          .eq('messages.direction', 'outbound')
+          .in('status', ['replied', 'pending_human', 'closed'])
 
       const repliedQuery =
         selectedShopId === 'all'
@@ -487,16 +488,16 @@ export default function Dashboard() {
     }
 
     const loadConversationsForChart = async () => {
-      // Carregar conversas para o gráfico de volume (mesmos filtros das métricas e inbox)
-      // Inclui mensagens para verificar se há resposta outbound (igual à métrica)
+      // Carregar conversas para o gráfico de volume (sem JOIN com messages)
+      // Usa status para determinar se teve resposta (evita timeout)
       const query = supabase
         .from('conversations')
-        .select('created_at, category, messages(direction)')
+        .select('created_at, category, status')
         .not('category', 'is', null) // Excluir conversas ainda em processamento
         .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")') // Mesmo filtro das métricas
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
-        .limit(10000) // Limite maior para o gráfico
+        .limit(5000)
 
       const { data, error } =
         selectedShopId === 'all'
@@ -505,11 +506,11 @@ export default function Dashboard() {
 
       if (error) throw error
 
-      // Transformar para incluir flag hasOutbound (igual à definição da métrica)
-      return (data || []).map((conv: { created_at: string; category: string | null; messages: Array<{ direction: string }> | null }) => ({
+      // Usar status para determinar se teve resposta (replied/pending_human/closed = respondida)
+      return (data || []).map((conv: { created_at: string; category: string | null; status: string | null }) => ({
         created_at: conv.created_at,
         category: conv.category,
-        hasOutbound: (conv.messages || []).some(m => m.direction === 'outbound')
+        hasOutbound: ['replied', 'pending_human', 'closed'].includes(conv.status || '')
       }))
     }
 
@@ -559,21 +560,30 @@ export default function Dashboard() {
     // Etapa 2: Gráfico (mais lento, carrega depois)
     const loadFastData = async () => {
       try {
-        const [pendingHuman, conversationCounts, conversationRows] = await Promise.all([
+        // Carregar cada query individualmente para resiliência
+        const cacheKey = `${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`
+
+        const [pendingHumanResult, conversationCountsResult, conversationRowsResult] = await Promise.allSettled([
           loadPendingHuman(),
-          cacheFetch(
-            `conversation-counts:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
-            loadConversationCounts
-          ),
-          cacheFetch(
-            `conversations:${user.id}:${selectedShopId}:${effectiveShopIds.join(',')}:${dateStart.toISOString()}:${dateEnd.toISOString()}`,
-            loadConversationsList
-          ),
+          cacheFetch(`conversation-counts:${cacheKey}`, loadConversationCounts),
+          cacheFetch(`conversations:${cacheKey}`, loadConversationsList),
         ])
 
         if (!isActive) return
 
-        // Métricas usando count de CONVERSAS (não mensagens individuais)
+        const pendingHuman = pendingHumanResult.status === 'fulfilled' ? pendingHumanResult.value : 0
+        const conversationCounts = conversationCountsResult.status === 'fulfilled'
+          ? conversationCountsResult.value
+          : { conversationsReceived: 0, conversationsReplied: 0 }
+        const conversationRows = conversationRowsResult.status === 'fulfilled'
+          ? conversationRowsResult.value
+          : []
+
+        // Log erros individuais sem derrubar o dashboard
+        if (pendingHumanResult.status === 'rejected') console.error('Erro pendingHuman:', pendingHumanResult.reason)
+        if (conversationCountsResult.status === 'rejected') console.error('Erro conversationCounts:', conversationCountsResult.reason)
+        if (conversationRowsResult.status === 'rejected') console.error('Erro conversationsList:', conversationRowsResult.reason)
+
         const { conversationsReceived, conversationsReplied } = conversationCounts
 
         const automationRate = conversationsReceived > 0
@@ -594,6 +604,14 @@ export default function Dashboard() {
         setConversations(conversationRows)
         setLoadingMetrics(false)
         setLoadingConversations(false)
+
+        // Mostrar erro apenas se TODAS as queries falharam
+        const allFailed = pendingHumanResult.status === 'rejected'
+          && conversationCountsResult.status === 'rejected'
+          && conversationRowsResult.status === 'rejected'
+        if (allFailed) {
+          setError('Não foi possível carregar os dados do dashboard.')
+        }
       } catch (err) {
         if (!isActive) return
         console.error('Erro ao carregar métricas:', err)

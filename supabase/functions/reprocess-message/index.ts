@@ -387,6 +387,9 @@ Deno.serve(async (req) => {
     // Se shopifyData foi preenchido (real ou mínimo) e responseResult não foi setado, gerar resposta
     // @ts-ignore - responseResult pode não estar inicializado se caiu nos branches de shopifyData
     if (!responseResult) {
+      // Usar contador de retenção da conversa
+      const retentionContactCount = conversation.retention_contact_count || 0;
+
       const generateArgs = [
         {
           name: shop.name,
@@ -399,6 +402,10 @@ Deno.serve(async (req) => {
           signature_html: shop.signature_html,
           is_cod: shop.is_cod,
           store_email: shop.imap_user || shop.support_email,
+          support_email: shop.support_email && shop.support_email !== shop.imap_user ? shop.support_email : undefined,
+          retention_coupon_code: shop.retention_coupon_code,
+          retention_coupon_type: shop.retention_coupon_type,
+          retention_coupon_value: shop.retention_coupon_value,
           return_form_url: `https://app.replyna.me/return-request?shop=${shop.id}`,
         },
         message.subject || '',
@@ -407,7 +414,7 @@ Deno.serve(async (req) => {
         conversationHistory.slice(0, -1),
         shopifyData,
         conversation.language || 'pt-BR',
-        0, // retentionContactCount
+        retentionContactCount,
         [], // additionalOrders
         [], // emailImages
         detectedSentiment, // sentiment detectado na classificação (ou 'calm' como fallback)

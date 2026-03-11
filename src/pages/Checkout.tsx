@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sun, Moon, ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, MapPin, CreditCard, ShieldCheck, Lock } from 'lucide-react'
-import { useTheme } from '../context/ThemeContext'
+import { ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, MapPin, CreditCard, ShieldCheck, Lock } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 import { formatCpfCnpj, validateCPF, parseExpiryDate } from '../utils/cardUtils'
 import CheckoutSidebar from '../components/checkout/CheckoutSidebar'
 import AddressSection, { type AddressData } from '../components/checkout/AddressSection'
@@ -32,6 +32,8 @@ interface CouponValidation {
 interface LocationState {
   plan: Plan
   isTrialFlow: boolean
+  isUpgrade?: boolean
+  userId?: string
 }
 
 type StepId = 'personal' | 'address' | 'payment' | 'review'
@@ -76,13 +78,15 @@ const slideVariants = {
 }
 
 export default function Checkout() {
-  const { theme, setTheme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams] = useState(() => new URLSearchParams(location.search))
   const state = location.state as LocationState | null
 
   const [plan, setPlan] = useState<Plan | null>(null)
   const [isTrialFlow, setIsTrialFlow] = useState(false)
+  const [isUpgrade, setIsUpgrade] = useState(false)
+  const [upgradeUserId, setUpgradeUserId] = useState<string | null>(null)
 
   // Current step
   const [currentStep, setCurrentStep] = useState<StepId>('personal')
@@ -115,13 +119,13 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
-  // Steps definition - trial skips payment (no charge)
+  // Steps definition - payment step is always included (trial tokenizes card without charging)
   const getSteps = (): Step[] => {
     const steps: Step[] = [
       { id: 'personal', label: 'Dados', icon: User },
-      { id: 'address', label: 'Endereco', icon: MapPin },
-      ...(!isTrialFlow ? [{ id: 'payment' as StepId, label: 'Pagamento', icon: CreditCard }] : []),
-      { id: 'review', label: 'Revisao', icon: Check },
+      { id: 'address', label: 'Endereço', icon: MapPin },
+      { id: 'payment', label: 'Pagamento', icon: CreditCard },
+      { id: 'review', label: 'Revisão', icon: Check },
     ]
     return steps
   }
@@ -130,19 +134,92 @@ export default function Checkout() {
     if (state?.plan) {
       setPlan(state.plan)
       setIsTrialFlow(state.isTrialFlow || false)
+      setIsUpgrade(state.isUpgrade || false)
+      setUpgradeUserId(state.userId || null)
       sessionStorage.setItem('checkout_plan', JSON.stringify(state.plan))
       sessionStorage.setItem('checkout_trial', String(state.isTrialFlow || false))
+      sessionStorage.setItem('checkout_upgrade', String(state.isUpgrade || false))
+      sessionStorage.setItem('checkout_upgrade_user_id', state.userId || '')
+      return
+    }
+
+    const planParam = searchParams.get('plan')
+    if (planParam) {
+      const loadPlan = async () => {
+        // Try by slug first, then by name
+        let { data } = await supabase
+          .from('plans')
+          .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
+          .eq('is_active', true)
+          .eq('slug', planParam)
+          .maybeSingle()
+
+        if (!data) {
+          const res = await supabase
+            .from('plans')
+            .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
+            .eq('is_active', true)
+            .ilike('name', planParam)
+            .maybeSingle()
+          data = res.data
+        }
+
+        if (data) {
+          const isTrial = data.price_monthly === 0
+          setPlan(data)
+          setIsTrialFlow(isTrial)
+          sessionStorage.setItem('checkout_plan', JSON.stringify(data))
+          sessionStorage.setItem('checkout_trial', String(isTrial))
+        } else {
+          window.location.href = 'https://replyna.me'
+        }
+      }
+      loadPlan()
+      return
+    }
+
+    const savedPlan = sessionStorage.getItem('checkout_plan')
+    const savedTrial = sessionStorage.getItem('checkout_trial')
+    const savedUpgrade = sessionStorage.getItem('checkout_upgrade')
+    const savedUserId = sessionStorage.getItem('checkout_upgrade_user_id')
+    if (savedPlan) {
+      setPlan(JSON.parse(savedPlan))
+      setIsTrialFlow(savedTrial === 'true')
+      setIsUpgrade(savedUpgrade === 'true')
+      setUpgradeUserId(savedUserId || null)
     } else {
-      const savedPlan = sessionStorage.getItem('checkout_plan')
-      const savedTrial = sessionStorage.getItem('checkout_trial')
-      if (savedPlan) {
-        setPlan(JSON.parse(savedPlan))
-        setIsTrialFlow(savedTrial === 'true')
-      } else {
-        navigate('/register')
+      navigate('/register')
+    }
+  }, [state, navigate, searchParams])
+
+  // Pre-fill user data when in upgrade mode
+  useEffect(() => {
+    if (!isUpgrade || !upgradeUserId) return
+
+    const loadUserData = async () => {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('name, email, whatsapp_number')
+        .eq('id', upgradeUserId)
+        .single()
+
+      if (profile) {
+        if (profile.name) setName(profile.name)
+        if (profile.email) setEmail(profile.email)
+        if (profile.whatsapp_number) {
+          const match = profile.whatsapp_number.match(/^(\+\d{1,4})\s*(.*)$/)
+          if (match) {
+            setCountryCode(match[1])
+            setPhoneNumber(match[2])
+          } else {
+            setPhoneNumber(profile.whatsapp_number)
+          }
+        }
       }
     }
-  }, [state, navigate])
+
+    loadUserData()
+  }, [isUpgrade, upgradeUserId])
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768)
@@ -173,34 +250,32 @@ export default function Checkout() {
   const validateStep = (stepId: StepId): string | null => {
     if (stepId === 'personal') {
       if (!name.trim()) return 'Informe seu nome completo'
-      if (!email.trim() || !email.includes('@')) return 'Informe um email valido'
-      if (!phoneNumber.trim()) return 'Informe seu numero de celular'
-      if (!isInternational) {
-        const cpfDigits = cpfCnpj.replace(/\D/g, '')
-        if (cpfDigits.length === 11 && !validateCPF(cpfCnpj)) return 'CPF invalido'
-        if (cpfDigits.length < 11) return 'Informe seu CPF completo'
-      }
+      if (!email.trim() || !email.includes('@')) return 'Informe um email válido'
+      if (!phoneNumber.trim()) return 'Informe seu número de celular'
+      const cpfDigits = cpfCnpj.replace(/\D/g, '')
+      if (cpfDigits.length === 11 && !validateCPF(cpfCnpj)) return 'CPF inválido'
+      if (cpfDigits.length < 11) return 'Informe seu CPF completo'
     }
     if (stepId === 'address') {
       if (!isInternational && !address.cep) return 'Informe o CEP'
       if (!address.logradouro) return 'Informe o logradouro'
-      if (!address.numero) return 'Informe o numero'
+      if (!address.numero) return 'Informe o número'
       if (!address.cidade) return 'Informe a cidade'
       if (!address.estado) return 'Informe o estado'
     }
     if (stepId === 'payment') {
       const cardDigits = card.number.replace(/\D/g, '')
-      if (cardDigits.length < 13) return 'Informe o numero do cartao completo'
-      if (!card.holderName.trim()) return 'Informe o nome no cartao'
-      if (card.expiry.length < 5) return 'Informe a validade do cartao'
+      if (cardDigits.length < 13) return 'Informe o número do cartão completo'
+      if (!card.holderName.trim()) return 'Informe o nome no cartão'
+      if (card.expiry.length < 5) return 'Informe a validade do cartão'
       if (card.cvv.length < 3) return 'Informe o CVV'
       const { month, year } = parseExpiryDate(card.expiry)
       const expMonth = parseInt(month)
       const expYear = parseInt(year)
-      if (expMonth < 1 || expMonth > 12) return 'Mes de validade invalido'
+      if (expMonth < 1 || expMonth > 12) return 'Mês de validade inválido'
       const now = new Date()
       const expDate = new Date(expYear, expMonth - 1)
-      if (expDate < now) return 'Cartao expirado'
+      if (expDate < now) return 'Cartão expirado'
     }
     return null
   }
@@ -238,7 +313,7 @@ export default function Checkout() {
       setCurrentStep(steps[currentIndex - 1].id)
       setError('')
     } else {
-      navigate('/register')
+      navigate(isUpgrade ? '/account' : '/register')
     }
   }
 
@@ -252,8 +327,61 @@ export default function Checkout() {
 
     try {
       const cpfDigits = cpfCnpj.replace(/\D/g, '')
-      const { month: expiryMonth, year: expiryYear } = !isTrialFlow ? parseExpiryDate(card.expiry) : { month: '', year: '' }
+      const { month: expiryMonth, year: expiryYear } = parseExpiryDate(card.expiry)
 
+      // === UPGRADE FLOW: usuario ja existe, criar assinatura com cartao ===
+      if (isUpgrade && upgradeUserId) {
+        const upgradeBody: Record<string, unknown> = {
+          user_id: upgradeUserId,
+          plan_id: plan.id,
+          user_email: email,
+          user_name: name,
+          whatsapp_number: getFullPhoneNumber() || undefined,
+          creditCard: {
+            holderName: card.holderName,
+            number: card.number.replace(/\D/g, ''),
+            expiryMonth,
+            expiryYear,
+            ccv: card.cvv,
+          },
+          creditCardHolderInfo: {
+            name: card.holderName || name,
+            email,
+            cpfCnpj: cpfDigits,
+            postalCode: address.cep.replace(/\D/g, ''),
+            addressNumber: address.numero,
+            phone: phoneNumber.replace(/\D/g, ''),
+            addressComplement: address.complemento || undefined,
+          },
+        }
+
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upgrade-with-checkout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify(upgradeBody),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao processar pagamento')
+        }
+
+        // Limpar sessionStorage do checkout
+        sessionStorage.removeItem('checkout_plan')
+        sessionStorage.removeItem('checkout_trial')
+        sessionStorage.removeItem('checkout_upgrade')
+        sessionStorage.removeItem('checkout_upgrade_user_id')
+
+        // Redirecionar para conta com mensagem de sucesso
+        navigate('/account', { state: { upgradeSuccess: true, planName: plan.name } })
+        return
+      }
+
+      // === FLUXO NORMAL: novo usuario ===
       const body: Record<string, unknown> = {
         plan_id: plan.id,
         user_email: email,
@@ -263,8 +391,19 @@ export default function Checkout() {
         is_trial: isTrialFlow || undefined,
       }
 
-      // Only send card data for paid flows (trial = no charge)
-      if (!isTrialFlow && card.number) {
+      // Always send holder info (needed for Asaas customer creation, even for trial)
+      const holderInfo = {
+        name: name,
+        email,
+        cpfCnpj: cpfDigits,
+        postalCode: address.cep.replace(/\D/g, ''),
+        addressNumber: address.numero,
+        phone: phoneNumber.replace(/\D/g, ''),
+        addressComplement: address.complemento || undefined,
+      }
+
+      // Always send card data (trial tokenizes without charging, paid creates subscription)
+      if (card.number) {
         body.creditCard = {
           holderName: card.holderName,
           number: card.number.replace(/\D/g, ''),
@@ -272,16 +411,10 @@ export default function Checkout() {
           expiryYear,
           ccv: card.cvv,
         }
-        body.creditCardHolderInfo = {
-          name: card.holderName || name,
-          email,
-          cpfCnpj: cpfDigits,
-          postalCode: address.cep.replace(/\D/g, ''),
-          addressNumber: address.numero,
-          phone: phoneNumber.replace(/\D/g, ''),
-          addressComplement: address.complemento || undefined,
-        }
+        holderInfo.name = card.holderName || name
       }
+
+      body.creditCardHolderInfo = holderInfo
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-asaas-subscription`, {
         method: 'POST',
@@ -306,6 +439,7 @@ export default function Checkout() {
         plan_name: data.plan_name || plan.name,
         asaas_customer_id: data.asaas_customer_id,
         asaas_subscription_id: data.asaas_subscription_id,
+        asaas_credit_card_token: data.asaas_credit_card_token || null,
         coupon_id: data.coupon_id || null,
         discount_applied: data.discount_applied || 0,
         is_trial: data.is_trial || false,
@@ -480,25 +614,9 @@ export default function Checkout() {
         maxWidth: '1100px',
         margin: '0 auto',
       }}>
-        <Link to="/register" style={{ display: 'flex', alignItems: 'center' }}>
+        <a href="https://replyna.me" style={{ display: 'flex', alignItems: 'center' }}>
           <img src="/replyna-logo.webp" alt="Replyna" style={{ width: '120px', height: 'auto' }} />
-        </Link>
-        <button
-          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '10px',
-            padding: '10px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-        </button>
+        </a>
       </div>
 
       {/* Content */}
@@ -507,27 +625,6 @@ export default function Checkout() {
         margin: '0 auto',
         padding: '0 20px 60px',
       }}>
-        {/* Back button */}
-        <button
-          onClick={goBack}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            marginBottom: '24px',
-            padding: 0,
-            fontSize: '14px',
-            fontFamily: 'inherit',
-          }}
-        >
-          <ArrowLeft size={16} />
-          {currentStepIndex === 0 ? 'Voltar para planos' : 'Voltar'}
-        </button>
-
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -535,11 +632,11 @@ export default function Checkout() {
           style={{ marginBottom: '8px', textAlign: 'center' }}
         >
           <h1 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>
-            {isTrialFlow ? 'Crie sua conta gratis' : 'Finalize sua assinatura'}
+            {isTrialFlow ? 'Crie sua conta grátis' : 'Finalize sua assinatura'}
           </h1>
           <p style={{ fontSize: '15px', color: 'var(--text-secondary)', margin: '0 0 24px' }}>
             {isTrialFlow
-              ? 'Preencha seus dados para comecar a usar a Replyna.'
+              ? 'Preencha seus dados para começar. Nenhuma cobrança será feita.'
               : 'Preencha seus dados e finalize o pagamento.'}
           </p>
         </motion.div>
@@ -623,7 +720,7 @@ export default function Checkout() {
                         Dados pessoais
                       </h3>
                       <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-                        Informacoes da sua conta
+                        Informações da sua conta
                       </p>
                     </div>
                   </div>
@@ -660,12 +757,12 @@ export default function Checkout() {
 
                   <div>
                     <label style={labelStyle}>
-                      {isInternational ? 'Tax ID (optional)' : 'CPF ou CNPJ'}
+                      CPF ou CNPJ
                     </label>
                     <input type="text" value={cpfCnpj}
                       onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))}
                       style={inputStyle}
-                      placeholder={isInternational ? 'Tax ID' : '000.000.000-00'} />
+                      placeholder="000.000.000-00" />
                   </div>
                 </motion.div>
               )}
@@ -695,7 +792,7 @@ export default function Checkout() {
                     >
                       <Info size={18} style={{ color: '#f59e0b', flexShrink: 0, marginTop: '1px' }} />
                       <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                        Cartao internacional detectado. Taxas adicionais podem ser aplicadas.
+                        Cartão internacional detectado. Taxas adicionais podem ser aplicadas.
                       </span>
                     </motion.div>
                   )}
@@ -712,6 +809,24 @@ export default function Checkout() {
                   exit="exit"
                   transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
                 >
+                  {isTrialFlow && (
+                    <div style={{
+                      padding: '14px 16px',
+                      marginBottom: '16px',
+                      backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                      border: '1px solid rgba(34, 197, 94, 0.2)',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '10px',
+                    }}>
+                      <ShieldCheck size={18} style={{ color: '#22c55e', flexShrink: 0, marginTop: '1px' }} />
+                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        <strong style={{ color: 'var(--text-primary)' }}>Nenhuma cobrança será feita agora.</strong>{' '}
+                        Precisamos do cartão apenas para salvar seus dados de pagamento. Você só será cobrado quando o período de teste terminar.
+                      </span>
+                    </div>
+                  )}
                   <CardInput
                     card={card}
                     onChange={setCard}
@@ -772,7 +887,7 @@ export default function Checkout() {
                       border: '1px solid var(--border-color)',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Endereco</h4>
+                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Endereço</h4>
                         <button
                           type="button"
                           onClick={() => goToStep('address')}
@@ -792,8 +907,7 @@ export default function Checkout() {
                       </div>
                     </div>
 
-                    {/* Card summary - only for paid */}
-                    {!isTrialFlow && (
+                    {/* Card summary */}
                     <div style={{
                       backgroundColor: 'var(--bg-card)',
                       borderRadius: '16px',
@@ -801,7 +915,7 @@ export default function Checkout() {
                       border: '1px solid var(--border-color)',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Cartao</h4>
+                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Cartão</h4>
                         <button
                           type="button"
                           onClick={() => goToStep('payment')}
@@ -824,8 +938,12 @@ export default function Checkout() {
                           </span>
                         </div>
                       </div>
+                      {isTrialFlow && (
+                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '10px 0 0', lineHeight: 1.5 }}>
+                          Seu cartão será salvo para quando o período de teste terminar. Nenhuma cobrança será feita agora.
+                        </p>
+                      )}
                     </div>
-                    )}
 
                     {/* Coupon - only for paid */}
                     {!isTrialFlow && (
@@ -848,7 +966,7 @@ export default function Checkout() {
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                           <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Plano {plan!.name}</span>
-                          <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{formatPrice(plan!.price_monthly)}/mes</span>
+                          <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{formatPrice(plan!.price_monthly)}/mês</span>
                         </div>
                         {couponValidation?.is_valid && couponValidation.discount_value && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -866,7 +984,7 @@ export default function Checkout() {
                         }}>
                           <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Total</span>
                           <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                            {formatPrice(calculateFinalPrice())}/mes
+                            {formatPrice(calculateFinalPrice())}/mês
                           </span>
                         </div>
                       </div>
@@ -956,7 +1074,7 @@ export default function Checkout() {
                       style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
                       <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                      {isTrialFlow ? 'Criando conta...' : 'Processando pagamento...'}
+                      {isTrialFlow ? 'Criando conta...' : 'Processando...'}
                     </motion.div>
                   ) : isLastStep ? (
                     <motion.div
@@ -967,7 +1085,7 @@ export default function Checkout() {
                       style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
                       <Lock size={15} />
-                      {isTrialFlow ? 'Comecar gratis' : 'Finalizar assinatura'}
+                      {isTrialFlow ? 'Começar grátis' : 'Finalizar assinatura'}
                     </motion.div>
                   ) : (
                     <motion.div

@@ -92,7 +92,7 @@ export default function AdminAdministrators() {
 
   const handleToggleActive = async (adminId: string, currentStatus: boolean) => {
     if (adminId === currentAdmin?.id) {
-      alert('Voce nao pode desativar sua propria conta')
+      alert('Você não pode desativar sua própria conta')
       return
     }
 
@@ -111,7 +111,7 @@ export default function AdminAdministrators() {
 
   const handleDeleteAdmin = async (adminId: string) => {
     if (adminId === currentAdmin?.id) {
-      alert('Voce nao pode excluir sua propria conta')
+      alert('Você não pode excluir sua própria conta')
       return
     }
 
@@ -285,7 +285,7 @@ export default function AdminAdministrators() {
                         {admin.name}
                         {admin.id === currentAdmin?.id && (
                           <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '6px' }}>
-                            (voce)
+                            (você)
                           </span>
                         )}
                       </div>
@@ -396,7 +396,7 @@ export default function AdminAdministrators() {
                           {admin.name}
                           {admin.id === currentAdmin?.id && (
                             <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '8px' }}>
-                              (voce)
+                              (você)
                             </span>
                           )}
                         </div>

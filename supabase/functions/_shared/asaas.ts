@@ -185,6 +185,38 @@ export async function updateCustomer(id: string, input: Partial<{
 }
 
 // ----------------------
+// Credit Card Tokenization
+// ----------------------
+
+export interface AsaasCreditCardToken {
+  creditCardNumber: string;
+  creditCardBrand: string;
+  creditCardToken: string;
+}
+
+export async function tokenizeCreditCard(input: {
+  customer: string;
+  creditCard: {
+    holderName: string;
+    number: string;
+    expiryMonth: string;
+    expiryYear: string;
+    ccv: string;
+  };
+  creditCardHolderInfo: {
+    name: string;
+    email: string;
+    cpfCnpj: string;
+    postalCode: string;
+    addressNumber: string;
+    phone: string;
+    addressComplement?: string;
+  };
+}): Promise<AsaasCreditCardToken> {
+  return await asaasRequest<AsaasCreditCardToken>('POST', '/creditCard/tokenize', input);
+}
+
+// ----------------------
 // Subscriptions
 // ----------------------
 
@@ -197,6 +229,7 @@ export async function createSubscription(input: {
   nextDueDate: string; // YYYY-MM-DD
   creditCard?: unknown;
   creditCardHolderInfo?: unknown;
+  creditCardToken?: string;
   discount?: AsaasDiscount;
   callback?: {
     successUrl: string;
@@ -214,6 +247,7 @@ export async function updateSubscription(id: string, input: {
   value?: number;
   description?: string;
   cycle?: 'MONTHLY' | 'WEEKLY' | 'YEARLY';
+  nextDueDate?: string; // YYYY-MM-DD
   discount?: AsaasDiscount;
   updatePendingPayments?: boolean;
   billingType?: 'CREDIT_CARD' | 'BOLETO' | 'PIX';

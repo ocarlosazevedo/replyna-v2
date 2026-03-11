@@ -47,9 +47,6 @@ export default function LandingPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [heroLine1, setHeroLine1] = useState('')
-  const [heroLine2, setHeroLine2] = useState('')
-  const [heroVisible, setHeroVisible] = useState(false)
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -206,31 +203,6 @@ void main() {
     }
   }, [])
 
-  // Typewriter text animation
-  useEffect(() => {
-    const t1 = 'Seus clientes reclamam.'
-    const t2 = 'A IA resolve em segundos.'
-    let i1 = 0, i2 = 0, phase = 1
-    const delay = setTimeout(() => {
-      const iv = setInterval(() => {
-        if (phase === 1) {
-          i1++; setHeroLine1(t1.slice(0, i1))
-          if (i1 >= t1.length) phase = 2
-        } else {
-          i2++; setHeroLine2(t2.slice(0, i2))
-          if (i2 >= t2.length) clearInterval(iv)
-        }
-      }, 55)
-      return () => clearInterval(iv)
-    }, 600)
-    return () => clearTimeout(delay)
-  }, [])
-
-  // Staggered entrance
-  useEffect(() => {
-    const t = setTimeout(() => setHeroVisible(true), 200)
-    return () => clearTimeout(t)
-  }, [])
 
   const scrollTo = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault(); setMobileMenuOpen(false)
@@ -239,60 +211,76 @@ void main() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000000', color: '#fff', fontFamily: '"Inter", "Segoe UI", sans-serif' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0e172a', color: '#fff', fontFamily: '"Inter", "Segoe UI", sans-serif' }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
         @keyframes heroFadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
         .lp-hero-fadeup { opacity: 0; animation: heroFadeUp 1s cubic-bezier(0.16,1,0.3,1) forwards; }
         @media (max-width: 768px) {
           .lp-hero-section {
-            min-height: auto !important;
+            height: 100svh !important;
+            min-height: unset !important;
             align-items: flex-start !important;
             justify-content: flex-start !important;
-            padding-top: 120px !important;
-            padding-bottom: 60px !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+          }
+          .lp-hero-section picture img {
+            object-fit: cover !important;
+            object-position: top center !important;
           }
           .lp-hero-content {
-            padding: 32px 28px !important;
+            padding: 120px 24px 40px !important;
             width: 100% !important;
             text-align: center !important;
             align-items: center !important;
             margin-bottom: 0 !important;
-            background: radial-gradient(ellipse 120% 100% at 50% 50%, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
-            border-radius: 24px;
+            background: none !important;
+            border-radius: 0 !important;
           }
           .lp-hero-content h1 {
-            font-size: clamp(1.9rem, 8vw, 2.5rem) !important;
+            font-size: clamp(1.8rem, 7vw, 2.4rem) !important;
             line-height: 1.2 !important;
-            text-shadow: 0 2px 40px rgba(0,0,0,0.9), 0 0 80px rgba(0,0,0,0.5) !important;
+            text-shadow: none !important;
           }
           .lp-hero-content p {
             font-size: 15px !important;
             max-width: 100% !important;
-            margin-top: 20px !important;
-            line-height: 1.7 !important;
-            color: rgba(255,255,255,0.85) !important;
-            text-shadow: 0 1px 20px rgba(0,0,0,0.8) !important;
+            margin-top: 16px !important;
+            line-height: 1.6 !important;
+            color: rgba(255,255,255,0.8) !important;
+            text-shadow: none !important;
           }
+          .lp-nav-actions { display: none !important; }
           .lp-hero-btns {
             justify-content: center !important;
             margin-top: 32px !important;
             gap: 12px !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            width: 100% !important;
           }
           .lp-hero-btns a {
-            padding: 14px 24px !important;
-            font-size: 14px !important;
+            padding: 16px 32px !important;
+            font-size: 16px !important;
+            width: 100% !important;
+            max-width: 320px !important;
+            justify-content: center !important;
           }
+          .lp-hero-btn-desktop { display: none !important; }
+          .lp-hero-btn-mobile { display: inline-flex !important; }
+          .lp-hero-title { font-size: 4.8vw !important; }
         }
-        .lp-nav-link { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; position: relative; }
-        .lp-nav-link:hover { color: #fff; }
-        .lp-nav-link::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: linear-gradient(90deg, #4672ec, #8b5cf6); transition: width 0.3s; }
-        .lp-nav-link:hover::after { width: 100%; }
-        .lp-btn-primary { position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.16,1,0.3,1); background: linear-gradient(135deg, #4672ec 0%, #3b5fd9 100%); }
-        .lp-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(70,114,236,0.4); }
+        .lp-hero-btn-mobile { display: none !important; }
+        .lp-hero-btn-desktop { display: inline-flex !important; }
+        .lp-nav-link { color: rgba(255,255,255,0.9); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s, background 0.2s; position: relative; padding: 6px 12px; border-radius: 20px; border: 1px solid transparent; }
+        .lp-nav-link:hover { color: #fff; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); }
+        .lp-btn-primary { position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.16,1,0.3,1); background: linear-gradient(135deg, #4772ec 0%, #3b5fda 100%); }
+        .lp-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(71,114,236,0.4); }
         @media (max-width: 768px) {
           .lp-nav-desktop { display: none !important; }
           .lp-nav-mobile-toggle { display: flex !important; }
+          .lp-nav-inner { padding: 16px !important; }
           .lp-grid-3 { grid-template-columns: 1fr !important; }
           .lp-grid-2 { grid-template-columns: 1fr !important; }
           .lp-section { padding: 40px 20px !important; }
@@ -300,38 +288,38 @@ void main() {
         .lp-section-label {
           display: inline-flex; align-items: center; gap: 10px;
           padding: 6px 14px; border-radius: 9999px;
-          background: rgba(70,114,236,0.06); border: 1px solid rgba(70,114,236,0.12);
+          background: rgba(71,114,236,0.06); border: 1px solid rgba(71,114,236,0.12);
           font-family: 'JetBrains Mono', monospace; font-size: 12px;
           letter-spacing: 2px; text-transform: uppercase; color: #6b93ff;
         }
         .lp-section-label::before {
           content: ''; width: 6px; height: 6px; border-radius: 50%;
-          background: #4672ec; box-shadow: 0 0 8px rgba(70,114,236,0.6);
+          background: #4772ec; box-shadow: 0 0 8px rgba(71,114,236,0.6);
         }
         .lp-glow-orb {
           position: absolute; border-radius: 50%; pointer-events: none;
-          background: radial-gradient(circle, rgba(70,114,236,0.08) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(71,114,236,0.08) 0%, transparent 70%);
           filter: blur(40px);
         }
 
         /* ── Network Grid Section ── */
         .net-section {
           position: relative; padding: 80px 24px 60px; overflow: hidden;
-          background: linear-gradient(180deg, #000 0%, #060618 30%, #080822 50%, #060618 70%, #000 100%);
+          background: linear-gradient(180deg, #0e172a 0%, #0b1322 30%, #0d1526 50%, #0b1322 70%, #0e172a 100%);
         }
         /* Radial light behind hub */
         .net-section::before {
           content: ''; position: absolute;
           width: 700px; height: 700px; border-radius: 50%;
           top: 55%; left: 50%; transform: translate(-50%,-50%);
-          background: radial-gradient(circle, rgba(70,114,236,0.08) 0%, rgba(139,92,246,0.04) 30%, transparent 65%);
+          background: radial-gradient(circle, rgba(71,114,236,0.08) 0%, rgba(139,92,246,0.04) 30%, transparent 65%);
           pointer-events: none; z-index: 0;
         }
         .net-section-header {
           text-align: center; max-width: 640px; margin: 0 auto 100px; position: relative; z-index: 3;
         }
         .net-section-header h2 {
-          font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(2.2rem, 4.5vw, 3.2rem);
           font-weight: 800; color: #fff; letter-spacing: -0.03em;
           line-height: 1.1; margin: 24px 0 0;
         }
@@ -346,8 +334,8 @@ void main() {
 
         /* Center hub */
         @keyframes netPulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(70,114,236,0.4), 0 0 60px rgba(70,114,236,0.15); }
-          50% { box-shadow: 0 0 0 24px rgba(70,114,236,0), 0 0 80px rgba(70,114,236,0.25); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(71,114,236,0.4), 0 0 60px rgba(71,114,236,0.15); }
+          50% { box-shadow: 0 0 0 24px rgba(71,114,236,0), 0 0 80px rgba(71,114,236,0.25); }
         }
         @keyframes netCoreSpin {
           from { transform: translate(-50%,-50%) rotate(0deg); }
@@ -357,13 +345,13 @@ void main() {
           position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
           width: 150px; height: 150px; border-radius: 50%; z-index: 5;
           background: radial-gradient(circle, rgba(20,20,50,0.95) 0%, rgba(8,8,20,0.98) 100%);
-          border: 2px solid rgba(70,114,236,0.4);
+          border: 2px solid rgba(71,114,236,0.4);
           display: flex; align-items: center; justify-content: center;
           animation: netPulse 3s ease-in-out infinite;
         }
         .net-hub::before {
           content: ''; position: absolute; inset: -30px; border-radius: 50%;
-          background: radial-gradient(circle, rgba(70,114,236,0.12) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(71,114,236,0.12) 0%, transparent 70%);
           z-index: -1; pointer-events: none;
           animation: netPulse 3s ease-in-out infinite;
         }
@@ -373,7 +361,7 @@ void main() {
         }
         .net-hub-ring {
           position: absolute; border-radius: 50%;
-          border: 1px solid rgba(70,114,236,0.12);
+          border: 1px solid rgba(71,114,236,0.12);
           top: 50%; left: 50%;
           width: 188px; height: 188px;
           margin-left: -94px; margin-top: -94px;
@@ -388,20 +376,20 @@ void main() {
         .net-hub-ring--mid {
           width: 236px; height: 236px;
           margin-left: -118px; margin-top: -118px;
-          border-color: rgba(70,114,236,0.08);
+          border-color: rgba(71,114,236,0.08);
           animation: netRingSpin 28s linear infinite reverse;
         }
         .net-hub-ring--mid::before { background: #8b5cf6; box-shadow: 0 0 14px #8b5cf6; }
         .net-hub-ring--outer {
           width: 284px; height: 284px;
           margin-left: -142px; margin-top: -142px;
-          border-color: rgba(70,114,236,0.04);
+          border-color: rgba(71,114,236,0.04);
           animation: netRingSpin 40s linear infinite;
         }
         .net-hub-ring--outer::before { width: 5px; height: 5px; background: rgba(107,147,255,0.5); box-shadow: 0 0 8px rgba(107,147,255,0.3); }
         .net-hub-icon {
           width: 120px; height: 120px; object-fit: contain;
-          filter: drop-shadow(0 0 20px rgba(70,114,236,0.4));
+          filter: drop-shadow(0 0 20px rgba(71,114,236,0.4));
         }
 
         /* Grid lines SVG */
@@ -409,7 +397,7 @@ void main() {
           position: absolute; inset: 0; z-index: 1; pointer-events: none;
         }
         .net-line {
-          stroke: rgba(70,114,236,0.1); stroke-width: 1; fill: none;
+          stroke: rgba(71,114,236,0.1); stroke-width: 1; fill: none;
           stroke-dasharray: 4 6;
         }
         @keyframes netLineDash {
@@ -420,10 +408,10 @@ void main() {
           50% { stroke-opacity: 0.5; }
         }
         .net-line--animated {
-          stroke: rgba(70,114,236,0.4); stroke-width: 1.5;
+          stroke: rgba(71,114,236,0.4); stroke-width: 1.5;
           stroke-dasharray: 12 8;
           animation: netLineDash 2.5s linear infinite, netLineGlow 4s ease-in-out infinite;
-          filter: drop-shadow(0 0 3px rgba(70,114,236,0.3));
+          filter: drop-shadow(0 0 3px rgba(71,114,236,0.3));
         }
 
         /* Data flow particles on lines */
@@ -456,14 +444,14 @@ void main() {
         }
         .net-node::after {
           content: ''; position: absolute; inset: -1px; border-radius: 22px;
-          background: conic-gradient(from 0deg, transparent 0%, rgba(70,114,236,0.15) 25%, transparent 50%);
+          background: conic-gradient(from 0deg, transparent 0%, rgba(71,114,236,0.15) 25%, transparent 50%);
           z-index: -1; opacity: 0; transition: opacity 0.4s;
           animation: netCoreSpin 6s linear infinite;
         }
         .net-node:hover::after { opacity: 1; }
         .net-node:hover .net-node-inner {
-          border-color: rgba(70,114,236,0.5);
-          box-shadow: 0 12px 48px rgba(70,114,236,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+          border-color: rgba(71,114,236,0.5);
+          box-shadow: 0 12px 48px rgba(71,114,236,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
           transform: scale(1.12);
           color: #fff;
         }
@@ -496,7 +484,7 @@ void main() {
           position: absolute; top: 50%; left: 50%;
           transform: translate(-50%,-50%);
           border-radius: 50%;
-          border: 1px solid rgba(70,114,236,0.3);
+          border: 1px solid rgba(71,114,236,0.3);
           pointer-events: none; z-index: 1;
           animation: netPulseWave 4s ease-out infinite;
         }
@@ -557,7 +545,7 @@ void main() {
         /* Node glow halos */
         .net-node-inner::before {
           content: ''; position: absolute; inset: -8px; border-radius: 26px;
-          background: radial-gradient(circle, rgba(70,114,236,0.06) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(71,114,236,0.06) 0%, transparent 70%);
           z-index: -1; pointer-events: none;
         }
 
@@ -685,7 +673,7 @@ void main() {
           position: relative;
           overflow: hidden;
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-          background: linear-gradient(135deg, #4672ec 0%, #3b5fd9 100%);
+          background: linear-gradient(135deg, #4772ec 0%, #3b5fda 100%);
         }
         .lp-btn-primary::before {
           content: '';
@@ -744,7 +732,7 @@ void main() {
 
         /* Number Counter Animation */
         .lp-number {
-          background: linear-gradient(135deg, #4672ec 0%, #8b5cf6 50%, #06b6d4 100%);
+          background: linear-gradient(135deg, #4772ec 0%, #8b5cf6 50%, #06b6d4 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -765,28 +753,20 @@ void main() {
           padding: 8px;
         }
         .lp-nav-link {
-          color: rgba(255,255,255,0.6);
+          color: rgba(255,255,255,0.9);
           text-decoration: none;
           font-size: 14px;
           font-weight: 500;
-          transition: color 0.2s ease;
+          transition: color 0.2s ease, background 0.2s ease;
           position: relative;
+          padding: 6px 12px;
+          border-radius: 20px;
+          border: 1px solid transparent;
         }
         .lp-nav-link:hover {
           color: #fff;
-        }
-        .lp-nav-link::after {
-          content: '';
-          position: absolute;
-          bottom: -4px;
-          left: 0;
-          width: 0;
-          height: 2px;
-          background: linear-gradient(90deg, #4672ec, #8b5cf6);
-          transition: width 0.3s ease;
-        }
-        .lp-nav-link:hover::after {
-          width: 100%;
+          background: rgba(255,255,255,0.12);
+          border: 1px solid rgba(255,255,255,0.25);
         }
 
         /* Stats Grid */
@@ -869,7 +849,7 @@ void main() {
           width: 44px;
           height: 44px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #4672ec 0%, #8b5cf6 100%);
+          background: linear-gradient(135deg, #4772ec 0%, #8b5cf6 100%);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -902,7 +882,7 @@ void main() {
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #4672ec;
+          color: #4772ec;
           margin-bottom: 16px;
           transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
@@ -919,7 +899,7 @@ void main() {
         .lp-step-label {
           font-size: 12px;
           font-weight: 600;
-          color: #4672ec;
+          color: #4772ec;
           text-transform: uppercase;
           letter-spacing: 0.1em;
           margin-bottom: 8px;
@@ -1160,7 +1140,7 @@ void main() {
 
         .inf-section {
           position: relative; padding: 60px 24px; overflow: hidden;
-          background: linear-gradient(180deg, #000 0%, #060612 50%, #000 100%);
+          background: linear-gradient(180deg, #0e172a 0%, #0b1220 50%, #0e172a 100%);
         }
         /* Subtle moving grid background */
         .inf-section::before {
@@ -1175,7 +1155,7 @@ void main() {
         .inf-ambient-glow {
           position: absolute; width: 600px; height: 400px;
           top: 50%; left: 50%; transform: translate(-50%, -50%);
-          background: radial-gradient(ellipse, rgba(70,114,236,0.12) 0%, transparent 70%);
+          background: radial-gradient(ellipse, rgba(71,114,236,0.12) 0%, transparent 70%);
           animation: infPulseGlow 6s ease-in-out infinite;
           pointer-events: none; z-index: 0;
         }
@@ -1184,7 +1164,7 @@ void main() {
           text-align: center; max-width: 640px; margin: 0 auto 64px; position: relative; z-index: 2;
         }
         .inf-header h2 {
-          font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(2rem, 4vw, 3rem);
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(2rem, 4vw, 3rem);
           font-weight: 800; color: #fff; letter-spacing: -0.03em;
           line-height: 1.1; margin: 24px 0 0;
         }
@@ -1227,7 +1207,7 @@ void main() {
         .inf-card-glow {
           position: absolute;
           inset: -50px; z-index: -1; border-radius: 50%;
-          background: radial-gradient(circle, rgba(70,114,236,0.3) 0%, rgba(107,147,255,0.1) 40%, transparent 70%);
+          background: radial-gradient(circle, rgba(71,114,236,0.3) 0%, rgba(107,147,255,0.1) 40%, transparent 70%);
           filter: blur(40px);
           opacity: 0;
           transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1);
@@ -1240,7 +1220,7 @@ void main() {
           opacity: 1; filter: brightness(1);
         }
         .inf-card--center .inf-card-inner {
-          box-shadow: 0 30px 100px rgba(0,0,0,0.6), 0 0 80px rgba(70,114,236,0.15);
+          box-shadow: 0 30px 100px rgba(0,0,0,0.6), 0 0 80px rgba(71,114,236,0.15);
         }
         .inf-card--center .inf-card-glow {
           opacity: 1;
@@ -1314,7 +1294,7 @@ void main() {
           border-radius: 0 0 24px 24px;
         }
         .inf-card-name {
-          font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px;
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: 17px;
           font-weight: 700; color: #fff; line-height: 1.2;
         }
         .inf-card-desc {
@@ -1338,9 +1318,9 @@ void main() {
           backdrop-filter: blur(8px);
         }
         .inf-nav-btn:hover {
-          background: rgba(70,114,236,0.2); border-color: rgba(70,114,236,0.5);
+          background: rgba(71,114,236,0.2); border-color: rgba(71,114,236,0.5);
           color: #fff; transform: scale(1.12);
-          box-shadow: 0 0 30px rgba(70,114,236,0.2);
+          box-shadow: 0 0 30px rgba(71,114,236,0.2);
         }
 
         /* Dots */
@@ -1427,13 +1407,13 @@ void main() {
         }
         .about-section {
           position: relative; padding: 60px 24px; overflow: hidden;
-          background: linear-gradient(180deg, #000 0%, #050510 30%, #080818 50%, #050510 70%, #000 100%);
+          background: linear-gradient(180deg, #0e172a 0%, #0b1322 30%, #0d1526 50%, #0b1322 70%, #0e172a 100%);
         }
         /* Dot grid background */
         .about-section::before {
           content: '';
           position: absolute; inset: 0;
-          background-image: radial-gradient(rgba(70,114,236,0.12) 1px, transparent 1px);
+          background-image: radial-gradient(rgba(71,114,236,0.12) 1px, transparent 1px);
           background-size: 40px 40px;
           -webkit-mask-image: radial-gradient(ellipse 70% 60% at 60% 50%, black 20%, transparent 70%);
           mask-image: radial-gradient(ellipse 70% 60% at 60% 50%, black 20%, transparent 70%);
@@ -1444,7 +1424,7 @@ void main() {
           content: '';
           position: absolute; inset: 0;
           background:
-            radial-gradient(ellipse 50% 40% at 65% 45%, rgba(70,114,236,0.07) 0%, transparent 60%),
+            radial-gradient(ellipse 50% 40% at 65% 45%, rgba(71,114,236,0.07) 0%, transparent 60%),
             radial-gradient(ellipse 35% 35% at 25% 55%, rgba(139,92,246,0.04) 0%, transparent 50%);
           pointer-events: none;
         }
@@ -1465,8 +1445,8 @@ void main() {
           display: inline-flex; align-items: center; gap: 8px;
           font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
           color: #fff; padding: 8px 20px;
-          background: rgba(70,114,236,0.06);
-          border: 1px solid rgba(70,114,236,0.15);
+          background: rgba(71,114,236,0.06);
+          border: 1px solid rgba(71,114,236,0.15);
           border-radius: 100px; margin-bottom: 32px;
           backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
           animation: aboutBadgeGlow 3s ease-in-out infinite;
@@ -1480,12 +1460,12 @@ void main() {
           animation: aboutBadgeShimmer 4s ease-in-out infinite;
         }
         .about-badge:hover {
-          border-color: rgba(70,114,236,0.35);
-          background: rgba(70,114,236,0.1);
+          border-color: rgba(71,114,236,0.35);
+          background: rgba(71,114,236,0.1);
         }
         .about-badge svg { color: #6b93ff; }
         .about-left h2 {
-          font-family: 'Bricolage Grotesque', sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: clamp(2rem, 4vw, 2.8rem);
           font-weight: 800; color: #fff; letter-spacing: -0.03em;
           line-height: 1.15; margin: 0;
@@ -1515,17 +1495,17 @@ void main() {
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
         }
         .about-feat:hover {
-          background: rgba(70,114,236,0.06);
-          border-color: rgba(70,114,236,0.15);
+          background: rgba(71,114,236,0.06);
+          border-color: rgba(71,114,236,0.15);
           transform: translateY(-4px);
-          box-shadow: 0 12px 40px rgba(0,0,0,0.2), 0 0 30px rgba(70,114,236,0.05);
+          box-shadow: 0 12px 40px rgba(0,0,0,0.2), 0 0 30px rgba(71,114,236,0.05);
         }
         /* Spotlight cursor glow on feature cards */
         .about-feat-spotlight {
           position: absolute; inset: 0; border-radius: 16px;
           background: radial-gradient(
             350px circle at var(--feat-x, 50%) var(--feat-y, 50%),
-            rgba(70,114,236,0.1), transparent 40%
+            rgba(71,114,236,0.1), transparent 40%
           );
           opacity: var(--feat-spot, 0);
           transition: opacity 0.3s;
@@ -1533,23 +1513,23 @@ void main() {
         }
         .about-feat-icon {
           width: 42px; height: 42px; border-radius: 12px;
-          background: rgba(70,114,236,0.08);
-          border: 1px solid rgba(70,114,236,0.12);
+          background: rgba(71,114,236,0.08);
+          border: 1px solid rgba(71,114,236,0.12);
           display: flex; align-items: center; justify-content: center;
           margin-bottom: 14px; position: relative;
           transition: all 0.3s;
         }
         .about-feat-icon::before {
           content: ''; position: absolute; inset: -8px; border-radius: 16px;
-          background: radial-gradient(circle, rgba(70,114,236,0.3) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(71,114,236,0.3) 0%, transparent 70%);
           filter: blur(10px); z-index: -1; opacity: 0;
           transition: opacity 0.3s;
         }
         .about-feat:hover .about-feat-icon::before { opacity: 1; }
         .about-feat:hover .about-feat-icon {
-          background: rgba(70,114,236,0.15);
-          border-color: rgba(70,114,236,0.3);
-          box-shadow: 0 0 20px rgba(70,114,236,0.2);
+          background: rgba(71,114,236,0.15);
+          border-color: rgba(71,114,236,0.3);
+          box-shadow: 0 0 20px rgba(71,114,236,0.2);
         }
         .about-feat-icon svg { width: 18px; height: 18px; color: #6b93ff; transition: color 0.3s; }
         .about-feat:hover .about-feat-icon svg { color: #8aafff; }
@@ -1575,11 +1555,11 @@ void main() {
           backdrop-filter: blur(20px) saturate(1.2); -webkit-backdrop-filter: blur(20px) saturate(1.2);
           transform-style: preserve-3d;
           will-change: transform;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 80px rgba(70,114,236,0.06), inset 0 1px 0 rgba(255,255,255,0.04);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 80px rgba(71,114,236,0.06), inset 0 1px 0 rgba(255,255,255,0.04);
         }
         .about-card:hover {
-          box-shadow: 0 24px 80px rgba(0,0,0,0.45), 0 0 80px rgba(70,114,236,0.1), inset 0 1px 0 rgba(255,255,255,0.06);
-          border-color: rgba(70,114,236,0.25);
+          box-shadow: 0 24px 80px rgba(0,0,0,0.45), 0 0 80px rgba(71,114,236,0.1), inset 0 1px 0 rgba(255,255,255,0.06);
+          border-color: rgba(71,114,236,0.25);
         }
         /* Spinning conic border */
         .about-card-border-spin {
@@ -1589,7 +1569,7 @@ void main() {
         .about-card-border-spin::before {
           content: ''; position: absolute; inset: -50%;
           width: 200%; height: 200%;
-          background: conic-gradient(from 0deg, transparent 0%, rgba(70,114,236,0.25) 8%, transparent 16%, transparent 50%, rgba(139,92,246,0.15) 58%, transparent 66%);
+          background: conic-gradient(from 0deg, transparent 0%, rgba(71,114,236,0.25) 8%, transparent 16%, transparent 50%, rgba(139,92,246,0.15) 58%, transparent 66%);
           animation: aboutCardBorderSpin 8s linear infinite;
         }
         .about-card-border-spin::after {
@@ -1614,7 +1594,7 @@ void main() {
           position: absolute; width: 350px; height: 350px;
           top: 30%; left: 60%; transform: translate(-50%, -50%);
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(70,114,236,0.15) 0%, transparent 65%);
+          background: radial-gradient(circle, rgba(71,114,236,0.15) 0%, transparent 65%);
           filter: blur(60px); pointer-events: none; z-index: 0;
           animation: aboutGlowFloat 8s ease-in-out infinite;
         }
@@ -1643,7 +1623,7 @@ void main() {
           width: 48px; height: 48px; border-radius: 14px;
           background: linear-gradient(135deg, #1a2a5e, #223470);
           display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 4px 16px rgba(70,114,236,0.2);
+          box-shadow: 0 4px 16px rgba(71,114,236,0.2);
         }
         .about-card-greet {
           display: flex; flex-direction: column;
@@ -1670,8 +1650,8 @@ void main() {
           transition: all 0.3s ease;
         }
         .about-card-stat:hover {
-          background: rgba(70,114,236,0.06);
-          border-color: rgba(70,114,236,0.15);
+          background: rgba(71,114,236,0.06);
+          border-color: rgba(71,114,236,0.15);
           transform: translateY(-2px);
         }
         .about-card-stat-val {
@@ -1760,8 +1740,8 @@ void main() {
           100% { transform: translateX(200%) rotate(25deg); }
         }
         @keyframes pricingBadgePulse {
-          0%, 100% { box-shadow: 0 2px 12px rgba(70,114,236,0.4), 0 0 0 0 rgba(70,114,236,0.3); }
-          50% { box-shadow: 0 2px 16px rgba(70,114,236,0.6), 0 0 0 8px rgba(70,114,236,0); }
+          0%, 100% { box-shadow: 0 2px 12px rgba(71,114,236,0.4), 0 0 0 0 rgba(71,114,236,0.3); }
+          50% { box-shadow: 0 2px 16px rgba(71,114,236,0.6), 0 0 0 8px rgba(71,114,236,0); }
         }
         @keyframes pricingGlow {
           0%, 100% { opacity: 0.5; }
@@ -1782,7 +1762,7 @@ void main() {
           position: absolute; inset: 0; border-radius: inherit;
           background: radial-gradient(
             500px circle at var(--spot-x, 50%) var(--spot-y, 50%),
-            rgba(70,114,236,0.12),
+            rgba(71,114,236,0.12),
             transparent 40%
           );
           opacity: var(--spot-opacity, 0);
@@ -1792,7 +1772,7 @@ void main() {
         .pricing-card--highlight .pricing-spotlight {
           background: radial-gradient(
             600px circle at var(--spot-x, 50%) var(--spot-y, 50%),
-            rgba(70,114,236,0.2),
+            rgba(71,114,236,0.2),
             rgba(139,92,246,0.06) 30%,
             transparent 50%
           );
@@ -1836,18 +1816,18 @@ void main() {
         }
         .pricing-card:hover {
           border-color: rgba(255,255,255,0.12);
-          box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 30px rgba(70,114,236,0.08);
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 30px rgba(71,114,236,0.08);
         }
 
         /* ── Business Highlight ── */
         .pricing-card--highlight {
-          background: linear-gradient(170deg, rgba(70,114,236,0.14) 0%, rgba(30,50,120,0.06) 40%, rgba(70,114,236,0.04) 100%);
-          border: 1px solid rgba(70,114,236,0.4);
+          background: linear-gradient(170deg, rgba(71,114,236,0.14) 0%, rgba(30,50,120,0.06) 40%, rgba(71,114,236,0.04) 100%);
+          border: 1px solid rgba(71,114,236,0.4);
           transform: scale(1.06);
           z-index: 2; padding: 40px 28px;
           box-shadow:
-            0 0 80px rgba(70,114,236,0.12),
-            0 0 40px rgba(70,114,236,0.06),
+            0 0 80px rgba(71,114,236,0.12),
+            0 0 40px rgba(71,114,236,0.06),
             0 16px 48px rgba(0,0,0,0.4);
         }
         /* Spinning conic border glow */
@@ -1858,7 +1838,7 @@ void main() {
         .pricing-card--highlight .pricing-border-glow::before {
           content: ''; position: absolute;
           inset: -40%; width: 180%; height: 180%;
-          background: conic-gradient(from 0deg, transparent 0%, rgba(70,114,236,0.4) 10%, transparent 20%, transparent 50%, rgba(107,147,255,0.3) 60%, transparent 70%);
+          background: conic-gradient(from 0deg, transparent 0%, rgba(71,114,236,0.4) 10%, transparent 20%, transparent 50%, rgba(107,147,255,0.3) 60%, transparent 70%);
           animation: pricingBorderSpin 6s linear infinite;
         }
         .pricing-card--highlight .pricing-border-glow::after {
@@ -1868,25 +1848,25 @@ void main() {
         /* Top gradient bar */
         .pricing-card--highlight::before {
           content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-          background: linear-gradient(90deg, transparent, #4672ec, #6b93ff, #8b5cf6, transparent);
+          background: linear-gradient(90deg, transparent, #4772ec, #6b93ff, #8b5cf6, transparent);
           z-index: 3;
         }
         /* Radial glow from top */
         .pricing-card--highlight::after {
           content: ''; position: absolute; top: -60%; left: -30%; width: 160%; height: 160%;
-          background: radial-gradient(ellipse at 50% 0%, rgba(70,114,236,0.1) 0%, rgba(70,114,236,0.04) 30%, transparent 60%);
+          background: radial-gradient(ellipse at 50% 0%, rgba(71,114,236,0.1) 0%, rgba(71,114,236,0.04) 30%, transparent 60%);
           pointer-events: none; animation: pricingGlow 4s ease-in-out infinite;
         }
         .pricing-card--highlight:hover {
           box-shadow:
-            0 0 100px rgba(70,114,236,0.2),
-            0 0 60px rgba(70,114,236,0.1),
+            0 0 100px rgba(71,114,236,0.2),
+            0 0 60px rgba(71,114,236,0.1),
             0 20px 60px rgba(0,0,0,0.45);
-          border-color: rgba(70,114,236,0.6);
+          border-color: rgba(71,114,236,0.6);
         }
         .pricing-badge {
           position: absolute; top: 18px; right: 18px;
-          background: linear-gradient(135deg, #4672ec, #6b93ff);
+          background: linear-gradient(135deg, #4772ec, #6b93ff);
           color: #fff; font-size: 10px; font-weight: 700;
           padding: 5px 14px; border-radius: 9999px;
           letter-spacing: 1.2px; text-transform: uppercase;
@@ -1908,7 +1888,7 @@ void main() {
         }
         .pricing-card--highlight .pricing-desc { color: rgba(255,255,255,0.45); }
         .pricing-price {
-          font-family: 'Bricolage Grotesque', sans-serif; font-size: 34px;
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: 34px;
           font-weight: 800; color: #fff; letter-spacing: -0.03em; margin-top: 14px;
           position: relative;
         }
@@ -1940,12 +1920,12 @@ void main() {
           font-weight: 700; transition: all 0.3s;
         }
         .pricing-stat--email {
-          background: rgba(70,114,236,0.06); border: 1px solid rgba(70,114,236,0.08);
+          background: rgba(71,114,236,0.06); border: 1px solid rgba(71,114,236,0.08);
         }
         .pricing-stat--email .pricing-stat-value { color: #6b93ff; }
-        .pricing-card:hover .pricing-stat--email { background: rgba(70,114,236,0.1); }
+        .pricing-card:hover .pricing-stat--email { background: rgba(71,114,236,0.1); }
         .pricing-card--highlight .pricing-stat--email {
-          background: rgba(70,114,236,0.15); border-color: rgba(70,114,236,0.2);
+          background: rgba(71,114,236,0.15); border-color: rgba(71,114,236,0.2);
         }
         .pricing-card--highlight .pricing-stat--email .pricing-stat-value { color: #8aafff; font-size: 18px; }
         .pricing-stat--loja {
@@ -1963,7 +1943,7 @@ void main() {
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
         }
         .pricing-card--highlight .pricing-divider {
-          background: linear-gradient(90deg, transparent, rgba(70,114,236,0.35), transparent);
+          background: linear-gradient(90deg, transparent, rgba(71,114,236,0.35), transparent);
         }
         .pricing-features {
           display: flex; flex-direction: column; gap: 11px; flex: 1;
@@ -1974,11 +1954,11 @@ void main() {
         }
         .pricing-card:hover .pricing-feat { transform: translateX(2px); }
         .pricing-feat svg {
-          color: rgba(70,114,236,0.4); flex-shrink: 0;
+          color: rgba(71,114,236,0.4); flex-shrink: 0;
           transition: color 0.3s;
         }
-        .pricing-card:hover .pricing-feat svg { color: rgba(70,114,236,0.7); }
-        .pricing-card--highlight .pricing-feat svg { color: #4672ec; }
+        .pricing-card:hover .pricing-feat svg { color: rgba(71,114,236,0.7); }
+        .pricing-card--highlight .pricing-feat svg { color: #4772ec; }
         .pricing-feat span {
           font-family: 'Inter', sans-serif; font-size: 13px;
           color: rgba(255,255,255,0.4); transition: color 0.3s;
@@ -2006,9 +1986,9 @@ void main() {
         }
         .pricing-btn--primary {
           color: #fff; border: none; padding: 15px;
-          background: linear-gradient(135deg, #4672ec 0%, #5a83f0 50%, #4672ec 100%);
+          background: linear-gradient(135deg, #4772ec 0%, #5a83f0 50%, #4772ec 100%);
           background-size: 200% 100%;
-          box-shadow: 0 6px 24px rgba(70,114,236,0.35);
+          box-shadow: 0 6px 24px rgba(71,114,236,0.35);
           transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
         }
         .pricing-btn--primary::after {
@@ -2016,7 +1996,7 @@ void main() {
         }
         .pricing-btn--primary:hover {
           background-position: 100% 0;
-          box-shadow: 0 8px 36px rgba(70,114,236,0.5), 0 0 60px rgba(70,114,236,0.15);
+          box-shadow: 0 8px 36px rgba(71,114,236,0.5), 0 0 60px rgba(71,114,236,0.15);
           transform: translateY(-2px);
         }
         @media (max-width: 1100px) {
@@ -2041,7 +2021,7 @@ void main() {
           flex-shrink: 0;
         }
         .lp-marquee-text h3 {
-          font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 700;
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700;
           color: #fff; margin: 0 0 8px; letter-spacing: -0.02em;
         }
         .lp-marquee-text p {
@@ -2065,7 +2045,7 @@ void main() {
           100% { transform: translateX(-50%); }
         }
         .lp-marquee-logo {
-          font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; font-weight: 700;
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 700;
           color: rgba(255,255,255,0.35); white-space: nowrap;
           transition: color 0.3s; flex-shrink: 0;
           display: flex; align-items: center; gap: 14px;
@@ -2084,7 +2064,7 @@ void main() {
         .st-inner { max-width: 1200px; margin: 0 auto; position: relative; }
         .st-header { text-align: center; margin-bottom: 100px; }
         .st-header h2 {
-          font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(2.5rem, 5vw, 3.8rem);
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(2.5rem, 5vw, 3.8rem);
           font-weight: 800; color: #fff; letter-spacing: -0.04em;
           line-height: 1.1; margin: 24px 0 0;
         }
@@ -2103,12 +2083,12 @@ void main() {
         }
         /* Wide soft aurora glow */
         .st-curve-glow-wide {
-          fill: none; stroke: rgba(70,114,236,0.06); stroke-width: 90;
+          fill: none; stroke: rgba(71,114,236,0.06); stroke-width: 90;
           filter: blur(50px); stroke-linecap: round;
         }
         /* Medium glow */
         .st-curve-glow {
-          fill: none; stroke: rgba(70,114,236,0.14); stroke-width: 24;
+          fill: none; stroke: rgba(71,114,236,0.14); stroke-width: 24;
           filter: blur(18px); stroke-linecap: round;
         }
         /* Tight bright glow */
@@ -2153,13 +2133,13 @@ void main() {
         }
         /* Dot follow glow - large ambient */
         .st-dot-ambient {
-          fill: rgba(70,114,236,0.15);
+          fill: rgba(71,114,236,0.15);
           filter: blur(30px);
           transition: cx 0.05s linear, cy 0.05s linear;
         }
         /* Dot outer ring pulse */
         .st-dot-ring {
-          fill: none; stroke: rgba(70,114,236,0.4); stroke-width: 2;
+          fill: none; stroke: rgba(71,114,236,0.4); stroke-width: 2;
           animation: stPulseRing 2s ease-in-out infinite;
         }
         @keyframes stPulseRing {
@@ -2168,16 +2148,16 @@ void main() {
         }
         /* Paper airplane icon */
         .st-plane-icon {
-          filter: drop-shadow(0 0 6px rgba(107,147,255,1)) drop-shadow(0 0 16px rgba(70,114,236,0.8)) drop-shadow(0 0 36px rgba(70,114,236,0.4));
+          filter: drop-shadow(0 0 6px rgba(107,147,255,1)) drop-shadow(0 0 16px rgba(71,114,236,0.8)) drop-shadow(0 0 36px rgba(71,114,236,0.4));
         }
         .st-plane-glow {
-          fill: rgba(70,114,236,0.5);
+          fill: rgba(71,114,236,0.5);
           filter: blur(10px);
         }
         /* Background glow that follows dot */
         .st-bg-glow {
           position: absolute; width: 400px; height: 400px; border-radius: 50%;
-          background: radial-gradient(circle, rgba(70,114,236,0.12) 0%, rgba(70,114,236,0.04) 40%, transparent 70%);
+          background: radial-gradient(circle, rgba(71,114,236,0.12) 0%, rgba(71,114,236,0.04) 40%, transparent 70%);
           pointer-events: none; z-index: 0;
           transform: translate(-50%, -50%);
           transition: left 0.1s linear, top 0.1s linear, opacity 0.3s;
@@ -2199,27 +2179,27 @@ void main() {
         .st-step-content {
           max-width: 380px; position: relative; padding: 24px 24px 24px 28px;
           background: rgba(6,8,20,0.9);
-          border: 1px solid rgba(70,114,236,0.1);
+          border: 1px solid rgba(71,114,236,0.1);
           border-radius: 16px;
           backdrop-filter: blur(12px);
           z-index: 3;
-          box-shadow: 0 0 0 1px rgba(70,114,236,0.05), 0 4px 24px rgba(0,0,0,0.4);
+          box-shadow: 0 0 0 1px rgba(71,114,236,0.05), 0 4px 24px rgba(0,0,0,0.4);
           transition: border-color 0.6s, box-shadow 0.6s;
         }
         .st-step.visible .st-step-content {
-          border-color: rgba(70,114,236,0.2);
-          box-shadow: 0 0 0 1px rgba(70,114,236,0.08), 0 0 30px rgba(70,114,236,0.08), 0 4px 24px rgba(0,0,0,0.4);
+          border-color: rgba(71,114,236,0.2);
+          box-shadow: 0 0 0 1px rgba(71,114,236,0.08), 0 0 30px rgba(71,114,236,0.08), 0 4px 24px rgba(0,0,0,0.4);
         }
         .st-step-content::before {
           content: ''; position: absolute; left: 0; top: 16px; bottom: 16px;
-          width: 3px; background: linear-gradient(180deg, #4672ec, #6b93ff, transparent);
+          width: 3px; background: linear-gradient(180deg, #4772ec, #6b93ff, transparent);
           border-radius: 3px; opacity: 0; transition: opacity 0.6s;
-          box-shadow: 0 0 12px rgba(70,114,236,0.5), 0 0 4px rgba(107,147,255,0.8);
+          box-shadow: 0 0 12px rgba(71,114,236,0.5), 0 0 4px rgba(107,147,255,0.8);
         }
         .st-step.visible .st-step-content::before { opacity: 1; }
         .st-step-content::after {
           content: ''; position: absolute; inset: -1px; border-radius: 16px;
-          background: linear-gradient(135deg, rgba(70,114,236,0.15) 0%, transparent 50%, rgba(107,147,255,0.08) 100%);
+          background: linear-gradient(135deg, rgba(71,114,236,0.15) 0%, transparent 50%, rgba(107,147,255,0.08) 100%);
           z-index: -1; opacity: 0; transition: opacity 0.6s;
           pointer-events: none;
         }
@@ -2230,11 +2210,11 @@ void main() {
 
         .st-step-plus {
           display: flex; align-items: center; gap: 10px;
-          font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 600;
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 600;
           color: #fff; margin-bottom: 12px;
         }
         .st-step-plus svg { color: #6b93ff; flex-shrink: 0; filter: drop-shadow(0 0 4px rgba(107,147,255,0.6)); }
-        .st-step.visible .st-step-plus { text-shadow: 0 0 20px rgba(70,114,236,0.3); }
+        .st-step.visible .st-step-plus { text-shadow: 0 0 20px rgba(71,114,236,0.3); }
         .st-step p {
           font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.8;
           color: rgba(255,255,255,0.4); margin: 0;
@@ -2243,16 +2223,16 @@ void main() {
         /* Ghost step number on opposite side */
         .st-step-ghost {
           position: absolute; top: 10px;
-          font-family: 'Bricolage Grotesque', sans-serif; font-size: clamp(100px, 12vw, 160px);
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(100px, 12vw, 160px);
           font-weight: 900; line-height: 1;
-          color: rgba(70,114,236,0.06);
+          color: rgba(71,114,236,0.06);
           opacity: 0; transform: translateY(30px);
           transition: opacity 1.2s cubic-bezier(0.16,1,0.3,1), transform 1.2s cubic-bezier(0.16,1,0.3,1);
           pointer-events: none; z-index: 1; user-select: none;
         }
         .st-step.visible .st-step-ghost {
           opacity: 1; transform: translateY(0);
-          color: rgba(70,114,236,0.08);
+          color: rgba(71,114,236,0.08);
         }
         .st-step:nth-child(odd) .st-step-ghost { right: 4%; }
         .st-step:nth-child(even) .st-step-ghost { left: 4%; }
@@ -2359,7 +2339,7 @@ void main() {
           animation: faqBadgeShimmer 4s ease-in-out infinite;
         }
         .faq-title {
-          font-family: 'Bricolage Grotesque', sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: clamp(2rem, 3.5vw, 2.8rem);
           font-weight: 800;
           color: #fff;
@@ -2835,7 +2815,7 @@ void main() {
           object-fit: contain;
         }
         .footer-logo span {
-          font-family: 'Bricolage Grotesque', sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: 22px;
           font-weight: 800;
           color: #fff;
@@ -3056,7 +3036,7 @@ void main() {
           z-index: 1;
         }
         .cta-title {
-          font-family: 'Bricolage Grotesque', sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: clamp(2.4rem, 5vw, 3.6rem);
           font-weight: 800;
           letter-spacing: -0.03em;
@@ -3139,22 +3119,22 @@ void main() {
       {/* NAVBAR */}
       <header style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        backgroundColor: scrolled ? 'rgba(5,5,8,0.85)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
+        backgroundColor: scrolled ? '#0e172a' : 'transparent',
+        backdropFilter: 'none',
         borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : 'none',
         transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="lp-nav-inner" style={{ width: '100%', padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
           <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '32px', width: 'auto' }} />
-          <nav className="lp-nav-desktop" style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+          <nav className="lp-nav-desktop" style={{ display: 'flex', gap: '32px', alignItems: 'center', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
             <a href="#como-funciona" onClick={(e) => scrollTo(e, 'como-funciona')} className="lp-nav-link">Como funciona</a>
             <a href="/chargeback" className="lp-nav-link">Calculadora</a>
-            <a href="#precos" onClick={(e) => scrollTo(e, 'precos')} className="lp-nav-link">Precos</a>
+            <a href="#precos" onClick={(e) => scrollTo(e, 'precos')} className="lp-nav-link">Preços</a>
             <a href="#faq" onClick={(e) => scrollTo(e, 'faq')} className="lp-nav-link">FAQ</a>
-            <a href={getAppUrl('/login')} className="lp-nav-link">Entrar</a>
-            <a href={getAppUrl('/register')} className="lp-btn-primary" style={{ color: '#fff', padding: '10px 22px', borderRadius: '10px', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Comecar agora</a>
-            <a href={getAppUrl('/register?trial=true')} style={{ color: '#fff', padding: '10px 22px', borderRadius: '10px', textDecoration: 'none', fontSize: '14px', fontWeight: 600, background: '#22c55e' }}>Testar gratis</a>
           </nav>
+          <div className="lp-nav-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <a href={getAppUrl('/login')} className="lp-nav-link">Entrar</a>
+          </div>
           <button
             className="lp-nav-mobile-toggle"
             onClick={() => setMobileMenuOpen(true)}
@@ -3168,95 +3148,90 @@ void main() {
 
       {/* MOBILE MENU */}
       {mobileMenuOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(5,5,8,0.98)', backdropFilter: 'blur(20px)', zIndex: 200, display: 'flex', flexDirection: 'column', padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'linear-gradient(180deg, #0e1e3c 0%, #0e172a 100%)', zIndex: 200, display: 'flex', flexDirection: 'column', animation: 'menuSlideIn 0.28s cubic-bezier(0.16,1,0.3,1)' }}>
+          <style>{`@keyframes menuSlideIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '32px', width: 'auto' }} />
-            <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', cursor: 'pointer', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Fechar menu">
-              <X size={20} />
+            <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Fechar menu">
+              <X size={24} />
             </button>
           </div>
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+          <nav style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
             {[
               { label: 'Como funciona', id: 'como-funciona' },
               { label: 'Calculadora', href: '/chargeback' },
-              { label: 'Precos', id: 'precos' },
+              { label: 'Preços', id: 'precos' },
               { label: 'FAQ', id: 'faq' },
-              { label: 'Entrar', href: getAppUrl('/login') },
             ].map((item, i) => (
               <a
                 key={i}
                 href={item.href || `#${item.id}`}
                 onClick={item.id ? (e) => scrollTo(e, item.id!) : undefined}
-                style={{ color: '#fff', textDecoration: 'none', fontSize: '18px', fontWeight: 500, padding: '16px', borderRadius: '12px', transition: 'background 0.2s' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none', fontSize: '17px', fontWeight: 400, padding: '18px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
                 {item.label}
+                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '18px' }}>›</span>
               </a>
             ))}
           </nav>
-          <a href={getAppUrl('/register')} className="lp-btn-primary" style={{ color: '#fff', padding: '16px', borderRadius: '12px', textDecoration: 'none', fontSize: '16px', fontWeight: 600, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            Comecar agora <ArrowRight size={18} />
-          </a>
+          <div style={{ padding: '24px' }}>
+            <a href={getAppUrl('/login')} style={{ color: '#fff', padding: '16px', borderRadius: '12px', textDecoration: 'none', fontSize: '16px', fontWeight: 600, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}>
+              Entrar
+            </a>
+          </div>
         </div>
       )}
 
       {/* HERO */}
-      <section className="lp-hero-section" style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', paddingBottom: '10vh' }}>
-        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }} />
+      <section className="lp-hero-section" style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+        {/* Imagem base */}
+        <picture style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }}>
+          <source srcSet="/banner-mobile-hero.png" media="(max-width: 768px)" />
+          <img src="/hero-banner-1.png" alt="Hero" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </picture>
+        {/* Imagem duplicada com blur — aparece só no topo via máscara */}
+        <picture style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1, maskImage: 'linear-gradient(to bottom, black 0%, black 20%, transparent 55%)', WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 20%, transparent 55%)' }}>
+          <source srcSet="/banner-mobile-hero.png" media="(max-width: 768px)" />
+          <img src="/hero-banner-1.png" alt="Hero" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(18px)', transform: 'scale(1.05)' }} />
+        </picture>
 
         {/* Hero text content */}
-        <div className="lp-hero-content" style={{ position: 'relative', zIndex: 10, padding: '0 24px', paddingLeft: '8vw', width: '65vw', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: '8vh' }}>
+        <div className="lp-hero-content" style={{ position: 'relative', zIndex: 10, paddingTop: '18vh', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '960px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
 
           {/* Title */}
-          <div
-            className="lp-hero-fadeup"
-            style={{ animationDelay: heroVisible ? '0.1s' : '99s', animationPlayState: heroVisible ? 'running' : 'paused' }}
-          >
-            <h1 style={{
-              fontFamily: '"Bricolage Grotesque", sans-serif',
-              fontSize: 'clamp(2.8rem, 5vw, 4rem)',
-              fontWeight: 800,
-              color: '#ffffff',
-              lineHeight: 1.15,
-              letterSpacing: '-0.035em',
-              margin: 0,
-              textShadow: '0 2px 30px rgba(0,0,0,0.6)',
-            }}>
-              {heroLine1}
-              <br />
-              {heroLine2}
-            </h1>
-          </div>
+          <h1 className="lp-hero-title" style={{
+            fontFamily: '"Plus Jakarta Sans", sans-serif',
+            fontSize: 'clamp(1.35rem, 3.2vw, 3.2rem)',
+            fontWeight: 700,
+            color: '#ffffff',
+            lineHeight: 1.15,
+            letterSpacing: '-0.015em',
+            margin: 0,
+          }}>
+            Seus clientes pedem ajuda,
+            <br />
+            nós resolvemos em segundos.
+          </h1>
 
           {/* Subtitle */}
-          <div
-            className="lp-hero-fadeup"
-            style={{ animationDelay: heroVisible ? '0.3s' : '99s', animationPlayState: heroVisible ? 'running' : 'paused' }}
-          >
-            <p style={{
-              fontFamily: '"Inter", sans-serif',
-              fontSize: '20px',
-              lineHeight: 1.7,
-              color: 'rgba(255,255,255,0.75)',
-              fontWeight: 400,
-              maxWidth: '520px',
-              textShadow: '0 2px 20px rgba(0,0,0,0.5)',
-              margin: 0,
-              marginTop: '28px',
-            }}>
-              Automatize o atendimento pos-venda da sua loja com inteligencia artificial. Resolva reclamacoes em segundos e proteja seu Shopify Payments.
-            </p>
-          </div>
+          <p style={{
+            fontFamily: '"Plus Jakarta Sans", sans-serif',
+            fontSize: '18px',
+            lineHeight: 1.6,
+            color: 'rgba(255,255,255,0.75)',
+            fontWeight: 400,
+            margin: 0,
+            marginTop: '20px',
+            maxWidth: '560px',
+          }}>
+            Automatize o atendimento ao cliente da sua loja com inteligência artificial: reduza chargebacks e mantenha sua Shopify Payments ativa.
+          </p>
 
           {/* CTA buttons */}
-          <div
-            className="lp-hero-fadeup"
-            style={{ animationDelay: heroVisible ? '0.5s' : '99s', animationPlayState: heroVisible ? 'running' : 'paused' }}
-          >
-            <div className="lp-hero-btns" style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '40px' }}>
+          <div>
+            <div className="lp-hero-btns" style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '36px', justifyContent: 'center' }}>
               <a
-                href={getAppUrl('/register')}
+                href={getAppUrl('/checkout?plan=trial')}
                 className="lp-btn-primary"
                 style={{
                   color: '#fff', padding: '16px 32px', borderRadius: '9999px',
@@ -3264,11 +3239,13 @@ void main() {
                   display: 'inline-flex', alignItems: 'center', gap: '8px',
                 }}
               >
-                Comecar agora <ArrowRight size={16} />
+                Quero testar grátis <ArrowRight size={16} />
               </a>
+              {/* Desktop: Ver como funciona */}
               <a
                 href="#como-funciona"
                 onClick={(e) => scrollTo(e, 'como-funciona')}
+                className="lp-hero-btn-desktop"
                 style={{
                   color: 'rgba(255,255,255,0.8)', padding: '16px 32px', borderRadius: '9999px',
                   textDecoration: 'none', fontSize: '16px', fontWeight: 500,
@@ -3279,14 +3256,25 @@ void main() {
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
               >
-                Como funciona
+                Ver como funciona
+              </a>
+              {/* Mobile: Entrar */}
+              <a
+                href={getAppUrl('/login')}
+                className="lp-hero-btn-mobile"
+                style={{
+                  color: 'rgba(255,255,255,0.85)', padding: '16px 32px', borderRadius: '9999px',
+                  textDecoration: 'none', fontSize: '16px', fontWeight: 500,
+                  display: 'none', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)',
+                }}
+              >
+                Entrar
               </a>
             </div>
           </div>
         </div>
 
-        {/* Bottom fade */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '150px', background: 'linear-gradient(to bottom, transparent, #000000)', zIndex: 2, pointerEvents: 'none' }} />
       </section>
 
       {/* INTEGRATIONS MARQUEE */}
@@ -3307,7 +3295,7 @@ void main() {
                   { name: 'GoDaddy', icon: <svg width="24" height="24" viewBox="0 0 256 256"><path d="M128 0C57.3 0 0 57.3 0 128s57.3 128 128 128 128-57.3 128-128S198.7 0 128 0z" fill="#1BDBDB"/><path d="M183.2 96.8c-6-14.7-20.3-23.2-40.4-23.2-11 0-21 2.7-29.6 7.3-2.3-4.7-7.2-7.3-13.6-7.3-5.3 0-9.4 1.6-12.6 4.3V78h-18v90.4h18.8v-49.2c0-10.3 5.5-16 14.5-16 8.4 0 12.7 5 12.7 14.8v50.4h18.8v-49.2c0-10 5.3-16 14.3-16 8.6 0 13 5 13 14.8v50.4H180v-54.2c0-4.4-.3-8-1-11.2l4.2 5.8z" fill="#111"/></svg> },
                   { name: 'Hostinger', icon: <svg width="24" height="24" viewBox="0 0 256 303"><path d="M0 0v220.2l128 82.8 128-82.8V0H128L42.7 52.3V183l85.3 52.3 85.3-52.3V89.3L128 141.6 85.3 115V68l42.7-26L213.3 94v131.5L128 277.8 42.7 225.5V78.5L128 26l85.3 52.3" fill="#673DE6"/></svg> },
                   { name: 'Titan Email', icon: <svg width="24" height="24" viewBox="0 0 256 256"><path d="M128 0L0 74v108l128 74 128-74V74L128 0z" fill="#6C47FF"/><path d="M128 96l-48 28v56l48 28 48-28v-56l-48-28zm32 70.4L128 184l-32-17.6v-38.8L128 110l32 17.6v38.8z" fill="#FFF"/></svg> },
-                  { name: 'IMAP / SMTP', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="#6b93ff" strokeWidth="1.5"/><path d="M2 7l10 6 10-6" stroke="#6b93ff" strokeWidth="1.5"/><circle cx="18" cy="8" r="3.5" fill="#000000" stroke="#4ade80" strokeWidth="1.2"/><path d="M16.5 8l1 1 2-2" stroke="#4ade80" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+                  { name: 'IMAP / SMTP', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="#6b93ff" strokeWidth="1.5"/><path d="M2 7l10 6 10-6" stroke="#6b93ff" strokeWidth="1.5"/><circle cx="18" cy="8" r="3.5" fill="#0e172a" stroke="#4ade80" strokeWidth="1.2"/><path d="M16.5 8l1 1 2-2" stroke="#4ade80" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/></svg> },
                 ].map((logo, i) => (
                   <span key={`${setIdx}-${i}`} className="lp-marquee-logo">
                     {logo.icon} {logo.name}
@@ -3325,14 +3313,14 @@ void main() {
       {/* NETWORK GRID — Como a Replyna funciona */}
       <section className="net-section">
         {/* Ambient glow blobs */}
-        <div className="net-ambient" style={{ width: '500px', height: '500px', top: '30%', left: '10%', background: 'rgba(70,114,236,0.06)' }} />
+        <div className="net-ambient" style={{ width: '500px', height: '500px', top: '30%', left: '10%', background: 'rgba(71,114,236,0.06)' }} />
         <div className="net-ambient" style={{ width: '400px', height: '400px', bottom: '10%', right: '10%', background: 'rgba(139,92,246,0.05)' }} />
-        <div className="net-ambient" style={{ width: '300px', height: '300px', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'rgba(70,114,236,0.08)' }} />
+        <div className="net-ambient" style={{ width: '300px', height: '300px', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'rgba(71,114,236,0.08)' }} />
 
         <AnimateIn>
           <div className="net-section-header">
-            <h2>Tudo conectado ao<br />seu pos-venda</h2>
-            <p>A Replyna integra e-mail, loja e IA em um unico fluxo automatizado.</p>
+            <h2>Tudo conectado ao<br />seu pós-venda</h2>
+            <p>A Replyna integra e-mail, loja e IA em um único fluxo automatizado.</p>
           </div>
         </AnimateIn>
 
@@ -3429,7 +3417,7 @@ void main() {
                 fontWeight: 600, textDecoration: 'none', border: 'none', cursor: 'pointer',
               }}
             >
-              Comecar agora <ArrowRight size={16} />
+              Começar agora <ArrowRight size={16} />
             </a>
           </div>
         </AnimateIn>
@@ -3459,15 +3447,15 @@ void main() {
 
       {/* PRECOS */}
       <section id="precos" className="lp-section" style={{ padding: '60px 24px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 0%, rgba(70,114,236,0.02) 50%, transparent 100%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 0%, rgba(71,114,236,0.02) 50%, transparent 100%)', pointerEvents: 'none' }} />
         <div style={{ maxWidth: '1280px', margin: '0 auto', position: 'relative' }}>
           <AnimateIn>
             <div style={{ textAlign: 'center', marginBottom: '72px' }}>
-              <h2 style={{ fontFamily: '"Bricolage Grotesque", sans-serif', fontSize: 'clamp(2.2rem, 4.5vw, 3.2rem)', fontWeight: 700, color: '#fff', letterSpacing: '-0.03em', margin: '24px 0 0' }}>
+              <h2 style={{ fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 'clamp(2.2rem, 4.5vw, 3.2rem)', fontWeight: 700, color: '#fff', letterSpacing: '-0.03em', margin: '24px 0 0' }}>
                 Simples e transparente
               </h2>
               <p style={{ fontFamily: '"Inter", sans-serif', fontSize: '17px', color: 'rgba(255,255,255,0.4)', maxWidth: '480px', margin: '16px auto 0', lineHeight: 1.6 }}>
-                Escolha o plano ideal para o tamanho da sua operacao.
+                Escolha o plano ideal para o tamanho da sua operação.
               </p>
             </div>
           </AnimateIn>
@@ -3476,22 +3464,22 @@ void main() {
             {[
               {
                 name: 'Starter',
-                desc: 'Ideal para quem esta comecando',
+                desc: 'Ideal para quem está começando',
                 price: 'R$ 197',
                 period: '/mes',
                 emails: '300',
                 lojas: '1',
-                features: ['Integracao com 1 loja', '300 e-mails/mes inclusos', 'R$1,00 por email extra', 'Atendimento 24 horas por dia'],
+                features: ['Integração com 1 loja', '300 e-mails/mês inclusos', 'R$1,00 por email extra', 'Atendimento 24 horas por dia'],
                 highlight: false,
               },
               {
                 name: 'Business',
-                desc: 'Para operacoes em crescimento',
+                desc: 'Para operações em crescimento',
                 price: 'R$ 397',
                 period: '/mes',
                 emails: '900',
                 lojas: '3',
-                features: ['Integracao com 3 lojas', '900 e-mails/mes inclusos', 'R$0,70 por e-mail extra', 'Atendimento 24 horas por dia'],
+                features: ['Integração com 3 lojas', '900 e-mails/mês inclusos', 'R$0,70 por e-mail extra', 'Atendimento 24 horas por dia'],
                 highlight: true,
               },
               {
@@ -3501,22 +3489,22 @@ void main() {
                 period: '/mes',
                 emails: '1.500',
                 lojas: '5',
-                features: ['Integracao com 5 lojas', '1.500 e-mails/mes inclusos', 'R$0,60 por email extra', 'Atendimento 24 horas por dia'],
+                features: ['Integração com 5 lojas', '1.500 e-mails/mês inclusos', 'R$0,60 por email extra', 'Atendimento 24 horas por dia'],
                 highlight: false,
               },
               {
                 name: 'High Scale',
-                desc: 'Para grandes operacoes',
+                desc: 'Para grandes operações',
                 price: 'R$ 997',
                 period: '/mes',
                 emails: '3.000',
                 lojas: '10',
-                features: ['Integracao com 10 lojas', '3.000 e-mails/mes inclusos', 'R$0,50 por email extra', 'Atendimento 24 horas por dia'],
+                features: ['Integração com 10 lojas', '3.000 e-mails/mês inclusos', 'R$0,50 por email extra', 'Atendimento 24 horas por dia'],
                 highlight: false,
               },
               {
                 name: 'Enterprise',
-                desc: 'Solucao personalizada',
+                desc: 'Solução personalizada',
                 price: 'Sob consulta',
                 period: '',
                 emails: 'Ilimitado',
@@ -3545,10 +3533,10 @@ void main() {
                   Perguntas<br />frequentes
                 </h2>
                 <p className="faq-subtitle">
-                  Tudo o que voce precisa saber sobre a Replyna e como ela pode transformar seu pos-venda.
+                  Tudo o que você precisa saber sobre a Replyna e como ela pode transformar seu pós-venda.
                 </p>
                 <a href="#contato" className="faq-contact-link">
-                  Ainda tem duvidas? Fale conosco <ArrowRight size={16} />
+                  Ainda tem dúvidas? Fale conosco <ArrowRight size={16} />
                 </a>
               </div>
             </AnimateIn>
@@ -3556,13 +3544,13 @@ void main() {
             {/* Right accordion column */}
             <div className="faq-accordion">
               {[
-                { q: 'Quanto tempo leva para integrar com minha loja?', a: 'A integracao leva menos de 2 minutos. Basta conectar sua loja Shopify e seu provedor de email, e a IA ja comeca a processar e responder as mensagens automaticamente. Nao precisa de conhecimento tecnico.' },
-                { q: 'A IA realmente entende reclamacoes e devolucoes?', a: 'Sim. A Replyna foi treinada com milhares de conversas reais de pos-venda do e-commerce brasileiro. Ela entende contexto, tom do cliente e sabe diferenciar uma reclamacao de uma duvida simples, respondendo de forma personalizada para cada situacao.' },
-                { q: 'Posso enviar respostas manualmente?', a: 'Sim! Alem do modo automatico onde a IA responde sozinha, a Replyna tambem oferece a opcao de envio manual. Voce pode escrever e enviar suas proprias respostas diretamente pela plataforma sempre que preferir.' },
-                { q: 'Como funciona o limite de emails por plano?', a: 'Cada plano inclui uma quantidade mensal de emails. Se ultrapassar o limite, emails extras sao cobrados a um valor reduzido por unidade. No plano Enterprise, o volume e ilimitado.' },
-                { q: 'A Replyna funciona com quais plataformas?', a: 'Atualmente a Replyna integra exclusivamente com a Shopify. Novas plataformas estao sendo planejadas e serao adicionadas em breve.' },
-                { q: 'Meus dados e dos meus clientes estao seguros?', a: 'Sim. Utilizamos criptografia de ponta a ponta e infraestrutura em nuvem com certificacoes de seguranca. Nenhum dado de cliente e compartilhado com terceiros ou usado para treinar modelos externos.' },
-                { q: 'Existe periodo de teste gratuito?', a: 'Sim! Voce tem 7 dias de free trial com 30 emails inclusos para testar a plataforma sem compromisso. Nao precisa de cartao de credito para comecar.' },
+                { q: 'Quanto tempo leva para integrar com minha loja?', a: 'A integração leva menos de 2 minutos. Basta conectar sua loja Shopify e seu provedor de email, e a IA já começa a processar e responder as mensagens automaticamente. Não precisa de conhecimento técnico.' },
+                { q: 'A IA realmente entende reclamações e devoluções?', a: 'Sim. A Replyna foi treinada com milhares de conversas reais de pós-venda do e-commerce brasileiro. Ela entende contexto, tom do cliente e sabe diferenciar uma reclamação de uma dúvida simples, respondendo de forma personalizada para cada situação.' },
+                { q: 'Posso enviar respostas manualmente?', a: 'Sim! Além do modo automático onde a IA responde sozinha, a Replyna também oferece a opção de envio manual. Você pode escrever e enviar suas próprias respostas diretamente pela plataforma sempre que preferir.' },
+                { q: 'Como funciona o limite de emails por plano?', a: 'Cada plano inclui uma quantidade mensal de emails. Se ultrapassar o limite, emails extras são cobrados a um valor reduzido por unidade. No plano Enterprise, o volume é ilimitado.' },
+                { q: 'A Replyna funciona com quais plataformas?', a: 'Atualmente a Replyna integra exclusivamente com a Shopify. Novas plataformas estão sendo planejadas e serão adicionadas em breve.' },
+                { q: 'Meus dados e dos meus clientes estão seguros?', a: 'Sim. Utilizamos criptografia de ponta a ponta e infraestrutura em nuvem com certificações de segurança. Nenhum dado de cliente é compartilhado com terceiros ou usado para treinar modelos externos.' },
+                { q: 'Existe período de teste gratuito?', a: 'Sim! Você tem 7 dias de free trial com 30 emails inclusos para testar a plataforma sem compromisso. Não precisa de cartão de crédito para começar.' },
               ].map((item, i) => (
                 <AnimateIn key={i} delay={i * 0.06}>
                   <FaqCard num={String(i + 1).padStart(2, '0')} question={item.q} answer={item.a} />
@@ -3598,13 +3586,13 @@ void main() {
             <h2 className="cta-title">Pronto para automatizar?</h2>
             <span className="cta-line" />
             <p className="cta-desc">
-              Comece gratis e veja a IA resolver reclamacoes pela sua loja em segundos.
+              Comece grátis e veja a IA resolver reclamações pela sua loja em segundos.
             </p>
             <div className="cta-btn-wrap">
               <span className="cta-pulse" />
               <span className="cta-pulse" style={{ animationDelay: '1s' }} />
-              <a href={getAppUrl('/register')} className="cta-btn">
-                Comecar agora gratis <ArrowRight size={18} />
+              <a href={getAppUrl('/checkout?plan=trial')} className="cta-btn">
+                Começar agora grátis <ArrowRight size={18} />
               </a>
             </div>
           </div>
@@ -3664,7 +3652,7 @@ void main() {
                 <img src="/replyna-logo.webp" alt="Replyna" style={{ width: 'auto', height: '32px', borderRadius: 0 }} />
               </div>
               <p className="footer-brand-desc">
-                Automatize seu pos-venda com IA. Respostas inteligentes para reclamacoes, trocas e devolucoes.
+                Automatize seu pós-venda com IA. Respostas inteligentes para reclamações, trocas e devoluções.
               </p>
               <div className="footer-socials">
                 {/* WhatsApp */}
@@ -3691,9 +3679,9 @@ void main() {
               <p className="footer-col-title">Produto</p>
               <ul className="footer-col-links">
                 <li><a href="#como-funciona">Como funciona</a></li>
-                <li><a href="#precos">Precos</a></li>
+                <li><a href="#precos">Preços</a></li>
                 <li><a href="#faq">FAQ</a></li>
-                <li><a href={getAppUrl('/register')}>Comecar gratis</a></li>
+                <li><a href={getAppUrl('/checkout?plan=trial')}>Começar grátis</a></li>
               </ul>
             </div>
 
@@ -3702,7 +3690,7 @@ void main() {
               <p className="footer-col-title">Conta</p>
               <ul className="footer-col-links">
                 <li><a href={getAppUrl('/login')}>Login</a></li>
-                <li><a href={getAppUrl('/register')}>Criar conta</a></li>
+                <li><a href={getAppUrl('/checkout?plan=trial')}>Criar conta</a></li>
                 <li><a href="/masterclass">Masterclass</a></li>
               </ul>
             </div>
@@ -3711,7 +3699,7 @@ void main() {
             <div>
               <p className="footer-col-title">Legal</p>
               <ul className="footer-col-links">
-                <li><a href="/privacidade">Politica de privacidade</a></li>
+                <li><a href="/privacidade">Política de privacidade</a></li>
                 <li><a href="/privacidade">LGPD</a></li>
               </ul>
             </div>
@@ -3834,7 +3822,7 @@ function ScrollyTimeline() {
           <svg className="st-curve-svg" viewBox={`0 0 ${svgW} ${totalH}`} preserveAspectRatio="xMidYMid meet">
             <defs>
               <linearGradient id="stGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4672ec" />
+                <stop offset="0%" stopColor="#4772ec" />
                 <stop offset="100%" stopColor="#6b93ff" />
               </linearGradient>
               {/* Trail gradient: bright at front (near airplane), fading behind */}
@@ -3846,7 +3834,7 @@ function ScrollyTimeline() {
               </linearGradient>
               <radialGradient id="dotGlow">
                 <stop offset="0%" stopColor="rgba(107,147,255,0.5)" />
-                <stop offset="100%" stopColor="rgba(70,114,236,0)" />
+                <stop offset="100%" stopColor="rgba(71,114,236,0)" />
               </radialGradient>
             </defs>
             {/* Wide ambient aurora glow */}
@@ -3964,21 +3952,21 @@ const INF_DATA = [
   {
     name: 'Guilherme Smith',
     img: '/influencers/guilherme-smith.webp',
-    desc: 'Mentor e gestor de multiplas operacoes de Dropshipping Global. Expert em vendas e conversao.',
+    desc: 'Mentor e gestor de múltiplas operações de Dropshipping Global. Expert em vendas e conversão.',
     followers: '120K',
     badge: 'Parceiro',
   },
   {
     name: 'Lhucas Maciel',
     img: '/influencers/lhucas-maciel.webp',
-    desc: 'Criador de conteudo sobre Shopify e automacoes para lojistas.',
+    desc: 'Criador de conteúdo sobre Shopify e automações para lojistas.',
     followers: '85K',
     badge: 'Creator',
   },
   {
     name: 'Carlos Azevedo',
     img: '/influencers/carlos-azevedo.webp',
-    desc: 'Especialista em e-commerce e consultor de operacoes digitais.',
+    desc: 'Especialista em e-commerce e consultor de operações digitais.',
     followers: '200K',
     badge: 'Especialista',
   },
@@ -4069,7 +4057,7 @@ function PricingCard({ plan, index }: { plan: { name: string; desc: string; pric
           </div>
           <div className="pricing-stats" style={{ position: 'relative', zIndex: 3 }}>
             <div className="pricing-stat pricing-stat--email">
-              <div className="pricing-stat-label">Emails/mes</div>
+              <div className="pricing-stat-label">E-mails/mês</div>
               <div className="pricing-stat-value">{counter.emails}</div>
             </div>
             <div className="pricing-stat pricing-stat--loja">
@@ -4087,7 +4075,7 @@ function PricingCard({ plan, index }: { plan: { name: string; desc: string; pric
             ))}
           </div>
           <a
-            href={plan.name === 'Enterprise' ? '#contato' : getAppUrl('/register')}
+            href={plan.name === 'Enterprise' ? '#contato' : getAppUrl(`/checkout?plan=${encodeURIComponent(plan.name)}`)}
             className={plan.highlight ? 'pricing-btn pricing-btn--primary' : 'pricing-btn'}
             style={{ position: 'relative', zIndex: 3 }}
           >
@@ -4102,11 +4090,11 @@ function PricingCard({ plan, index }: { plan: { name: string; desc: string; pric
 const ABOUT_FEED_DATA = [
   { color: 'green', text: '<strong>Troca aprovada</strong> — Pedido #7841', time: '2min' },
   { color: 'blue', text: '<strong>Reembolso processado</strong> — Pedido #7839', time: '5min' },
-  { color: 'yellow', text: '<strong>Duvida respondida</strong> — Rastreio enviado', time: '8min' },
-  { color: 'green', text: '<strong>Devolucao aceita</strong> — Pedido #7836', time: '12min' },
+  { color: 'yellow', text: '<strong>Dúvida respondida</strong> — Rastreio enviado', time: '8min' },
+  { color: 'green', text: '<strong>Devolução aceita</strong> — Pedido #7836', time: '12min' },
   { color: 'blue', text: '<strong>Ticket resolvido</strong> — Pedido #7833', time: '15min' },
   { color: 'yellow', text: '<strong>Status atualizado</strong> — Pedido #7830', time: '18min' },
-  { color: 'green', text: '<strong>Troca concluida</strong> — Pedido #7828', time: '22min' },
+  { color: 'green', text: '<strong>Troca concluída</strong> — Pedido #7828', time: '22min' },
 ]
 
 function AboutSection() {
@@ -4185,10 +4173,10 @@ function AboutSection() {
           <AnimateIn>
             <div className="about-badge">
               <Bot size={16} />
-              Pos-Venda Autonomo
+              Pós-Venda Autônomo
             </div>
 
-            <h2>Enquanto voce dorme,<br />a Replyna <span>resolve.</span></h2>
+            <h2>Enquanto você dorme,<br />a Replyna <span>resolve.</span></h2>
           </AnimateIn>
 
           <div className="about-features">
@@ -4196,21 +4184,21 @@ function AboutSection() {
               <div className="about-feat" onMouseMove={handleFeatMove} onMouseLeave={handleFeatLeave}>
                 <div className="about-feat-spotlight" />
                 <div className="about-feat-icon"><Zap size={18} /></div>
-                <p>Responde em menos de 30 segundos, 24 horas por dia, sem intervencao humana.</p>
+                <p>Responde em menos de 30 segundos, 24 horas por dia, sem intervenção humana.</p>
               </div>
             </AnimateIn>
             <AnimateIn delay={0.25}>
               <div className="about-feat" onMouseMove={handleFeatMove} onMouseLeave={handleFeatLeave}>
                 <div className="about-feat-spotlight" />
                 <div className="about-feat-icon"><MessageSquare size={18} /></div>
-                <p>Le, entende e responde com o tom da sua marca. Como alguem da sua equipe.</p>
+                <p>Lê, entende e responde com o tom da sua marca. Como alguém da sua equipe.</p>
               </div>
             </AnimateIn>
             <AnimateIn delay={0.35}>
               <div className="about-feat" onMouseMove={handleFeatMove} onMouseLeave={handleFeatLeave}>
                 <div className="about-feat-spotlight" />
                 <div className="about-feat-icon"><BarChart3 size={18} /></div>
-                <p>Resolve 95% dos casos sozinha. Voce so acompanha pelo dashboard.</p>
+                <p>Resolve 95% dos casos sozinha. Você só acompanha pelo dashboard.</p>
               </div>
             </AnimateIn>
           </div>
@@ -4232,8 +4220,8 @@ function AboutSection() {
               <div className="about-card-head">
                 <div className="about-card-avatar"><img src="/Logo Replyna.png" alt="Replyna" style={{ width: '38px', height: '38px', objectFit: 'contain' }} /></div>
                 <div className="about-card-greet">
-                  <strong>Bem-vindo a Replyna</strong>
-                  <span>Seu pos-venda esta no piloto automatico</span>
+                  <strong>Bem-vindo à Replyna</strong>
+                  <span>Seu pós-venda está no piloto automático</span>
                 </div>
               </div>
 
@@ -4244,15 +4232,15 @@ function AboutSection() {
                 </div>
                 <div className="about-card-stat">
                   <div className="about-card-stat-val"><span className="about-card-stat-accent">{stats.taxa}</span>%</div>
-                  <div className="about-card-stat-label">Taxa de resolucao</div>
+                  <div className="about-card-stat-label">Taxa de resolução</div>
                 </div>
                 <div className="about-card-stat">
                   <div className="about-card-stat-val">{stats.tempo}s</div>
-                  <div className="about-card-stat-label">Tempo medio resposta</div>
+                  <div className="about-card-stat-label">Tempo médio resposta</div>
                 </div>
                 <div className="about-card-stat">
                   <div className="about-card-stat-val">{stats.emails}<span className="about-card-stat-accent">k</span></div>
-                  <div className="about-card-stat-label">E-mails este mes</div>
+                  <div className="about-card-stat-label">E-mails este mês</div>
                 </div>
               </div>
 
@@ -4335,7 +4323,7 @@ function InfCarousel() {
         <button className="inf-nav-btn" aria-label="Anterior" onClick={prev}>
           <ChevronLeft size={22} />
         </button>
-        <button className="inf-nav-btn" aria-label="Proximo" onClick={next}>
+        <button className="inf-nav-btn" aria-label="Próximo" onClick={next}>
           <ChevronRight size={22} />
         </button>
       </div>

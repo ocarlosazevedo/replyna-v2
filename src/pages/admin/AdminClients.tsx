@@ -389,6 +389,10 @@ export default function AdminClients() {
   }
 
   const getEffectiveStatus = (client: Client): string => {
+    // Free Trial users are always shown as trialing if active
+    if (client.plan === 'Free Trial') {
+      return client.status === 'active' ? 'trialing' : (client.status || 'inactive')
+    }
     if (client.subscription) {
       const subStatus = client.subscription.status
       if (subStatus === 'canceled') return 'canceled'

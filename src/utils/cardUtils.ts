@@ -107,7 +107,10 @@ export function isInternationalCard(bin: string): boolean {
 
   if (brazilianPrefixes.includes(digits)) return false
 
-  // If we can't determine, default to not international (most users will be Brazilian)
+  // If not in known Brazilian lists and is Visa/Master/Amex, treat as international
+  const brand = detectCardBrand(digits)
+  if (brand === 'visa' || brand === 'mastercard' || brand === 'amex') return true
+
   return false
 }
 

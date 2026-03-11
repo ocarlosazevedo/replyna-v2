@@ -467,11 +467,11 @@ export default function AdminFinancial() {
         </div>
       </div>
 
-      {/* Metricas do Periodo Selecionado */}
+      {/* Métricas do Período Selecionado */}
       <div style={{ ...cardStyle, marginBottom: '24px', background: 'linear-gradient(135deg, rgba(70, 114, 236, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)' }}>
         <div style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 600, color: 'var(--accent)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Calendar size={isMobile ? 16 : 18} />
-          Metricas do Periodo Selecionado
+          Métricas do Período Selecionado
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '16px' : '24px' }}>
           <div>
@@ -752,7 +752,7 @@ export default function AdminFinancial() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <TrendingUp size={isMobile ? 18 : 20} style={{ color: 'var(--accent)' }} />
           <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Receita no Periodo
+            Receita no Período
           </h2>
         </div>
         <div style={{ height: isMobile ? '250px' : '320px' }}>

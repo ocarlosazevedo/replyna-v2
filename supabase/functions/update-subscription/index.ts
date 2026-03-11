@@ -2,7 +2,9 @@
  * Edge Function: Update Subscription (Asaas)
  *
  * Atualiza a assinatura do Asaas para um novo plano.
- * - UPGRADE: cobra imediatamente (updatePendingPayments = true)
+ * - Se usuario tem cartao salvo (asaas_customer_id): cobra direto
+ * - Se nao tem: redireciona para checkout
+ * - UPGRADE entre planos pagos: cobra diferenca imediatamente
  * - DOWNGRADE: aplica novo valor, sem cobranca imediata
  */
 
@@ -12,9 +14,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   updateSubscription as asaasUpdateSubscription,
   createSubscription as asaasCreateSubscription,
-  createCustomer,
-  getCustomerByEmail,
-  getPaymentsBySubscription,
+  deleteSubscription as asaasDeleteSubscription,
 } from '../_shared/asaas.ts';
 
 interface UpdateSubscriptionRequest {
@@ -54,16 +54,21 @@ serve(async (req) => {
 
     const supabase = getSupabaseAdmin();
 
-    const { data: subscriptions, error: subError } = await supabase
-      .from('subscriptions')
-      .select('id, asaas_subscription_id, plan_id, status')
-      .eq('user_id', user_id)
-      .in('status', ['active', 'trialing', 'past_due'])
-      .order('created_at', { ascending: false })
-      .limit(1);
+    // 1. Buscar dados do usuario
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('email, name, asaas_customer_id, asaas_credit_card_token, is_trial')
+      .eq('id', user_id)
+      .single();
 
-    const subscription = subscriptions?.[0] || null;
+    if (userError || !userData) {
+      return new Response(
+        JSON.stringify({ error: 'Usuario nao encontrado' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
+    // 2. Buscar novo plano
     const { data: newPlan, error: planError } = await supabase
       .from('plans')
       .select('*')
@@ -78,128 +83,110 @@ serve(async (req) => {
       );
     }
 
-    // === SEM ASSINATURA ATIVA: criar nova assinatura no Asaas ===
-    if (!subscription || !subscription.asaas_subscription_id) {
-      console.log(`[UpdateSubscription] Usuario ${user_id} sem assinatura ativa, criando nova...`);
-
-      // Buscar dados do usuario
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('email, name, asaas_customer_id')
-        .eq('id', user_id)
-        .single();
-
-      if (userError || !userData) {
-        return new Response(
-          JSON.stringify({ error: 'Usuario nao encontrado' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Garantir que o usuario tem customer no Asaas
-      let customerId = userData.asaas_customer_id;
-      if (!customerId) {
-        let customer = await getCustomerByEmail(userData.email);
-        if (!customer) {
-          customer = await createCustomer({
-            name: userData.name || userData.email,
-            email: userData.email,
-          });
-          console.log(`[UpdateSubscription] Cliente Asaas criado: ${customer.id}`);
-        }
-        customerId = customer.id;
-        await supabase.from('users').update({ asaas_customer_id: customerId }).eq('id', user_id);
-      }
-
-      // Criar assinatura no Asaas
-      const now = new Date();
-      const nextDueDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-      const newAsaasSub = await asaasCreateSubscription({
-        customer: customerId,
-        billingType: 'CREDIT_CARD',
-        value: Number(newPlan.price_monthly || 0),
-        cycle: 'MONTHLY',
-        description: `Replyna - Plano ${newPlan.name}`,
-        nextDueDate,
-        callback: {
-          successUrl: 'https://app.replyna.me/checkout/success',
-          autoRedirect: true,
-        },
-      });
-
-      // Buscar URL de pagamento
-      const payments = await getPaymentsBySubscription(newAsaasSub.id, { limit: 1, order: 'desc' });
-      const firstPayment = payments.data?.[0];
-      const invoiceUrl = firstPayment?.invoiceUrl || null;
-
-      // Criar registro da assinatura no banco
-      const periodEnd = new Date(now);
-      periodEnd.setDate(periodEnd.getDate() + 30);
-
-      await supabase.from('subscriptions').insert({
-        user_id,
-        plan_id: new_plan_id,
-        asaas_customer_id: customerId,
-        asaas_subscription_id: newAsaasSub.id,
-        status: 'incomplete',
-        billing_cycle: 'monthly',
-        current_period_start: now.toISOString(),
-        current_period_end: periodEnd.toISOString(),
-        cancel_at_period_end: false,
-      });
-
-      // NAO atualizar plano do usuario aqui - o webhook de pagamento confirmado
-      // (PAYMENT_RECEIVED) vai atualizar o plano quando o pagamento for concluido.
-      // Isso evita que o usuario tenha o plano alterado sem pagar.
-
-      console.log(`[UpdateSubscription] Nova assinatura criada: ${newAsaasSub.id}, invoice: ${invoiceUrl}`);
-
-      // Retornar URL de pagamento para o frontend redirecionar
+    // 3. SEM CARTAO SALVO: precisa ir para checkout
+    if (!userData.asaas_customer_id) {
+      console.log(`[UpdateSubscription] Usuario ${user_id} sem customer Asaas, redirecionando para checkout...`);
       return new Response(
         JSON.stringify({
           success: true,
-          requires_payment_method: true,
-          checkout_url: invoiceUrl,
+          needs_checkout: true,
           plan: newPlan.name,
+          new_plan: {
+            id: newPlan.id,
+            name: newPlan.name,
+            emails_limit: newPlan.emails_limit,
+            shops_limit: newPlan.shops_limit,
+            price_monthly: newPlan.price_monthly,
+          },
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // === TRIAL -> PAGO: ativar cobranca ===
-    if (subscription.status === 'trialing') {
-      console.log(`[UpdateSubscription] Trial user ${user_id} upgrading to ${newPlan.name}`);
+    // 4. Buscar assinatura existente (qualquer status)
+    const { data: subscriptions } = await supabase
+      .from('subscriptions')
+      .select('id, asaas_subscription_id, plan_id, status')
+      .eq('user_id', user_id)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-      // Atualizar assinatura no Asaas: novo valor + nextDueDate = hoje (cobrar agora)
+    const subscription = subscriptions?.[0] || null;
+
+    // 5. TRIAL ou SEM ASSINATURA PAGA: deletar trial antiga e criar nova assinatura paga
+    // O cartao ja esta tokenizado no Asaas (asaas_customer_id existe)
+    if (!subscription || !subscription.asaas_subscription_id ||
+        subscription.status === 'trialing' || subscription.status === 'incomplete' ||
+        userData.is_trial) {
+
+      console.log(`[UpdateSubscription] Usuario ${user_id} (trial/sem sub) upgrading to ${newPlan.name}`);
+
+      // Deletar assinatura antiga no Asaas se existir
+      if (subscription?.asaas_subscription_id) {
+        try {
+          await asaasDeleteSubscription(subscription.asaas_subscription_id);
+          console.log(`[UpdateSubscription] Assinatura antiga deletada: ${subscription.asaas_subscription_id}`);
+        } catch (delErr) {
+          console.warn(`[UpdateSubscription] Erro ao deletar assinatura antiga:`, delErr);
+        }
+      }
+
+      // Criar nova assinatura paga com o token do cartao salvo
       const today = new Date();
       const nextDueDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-      await asaasUpdateSubscription(subscription.asaas_subscription_id, {
+      const subscriptionInput: Record<string, unknown> = {
+        customer: userData.asaas_customer_id,
+        billingType: 'CREDIT_CARD',
         value: Number(newPlan.price_monthly || 0),
-        description: `Replyna - Plano ${newPlan.name}`,
         cycle: 'MONTHLY',
+        description: `Replyna - Plano ${newPlan.name}`,
         nextDueDate,
-        updatePendingPayments: true,
-      });
+      };
+
+      // Usar o token do cartao salvo para cobrar automaticamente
+      if (userData.asaas_credit_card_token) {
+        subscriptionInput.creditCardToken = userData.asaas_credit_card_token;
+        console.log(`[UpdateSubscription] Usando creditCardToken para cobrar cartao salvo`);
+      }
+
+      const newAsaasSub = await asaasCreateSubscription(subscriptionInput as any);
+
+      console.log(`[UpdateSubscription] Nova assinatura paga criada: ${newAsaasSub.id}`);
 
       const periodEnd = new Date(today);
       periodEnd.setDate(periodEnd.getDate() + 30);
 
-      // Ativar subscription
-      await supabase
-        .from('subscriptions')
-        .update({
+      // Atualizar ou criar subscription no banco
+      if (subscription) {
+        await supabase
+          .from('subscriptions')
+          .update({
+            plan_id: new_plan_id,
+            asaas_subscription_id: newAsaasSub.id,
+            asaas_customer_id: userData.asaas_customer_id,
+            status: 'active',
+            billing_cycle: 'monthly',
+            current_period_start: today.toISOString(),
+            current_period_end: periodEnd.toISOString(),
+            updated_at: today.toISOString(),
+          })
+          .eq('id', subscription.id);
+      } else {
+        await supabase.from('subscriptions').insert({
+          user_id,
           plan_id: new_plan_id,
+          asaas_customer_id: userData.asaas_customer_id,
+          asaas_subscription_id: newAsaasSub.id,
           status: 'active',
           billing_cycle: 'monthly',
           current_period_start: today.toISOString(),
           current_period_end: periodEnd.toISOString(),
-          updated_at: today.toISOString(),
-        })
-        .eq('id', subscription.id);
+          cancel_at_period_end: false,
+        });
+      }
 
-      // Ativar user com plano pago
+      // Atualizar usuario
       await supabase
         .from('users')
         .update({
@@ -214,23 +201,23 @@ serve(async (req) => {
         })
         .eq('id', user_id);
 
-      // Buscar URL de pagamento para o usuario pagar
-      const payments = await getPaymentsBySubscription(subscription.asaas_subscription_id, { limit: 1, order: 'desc' });
-      const firstPayment = payments.data?.[0];
-      const invoiceUrl = firstPayment?.invoiceUrl || null;
-
       return new Response(
         JSON.stringify({
           success: true,
-          requires_payment_method: !!invoiceUrl,
-          checkout_url: invoiceUrl,
           plan: newPlan.name,
+          new_plan: {
+            id: newPlan.id,
+            name: newPlan.name,
+            emails_limit: newPlan.emails_limit,
+            shops_limit: newPlan.shops_limit,
+            price_monthly: newPlan.price_monthly,
+          },
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // === COM ASSINATURA ATIVA: atualizar plano existente ===
+    // === COM ASSINATURA ATIVA PAGA: atualizar plano existente ===
     let currentPlan = null;
     if (subscription.plan_id) {
       const { data: currentPlanData } = await supabase
