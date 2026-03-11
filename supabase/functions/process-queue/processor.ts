@@ -101,7 +101,52 @@ const systemEmailPatterns = [
 const shopifyContactFormPatterns = [
   'mailer@shopify',
   '@shopify.com',
+  '@t.shopifyemail.com',
+  '@shopifyemail.com',
 ];
+
+/**
+ * Detecta se o corpo do email é uma notificação de pedido do Shopify
+ * (confirmação de compra, envio, etc.) e NÃO um formulário de contato
+ */
+function isShopifyOrderNotification(bodyText: string, subject: string): boolean {
+  const subj = (subject || '').toLowerCase();
+
+  const orderSubjectPatterns = [
+    /order\s*#?\d+/i,
+    /order\s+confirmation/i,
+    /pedido\s*#?\d+/i,
+    /confirmação\s+de\s+pedido/i,
+    /new\s+order/i,
+    /novo\s+pedido/i,
+  ];
+
+  if (orderSubjectPatterns.some(p => p.test(subj))) return true;
+
+  const text = (bodyText || '').toLowerCase();
+  const bodyPatterns = [
+    /placed\s+order\s*#?\d+/i,
+    /order\s+summary/i,
+    /payment\s+processing\s+method/i,
+    /shipping\s+address/i,
+    /delivery\s+method/i,
+    /subtotal/i,
+    /shopify\s+payments/i,
+    /awaiting\s+shipment/i,
+    /fulfillment/i,
+    /shipping\s+confirmation/i,
+  ];
+
+  let bodyMatchCount = 0;
+  for (const pattern of bodyPatterns) {
+    if (pattern.test(text)) {
+      bodyMatchCount++;
+      if (bodyMatchCount >= 2) return true;
+    }
+  }
+
+  return false;
+}
 
 /**
  * Extrai email do cliente do corpo de um formulário de contato do Shopify
@@ -370,6 +415,16 @@ async function processMessage(
   const isShopifySystem = isShopifyContactFormEmail(message.from_email || '');
 
   if (isEmptyOrInvalid || isShopifySystem) {
+    // Verificar se é uma notificação de pedido antes de extrair email
+    if (isShopifySystem && isShopifyOrderNotification(message.body_text || '', message.subject || '')) {
+      console.log(`[Processor] Message ${message.id}: notificação de pedido do Shopify ignorada`);
+      await updateMessage(message.id, {
+        status: 'failed',
+        error_message: 'Notificação de pedido do Shopify ignorada',
+      });
+      return false;
+    }
+
     // Tentar extrair email do cliente do corpo da mensagem (formulários Shopify)
     const extracted = extractEmailFromShopifyContactForm(message.body_text || '', message.body_html || '');
 

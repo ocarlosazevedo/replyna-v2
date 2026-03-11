@@ -52,6 +52,7 @@ interface Client {
   plan: string
   emails_limit: number | null  // null = ilimitado
   emails_used: number
+  extra_emails_purchased: number
   shops_limit: number | null   // null = ilimitado
   status: string | null
   created_at: string
@@ -820,7 +821,8 @@ export default function AdminClients() {
                       <Store size={12} /> {client.shops.length}/{client.shops_limit === null ? '∞' : client.shops_limit}
                     </span>
                     <span style={{ fontSize: '11px', color: client.emails_limit === null ? '#22c55e' : 'var(--text-secondary)' }}>
-                      {client.emails_used}/{client.emails_limit === null ? '∞' : client.emails_limit} emails
+                      {client.emails_used}/{client.emails_limit === null ? '∞' : (client.emails_limit + (client.extra_emails_purchased || 0))} emails
+                      {client.extra_emails_purchased > 0 && ` (+${client.extra_emails_purchased})`}
                     </span>
                   </div>
                   {client.subscription?.current_period_end && (
@@ -931,9 +933,16 @@ export default function AdminClients() {
                     </td>
                     <td style={{ padding: '16px' }}>
                       <div style={{ fontSize: '14px', color: client.emails_limit === null ? '#22c55e' : 'var(--text-primary)' }}>
-                        {client.emails_used} / {client.emails_limit === null ? '∞' : client.emails_limit}
+                        {client.emails_used} / {client.emails_limit === null ? '∞' : (client.emails_limit + (client.extra_emails_purchased || 0))}
+                        {client.extra_emails_purchased > 0 && (
+                          <span style={{ fontSize: '11px', color: '#3b82f6', marginLeft: '4px' }}>
+                            (+{client.extra_emails_purchased})
+                          </span>
+                        )}
                       </div>
-                      {client.emails_limit !== null && (
+                      {client.emails_limit !== null && (() => {
+                        const totalLimit = client.emails_limit + (client.extra_emails_purchased || 0);
+                        return (
                         <div style={{
                           width: '80px',
                           height: '4px',
@@ -942,13 +951,14 @@ export default function AdminClients() {
                           marginTop: '4px',
                         }}>
                           <div style={{
-                            width: `${Math.min((client.emails_used / client.emails_limit) * 100, 100)}%`,
+                            width: `${Math.min((client.emails_used / totalLimit) * 100, 100)}%`,
                             height: '100%',
-                            backgroundColor: client.emails_used >= client.emails_limit ? '#ef4444' : '#22c55e',
+                            backgroundColor: client.emails_used >= totalLimit ? '#ef4444' : '#22c55e',
                             borderRadius: '2px',
                           }} />
                         </div>
-                      )}
+                        );
+                      })()
                     </td>
                     <td style={{ padding: '16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

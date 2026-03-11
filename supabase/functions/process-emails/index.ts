@@ -77,6 +77,49 @@ const MAX_DATA_REQUESTS = 3;
 const MAX_EXECUTION_TIME_MS = 110000; // 110 segundos (limite real é 120s)
 
 /**
+ * Detecta se o corpo do email é uma notificação de pedido do Shopify
+ * (confirmação de compra, envio, etc.) e NÃO um formulário de contato
+ */
+function isShopifyOrderNotification(bodyText: string, subject: string): boolean {
+  const subj = (subject || '').toLowerCase();
+
+  const orderSubjectPatterns = [
+    /order\s*#?\d+/i,
+    /order\s+confirmation/i,
+    /pedido\s*#?\d+/i,
+    /confirmação\s+de\s+pedido/i,
+    /new\s+order/i,
+    /novo\s+pedido/i,
+  ];
+
+  if (orderSubjectPatterns.some(p => p.test(subj))) return true;
+
+  const text = (bodyText || '').toLowerCase();
+  const bodyPatterns = [
+    /placed\s+order\s*#?\d+/i,
+    /order\s+summary/i,
+    /payment\s+processing\s+method/i,
+    /shipping\s+address/i,
+    /delivery\s+method/i,
+    /subtotal/i,
+    /shopify\s+payments/i,
+    /awaiting\s+shipment/i,
+    /fulfillment/i,
+    /shipping\s+confirmation/i,
+  ];
+
+  let bodyMatchCount = 0;
+  for (const pattern of bodyPatterns) {
+    if (pattern.test(text)) {
+      bodyMatchCount++;
+      if (bodyMatchCount >= 2) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Extrai email do cliente do corpo de um formulário de contato do Shopify
  * Lida com diferentes formatos: texto puro e HTML com tags entre "Email:" e o endereço
  */
@@ -767,9 +810,11 @@ async function saveIncomingEmail(shopId: string, email: IncomingEmail): Promise<
       console.log(`[saveIncomingEmail] Usando Reply-To (${email.reply_to}) como fallback para from_email`);
       finalFromEmail = email.reply_to;
     } else {
+      // Verificar se é notificação de pedido antes de extrair
+      const isOrderNotif = isShopifyOrderNotification(email.body_text || '', email.subject || '');
       // Tentar extrair do corpo do email (formulários Shopify)
       // Passar tanto body_text quanto body_html para melhor extração
-      const extracted = extractEmailFromShopifyContactForm(email.body_text || '', email.body_html || '');
+      const extracted = !isOrderNotif ? extractEmailFromShopifyContactForm(email.body_text || '', email.body_html || '') : null;
 
       if (extracted) {
         console.log(`[saveIncomingEmail] Email extraído do formulário Shopify: ${extracted.email}, Nome: ${extracted.name}`);
@@ -951,6 +996,16 @@ async function processMessageInternal(
   const isShopifySystem = fromLower.includes('mailer@shopify') || fromLower.includes('@shopify.com');
 
   if (isEmptyOrInvalid || isShopifySystem) {
+    // Verificar se é notificação de pedido antes de extrair
+    if (isShopifySystem && isShopifyOrderNotification(message.body_text || '', message.subject || '')) {
+      console.log(`[processMessage] Message ${message.id}: notificação de pedido do Shopify ignorada`);
+      await updateMessage(message.id, {
+        status: 'failed',
+        error_message: 'Notificação de pedido do Shopify ignorada',
+      });
+      return 'skipped';
+    }
+
     // Tentar extrair email do cliente do corpo da mensagem (formulários Shopify)
     const extracted = extractEmailFromShopifyContactForm(message.body_text || '', message.body_html || '');
 

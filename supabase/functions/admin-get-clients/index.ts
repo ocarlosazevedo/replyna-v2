@@ -175,6 +175,7 @@ serve(async (req) => {
       plan: user.plan,
       emails_limit: user.emails_limit,
       emails_used: user.emails_used,
+      extra_emails_purchased: user.extra_emails_purchased || 0,
       shops_limit: user.shops_limit,
       status: user.status,
       created_at: user.created_at,

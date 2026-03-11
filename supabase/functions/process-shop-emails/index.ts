@@ -71,6 +71,64 @@ const MAX_CONCURRENT_MESSAGES = 3; // Mais paralelo já que é apenas 1 loja
 const MAX_EXECUTION_TIME_MS = 110000; // 110 segundos (limite real é 120s)
 
 /**
+ * Detecta se o corpo do email é uma notificação de pedido do Shopify
+ * (confirmação de compra, envio, etc.) e NÃO um formulário de contato
+ */
+function isShopifyOrderNotification(bodyText: string, subject: string): boolean {
+  const text = (bodyText || '').toLowerCase();
+  const subj = (subject || '').toLowerCase();
+
+  const orderPatterns = [
+    // Subject patterns
+    /order\s*#?\d+/i,
+    /order\s+confirmation/i,
+    /pedido\s*#?\d+/i,
+    /confirmação\s+de\s+pedido/i,
+    /confirmacion\s+de\s+pedido/i,
+    /new\s+order/i,
+    /novo\s+pedido/i,
+  ];
+
+  const bodyPatterns = [
+    // Body patterns - order notifications
+    /placed\s+order\s*#?\d+/i,
+    /order\s+summary/i,
+    /order\s+status/i,
+    /resumo\s+do\s+pedido/i,
+    /payment\s+processing\s+method/i,
+    /shipping\s+address/i,
+    /delivery\s+method/i,
+    /endereço\s+de\s+entrega/i,
+    /método\s+de\s+envio/i,
+    /subtotal/i,
+    /shopify\s+payments/i,
+    /awaiting\s+shipment/i,
+    /aguardando\s+envio/i,
+    /tracking\s+number/i,
+    /fulfillment/i,
+    /item\s+fulfilled/i,
+    /shipping\s+confirmation/i,
+    /shipping\s+update/i,
+    /refund\s+notification/i,
+    /payment\s+received/i,
+  ];
+
+  // Check subject
+  if (orderPatterns.some(p => p.test(subj))) return true;
+
+  // Check body - require at least 2 matches to avoid false positives
+  let bodyMatchCount = 0;
+  for (const pattern of bodyPatterns) {
+    if (pattern.test(text)) {
+      bodyMatchCount++;
+      if (bodyMatchCount >= 2) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Extrai email do cliente do corpo de um formulário de contato do Shopify
  */
 function extractEmailFromShopifyContactForm(bodyText: string): { email: string; name: string | null } | null {
@@ -347,14 +405,18 @@ async function saveIncomingEmail(shopId: string, email: IncomingEmail): Promise<
     const bodyContent = email.body_text || email.body_html || '';
     const extracted = extractEmailFromShopifyContactForm(bodyContent);
 
-    if (extracted) {
+    // Verificar se é uma notificação de pedido ANTES de tratar como formulário de contato
+    const isOrderNotification = isShopifyOrderNotification(bodyContent, email.subject || '');
+
+    if (extracted && !isOrderNotification) {
       // É um formulário de contato - usar email extraído do cliente
       console.log(`[Worker] Email extraído do formulário Shopify: ${extracted.email}`);
       finalFromEmail = extracted.email;
       finalFromName = extracted.name || finalFromName;
     } else {
       // É uma notificação de pedido/sistema do Shopify - ignorar
-      console.log(`[Worker] Email ${email.message_id}: notificação do Shopify ignorada (${finalFromEmail})`);
+      const reason = isOrderNotification ? 'notificação de pedido detectada' : 'sem email de cliente no corpo';
+      console.log(`[Worker] Email ${email.message_id}: notificação do Shopify ignorada (${finalFromEmail}, ${reason})`);
 
       const conversationId = await getOrCreateConversation(
         shopId,
