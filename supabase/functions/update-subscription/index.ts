@@ -103,6 +103,26 @@ serve(async (req) => {
       );
     }
 
+    // Trial sem cartao tokenizado: precisa passar pelo checkout
+    if (userData.is_trial && !userData.asaas_credit_card_token) {
+      console.log(`[UpdateSubscription] Usuario ${user_id} trial sem cartao tokenizado, redirecionando para checkout...`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          needs_checkout: true,
+          plan: newPlan.name,
+          new_plan: {
+            id: newPlan.id,
+            name: newPlan.name,
+            emails_limit: newPlan.emails_limit,
+            shops_limit: newPlan.shops_limit,
+            price_monthly: newPlan.price_monthly,
+          },
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // 4. Buscar assinatura existente (qualquer status)
     const { data: subscriptions } = await supabase
       .from('subscriptions')
@@ -196,7 +216,9 @@ serve(async (req) => {
           emails_used: 0,
           extra_emails_used: 0,
           pending_extra_emails: 0,
+          status: 'active',
           is_trial: false,
+          trial_ends_at: null,
           updated_at: today.toISOString(),
         })
         .eq('id', user_id);
@@ -263,7 +285,9 @@ serve(async (req) => {
         emails_used: 0,
         extra_emails_used: 0,
         pending_extra_emails: 0,
+        status: 'active',
         is_trial: false,
+        trial_ends_at: null,
         updated_at: now.toISOString(),
       })
       .eq('id', user_id);

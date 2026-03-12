@@ -159,6 +159,7 @@ serve(async (req) => {
     }
 
     const now = new Date();
+    const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     // Buscar dados do plano para definir limites corretos
     const { data: planData } = await supabase
@@ -187,6 +188,7 @@ serve(async (req) => {
       status: 'active',
       is_trial: userIsTrial,
       trial_started_at: userIsTrial ? now.toISOString() : null,
+      trial_ends_at: userIsTrial ? trialEndsAt.toISOString() : null,
       whatsapp_number: whatsapp_number || null,
       updated_at: now.toISOString(),
     });

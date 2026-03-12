@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
+import { useUserProfile } from './hooks/useUserProfile'
 import { AdminProvider, useAdmin } from './context/AdminContext'
 import { NotificationProvider } from './context/NotificationContext'
 
@@ -28,6 +29,7 @@ const ShopSetup = lazy(() => import('./pages/ShopSetup'))
 const ShopDetails = lazy(() => import('./pages/ShopDetails'))
 const Account = lazy(() => import('./pages/Account'))
 const Plans = lazy(() => import('./pages/Plans'))
+const TrialExpired = lazy(() => import('./pages/TrialExpired'))
 const ConversationDetails = lazy(() => import('./pages/ConversationDetails'))
 const LandingPage = lazy(() => import('./pages/LandingPage'))
 const ChargebackPage = lazy(() => import('./pages/ChargebackPage'))
@@ -85,8 +87,10 @@ const isLandingPath = () => {
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
+  const { profile, loading: profileLoading } = useUserProfile()
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -96,6 +100,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/login" />
+  }
+
+  const allowedWhenExpired = new Set(['/trial-expired', '/plans', '/checkout', '/checkout/success'])
+  if (profile?.status === 'expired' && !allowedWhenExpired.has(location.pathname)) {
+    return <Navigate to="/trial-expired" replace />
   }
 
   return <TeamProvider>{children}</TeamProvider>
@@ -282,6 +291,13 @@ function App() {
             <PrivateRoute>
               <DashboardLayout>
                 <Plans />
+              </DashboardLayout>
+            </PrivateRoute>
+          } />
+          <Route path="/trial-expired" element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <TrialExpired />
               </DashboardLayout>
             </PrivateRoute>
           } />

@@ -324,7 +324,9 @@ serve(async (req) => {
         emails_used: 0,
         extra_emails_used: 0,
         pending_extra_emails: 0,
+        status: 'active',
         is_trial: false,
+        trial_ends_at: null,
         updated_at: now.toISOString(),
       };
 

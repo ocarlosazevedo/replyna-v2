@@ -114,6 +114,7 @@ serve(async (req) => {
         shops_limit: plan.shops_limit,
         status: 'active',
         is_trial: false,
+        trial_ends_at: null,
         emails_used: 0,
         updated_at: now.toISOString(),
       })

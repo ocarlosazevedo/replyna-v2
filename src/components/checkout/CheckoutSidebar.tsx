@@ -87,7 +87,7 @@ export default function CheckoutSidebar({ plan, isTrialFlow, couponValidation, i
         </div>
         {plan.description && (
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-            {isTrialFlow ? '30 emails grátis, 1 loja. Sem cartão de crédito.' : plan.description}
+            {isTrialFlow ? '30 emails grátis, 1 loja. Nenhuma cobrança será feita.' : plan.description}
           </p>
         )}
       </div>

@@ -67,7 +67,7 @@ serve(async (req) => {
     // Buscar perfil do usuário
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('users')
-      .select('id, email, name, plan, emails_limit, emails_used, shops_limit, status, created_at')
+      .select('id, email, name, plan, emails_limit, emails_used, shops_limit, status, created_at, is_trial, trial_started_at, trial_ends_at')
       .eq('id', user.id)
       .single();
 
@@ -88,6 +88,46 @@ serve(async (req) => {
       }
 
       throw new Error(`Erro ao buscar perfil: ${profileError.message}`);
+    }
+
+    // Verificar expiração de trial (tempo ou créditos)
+    if (profile?.is_trial && profile.status === 'active') {
+      const now = new Date();
+      const endsAt = profile.trial_ends_at ? new Date(profile.trial_ends_at) : null;
+      const expiredByTime = endsAt ? endsAt.getTime() < now.getTime() : false;
+      const limit = profile.emails_limit;
+      const used = profile.emails_used ?? 0;
+      const expiredByCredits = typeof limit === 'number' ? used >= limit : false;
+
+      // Backfill trial_ends_at if missing but trial_started_at exists
+      if (!endsAt && profile.trial_started_at) {
+        const computedEndsAt = new Date(new Date(profile.trial_started_at).getTime() + 7 * 24 * 60 * 60 * 1000);
+        await supabaseAdmin
+          .from('users')
+          .update({ trial_ends_at: computedEndsAt.toISOString(), updated_at: now.toISOString() })
+          .eq('id', user.id);
+        profile.trial_ends_at = computedEndsAt.toISOString();
+      }
+
+      if (expiredByTime || expiredByCredits) {
+        await supabaseAdmin
+          .from('users')
+          .update({ status: 'expired', updated_at: now.toISOString() })
+          .eq('id', user.id);
+
+        const reason = expiredByTime ? 'time' : 'credits';
+        const expiredProfile = { ...profile, status: 'expired' };
+
+        return new Response(
+          JSON.stringify({
+            code: 'TRIAL_EXPIRED',
+            reason,
+            profile: expiredProfile,
+            shops: [],
+          }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Buscar lojas do usuário

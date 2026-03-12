@@ -66,13 +66,16 @@ export interface User {
   email: string;
   name: string | null;
   plan: string;
-  status: 'active' | 'suspended' | 'inactive';  // active = ok, suspended = pagamento pendente, inactive = cancelado
+  status: 'active' | 'suspended' | 'inactive' | 'expired';  // active = ok, suspended = pagamento pendente, inactive = cancelado, expired = trial expirado
   emails_limit: number | null;  // null = ilimitado
   emails_used: number;
   shops_limit: number | null;   // null = ilimitado
   last_credits_warning_at: string | null;
   credits_warning_count: number;
   whatsapp_number: string | null;
+  is_trial?: boolean | null;
+  trial_started_at?: string | null;
+  trial_ends_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -238,7 +241,40 @@ export async function getUserById(userId: string): Promise<User | null> {
     .single();
 
   if (error && error.code !== 'PGRST116') throw error;
-  return data as User | null;
+  const user = data as User | null;
+  if (!user) return null;
+
+  // Trial expiration check (time or credits)
+  if (user.is_trial && user.status === 'active') {
+    const now = new Date();
+    const trialStarted = user.trial_started_at ? new Date(user.trial_started_at) : null;
+    let trialEnds = user.trial_ends_at ? new Date(user.trial_ends_at) : null;
+
+    // Backfill trial_ends_at if missing
+    if (!trialEnds && trialStarted) {
+      trialEnds = new Date(trialStarted.getTime() + 7 * 24 * 60 * 60 * 1000);
+      await supabase
+        .from('users')
+        .update({ trial_ends_at: trialEnds.toISOString(), updated_at: now.toISOString() })
+        .eq('id', userId);
+      user.trial_ends_at = trialEnds.toISOString();
+    }
+
+    const expiredByTime = trialEnds ? trialEnds.getTime() < now.getTime() : false;
+    const limit = typeof user.emails_limit === 'number' ? user.emails_limit : null;
+    const used = user.emails_used ?? 0;
+    const expiredByCredits = limit !== null ? used >= limit : false;
+
+    if (expiredByTime || expiredByCredits) {
+      await supabase
+        .from('users')
+        .update({ status: 'expired', updated_at: now.toISOString() })
+        .eq('id', userId);
+      user.status = 'expired';
+    }
+  }
+
+  return user;
 }
 
 /**

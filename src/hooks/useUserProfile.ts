@@ -14,6 +14,7 @@ interface UserProfile {
   created_at: string | null
   is_trial: boolean | null
   trial_started_at: string | null
+  trial_ends_at: string | null
 }
 
 interface Shop {
@@ -50,24 +51,36 @@ export function useUserProfile(): UseUserProfileResult {
     setError(null)
 
     try {
-      // Query direta via Supabase client (já autenticado, sem depender de edge function)
-      const [profileResult, shopsResult] = await Promise.all([
-        supabase
-          .from('users')
-          .select('id, email, name, plan, emails_limit, emails_used, shops_limit, status, created_at, is_trial, trial_started_at')
-          .eq('id', user.id)
-          .single(),
-        supabase
-          .from('shops')
-          .select('id, name, shopify_domain, is_active')
-          .eq('user_id', user.id)
-          .order('name', { ascending: true }),
-      ])
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
 
-      if (profileResult.error) throw profileResult.error
+      if (!token) {
+        throw new Error('Sessão inválida')
+      }
 
-      setProfile(profileResult.data)
-      setShops(shopsResult.data || [])
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-profile`,
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+
+      const data = await response.json()
+
+      if (response.status === 402 && data?.code === 'TRIAL_EXPIRED') {
+        setProfile(data.profile || null)
+        setShops(data.shops || [])
+        setError('TRIAL_EXPIRED')
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.error || 'Erro ao carregar perfil')
+      }
+
+      setProfile(data.profile || null)
+      setShops(data.shops || [])
     } catch (err) {
       console.error('Erro ao carregar perfil:', err)
       setError(err instanceof Error ? err.message : 'Erro desconhecido')

@@ -316,6 +316,7 @@ async function handlePaymentConfirmed(supabase: ReturnType<typeof getSupabaseAdm
     emails_limit: plan.emails_limit,
     shops_limit: plan.shops_limit,
     is_trial: false,
+    trial_ends_at: null,
     updated_at: now.toISOString(),
   };
 
@@ -456,4 +457,3 @@ async function handleSubscriptionCanceled(supabase: ReturnType<typeof getSupabas
 
   console.log(`[AsaasWebhook] Usuario ${maskId(sub.user_id)} inativado - assinatura cancelada`);
 }
-

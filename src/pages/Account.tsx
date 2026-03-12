@@ -20,6 +20,7 @@ interface UserProfile {
   whatsapp_number: string | null
   is_trial: boolean | null
   trial_started_at: string | null
+  trial_ends_at: string | null
 }
 
 interface PendingInvoice {
@@ -447,7 +448,7 @@ export default function Account() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number, is_trial, trial_started_at')
+        .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number, is_trial, trial_started_at, trial_ends_at')
         .eq('id', user.id)
         .maybeSingle()
 
@@ -455,6 +456,7 @@ export default function Account() {
 
       // Se não existir registro na tabela users, criar um (free trial)
       if (!data) {
+        const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         const newUserData = {
           id: user.id,
           email: user.email,
@@ -467,6 +469,7 @@ export default function Account() {
           extra_emails_used: 0,
           is_trial: true,
           trial_started_at: new Date().toISOString(),
+          trial_ends_at: trialEndsAt,
         }
 
         const { error: insertError } = await supabase
@@ -492,6 +495,7 @@ export default function Account() {
           whatsapp_number: null,
           is_trial: true,
           trial_started_at: newUserData.trial_started_at,
+          trial_ends_at: newUserData.trial_ends_at,
         })
         setName(newUserData.name || '')
         setEmail(newUserData.email || '')
@@ -503,6 +507,7 @@ export default function Account() {
           whatsapp_number: data.whatsapp_number || null,
           is_trial: data.is_trial ?? false,
           trial_started_at: data.trial_started_at || null,
+          trial_ends_at: data.trial_ends_at || null,
         })
         setName(data.name || user.user_metadata?.name || '')
         setEmail(data.email || user.email || '')
@@ -537,6 +542,7 @@ export default function Account() {
           whatsapp_number: data.whatsapp_number || null,
           is_trial: data.is_trial ?? false,
           trial_started_at: data.trial_started_at || null,
+          trial_ends_at: data.trial_ends_at || null,
         })
       }
     } catch (err) {
@@ -809,7 +815,7 @@ export default function Account() {
         // Recarregar profile para atualizar créditos
         const { data: newProfile } = await supabase
           .from('users')
-          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number, is_trial, trial_started_at')
+          .select('name, email, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, whatsapp_number, is_trial, trial_started_at, trial_ends_at')
           .eq('id', user.id)
           .single()
         if (newProfile) setProfile({
@@ -818,6 +824,7 @@ export default function Account() {
           extra_email_package_size: profile?.extra_email_package_size ?? null,
           is_trial: newProfile.is_trial ?? false,
           trial_started_at: newProfile.trial_started_at || null,
+          trial_ends_at: newProfile.trial_ends_at || null,
         })
       } else {
         setNotice({ type: 'error', message })
