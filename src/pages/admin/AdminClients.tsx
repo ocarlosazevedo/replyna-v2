@@ -55,6 +55,8 @@ interface Client {
   extra_emails_purchased: number
   shops_limit: number | null   // null = ilimitado
   status: string | null
+  is_trial?: boolean | null
+  trial_ends_at?: string | null
   created_at: string
   last_login_at: string | null
   shops: Shop[]
@@ -389,20 +391,85 @@ export default function AdminClients() {
     }
   }
 
-  const getEffectiveStatus = (client: Client): string => {
-    // Free Trial users are always shown as trialing if active
-    if (client.plan === 'Free Trial') {
-      return client.status === 'active' ? 'trialing' : (client.status || 'inactive')
+  type AdminStatus = 'active' | 'trial' | 'delinquent' | 'canceled'
+
+  const mapUserStatusToAdmin = (status: string | null | undefined): AdminStatus => {
+    switch (status) {
+      case 'active':
+        return 'active'
+      case 'trialing':
+      case 'expired':
+        return 'trial'
+      case 'past_due':
+      case 'suspended':
+        return 'delinquent'
+      case 'canceled':
+      case 'inactive':
+      default:
+        return 'canceled'
     }
+  }
+
+  const mapSubscriptionStatusToAdmin = (status: string | null | undefined): AdminStatus | null => {
+    switch (status) {
+      case 'active':
+        return 'active'
+      case 'trialing':
+        return 'trial'
+      case 'past_due':
+      case 'unpaid':
+        return 'delinquent'
+      case 'canceled':
+        return 'canceled'
+      default:
+        return null
+    }
+  }
+
+  const getEffectiveStatus = (client: Client): AdminStatus => {
+    const isTrialPlan = client.plan === 'Free Trial' || client.is_trial === true
+    if (isTrialPlan) {
+      return client.status === 'active' || client.status === 'expired'
+        ? 'trial'
+        : mapUserStatusToAdmin(client.status)
+    }
+
     if (client.subscription) {
-      const subStatus = client.subscription.status
-      if (subStatus === 'canceled') return 'canceled'
-      if (subStatus === 'past_due') return 'past_due'
-      if (subStatus === 'unpaid') return 'suspended'
-      if (subStatus === 'active') return 'active'
-      if (subStatus === 'trialing') return 'trialing'
+      const mapped = mapSubscriptionStatusToAdmin(client.subscription.status)
+      if (mapped) return mapped
     }
-    return client.status || 'inactive'
+
+    return mapUserStatusToAdmin(client.status)
+  }
+
+  const getTrialTag = (client: Client, effectiveStatus: AdminStatus) => {
+    if (effectiveStatus !== 'trial') return null
+
+    const now = new Date()
+    const endsAt = client.trial_ends_at ? new Date(client.trial_ends_at) : null
+    const expiredByTime = endsAt ? endsAt.getTime() < now.getTime() : false
+    const limit = typeof client.emails_limit === 'number' ? client.emails_limit : null
+    const used = client.emails_used ?? 0
+    const expiredByCredits = limit !== null ? used >= limit : false
+
+    if (expiredByTime || expiredByCredits) {
+      return {
+        label: 'Encerrado',
+        bg: 'rgba(148, 163, 184, 0.18)',
+        color: '#94a3b8',
+      }
+    }
+
+    const daysLeft = endsAt
+      ? Math.max(0, Math.ceil((endsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+      : null
+    const label = daysLeft !== null ? `Ativo (${daysLeft} dias restantes)` : 'Ativo'
+
+    return {
+      label,
+      bg: 'rgba(59, 130, 246, 0.12)',
+      color: '#3b82f6',
+    }
   }
 
   // Filtrar e ordenar clientes
@@ -505,35 +572,45 @@ export default function AdminClients() {
     }
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: AdminStatus) => {
     const base = { padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }
     switch (status) {
       case 'active':
         return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#22c55e' }
-      case 'trialing':
+      case 'trial':
         return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#3b82f6' }
-      case 'past_due':
+      case 'delinquent':
         return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.16)', color: '#f59e0b' }
       case 'canceled':
-        return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#ef4444' }
-      case 'inactive':
-        return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' }
-      case 'suspended':
-        return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#ef4444' }
       default:
-        return { ...base, backgroundColor: 'rgba(107, 114, 128, 0.16)', color: '#6b7280' }
+        return { ...base, backgroundColor: 'rgba(239, 68, 68, 0.16)', color: '#ef4444' }
     }
   }
 
-  const getStatusLabel = (status: string): string => {
+  const getStatusLabel = (status: AdminStatus): string => {
     switch (status) {
       case 'active': return 'Ativo'
-      case 'trialing': return 'Trial'
-      case 'past_due': return 'Pendente'
+      case 'trial': return 'Trial'
+      case 'delinquent': return 'Inadimplente'
       case 'canceled': return 'Cancelado'
-      case 'inactive': return 'Inativo'
-      case 'suspended': return 'Suspenso'
-      default: return 'Inativo'
+      default: return 'Cancelado'
+    }
+  }
+
+  const getEditableStatusValue = (status: string | null | undefined): string => {
+    switch (status) {
+      case 'active':
+        return 'active'
+      case 'trialing':
+      case 'expired':
+        return 'trialing'
+      case 'past_due':
+      case 'suspended':
+        return 'suspended'
+      case 'canceled':
+      case 'inactive':
+      default:
+        return 'canceled'
     }
   }
 
@@ -673,10 +750,9 @@ export default function AdminClients() {
         >
           <option value="all">Todos os status</option>
           <option value="active">Ativos</option>
-          <option value="trialing">Trial</option>
-          <option value="past_due">Pendentes</option>
+          <option value="trial">Trial</option>
+          <option value="delinquent">Inadimplentes</option>
           <option value="canceled">Cancelados</option>
-          <option value="inactive">Inativos</option>
         </select>
 
         <select
@@ -723,6 +799,8 @@ export default function AdminClients() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {filteredAndSortedClients.map((client) => {
               const planColor = getPlanColor(client.plan)
+              const effectiveStatus = getEffectiveStatus(client)
+              const trialTag = getTrialTag(client, effectiveStatus)
               return (
                 <div
                   key={client.id}
@@ -814,9 +892,23 @@ export default function AdminClients() {
                     }}>
                       {getPlanDisplayName(client.plan)}
                     </span>
-                    <span style={getStatusBadge(getEffectiveStatus(client))}>
-                      {getStatusLabel(getEffectiveStatus(client))}
+                    <span style={getStatusBadge(effectiveStatus)}>
+                      {getStatusLabel(effectiveStatus)}
                     </span>
+                    {trialTag && (
+                      <span
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          backgroundColor: trialTag.bg,
+                          color: trialTag.color,
+                          fontSize: '11px',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {trialTag.label}
+                      </span>
+                    )}
                     <span style={{ fontSize: '11px', color: client.shops_limit === null ? '#22c55e' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Store size={12} /> {client.shops.length}/{client.shops_limit === null ? '∞' : client.shops_limit}
                     </span>
@@ -873,6 +965,8 @@ export default function AdminClients() {
           <tbody>
             {filteredAndSortedClients.map((client) => {
               const planColor = getPlanColor(client.plan)
+              const effectiveStatus = getEffectiveStatus(client)
+              const trialTag = getTrialTag(client, effectiveStatus)
               return (
                 <>
                   <tr key={client.id} style={{ borderBottom: expandedClient === client.id ? 'none' : '1px solid var(--border-color)' }}>
@@ -974,9 +1068,25 @@ export default function AdminClients() {
                       )}
                     </td>
                     <td style={{ padding: '16px' }}>
-                      <span style={getStatusBadge(getEffectiveStatus(client))}>
-                        {getStatusLabel(getEffectiveStatus(client))}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={getStatusBadge(effectiveStatus)}>
+                          {getStatusLabel(effectiveStatus)}
+                        </span>
+                        {trialTag && (
+                          <span
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              backgroundColor: trialTag.bg,
+                              color: trialTag.color,
+                              fontSize: '11px',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {trialTag.label}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '13px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1344,13 +1454,14 @@ export default function AdminClients() {
               <div>
                 <label style={labelStyle}>Status</label>
                 <select
-                  value={editingClient.status || 'active'}
+                  value={getEditableStatusValue(editingClient.status)}
                   onChange={(e) => setEditingClient({ ...editingClient, status: e.target.value })}
                   className="replyna-select form-input"
                 >
                   <option value="active">Ativo</option>
-                  <option value="inactive">Inativo</option>
-                  <option value="suspended">Suspenso</option>
+                  <option value="trialing">Trial</option>
+                  <option value="suspended">Inadimplente</option>
+                  <option value="canceled">Cancelado</option>
                 </select>
               </div>
 
