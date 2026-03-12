@@ -331,6 +331,24 @@ serve(async (req) => {
     // This way first payment = discounted, future payments = full price
     const firstPaymentValue = (discountApplied > 0) ? finalValue : baseValue;
 
+    // DEBUG: log dados enviados (mascarando cartão)
+    console.log(`[CreateSubscription] DEBUG paid flow:`, JSON.stringify({
+      customer: customer.id,
+      value: firstPaymentValue,
+      nextDueDate,
+      cardHolder: creditCard.holderName,
+      cardNumberLast4: creditCard.number?.slice(-4),
+      cardNumberLength: creditCard.number?.length,
+      expiryMonth: creditCard.expiryMonth,
+      expiryYear: creditCard.expiryYear,
+      ccvLength: creditCard.ccv?.length,
+      holderName: creditCardHolderInfo.name,
+      cpfCnpj: creditCardHolderInfo.cpfCnpj,
+      postalCode: creditCardHolderInfo.postalCode,
+      addressNumber: creditCardHolderInfo.addressNumber,
+      phone: creditCardHolderInfo.phone,
+    }));
+
     try {
       const subscription = await createSubscription({
         customer: customer.id,
@@ -355,7 +373,6 @@ serve(async (req) => {
           phone: creditCardHolderInfo.phone || cleanPhone,
           addressComplement: creditCardHolderInfo.addressComplement || undefined,
         },
-        remoteIp: clientIp,
       });
 
       console.log(`[CreateSubscription] Subscription created: ${subscription.id}`);
@@ -389,8 +406,24 @@ serve(async (req) => {
       console.error('[CreateSubscription] Card error (raw):', rawError);
       console.error('[CreateSubscription] Value sent:', firstPaymentValue, 'Base:', baseValue, 'Discount:', discountApplied, 'Partner:', isPartnerCoupon);
       const friendlyMessage = parseAsaasError(rawError);
+      // DEBUG: include card metadata in error response (no sensitive data)
+      const debugInfo = {
+        cardNumberLength: creditCard.number?.length,
+        cardNumberDigitsOnly: creditCard.number?.replace(/\D/g, '').length,
+        cardFirstDigit: creditCard.number?.replace(/\D/g, '')[0],
+        expiryMonth: creditCard.expiryMonth,
+        expiryYear: creditCard.expiryYear,
+        ccvLength: creditCard.ccv?.length,
+        holderNameLength: creditCard.holderName?.length,
+        cpfLength: creditCardHolderInfo?.cpfCnpj?.length,
+        hasPostalCode: !!creditCardHolderInfo?.postalCode,
+        hasAddressNumber: !!creditCardHolderInfo?.addressNumber,
+        hasPhone: !!creditCardHolderInfo?.phone,
+        customerId: customer.id,
+        value: firstPaymentValue,
+      };
       return new Response(
-        JSON.stringify({ error: friendlyMessage, debug_error: rawError }),
+        JSON.stringify({ error: friendlyMessage, debug_error: rawError, debug_info: debugInfo }),
         { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

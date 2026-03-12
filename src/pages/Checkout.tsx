@@ -445,6 +445,7 @@ export default function Checkout() {
 
       if (!response.ok) {
         if (data.debug_error) console.error('[Checkout] Asaas raw error:', data.debug_error)
+        if (data.debug_info) console.error('[Checkout] Debug info:', JSON.stringify(data.debug_info))
         throw new Error(data.error || 'Erro ao processar pagamento')
       }
 
