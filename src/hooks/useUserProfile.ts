@@ -58,11 +58,15 @@ export function useUserProfile(): UseUserProfileResult {
         throw new Error('Sessão inválida')
       }
 
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
       const doRequest = (accessToken: string) => fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-profile`,
         {
           method: 'GET',
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            apikey: anonKey,
+          },
         }
       )
 
