@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Users, Shield, CreditCard, Tag, DollarSign, LogOut, Menu, X, UserPlus, Handshake } from 'lucide-react'
+import { LayoutGrid, Users, Shield, CreditCard, Tag, DollarSign, LogOut, Menu, X, Handshake } from 'lucide-react'
 import { useAdmin } from '../context/AdminContext'
 
 interface AdminLayoutProps {
@@ -48,7 +48,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { path: '/admin/coupons', label: 'Cupons', icon: Tag },
     { path: '/admin/partners', label: 'Parceiros', icon: Handshake },
     { path: '/admin/financial', label: 'Financeiro', icon: DollarSign },
-    { path: '/admin/migration', label: 'Migração V1', icon: UserPlus },
   ]
 
   const handleLogout = async () => {

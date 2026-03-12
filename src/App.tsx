@@ -53,7 +53,6 @@ const AdminPlans = lazy(() => import('./pages/admin/AdminPlans'))
 const AdminCoupons = lazy(() => import('./pages/admin/AdminCoupons'))
 const AdminFinancial = lazy(() => import('./pages/admin/AdminFinancial'))
 const AdminPartners = lazy(() => import('./pages/admin/AdminPartners'))
-const AdminMigration = lazy(() => import('./pages/admin/AdminMigration'))
 const MigrationAccept = lazy(() => import('./pages/MigrationAccept'))
 const AuthConfirm = lazy(() => import('./pages/AuthConfirm'))
 
@@ -373,14 +372,6 @@ function App() {
               </AdminLayout>
             </AdminRoute>
           } />
-          <Route path="/admin/migration" element={
-            <AdminRoute>
-              <AdminLayout>
-                <AdminMigration />
-              </AdminLayout>
-            </AdminRoute>
-          } />
-
           {/* No app, redirecionar / para login ou dashboard */}
           <Route path="/" element={<Navigate to="/login" />} />
 
