@@ -212,6 +212,7 @@ export async function tokenizeCreditCard(input: {
     phone: string;
     addressComplement?: string;
   };
+  remoteIp?: string;
 }): Promise<AsaasCreditCardToken> {
   return await asaasRequest<AsaasCreditCardToken>('POST', '/creditCard/tokenize', input);
 }
@@ -230,6 +231,7 @@ export async function createSubscription(input: {
   creditCard?: unknown;
   creditCardHolderInfo?: unknown;
   creditCardToken?: string;
+  remoteIp?: string;
   discount?: AsaasDiscount;
   callback?: {
     successUrl: string;

@@ -247,6 +247,12 @@ serve(async (req) => {
       cleanPhone = candidates[0] || digitsOnly.slice(-11);
     }
 
+    // Capturar IP do cliente para anti-fraude Asaas
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('x-real-ip')
+      || req.headers.get('cf-connecting-ip')
+      || '0.0.0.0';
+
     // Criar ou buscar customer no Asaas
     let customer = await getCustomerByEmail(normalizedEmail);
     if (!customer) {
@@ -290,6 +296,7 @@ serve(async (req) => {
             phone: creditCardHolderInfo!.phone || cleanPhone,
             addressComplement: creditCardHolderInfo!.addressComplement || undefined,
           },
+          remoteIp: clientIp,
         });
 
         console.log(`[CreateSubscription] Trial flow - customer: ${customer.id}, card tokenized (brand: ${tokenResult.creditCardBrand}), no charge`);
@@ -355,6 +362,7 @@ serve(async (req) => {
           phone: creditCardHolderInfo.phone || cleanPhone,
           addressComplement: creditCardHolderInfo.addressComplement || undefined,
         },
+        remoteIp: clientIp,
       });
 
       console.log(`[CreateSubscription] Subscription created: ${subscription.id}`);
