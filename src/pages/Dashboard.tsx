@@ -120,8 +120,8 @@ const buildVolumeSeriesFromConversations = (
   const buckets = new Map<string, { date: Date; received: number; replied: number }>()
 
   conversations.forEach((conv) => {
-    // Ignorar spam, acknowledgment e troca_devolucao_reembolso (coerente com métricas)
-    if (conv.category === 'spam' || conv.category === 'acknowledgment' || conv.category === 'troca_devolucao_reembolso') return
+    // Ignorar spam e acknowledgment (coerente com métricas)
+    if (conv.category === 'spam' || conv.category === 'acknowledgment') return
 
     const date = new Date(conv.created_at)
     let key = ''
@@ -410,7 +410,7 @@ export default function Dashboard() {
     setLoadingChart(true)
 
     const loadPendingHuman = async () => {
-      // Mesmos filtros das métricas: excluir spam, acknowledgment e troca_devolucao_reembolso
+      // Mesmos filtros das métricas: excluir spam e acknowledgment
       const baseQuery = () =>
         supabase
           .from('conversations')
@@ -418,7 +418,7 @@ export default function Dashboard() {
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
           .eq('status', 'pending_human')
-          .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
+          .not('category', 'in', '("spam","acknowledgment")')
 
       const pendingQuery =
         selectedShopId === 'all'
@@ -441,7 +441,7 @@ export default function Dashboard() {
     // Filtros alinhados com o inbox: excluir spam, acknowledgment E troca_devolucao_reembolso
     // (formulários de troca/devolução aparecem na página Formulários, não no dashboard)
     const loadConversationCounts = async () => {
-      // Count de conversas recebidas (excluindo spam, acknowledgment, troca_devolucao_reembolso e nulls)
+      // Count de conversas recebidas (excluindo spam, acknowledgment e nulls)
       const receivedBaseQuery = () =>
         supabase
           .from('conversations')
@@ -449,7 +449,7 @@ export default function Dashboard() {
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
           .not('category', 'is', null) // Excluir conversas ainda em processamento
-          .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
+          .not('category', 'in', '("spam","acknowledgment")')
 
       const receivedQuery =
         selectedShopId === 'all'
@@ -465,7 +465,7 @@ export default function Dashboard() {
           .gte('created_at', dateStart.toISOString())
           .lte('created_at', dateEnd.toISOString())
           .not('category', 'is', null) // Excluir conversas ainda em processamento
-          .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
+          .not('category', 'in', '("spam","acknowledgment")')
           .in('status', ['replied', 'pending_human', 'closed'])
 
       const repliedQuery =
@@ -494,7 +494,7 @@ export default function Dashboard() {
         .from('conversations')
         .select('created_at, category, status')
         .not('category', 'is', null) // Excluir conversas ainda em processamento
-        .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")') // Mesmo filtro das métricas
+        .not('category', 'in', '("spam","acknowledgment")') // Mesmo filtro das métricas
         .gte('created_at', dateStart.toISOString())
         .lte('created_at', dateEnd.toISOString())
         .limit(5000)
@@ -532,8 +532,8 @@ export default function Dashboard() {
         query = query.not('category', 'is', null)
       }
 
-      // Excluir spam, acknowledgment e formulários de devolução (mesmos filtros das métricas)
-      query = query.not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
+      // Excluir spam e acknowledgment (mesmos filtros das métricas)
+      query = query.not('category', 'in', '("spam","acknowledgment")')
 
       const { data, error } =
         selectedShopId === 'all'

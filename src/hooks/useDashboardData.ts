@@ -98,14 +98,14 @@ export function useConversationCounts(
     async () => {
       const effectiveShopIds = selectedShopId === 'all' ? shopIds : [selectedShopId]
 
-      // Query para conversas recebidas (excluindo spam, acknowledgment e troca_devolucao_reembolso)
+      // Query para conversas recebidas (excluindo spam e acknowledgment)
       const receivedBaseQuery = supabase
         .from('conversations')
         .select('id', { count: 'exact', head: true })
         .gte('created_at', dateStart!.toISOString())
         .lte('created_at', dateEnd!.toISOString())
         .not('category', 'is', null)
-        .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
+        .not('category', 'in', '("spam","acknowledgment")')
 
       const receivedQuery = selectedShopId === 'all'
         ? receivedBaseQuery.in('shop_id', effectiveShopIds)
@@ -118,7 +118,7 @@ export function useConversationCounts(
         .gte('created_at', dateStart!.toISOString())
         .lte('created_at', dateEnd!.toISOString())
         .not('category', 'is', null)
-        .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
+        .not('category', 'in', '("spam","acknowledgment")')
         .eq('messages.direction', 'outbound')
 
       const repliedQuery = selectedShopId === 'all'
@@ -132,7 +132,7 @@ export function useConversationCounts(
         .gte('created_at', dateStart!.toISOString())
         .lte('created_at', dateEnd!.toISOString())
         .eq('status', 'pending_human')
-        .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
+        .not('category', 'in', '("spam","acknowledgment")')
 
       const pendingQuery = selectedShopId === 'all'
         ? pendingBaseQuery.in('shop_id', effectiveShopIds)
@@ -177,7 +177,7 @@ export function useConversationsList(
         .from('conversations')
         .select('id, shop_id, customer_email, customer_name, subject, category, status, created_at, shops(name)')
         .not('category', 'is', null)
-        .not('category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
+        .not('category', 'in', '("spam","acknowledgment")')
         .gte('created_at', dateStart!.toISOString())
         .lte('created_at', dateEnd!.toISOString())
         .order('created_at', { ascending: false })
@@ -224,7 +224,7 @@ export function useMessagesForChart(
       const query = supabase
         .from('messages')
         .select('created_at, direction, was_auto_replied, category, conversation_id, conversations!inner(shop_id, category)')
-        .not('conversations.category', 'in', '("spam","acknowledgment","troca_devolucao_reembolso")')
+        .not('conversations.category', 'in', '("spam","acknowledgment")')
         .gte('created_at', dateStart!.toISOString())
         .lte('created_at', dateEnd!.toISOString())
         .limit(2000)
