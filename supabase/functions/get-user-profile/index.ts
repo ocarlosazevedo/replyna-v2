@@ -24,6 +24,12 @@ serve(async (req) => {
 
     // Primeiro, verificar o token do usuário
     const authHeader = req.headers.get('Authorization');
+    console.log('[get-user-profile] Authorization header recebido?', {
+      hasAuthHeader: !!authHeader,
+      authHeaderPrefix: authHeader ? authHeader.slice(0, 20) : null,
+      authHeaderLength: authHeader ? authHeader.length : 0,
+      origin,
+    });
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Authorization header required' }),
@@ -44,6 +50,11 @@ serve(async (req) => {
 
     // Obter usuário autenticado
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    console.log('[get-user-profile] Resultado auth.getUser()', {
+      authError,
+      userId: user?.id ?? null,
+      userEmail: user?.email ? maskEmail(user.email) : null,
+    });
 
     if (authError || !user) {
       console.error('Erro de autenticação:', authError);

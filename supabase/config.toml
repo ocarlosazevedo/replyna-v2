@@ -28,3 +28,7 @@ verify_jwt = false
 # Request Password Reset - Público (usuários não autenticados)
 [functions.request-password-reset]
 verify_jwt = false
+
+# Get User Profile - gateway JWT disabled (auth handled inside function)
+[functions.get-user-profile]
+verify_jwt = false
