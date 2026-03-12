@@ -178,6 +178,8 @@ serve(async (req) => {
       extra_emails_purchased: user.extra_emails_purchased || 0,
       shops_limit: user.shops_limit,
       status: user.status,
+      is_trial: user.is_trial ?? false,
+      trial_ends_at: user.trial_ends_at ?? null,
       created_at: user.created_at,
       last_login_at: user.last_login_at,
       stripe_customer_id: user.stripe_customer_id,

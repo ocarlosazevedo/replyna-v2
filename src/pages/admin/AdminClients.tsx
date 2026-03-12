@@ -917,9 +917,9 @@ export default function AdminClients() {
                       {client.extra_emails_purchased > 0 && ` (+${client.extra_emails_purchased})`}
                     </span>
                   </div>
-                  {client.subscription?.current_period_end && (
+                  {(client.subscription?.current_period_end || (client.is_trial && client.trial_ends_at)) && (
                     <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                      Renova em: {formatDate(client.subscription.current_period_end)}
+                      {client.is_trial ? 'Expira em' : 'Renova em'}: {formatDate(client.subscription?.current_period_end || client.trial_ends_at!)}
                     </div>
                   )}
                 </div>
@@ -1095,10 +1095,10 @@ export default function AdminClients() {
                       </div>
                     </td>
                     <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                      {client.subscription?.current_period_end ? (
+                      {client.subscription?.current_period_end || (client.is_trial && client.trial_ends_at) ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <RefreshCw size={14} />
-                          {formatDate(client.subscription.current_period_end)}
+                          {formatDate(client.subscription?.current_period_end || client.trial_ends_at!)}
                         </div>
                       ) : (
                         <span style={{ color: 'var(--text-muted)' }}>-</span>
