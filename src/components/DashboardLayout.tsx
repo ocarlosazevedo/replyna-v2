@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Store, Ticket, FileText, User, LogOut, Menu, X, Users, Handshake, CreditCard } from 'lucide-react'
+import { LayoutGrid, Store, Ticket, FileText, User, LogOut, Menu, X, Users, Handshake, CreditCard, type LucideIcon } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useUserProfile } from '../hooks/useUserProfile'
 import { useTeamContext } from '../hooks/useTeamContext'
@@ -94,7 +94,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [isMobileMenuOpen])
 
-  const menuItems = [
+  type MenuItem = {
+    path: string
+    label: string
+    icon: LucideIcon
+    badge?: number
+  }
+
+  const menuItems: MenuItem[] = [
     // Painel: sempre visível
     { path: '/dashboard', label: 'Painel de controle', icon: LayoutGrid },
     // Tickets: apenas se pode responder (operator/manager)
@@ -116,8 +123,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const isActive = (path: string) => location.pathname === path
   const isExpired = profile?.status === 'expired'
 
-  const upgradeItem = { path: '/plans', label: 'Planos e upgrade', icon: CreditCard }
-  const visibleMenuItems = isExpired ? [upgradeItem, ...menuItems] : menuItems
+  const upgradeItem: MenuItem = { path: '/plans', label: 'Planos e upgrade', icon: CreditCard }
+  const visibleMenuItems: MenuItem[] = isExpired ? [upgradeItem, ...menuItems] : menuItems
 
   const sidebarContent = (
     <>
