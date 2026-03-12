@@ -58,6 +58,7 @@ export default function LandingPage() {
     return () => { document.body.style.overflow = '' }
   }, [mobileMenuOpen])
 
+
   // Floating Lines shader (blue glowing lines on black)
   useEffect(() => {
     const canvas = canvasRef.current

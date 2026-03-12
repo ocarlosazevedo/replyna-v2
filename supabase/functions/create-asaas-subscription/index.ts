@@ -179,41 +179,60 @@ serve(async (req) => {
     let finalValue = baseValue;
     let discountApplied = 0;
     let couponId: string | null = null;
+    let partnerId: string | null = null;
+    let isPartnerCoupon = false;
 
     // Process coupon (only for paid flow)
     if (coupon_code && !is_trial) {
       const upper = coupon_code.toUpperCase();
 
-      const { data: validation } = await supabase.rpc('validate_coupon', {
+      // 1) Check if it's a partner coupon first
+      const { data: partnerValidation } = await supabase.rpc('validate_partner_coupon', {
         p_code: upper,
-        p_user_id: '00000000-0000-0000-0000-000000000000',
-        p_plan_id: plan_id,
       });
 
-      const isValid = validation?.[0]?.is_valid;
+      const partnerResult = partnerValidation?.[0];
 
-      if (isValid) {
-        const { data: coupon } = await supabase
-          .from('coupons')
-          .select('*')
-          .eq('code', upper)
-          .eq('is_active', true)
-          .single();
+      if (partnerResult?.is_valid) {
+        // Partner coupon: fixed 10% discount, does NOT combine with regular coupons
+        partnerId = partnerResult.partner_id;
+        isPartnerCoupon = true;
+        discountApplied = Math.round((baseValue * 10) / 100 * 100) / 100;
+        finalValue = Math.max(0, baseValue - discountApplied);
+        console.log(`[CreateSubscription] Partner coupon applied: partner=${partnerId}, discount=${discountApplied}`);
+      } else {
+        // 2) Not a partner coupon — try regular coupon validation
+        const { data: validation } = await supabase.rpc('validate_coupon', {
+          p_code: upper,
+          p_user_id: '00000000-0000-0000-0000-000000000000',
+          p_plan_id: plan_id,
+        });
 
-        if (coupon) {
-          couponId = coupon.id;
-          if (coupon.discount_type === 'percentage') {
-            discountApplied = (baseValue * (coupon.discount_value || 0)) / 100;
-            if (coupon.max_discount_amount) {
-              discountApplied = Math.min(discountApplied, Number(coupon.max_discount_amount));
+        const isValid = validation?.[0]?.is_valid;
+
+        if (isValid) {
+          const { data: coupon } = await supabase
+            .from('coupons')
+            .select('*')
+            .eq('code', upper)
+            .eq('is_active', true)
+            .single();
+
+          if (coupon) {
+            couponId = coupon.id;
+            if (coupon.discount_type === 'percentage') {
+              discountApplied = (baseValue * (coupon.discount_value || 0)) / 100;
+              if (coupon.max_discount_amount) {
+                discountApplied = Math.min(discountApplied, Number(coupon.max_discount_amount));
+              }
+            } else {
+              discountApplied = Number(coupon.discount_value || 0);
+              if (coupon.max_discount_amount) {
+                discountApplied = Math.min(discountApplied, Number(coupon.max_discount_amount));
+              }
             }
-          } else {
-            discountApplied = Number(coupon.discount_value || 0);
-            if (coupon.max_discount_amount) {
-              discountApplied = Math.min(discountApplied, Number(coupon.max_discount_amount));
-            }
+            finalValue = Math.max(0, baseValue - discountApplied);
           }
-          finalValue = Math.max(0, baseValue - discountApplied);
         }
       }
     }
@@ -284,6 +303,7 @@ serve(async (req) => {
             plan_name: plan.name,
             coupon_id: null,
             discount_applied: 0,
+            partner_id: null,
             is_trial: true,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -357,6 +377,7 @@ serve(async (req) => {
           plan_name: plan.name,
           coupon_id: couponId,
           discount_applied: discountApplied,
+          partner_id: partnerId,
           is_trial: false,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

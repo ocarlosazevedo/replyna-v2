@@ -20,6 +20,7 @@ interface ConfirmRegistrationRequest {
   asaas_credit_card_token?: string;
   coupon_id?: string;
   discount_applied?: number;
+  partner_id?: string;
   is_trial?: boolean;
 }
 
@@ -54,6 +55,7 @@ serve(async (req) => {
       asaas_credit_card_token,
       coupon_id,
       discount_applied,
+      partner_id,
       is_trial,
     } = body;
 
@@ -219,6 +221,38 @@ serve(async (req) => {
           p_discount_applied: discount_applied,
           p_subscription_id: asaas_subscription_id,
         });
+      }
+    }
+
+    // Criar vínculo de referral se veio de um partner
+    if (partner_id) {
+      try {
+        await supabase.from('partner_referrals').insert({
+          partner_id,
+          referred_user_id: userId,
+        });
+
+        // Incrementar total_referrals do partner
+        const { data: currentPartner } = await supabase
+          .from('partners')
+          .select('total_referrals')
+          .eq('id', partner_id)
+          .single();
+
+        if (currentPartner) {
+          await supabase
+            .from('partners')
+            .update({
+              total_referrals: (currentPartner.total_referrals || 0) + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', partner_id);
+        }
+
+        console.log(`[ConfirmRegistration] Partner referral created: partner=${partner_id}, user=${userId}`);
+      } catch (refError) {
+        // Não falhar o registro por erro no referral
+        console.error('[ConfirmRegistration] Error creating partner referral:', refError);
       }
     }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Tag, X, Loader2, Check } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -17,30 +17,66 @@ interface CouponSectionProps {
   onCouponRemoved: () => void
   onCodeChange?: (code: string) => void
   validation: CouponValidation | null
+  initialCode?: string
 }
 
-export default function CouponSection({ planId, onCouponValidated, onCouponRemoved, onCodeChange, validation }: CouponSectionProps) {
-  const [showField, setShowField] = useState(false)
-  const [code, setCode] = useState('')
+export default function CouponSection({ planId, onCouponValidated, onCouponRemoved, onCodeChange, validation, initialCode }: CouponSectionProps) {
+  const [showField, setShowField] = useState(!!initialCode)
+  const [code, setCode] = useState(initialCode || '')
   const [validating, setValidating] = useState(false)
 
-  const handleValidate = async () => {
-    if (!code.trim()) return
+  // Auto-validate initialCode on mount
+  useEffect(() => {
+    if (initialCode && !validation) {
+      handleValidate(initialCode)
+    }
+  }, [initialCode])
+
+  const handleValidate = async (overrideCode?: string) => {
+    const codeToValidate = overrideCode || code
+    if (!codeToValidate.trim()) return
     setValidating(true)
 
     try {
+      // Try regular coupon first
       const { data, error } = await supabase.rpc('validate_coupon', {
-        p_code: code.toUpperCase(),
+        p_code: codeToValidate.toUpperCase(),
         p_user_id: '00000000-0000-0000-0000-000000000000',
         p_plan_id: planId,
       })
 
-      if (error) throw error
-
-      if (data && data[0]) {
+      if (!error && data?.[0]?.is_valid) {
         onCouponValidated(data[0] as CouponValidation)
-        onCodeChange?.(code.toUpperCase())
+        onCodeChange?.(codeToValidate.toUpperCase())
+        return
       }
+
+      // Try partner coupon
+      const { data: partnerData } = await supabase.rpc('validate_partner_coupon', {
+        p_code: codeToValidate.toUpperCase(),
+      })
+
+      if (partnerData?.[0]?.is_valid) {
+        // Partner coupon: fixed 10% discount
+        onCouponValidated({
+          is_valid: true,
+          coupon_id: null,
+          discount_type: 'percentage',
+          discount_value: 10,
+          error_message: null,
+        })
+        onCodeChange?.(codeToValidate.toUpperCase())
+        return
+      }
+
+      // Neither valid
+      onCouponValidated({
+        is_valid: false,
+        coupon_id: null,
+        discount_type: null,
+        discount_value: null,
+        error_message: data?.[0]?.error_message || 'Cupom inválido',
+      })
     } catch {
       onCouponValidated({
         is_valid: false,
@@ -195,7 +231,7 @@ export default function CouponSection({ planId, onCouponValidated, onCouponRemov
               />
               <button
                 type="button"
-                onClick={handleValidate}
+                onClick={() => handleValidate()}
                 disabled={validating || !code.trim()}
                 style={{
                   padding: '12px 20px',

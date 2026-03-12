@@ -84,6 +84,13 @@ serve(async (_req) => {
         continue;
       }
 
+      // Suspender partner se o usuário for parceiro
+      try {
+        await supabase.rpc('suspend_partner', { p_user_id: sub.user_id });
+      } catch {
+        // Ignora se não for partner
+      }
+
       suspendedCount++;
       console.log(
         `[CheckExpired] Usuario suspenso: ${user.name || user.email} (${user.email}) - ` +

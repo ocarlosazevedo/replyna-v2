@@ -19,6 +19,7 @@ interface Plan {
 export default function Register() {
   const [searchParams] = useSearchParams()
   const preselectedPlan = searchParams.get('plan')
+  const refCode = searchParams.get('ref') || ''
   const navigate = useNavigate()
 
   const [plans, setPlans] = useState<Plan[]>([])
@@ -37,11 +38,13 @@ export default function Register() {
   useEffect(() => {
     if (plans.length === 0) return
 
+    const checkoutPath = (extra?: string) => refCode ? `/checkout?ref=${encodeURIComponent(refCode)}${extra ? '&' + extra : ''}` : `/checkout${extra ? '?' + extra : ''}`
+
     const slug = searchParams.get('slug')
     if (slug) {
       const plan = plans.find(p => (p as any).slug === slug)
       if (plan) {
-        navigate('/checkout', { state: { plan, isTrialFlow: true } })
+        navigate(checkoutPath(), { state: { plan, isTrialFlow: true } })
       }
       return
     }
@@ -50,7 +53,7 @@ export default function Register() {
     if (isTrial) {
       const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
       if (basePlan) {
-        navigate('/checkout', { state: { plan: basePlan, isTrialFlow: true } })
+        navigate(checkoutPath(), { state: { plan: basePlan, isTrialFlow: true } })
       }
       return
     }
@@ -60,7 +63,7 @@ export default function Register() {
       const plan = plans.find(p => p.name.toLowerCase().replace(/[-\s]/g, '') === normalizedPreselected)
       if (plan) {
         if (isEnterprisePlan(plan)) return
-        navigate('/checkout', { state: { plan, isTrialFlow: false } })
+        navigate(checkoutPath(), { state: { plan, isTrialFlow: false } })
       }
     }
   }, [preselectedPlan, plans, navigate, searchParams])
@@ -91,13 +94,13 @@ export default function Register() {
       window.open('https://wa.me/5531973210191?text=Olá! Tenho interesse no plano Enterprise da Replyna.', '_blank')
       return
     }
-    navigate('/checkout', { state: { plan, isTrialFlow: false } })
+    navigate(refCode ? `/checkout?ref=${encodeURIComponent(refCode)}` : '/checkout', { state: { plan, isTrialFlow: false } })
   }
 
   const handleStartTrial = () => {
     const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
     if (basePlan) {
-      navigate('/checkout', { state: { plan: basePlan, isTrialFlow: true } })
+      navigate(refCode ? `/checkout?ref=${encodeURIComponent(refCode)}` : '/checkout', { state: { plan: basePlan, isTrialFlow: true } })
     }
   }
 

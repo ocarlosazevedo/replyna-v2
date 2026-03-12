@@ -344,6 +344,83 @@ async function handlePaymentConfirmed(supabase: ReturnType<typeof getSupabaseAdm
   // Mensagens que ficaram com status 'pending_credits' durante a suspensao
   // serao reprocessadas automaticamente no proximo ciclo de processamento,
   // pois getPendingMessages() ja busca mensagens com status 'pending_credits'.
+
+  // ── Gerar comissão de partner (se o usuário for referido) ──
+  try {
+    await generatePartnerCommission(supabase, sub.user_id, payment.value, payment.id);
+  } catch (commErr) {
+    console.error('[AsaasWebhook] Erro ao gerar comissão partner:', commErr);
+  }
+}
+
+/**
+ * Gera comissão de partner se o usuário que pagou for um referido.
+ * Verifica se o referido existe em partner_referrals, se o partner está ativo,
+ * e determina se é first_sale (sem comissão anterior) ou recurring.
+ */
+async function generatePartnerCommission(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  paymentValue: number,
+  asaasPaymentId: string
+) {
+  // Buscar referral do usuário
+  const { data: referral } = await supabase
+    .from('partner_referrals')
+    .select('id, partner_id')
+    .eq('referred_user_id', userId)
+    .single();
+
+  if (!referral) return; // Usuário não é referido
+
+  // Verificar se partner está ativo e user do partner também
+  const { data: partner } = await supabase
+    .from('partners')
+    .select('id, user_id, status')
+    .eq('id', referral.partner_id)
+    .single();
+
+  if (!partner || partner.status !== 'active') return;
+
+  const { data: partnerUser } = await supabase
+    .from('users')
+    .select('status')
+    .eq('id', partner.user_id)
+    .single();
+
+  if (!partnerUser || partnerUser.status !== 'active') return;
+
+  // Verificar se já existe comissão para este pagamento (evitar duplicata)
+  const { data: existing } = await supabase
+    .from('partner_commissions')
+    .select('id')
+    .eq('asaas_payment_id', asaasPaymentId)
+    .limit(1);
+
+  if (existing && existing.length > 0) return;
+
+  // Determinar se é first_sale ou recurring
+  const { data: previousCommissions } = await supabase
+    .from('partner_commissions')
+    .select('id')
+    .eq('referral_id', referral.id)
+    .limit(1);
+
+  const isFirst = !previousCommissions || previousCommissions.length === 0;
+
+  // Gerar comissão via RPC
+  await supabase.rpc('generate_partner_commission', {
+    p_partner_id: referral.partner_id,
+    p_referral_id: referral.id,
+    p_payment_value: paymentValue,
+    p_asaas_payment_id: asaasPaymentId,
+    p_is_first: isFirst,
+  });
+
+  console.log(
+    `[AsaasWebhook] Comissão partner gerada: partner=${maskId(referral.partner_id)}, ` +
+    `type=${isFirst ? 'first_sale (30%)' : 'recurring (10%)'}, value=${paymentValue}`
+  );
 }
 
 /**
@@ -420,6 +497,18 @@ async function handlePaymentFailed(supabase: ReturnType<typeof getSupabaseAdmin>
     .eq('id', sub.user_id);
 
   console.log(`[AsaasWebhook] Usuario ${maskId(sub.user_id)} suspenso - ${payload.event}`);
+
+  // ── Reverter comissão de partner em caso de chargeback/refund ──
+  if (payment?.id) {
+    try {
+      await supabase.rpc('reverse_partner_commission', {
+        p_asaas_payment_id: payment.id,
+      });
+      console.log(`[AsaasWebhook] Comissão partner revertida para payment ${maskId(payment.id)}`);
+    } catch (revErr) {
+      console.error('[AsaasWebhook] Erro ao reverter comissão partner:', revErr);
+    }
+  }
 }
 
 /**

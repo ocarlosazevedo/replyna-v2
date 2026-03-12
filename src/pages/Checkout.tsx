@@ -113,6 +113,7 @@ export default function Checkout() {
   // Coupon
   const [couponValidation, setCouponValidation] = useState<CouponValidation | null>(null)
   const [couponCode, setCouponCode] = useState('')
+  const refCode = searchParams.get('ref') || ''
 
   // UI
   const [error, setError] = useState('')
@@ -191,6 +192,21 @@ export default function Checkout() {
       navigate('/register')
     }
   }, [state, navigate, searchParams])
+
+  // Auto-apply partner coupon from ref link
+  useEffect(() => {
+    if (!refCode || !plan || isTrialFlow || couponValidation) return
+    const code = refCode.toUpperCase().trim()
+    // Apply 10% partner discount immediately — backend validates on submission
+    setCouponCode(code)
+    setCouponValidation({
+      is_valid: true,
+      coupon_id: null,
+      discount_type: 'percentage',
+      discount_value: 10,
+      error_message: null,
+    })
+  }, [refCode, plan, isTrialFlow])
 
   // Pre-fill user data when in upgrade mode
   useEffect(() => {
@@ -442,6 +458,7 @@ export default function Checkout() {
         asaas_credit_card_token: data.asaas_credit_card_token || null,
         coupon_id: data.coupon_id || null,
         discount_applied: data.discount_applied || 0,
+        partner_id: data.partner_id || null,
         is_trial: data.is_trial || false,
       }))
 
@@ -953,6 +970,7 @@ export default function Checkout() {
                         onCouponRemoved={() => { setCouponValidation(null); setCouponCode('') }}
                         onCodeChange={setCouponCode}
                         validation={couponValidation}
+                        initialCode={refCode || undefined}
                       />
                     )}
 

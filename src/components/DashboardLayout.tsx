@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Store, Ticket, FileText, User, LogOut, Menu, X, Users } from 'lucide-react'
+import { LayoutGrid, Store, Ticket, FileText, User, LogOut, Menu, X, Users, Handshake } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useUserProfile } from '../hooks/useUserProfile'
 import { useTeamContext } from '../hooks/useTeamContext'
@@ -105,6 +105,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     ...(!isTeamContext || hasPermission('shops', 'edit') ? [{ path: '/shops', label: isTeamContext ? 'Lojas' : 'Minhas lojas', icon: Store }] : []),
     // Equipe: owners sempre veem, membros só com permissão team.manage
     ...(!isTeamContext || hasPermission('team', 'manage') ? [{ path: '/team', label: 'Equipe', icon: Users }] : []),
+    // Parceiro: apenas para conta de teste (temporário)
+    ...(!isTeamContext && user?.email === 'gustavolsilva2003@gmail.com' ? [{ path: '/partner', label: 'Parceiro', icon: Handshake }] : []),
   ]
 
   const handleLogout = async () => {

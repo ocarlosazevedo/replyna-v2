@@ -52,6 +52,7 @@ export default function CheckoutSuccess() {
             asaas_credit_card_token: parsed.asaas_credit_card_token || undefined,
             coupon_id: parsed.coupon_id || undefined,
             discount_applied: parsed.discount_applied || undefined,
+            partner_id: parsed.partner_id || undefined,
             is_trial: parsed.is_trial || false,
           }),
         })

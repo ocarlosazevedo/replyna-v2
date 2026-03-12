@@ -42,6 +42,7 @@ const Migrate = lazy(() => import('./pages/Migrate'))
 const ReturnRequest = lazy(() => import('./pages/ReturnRequest'))
 const Team = lazy(() => import('./pages/Team'))
 const TeamInvite = lazy(() => import('./pages/TeamInvite'))
+const Partner = lazy(() => import('./pages/Partner'))
 
 // Lazy load - Admin Pages
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
@@ -51,6 +52,7 @@ const AdminAdministrators = lazy(() => import('./pages/admin/AdminAdministrators
 const AdminPlans = lazy(() => import('./pages/admin/AdminPlans'))
 const AdminCoupons = lazy(() => import('./pages/admin/AdminCoupons'))
 const AdminFinancial = lazy(() => import('./pages/admin/AdminFinancial'))
+const AdminPartners = lazy(() => import('./pages/admin/AdminPartners'))
 const AdminMigration = lazy(() => import('./pages/admin/AdminMigration'))
 const MigrationAccept = lazy(() => import('./pages/MigrationAccept'))
 const AuthConfirm = lazy(() => import('./pages/AuthConfirm'))
@@ -280,6 +282,13 @@ function App() {
             </PrivateRoute>
           } />
           <Route path="/team/invite/:code" element={<TeamInvite />} />
+          <Route path="/partner" element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Partner />
+              </DashboardLayout>
+            </PrivateRoute>
+          } />
           <Route path="/account" element={
             <PrivateRoute>
               <DashboardLayout>
@@ -340,6 +349,13 @@ function App() {
             <AdminRoute>
               <AdminLayout>
                 <AdminPlans />
+              </AdminLayout>
+            </AdminRoute>
+          } />
+          <Route path="/admin/partners" element={
+            <AdminRoute>
+              <AdminLayout>
+                <AdminPartners />
               </AdminLayout>
             </AdminRoute>
           } />
