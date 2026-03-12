@@ -132,7 +132,9 @@ export default function Partner() {
     try {
       const session = await supabase.auth.getSession()
       const token = session.data.session?.access_token
-      if (!token) return
+      if (!token) { console.error('[Partner] No token'); setSavingPix(false); return }
+
+      console.log('[Partner] Saving PIX:', { pix_key_type: pixKeyType, pix_key: pixKey.trim() })
 
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/partner-withdraw`, {
         method: 'PUT',
@@ -140,10 +142,16 @@ export default function Partner() {
         body: JSON.stringify({ pix_key_type: pixKeyType, pix_key: pixKey.trim() }),
       })
 
+      const data = await res.json()
+      console.log('[Partner] PIX response:', res.status, data)
+
       if (res.ok) {
         setPartner({ ...partner, pix_key_type: pixKeyType, pix_key: pixKey.trim() }); setEditingPix(false)
+      } else {
+        console.error('[Partner] PIX save error:', data.error)
+        alert(data.error || 'Erro ao salvar chave PIX')
       }
-    } catch (err) { console.error(err) } finally { setSavingPix(false) }
+    } catch (err) { console.error('[Partner] PIX exception:', err) } finally { setSavingPix(false) }
   }
 
   const handleWithdraw = async () => {
