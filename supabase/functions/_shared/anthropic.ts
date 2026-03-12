@@ -3245,7 +3245,14 @@ INSTRUÇÃO CRÍTICA SOBRE INFORMAÇÕES DA LOJA:
 - Use essas informações para verificar se a situação do cliente se encaixa em algum cenário descrito
 - Se a situação do cliente corresponder a algo descrito, responda de forma NATURAL como se fosse seu conhecimento próprio
 - Exemplo: Se a loja vende kits enviados separadamente e o cliente reclama de pacote faltando, responda naturalmente: "Os kits são enviados em pacotes separados que podem chegar em datas diferentes. Seu outro pacote está a caminho!"
-- NUNCA: "Fui orientado a informar que..." ou "A loja me instruiu a dizer..."`;
+- NUNCA: "Fui orientado a informar que..." ou "A loja me instruiu a dizer..."
+
+⚠️ PRIORIDADE MÁXIMA — INSTRUÇÕES DA LOJA SOBRESCREVEM REGRAS GENÉRICAS:
+- Se a descrição da loja contém instruções específicas sobre como lidar com trocas, devoluções, reembolsos, descontos ou qualquer situação de atendimento, SIGA ESSAS INSTRUÇÕES em vez das regras genéricas de retenção abaixo.
+- Exemplo: se a loja diz "ofereça o código EXCHANGE60 com 60% de desconto", NÃO ofereça "peça grátis" ou "troca sem custo" — use EXATAMENTE o que a loja instruiu.
+- As instruções da loja são a FONTE DE VERDADE para políticas de troca, devolução, reembolso e descontos.
+- NUNCA invente ofertas, descontos, peças grátis ou promessas que NÃO estejam nas instruções da loja.
+- Se a loja NÃO mencionou uma política específica, aí sim use as regras genéricas de retenção como fallback.`;
   }
   if (shopContext.delivery_time) {
     storeInfo += `\n- Prazo de entrega: ${shopContext.delivery_time}`;
@@ -3445,7 +3452,8 @@ If TYPE_A (delivery issue):
 
 If TYPE_B (product issue):
 → Acknowledge the specific concern (wrong size, color, etc.)
-→ Offer exchange/replacement: "I can arrange to send you the correct [size/color] at no extra cost — would you prefer that?"
+→ ⚠️ FIRST check if the store description has SPECIFIC instructions for exchanges/returns. If yes, follow THOSE instructions exactly (e.g., specific discount codes, return policies). Do NOT offer free replacements if the store has its own exchange policy.
+→ ONLY if the store has NO specific exchange instructions: Offer exchange/replacement: "I can arrange to send you the correct [size/color] at no extra cost — would you prefer that?"
 → Combine with zero risk: "Either way, you haven't paid anything, so there's no risk in waiting to see the product."
 → Use [FORWARD_TO_HUMAN] ONLY if exchange is accepted (to process it), NOT for cancellation.
 
@@ -3490,7 +3498,8 @@ If TYPE_A (delivery issue):
 
 If TYPE_B (product issue):
 → Acknowledge the specific concern (wrong size, color, defect, etc.)
-→ Offer exchange/replacement FIRST: "I can send you the correct [size/color] at no extra cost. Would you prefer that?"
+→ ⚠️ FIRST check if the store description has SPECIFIC instructions for exchanges/returns. If yes, follow THOSE instructions exactly (e.g., specific discount codes, return addresses, policies). Do NOT offer free replacements if the store has its own exchange policy.
+→ ONLY if the store has NO specific exchange instructions: Offer exchange/replacement FIRST: "I can send you the correct [size/color] at no extra cost. Would you prefer that?"
 → This gives the customer a SOLUTION, not just empathy.
 → Use [FORWARD_TO_HUMAN] ONLY if exchange is accepted (to process it), NOT for cancellation.
 
