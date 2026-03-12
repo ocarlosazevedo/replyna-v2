@@ -10,6 +10,7 @@ interface Plan {
   price_monthly: number
   emails_limit: number | null
   shops_limit: number | null
+  team_members_limit: number | null
   features: string[]
   is_popular: boolean
   is_active: boolean
@@ -68,7 +69,7 @@ export default function Register() {
     try {
       const { data, error } = await supabase
         .from('plans')
-        .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active, slug')
+        .select('id, name, description, price_monthly, emails_limit, shops_limit, team_members_limit, features, is_popular, is_active, slug')
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
 
@@ -347,7 +348,11 @@ export default function Register() {
                       {isEnterprisePlan(plan) || plan.emails_limit === null ? 'Ilimitado' : plan.emails_limit.toLocaleString('pt-BR')}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: '8px',
+                  }}>
                     <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                       Lojas
                     </span>
@@ -357,6 +362,18 @@ export default function Register() {
                       color: plan.shops_limit === null ? '#22c55e' : 'var(--text-primary)',
                     }}>
                       {isEnterprisePlan(plan) || plan.shops_limit === null ? 'Ilimitado' : plan.shops_limit}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      Membros da equipe
+                    </span>
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: plan.team_members_limit === null ? '#22c55e' : 'var(--text-primary)',
+                    }}>
+                      {isEnterprisePlan(plan) || plan.team_members_limit === null ? 'Ilimitado' : plan.team_members_limit === 0 ? '—' : plan.team_members_limit}
                     </span>
                   </div>
                 </div>

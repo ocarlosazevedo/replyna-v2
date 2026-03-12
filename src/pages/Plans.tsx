@@ -12,6 +12,7 @@ interface Plan {
   price_yearly: number | null
   emails_limit: number | null
   shops_limit: number | null
+  team_members_limit: number | null
   features: string[]
   is_popular: boolean
 }
@@ -40,7 +41,7 @@ export default function Plans() {
       const [plansResult, userResult] = await Promise.all([
         supabase
           .from('plans')
-          .select('id, name, description, price_monthly, price_yearly, emails_limit, shops_limit, features, is_popular')
+          .select('id, name, description, price_monthly, price_yearly, emails_limit, shops_limit, team_members_limit, features, is_popular')
           .eq('is_active', true)
           .order('sort_order', { ascending: true }),
         user
@@ -436,7 +437,11 @@ export default function Plans() {
                         {enterprise || plan.emails_limit === null ? 'Ilimitado' : plan.emails_limit.toLocaleString('pt-BR')}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginBottom: '8px',
+                    }}>
                       <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                         Lojas
                       </span>
@@ -446,6 +451,18 @@ export default function Plans() {
                         color: enterprise || plan.shops_limit === null ? '#22c55e' : 'var(--text-primary)',
                       }}>
                         {enterprise || plan.shops_limit === null ? 'Ilimitado' : plan.shops_limit}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        Membros da equipe
+                      </span>
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: enterprise || plan.team_members_limit === null ? '#22c55e' : 'var(--text-primary)',
+                      }}>
+                        {enterprise || plan.team_members_limit === null ? 'Ilimitado' : plan.team_members_limit === 0 ? '—' : plan.team_members_limit}
                       </span>
                     </div>
                   </div>

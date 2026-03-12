@@ -1937,6 +1937,15 @@ void main() {
           background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08);
         }
         .pricing-card--highlight .pricing-stat--loja .pricing-stat-value { color: rgba(255,255,255,0.65); font-size: 18px; }
+        .pricing-stat--equipe {
+          background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.08);
+        }
+        .pricing-stat--equipe .pricing-stat-value { color: #a78bfa; }
+        .pricing-card:hover .pricing-stat--equipe { background: rgba(139,92,246,0.1); }
+        .pricing-card--highlight .pricing-stat--equipe {
+          background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.2);
+        }
+        .pricing-card--highlight .pricing-stat--equipe .pricing-stat-value { color: #c4b5fd; font-size: 18px; }
         .pricing-card--highlight .pricing-stat-label { color: rgba(255,255,255,0.4); }
         .pricing-divider {
           width: 100%; height: 1px;
@@ -3469,6 +3478,7 @@ void main() {
                 period: '/mes',
                 emails: '300',
                 lojas: '1',
+                equipe: '0',
                 features: ['Integração com 1 loja', '300 e-mails/mês inclusos', 'R$1,00 por email extra', 'Atendimento 24 horas por dia'],
                 highlight: false,
               },
@@ -3479,6 +3489,7 @@ void main() {
                 period: '/mes',
                 emails: '900',
                 lojas: '3',
+                equipe: '2',
                 features: ['Integração com 3 lojas', '900 e-mails/mês inclusos', 'R$0,70 por e-mail extra', 'Atendimento 24 horas por dia'],
                 highlight: true,
               },
@@ -3489,6 +3500,7 @@ void main() {
                 period: '/mes',
                 emails: '1.500',
                 lojas: '5',
+                equipe: '5',
                 features: ['Integração com 5 lojas', '1.500 e-mails/mês inclusos', 'R$0,60 por email extra', 'Atendimento 24 horas por dia'],
                 highlight: false,
               },
@@ -3499,6 +3511,7 @@ void main() {
                 period: '/mes',
                 emails: '3.000',
                 lojas: '10',
+                equipe: '10',
                 features: ['Integração com 10 lojas', '3.000 e-mails/mês inclusos', 'R$0,50 por email extra', 'Atendimento 24 horas por dia'],
                 highlight: false,
               },
@@ -3509,6 +3522,7 @@ void main() {
                 period: '',
                 emails: 'Ilimitado',
                 lojas: 'Ilimitado',
+                equipe: 'Ilimitado',
                 features: ['Lojas ilimitadas', 'Emails ilimitados', 'Sem custo extra por email', 'Atendimento 24 horas por dia'],
                 highlight: false,
               },
@@ -3973,9 +3987,9 @@ const INF_DATA = [
 ]
 
 // Pricing card with spotlight glow, 3D tilt, and counter animation
-function PricingCard({ plan, index }: { plan: { name: string; desc: string; price: string; period: string; emails: string; lojas: string; features: string[]; highlight: boolean }; index: number }) {
+function PricingCard({ plan, index }: { plan: { name: string; desc: string; price: string; period: string; emails: string; lojas: string; equipe: string; features: string[]; highlight: boolean }; index: number }) {
   const cardRef = useRef<HTMLDivElement>(null)
-  const [counter, setCounter] = useState({ emails: '0', lojas: '0' })
+  const [counter, setCounter] = useState({ emails: '0', lojas: '0', equipe: '0' })
   const counted = useRef(false)
   const { ref: viewRef, visible } = useInView(0.3)
 
@@ -3985,7 +3999,8 @@ function PricingCard({ plan, index }: { plan: { name: string; desc: string; pric
     counted.current = true
     const target = plan.emails === 'Ilimitado' ? 0 : parseInt(plan.emails.replace(/\./g, ''))
     const targetL = plan.lojas === 'Ilimitado' ? 0 : parseInt(plan.lojas)
-    if (target === 0) { setCounter({ emails: plan.emails, lojas: plan.lojas }); return }
+    const targetE = plan.equipe === 'Ilimitado' ? 0 : parseInt(plan.equipe)
+    if (target === 0) { setCounter({ emails: plan.emails, lojas: plan.lojas, equipe: plan.equipe }); return }
     const duration = 1800
     const start = performance.now()
     const fmt = (n: number) => n.toLocaleString('pt-BR')
@@ -3995,11 +4010,12 @@ function PricingCard({ plan, index }: { plan: { name: string; desc: string; pric
       setCounter({
         emails: fmt(Math.floor(ease * target)),
         lojas: String(Math.floor(ease * targetL)),
+        equipe: targetE === 0 ? plan.equipe : String(Math.floor(ease * targetE)),
       })
       if (p < 1) requestAnimationFrame(step)
     }
     requestAnimationFrame(step)
-  }, [visible, plan.emails, plan.lojas])
+  }, [visible, plan.emails, plan.lojas, plan.equipe])
 
   // Spotlight + 3D tilt
   const handleMove = (e: React.MouseEvent) => {
@@ -4063,6 +4079,10 @@ function PricingCard({ plan, index }: { plan: { name: string; desc: string; pric
             <div className="pricing-stat pricing-stat--loja">
               <div className="pricing-stat-label">Lojas</div>
               <div className="pricing-stat-value">{counter.lojas}</div>
+            </div>
+            <div className="pricing-stat pricing-stat--equipe">
+              <div className="pricing-stat-label">Equipe</div>
+              <div className="pricing-stat-value">{counter.equipe === '0' ? '—' : counter.equipe}</div>
             </div>
           </div>
           <div className="pricing-divider" style={{ position: 'relative', zIndex: 3 }} />
