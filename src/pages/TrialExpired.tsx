@@ -357,20 +357,23 @@ export default function TrialExpired() {
                   padding: '24px',
                   border: plan.is_popular ? '2px solid var(--accent)' : '1px solid var(--border-color)',
                   position: 'relative',
+                  overflow: 'visible',
                   display: 'flex',
                   flexDirection: 'column',
                 }}
               >
                 {/* Badge */}
                 <div style={{
-                  minHeight: '22px',
-                  marginBottom: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
+                  height: '12px',
+                  marginBottom: '10px',
+                  position: 'relative',
                 }}>
                   {plan.is_popular && (
                     <div style={{
-                      marginLeft: 'auto',
+                      position: 'absolute',
+                      top: 0,
+                      right: '16px',
+                      transform: 'translateY(-50%)',
                       backgroundColor: '#f59e0b',
                       color: '#fff',
                       padding: '4px 12px',
@@ -380,6 +383,7 @@ export default function TrialExpired() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
+                      zIndex: 2,
                     }}>
                       <Star size={12} />
                       Popular

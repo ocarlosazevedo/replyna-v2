@@ -297,32 +297,40 @@ export default function Plans() {
                       ? '2px solid var(--accent)'
                       : '1px solid var(--border-color)',
                     position: 'relative',
+                    overflow: 'visible',
                     display: 'flex',
                     flexDirection: 'column',
                   }}
                 >
                   {/* Badge area - altura fixa para alinhar cards com/sem badge */}
                   <div style={{
-                    minHeight: '22px',
-                    marginBottom: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
+                    height: '12px',
+                    marginBottom: '10px',
+                    position: 'relative',
                   }}>
                     {isCurrent && (
                       <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: '16px',
+                        transform: 'translateY(-50%)',
                         backgroundColor: 'var(--accent)',
                         color: '#fff',
                         padding: '4px 12px',
                         borderRadius: '999px',
                         fontSize: '12px',
                         fontWeight: 600,
+                        zIndex: 2,
                       }}>
                         Seu plano atual
                       </div>
                     )}
                     {plan.is_popular && !isCurrent && (
                       <div style={{
-                        marginLeft: 'auto',
+                        position: 'absolute',
+                        top: 0,
+                        right: '16px',
+                        transform: 'translateY(-50%)',
                         backgroundColor: '#f59e0b',
                         color: '#fff',
                         padding: '4px 12px',
@@ -332,6 +340,7 @@ export default function Plans() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
+                        zIndex: 2,
                       }}>
                         <Star size={12} />
                         Popular
