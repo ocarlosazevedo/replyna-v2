@@ -166,8 +166,6 @@ export default function Account() {
     return `${countryCode} ${num}`
   }
 
-  const [showCancelModal, setShowCancelModal] = useState(false)
-  const [cancelReason, setCancelReason] = useState('')
   const [pendingInvoices, setPendingInvoices] = useState<PendingInvoice[]>([])
   const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null)
   const [buyingExtras, setBuyingExtras] = useState(false)
@@ -724,39 +722,6 @@ export default function Account() {
     setIsEditing((prev) => !prev)
   }
 
-  const handleCancelPlan = async () => {
-    if (!user) return
-    setNotice(null)
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cancel-subscription`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ user_id: user.id, reason: cancelReason || null }),
-        }
-      )
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao cancelar assinatura')
-      }
-
-      setNotice({ type: 'success', message: 'Assinatura cancelada com sucesso.' })
-      setShowCancelModal(false)
-      setCancelReason('')
-      loadProfile()
-      loadSubscription()
-    } catch (err) {
-      console.error('Erro ao cancelar assinatura:', err)
-      setNotice({ type: 'error', message: err instanceof Error ? err.message : 'Erro ao cancelar assinatura.' })
-    }
-  }
-
   const handleOpenPlanModal = () => {
     navigate('/plans')
   }
@@ -1259,7 +1224,10 @@ export default function Account() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowCancelModal(true)}
+                      onClick={() => {
+                        const message = encodeURIComponent('Olá, gostaria de cancelar meu plano na Replyna.')
+                        window.open(`https://wa.me/5531973210191?text=${message}`, '_blank', 'noopener')
+                      }}
                       style={{
                         borderRadius: '10px',
                         border: '1px solid #ef4444',
@@ -1539,82 +1507,6 @@ export default function Account() {
 
         </div>
       </div>
-
-      {showCancelModal && (
-        <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
-          <div
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              borderRadius: '16px',
-              padding: '24px',
-              border: '1px solid var(--border-color)',
-              width: 'min(480px, 92vw)',
-              zIndex: 61,
-            }}
-          >
-            <h3 style={{ marginTop: 0, marginBottom: '8px', color: 'var(--text-primary)' }}>Cancelar plano</h3>
-            <p style={{ marginTop: 0, color: 'var(--text-secondary)' }}>
-              Seu acesso continua até {renewalDate ? formatDate(renewalDate) : 'a data de renovação'}.
-            </p>
-            <label style={{ display: 'grid', gap: '6px', marginTop: '12px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Motivo (opcional)</span>
-              <textarea
-                value={cancelReason}
-                onChange={(event) => setCancelReason(event.target.value)}
-                rows={3}
-                style={{
-                  border: '1px solid var(--input-border)',
-                  borderRadius: '10px',
-                  padding: '10px',
-                  fontSize: '14px',
-                  resize: 'vertical',
-                  backgroundColor: 'var(--input-bg)',
-                  color: 'var(--text-primary)',
-                }}
-              />
-            </label>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-              <button
-                type="button"
-                onClick={() => setShowCancelModal(false)}
-                style={{
-                  flex: 1,
-                  borderRadius: '10px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-card)',
-                  color: 'var(--text-primary)',
-                  padding: '10px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Voltar
-              </button>
-              <button
-                type="button"
-                onClick={handleCancelPlan}
-                style={{
-                  flex: 1,
-                  borderRadius: '10px',
-                  border: '1px solid #ef4444',
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  padding: '10px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Confirmar cancelamento
-              </button>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowCancelModal(false)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(14, 23, 41, 0.35)', border: 'none', zIndex: 60 }}
-          />
-        </div>
-      )}
 
       {showPaymentModal && (
         <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>

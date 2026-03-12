@@ -100,6 +100,8 @@ export default function AdminClients() {
   const [newClient, setNewClient] = useState({ email: '', name: '', plan_id: '' })
   const [createError, setCreateError] = useState<string | null>(null)
   const [createSuccess, setCreateSuccess] = useState<string | null>(null)
+  const [cancelPlanTarget, setCancelPlanTarget] = useState<Client | null>(null)
+  const [cancelingPlan, setCancelingPlan] = useState(false)
 
   // Encontrar o plano Enterprise para pré-selecionar
   const enterprisePlan = plans.find(p => p.name.toLowerCase() === 'enterprise')
@@ -263,6 +265,41 @@ export default function AdminClients() {
       alert('Erro ao deletar cliente: ' + (err instanceof Error ? err.message : 'Erro desconhecido'))
     } finally {
       setDeleting(false)
+    }
+  }
+
+  const handleCancelPlan = async () => {
+    if (!cancelPlanTarget) return
+
+    setCancelingPlan(true)
+    setActionMessage(null)
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cancel-subscription`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ user_id: cancelPlanTarget.id }),
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao cancelar plano')
+      }
+
+      setActionMessage({ type: 'success', text: `Plano cancelado para ${cancelPlanTarget.name || cancelPlanTarget.email}.` })
+      setCancelPlanTarget(null)
+      loadData()
+    } catch (err) {
+      setActionMessage({ type: 'error', text: err instanceof Error ? err.message : 'Erro ao cancelar plano' })
+    } finally {
+      setCancelingPlan(false)
     }
   }
 
@@ -1468,7 +1505,7 @@ export default function AdminClients() {
               {/* Ações de suporte */}
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '8px' }}>
                 <label style={{ ...labelStyle, marginBottom: '12px' }}>Ações de Suporte</label>
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <button
                     onClick={handleSendResetPassword}
                     disabled={sendingReset}
@@ -1490,6 +1527,27 @@ export default function AdminClients() {
                   >
                     <Key size={16} />
                     {sendingReset ? 'Enviando...' : 'Reenviar senha'}
+                  </button>
+                  <button
+                    onClick={() => setCancelPlanTarget(editingClient)}
+                    disabled={cancelingPlan}
+                    style={{
+                      flex: 1,
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      border: '1px solid #ef4444',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      color: '#ef4444',
+                      fontWeight: 600,
+                      cursor: cancelingPlan ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      opacity: cancelingPlan ? 0.6 : 1,
+                    }}
+                  >
+                    {cancelingPlan ? 'Cancelando...' : 'Cancelar plano'}
                   </button>
                 </div>
 
@@ -1703,6 +1761,91 @@ export default function AdminClients() {
                 }}
               >
                 {creatingClient ? 'Criando...' : 'Criar Cliente'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Cancelamento de Plano */}
+      {cancelPlanTarget && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1001,
+            padding: '20px',
+          }}
+          onClick={() => setCancelPlanTarget(null)}
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '420px',
+              border: '1px solid var(--border-color)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Trash2 size={24} style={{ color: '#ef4444' }} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Cancelar plano
+                </h3>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>
+                  Tem certeza que deseja cancelar o plano de {cancelPlanTarget.name || cancelPlanTarget.email}?
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setCancelPlanTarget(null)}
+                disabled={cancelingPlan}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600,
+                  cursor: cancelingPlan ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Voltar
+              </button>
+              <button
+                onClick={handleCancelPlan}
+                disabled={cancelingPlan}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  backgroundColor: '#ef4444',
+                  color: '#fff',
+                  fontWeight: 600,
+                  cursor: cancelingPlan ? 'not-allowed' : 'pointer',
+                  opacity: cancelingPlan ? 0.6 : 1,
+                }}
+              >
+                {cancelingPlan ? 'Cancelando...' : 'Confirmar cancelamento'}
               </button>
             </div>
           </div>
