@@ -392,10 +392,12 @@ serve(async (req) => {
       );
     } catch (cardError) {
       // Handle Asaas card processing errors with user-friendly messages
-      console.error('[CreateSubscription] Card error:', cardError);
-      const friendlyMessage = parseAsaasError(cardError?.message || cardError);
+      const rawError = cardError?.message || String(cardError);
+      console.error('[CreateSubscription] Card error (raw):', rawError);
+      console.error('[CreateSubscription] Value sent:', firstPaymentValue, 'Base:', baseValue, 'Discount:', discountApplied, 'Partner:', isPartnerCoupon);
+      const friendlyMessage = parseAsaasError(rawError);
       return new Response(
-        JSON.stringify({ error: friendlyMessage }),
+        JSON.stringify({ error: friendlyMessage, debug_error: rawError }),
         { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

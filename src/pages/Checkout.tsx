@@ -444,6 +444,7 @@ export default function Checkout() {
       const data = await response.json()
 
       if (!response.ok) {
+        if (data.debug_error) console.error('[Checkout] Asaas raw error:', data.debug_error)
         throw new Error(data.error || 'Erro ao processar pagamento')
       }
 
