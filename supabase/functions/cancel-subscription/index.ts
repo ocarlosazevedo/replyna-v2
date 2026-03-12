@@ -32,7 +32,7 @@ serve(async (req) => {
   }
 
   try {
-    const { user_id } = (await req.json()) as CancelRequest;
+    const { user_id, reason } = (await req.json()) as CancelRequest;
 
     if (!user_id) {
       return new Response(
@@ -67,26 +67,20 @@ serve(async (req) => {
     }
 
     const now = new Date().toISOString();
+    const updateData: Record<string, unknown> = {
+      cancel_at_period_end: true,
+      canceled_at: now,
+      updated_at: now,
+    };
+
+    if (reason) {
+      updateData.cancel_reason = reason;
+    }
 
     await supabase
       .from('subscriptions')
-      .update({
-        status: 'canceled',
-        canceled_at: now,
-        updated_at: now,
-      })
+      .update(updateData)
       .eq('id', subscription.id);
-
-    await supabase
-      .from('users')
-      .update({
-        status: 'inactive',
-        plan: 'free',
-        emails_limit: 0,
-        shops_limit: 0,
-        updated_at: now,
-      })
-      .eq('id', user_id);
 
     return new Response(
       JSON.stringify({ success: true }),

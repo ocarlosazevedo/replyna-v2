@@ -25,6 +25,7 @@ interface Subscription {
   asaas_subscription_id: string
   status: string
   current_period_end: string
+  cancel_at_period_end?: boolean | null
 }
 
 interface TeamMember {
@@ -634,6 +635,18 @@ export default function AdminClients() {
     }
   }
 
+  const getCancelScheduleTag = (client: Client) => {
+    if (!client.subscription?.cancel_at_period_end) return null
+    const endDate = client.subscription.current_period_end
+      ? formatDate(client.subscription.current_period_end)
+      : null
+    return {
+      label: endDate ? `Cancelamento agendado (${endDate})` : 'Cancelamento agendado',
+      bg: 'rgba(251, 191, 36, 0.12)',
+      color: '#d97706',
+    }
+  }
+
   const getEditableStatusValue = (status: string | null | undefined): string => {
     switch (status) {
       case 'active':
@@ -838,6 +851,7 @@ export default function AdminClients() {
               const planColor = getPlanColor(client.plan)
               const effectiveStatus = getEffectiveStatus(client)
               const trialTag = getTrialTag(client, effectiveStatus)
+              const cancelTag = getCancelScheduleTag(client)
               return (
                 <div
                   key={client.id}
@@ -946,6 +960,20 @@ export default function AdminClients() {
                         {trialTag.label}
                       </span>
                     )}
+                    {cancelTag && (
+                      <span
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          backgroundColor: cancelTag.bg,
+                          color: cancelTag.color,
+                          fontSize: '11px',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {cancelTag.label}
+                      </span>
+                    )}
                     <span style={{ fontSize: '11px', color: client.shops_limit === null ? '#22c55e' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Store size={12} /> {client.shops.length}/{client.shops_limit === null ? '∞' : client.shops_limit}
                     </span>
@@ -1004,6 +1032,7 @@ export default function AdminClients() {
               const planColor = getPlanColor(client.plan)
               const effectiveStatus = getEffectiveStatus(client)
               const trialTag = getTrialTag(client, effectiveStatus)
+              const cancelTag = getCancelScheduleTag(client)
               return (
                 <>
                   <tr key={client.id} style={{ borderBottom: expandedClient === client.id ? 'none' : '1px solid var(--border-color)' }}>
@@ -1121,6 +1150,20 @@ export default function AdminClients() {
                             }}
                           >
                             {trialTag.label}
+                          </span>
+                        )}
+                        {cancelTag && (
+                          <span
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              backgroundColor: cancelTag.bg,
+                              color: cancelTag.color,
+                              fontSize: '11px',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {cancelTag.label}
                           </span>
                         )}
                       </div>
@@ -1811,6 +1854,9 @@ export default function AdminClients() {
                 </h3>
                 <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>
                   Tem certeza que deseja cancelar o plano de {cancelPlanTarget.name || cancelPlanTarget.email}?
+                </p>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '6px 0 0' }}>
+                  O cliente manterá acesso até o final do período pago {cancelPlanTarget.subscription?.current_period_end ? `(${formatDate(cancelPlanTarget.subscription.current_period_end)})` : ''}.
                 </p>
               </div>
             </div>

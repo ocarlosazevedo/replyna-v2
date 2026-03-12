@@ -45,7 +45,7 @@ serve(async (req) => {
         .order('sort_order'),
       supabase
         .from('subscriptions')
-        .select('user_id, asaas_subscription_id, status, current_period_end'),
+        .select('user_id, asaas_subscription_id, status, current_period_end, cancel_at_period_end'),
       supabase
         .from('team_members')
         .select('id, owner_user_id, member_user_id, role, allowed_shop_ids, created_at'),
@@ -85,6 +85,7 @@ serve(async (req) => {
       asaas_subscription_id: string;
       status: string;
       current_period_end: string;
+      cancel_at_period_end: boolean | null;
     }> = {};
 
     // Priorizar subscription ativa sobre cancelada
@@ -108,6 +109,7 @@ serve(async (req) => {
           asaas_subscription_id: sub.asaas_subscription_id,
           status: sub.status,
           current_period_end: sub.current_period_end,
+          cancel_at_period_end: sub.cancel_at_period_end ?? null,
         };
       }
     });

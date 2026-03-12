@@ -35,6 +35,7 @@ interface PendingInvoice {
 interface SubscriptionInfo {
   current_period_end: string | null
   status: string | null
+  cancel_at_period_end?: boolean | null
 }
 
 const formatNumber = (value: number) =>
@@ -561,7 +562,7 @@ export default function Account() {
     try {
       const { data, error } = await supabase
         .from('subscriptions')
-        .select('current_period_end, status')
+        .select('current_period_end, status, cancel_at_period_end')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -572,6 +573,7 @@ export default function Account() {
         setSubscriptionInfo({
           current_period_end: data.current_period_end,
           status: data.status,
+          cancel_at_period_end: data.cancel_at_period_end,
         })
       }
     } catch (err) {
@@ -1205,7 +1207,27 @@ export default function Account() {
                     Renova em {renewalDate ? formatDate(renewalDate) : '--'}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '16px' }}>
+                  {subscriptionInfo?.cancel_at_period_end && (
+                    <div style={{
+                      marginTop: '10px',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(251, 191, 36, 0.12)',
+                      border: '1px solid rgba(251, 191, 36, 0.35)',
+                      color: '#d97706',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                    }}>
+                      Seu plano será cancelado em {renewalDate ? formatDate(renewalDate) : 'breve'}. Você mantém acesso até essa data.
+                    </div>
+                  )}
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: subscriptionInfo?.cancel_at_period_end ? '1fr' : '1fr 1fr',
+                    gap: '10px',
+                    marginTop: '16px',
+                  }}>
                     <button
                       type="button"
                       onClick={handleOpenPlanModal}
@@ -1222,25 +1244,27 @@ export default function Account() {
                     >
                       Alterar plano
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const message = encodeURIComponent('Olá, gostaria de cancelar meu plano na Replyna.')
-                        window.open(`https://wa.me/5531973210191?text=${message}`, '_blank', 'noopener')
-                      }}
-                      style={{
-                        borderRadius: '10px',
-                        border: '1px solid #ef4444',
-                        color: '#ef4444',
-                        padding: '10px',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        background: 'var(--bg-card)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Cancelar plano
-                    </button>
+                    {!subscriptionInfo?.cancel_at_period_end && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const message = encodeURIComponent('Olá, gostaria de cancelar meu plano na Replyna.')
+                          window.open(`https://wa.me/5531973210191?text=${message}`, '_blank', 'noopener')
+                        }}
+                        style={{
+                          borderRadius: '10px',
+                          border: '1px solid #ef4444',
+                          color: '#ef4444',
+                          padding: '10px',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          background: 'var(--bg-card)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Cancelar plano
+                      </button>
+                    )}
                   </div>
 
                   <button

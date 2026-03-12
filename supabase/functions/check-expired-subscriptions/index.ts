@@ -21,12 +21,12 @@ serve(async (_req) => {
 
     const now = new Date().toISOString();
 
-    // Buscar usuários ativos com subscription expirada
-    // Junta users + subscriptions para encontrar quem tem period_end no passado
+    // Buscar subscriptions que expiraram e nao estao com cancelamento agendado
     const { data: expiredSubs, error: subError } = await supabase
       .from('subscriptions')
-      .select('id, user_id, status, current_period_end')
+      .select('id, user_id, status, current_period_end, cancel_at_period_end')
       .in('status', ['active', 'trialing'])
+      .eq('cancel_at_period_end', false)
       .lt('current_period_end', now);
 
     if (subError) {
@@ -34,17 +34,34 @@ serve(async (_req) => {
       return new Response(JSON.stringify({ error: subError.message }), { status: 500 });
     }
 
-    if (!expiredSubs || expiredSubs.length === 0) {
+    // Buscar subscriptions com cancelamento agendado e periodo finalizado
+    const { data: scheduledCancels, error: cancelError } = await supabase
+      .from('subscriptions')
+      .select('id, user_id, status, current_period_end, cancel_at_period_end')
+      .eq('cancel_at_period_end', true)
+      .lt('current_period_end', now)
+      .neq('status', 'canceled');
+
+    if (cancelError) {
+      console.error('[CheckExpired] Erro ao buscar cancelamentos agendados:', cancelError.message);
+      return new Response(JSON.stringify({ error: cancelError.message }), { status: 500 });
+    }
+
+    const hasExpired = expiredSubs && expiredSubs.length > 0;
+    const hasScheduled = scheduledCancels && scheduledCancels.length > 0;
+
+    if (!hasExpired && !hasScheduled) {
       console.log('[CheckExpired] Nenhuma subscription expirada encontrada');
-      return new Response(JSON.stringify({ suspended: 0 }), {
+      return new Response(JSON.stringify({ suspended: 0, canceled: 0 }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
     let suspendedCount = 0;
+    let canceledCount = 0;
 
-    for (const sub of expiredSubs) {
+    for (const sub of expiredSubs || []) {
       // Verificar se o usuário ainda está ativo
       const { data: user } = await supabase
         .from('users')
@@ -98,12 +115,54 @@ serve(async (_req) => {
       );
     }
 
-    console.log(`[CheckExpired] Total suspensos: ${suspendedCount} de ${expiredSubs.length} expirados`);
+    for (const sub of scheduledCancels || []) {
+      const { error: subUpdateError } = await supabase
+        .from('subscriptions')
+        .update({
+          status: 'canceled',
+          canceled_at: now,
+          updated_at: now,
+        })
+        .eq('id', sub.id);
+
+      if (subUpdateError) {
+        console.error(`[CheckExpired] Erro ao cancelar subscription ${sub.id}:`, subUpdateError.message);
+        continue;
+      }
+
+      const { error: userUpdateError } = await supabase
+        .from('users')
+        .update({
+          status: 'inactive',
+          plan: 'free',
+          emails_limit: 0,
+          shops_limit: 0,
+          updated_at: now,
+        })
+        .eq('id', sub.user_id);
+
+      if (userUpdateError) {
+        console.error(`[CheckExpired] Erro ao inativar usuario ${sub.user_id}:`, userUpdateError.message);
+        continue;
+      }
+
+      canceledCount++;
+      console.log(
+        `[CheckExpired] Cancelamento efetivado para usuario ${sub.user_id} - ` +
+        `periodo terminou em ${sub.current_period_end}`
+      );
+    }
+
+    console.log(
+      `[CheckExpired] Total suspensos: ${suspendedCount} de ${expiredSubs?.length || 0} expirados. ` +
+      `Total cancelados: ${canceledCount} de ${scheduledCancels?.length || 0} agendados.`
+    );
 
     return new Response(
       JSON.stringify({
-        checked: expiredSubs.length,
+        checked: (expiredSubs?.length || 0) + (scheduledCancels?.length || 0),
         suspended: suspendedCount,
+        canceled: canceledCount,
       }),
       {
         status: 200,
