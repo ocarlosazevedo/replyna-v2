@@ -302,12 +302,14 @@ export default function Plans() {
                   }}
                 >
                   {/* Badge area - altura fixa para alinhar cards com/sem badge */}
-                  <div style={{ height: '20px', marginBottom: '4px' }}>
+                  <div style={{
+                    minHeight: '22px',
+                    marginBottom: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}>
                     {isCurrent && (
                       <div style={{
-                        position: 'absolute',
-                        top: '-12px',
-                        left: '16px',
                         backgroundColor: 'var(--accent)',
                         color: '#fff',
                         padding: '4px 12px',
@@ -320,9 +322,7 @@ export default function Plans() {
                     )}
                     {plan.is_popular && !isCurrent && (
                       <div style={{
-                        position: 'absolute',
-                        top: '-12px',
-                        right: '16px',
+                        marginLeft: 'auto',
                         backgroundColor: '#f59e0b',
                         color: '#fff',
                         padding: '4px 12px',

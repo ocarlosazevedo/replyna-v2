@@ -205,7 +205,7 @@ export default function TrialExpired() {
         </div>
         <div>
           <h1 style={{ fontSize: '22px', fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>
-            Seu trial expirou
+            Seu período de teste grátis expirou
           </h1>
           <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>
             Para continuar usando a Replyna, escolha um plano pago abaixo.
@@ -362,12 +362,15 @@ export default function TrialExpired() {
                 }}
               >
                 {/* Badge */}
-                <div style={{ height: '20px', marginBottom: '4px' }}>
+                <div style={{
+                  minHeight: '22px',
+                  marginBottom: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}>
                   {plan.is_popular && (
                     <div style={{
-                      position: 'absolute',
-                      top: '-12px',
-                      right: '16px',
+                      marginLeft: 'auto',
                       backgroundColor: '#f59e0b',
                       color: '#fff',
                       padding: '4px 12px',

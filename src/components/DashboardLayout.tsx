@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Store, Ticket, FileText, User, LogOut, Menu, X, Users, Handshake } from 'lucide-react'
+import { LayoutGrid, Store, Ticket, FileText, User, LogOut, Menu, X, Users, Handshake, CreditCard } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useUserProfile } from '../hooks/useUserProfile'
 import { useTeamContext } from '../hooks/useTeamContext'
@@ -13,7 +13,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, signOut } = useAuth()
-  const { shops } = useUserProfile()
+  const { shops, profile } = useUserProfile()
   const { isTeamContext, hasPermission, allowedShopIds, loading: teamLoading } = useTeamContext()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -114,6 +114,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const isActive = (path: string) => location.pathname === path
+  const isExpired = profile?.status === 'expired'
+
+  const upgradeItem = { path: '/plans', label: 'Planos e upgrade', icon: CreditCard }
+  const visibleMenuItems = isExpired ? [upgradeItem, ...menuItems] : menuItems
 
   const sidebarContent = (
     <>
@@ -168,7 +172,49 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </ul>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {menuItems.map((item) => (
+            {visibleMenuItems.map((item) => {
+              const isDisabled = isExpired && item.path !== '/plans'
+              if (isDisabled) {
+                return (
+                  <li key={item.path} style={{ marginBottom: '8px' }}>
+                    <div
+                      className="replyna-sidebar-link"
+                      aria-disabled="true"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        textDecoration: 'none',
+                        fontWeight: 500,
+                        color: 'rgba(255, 255, 255, 0.45)',
+                        cursor: 'not-allowed',
+                        opacity: 0.7,
+                      }}
+                    >
+                      <item.icon size={18} />
+                      <span style={{ flex: 1 }}>{item.label}</span>
+                      {'badge' in item && (item.badge ?? 0) > 0 && (
+                        <span style={{
+                          backgroundColor: 'rgba(236, 72, 153, 0.2)',
+                          color: '#f472b6',
+                          padding: '1px 7px',
+                          borderRadius: '999px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          minWidth: '20px',
+                          textAlign: 'center',
+                        }}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                )
+              }
+
+              return (
               <li key={item.path} style={{ marginBottom: '8px' }}>
                 <Link
                   to={item.path}
@@ -201,14 +247,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   )}
                 </Link>
               </li>
-            ))}
+              )
+            })}
           </ul>
         )}
       </nav>
 
       {/* User & Logout */}
       <div style={{ padding: '16px', borderTop: '1px solid var(--sidebar-border)' }}>
-        {!teamLoading && !isTeamContext && (
+        {!teamLoading && !isTeamContext && !isExpired && (
           <Link
             to="/account"
             className={`replyna-sidebar-link${isActive('/account') ? ' active' : ''}`}
@@ -226,6 +273,28 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <User size={18} />
             Minha conta
           </Link>
+        )}
+        {!teamLoading && !isTeamContext && isExpired && (
+          <div
+            className="replyna-sidebar-link"
+            aria-disabled="true"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontWeight: 500,
+              gap: '12px',
+              marginBottom: '8px',
+              color: 'rgba(255, 255, 255, 0.45)',
+              cursor: 'not-allowed',
+              opacity: 0.7,
+            }}
+          >
+            <User size={18} />
+            Minha conta
+          </div>
         )}
         <button
           onClick={handleLogout}
