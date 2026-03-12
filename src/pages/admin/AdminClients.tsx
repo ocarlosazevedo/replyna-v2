@@ -468,7 +468,7 @@ export default function AdminClients() {
     return {
       label,
       bg: 'rgba(59, 130, 246, 0.12)',
-      color: '#3b82f6',
+      color: '#ffffff',
     }
   }
 
