@@ -33,6 +33,12 @@ verify_jwt = false
 [functions.get-user-profile]
 verify_jwt = false
 
-# Partner Withdraw - gateway JWT disabled (auth handled inside function)
+# Partner functions - gateway JWT disabled (auth handled inside each function)
 [functions.partner-withdraw]
+verify_jwt = false
+
+[functions.partner-profile]
+verify_jwt = false
+
+[functions.partner-register]
 verify_jwt = false

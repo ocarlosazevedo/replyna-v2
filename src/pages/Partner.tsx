@@ -98,11 +98,16 @@ export default function Partner() {
       })
       const data = await res.json()
 
+      if (!res.ok) {
+        console.error('[Partner] Erro ao carregar perfil:', data.error || data.message)
+        return
+      }
+
       setPartner(data.partner as Partner)
       setReferrals(data.referrals || [])
       setCommissions(data.commissions || [])
       setWithdrawals(data.withdrawals || [])
-    } catch (err) { console.error(err) } finally { setLoading(false) }
+    } catch (err) { console.error('[Partner] Erro:', err) } finally { setLoading(false) }
   }
 
   const handleChangeCoupon = async () => {
@@ -132,9 +137,7 @@ export default function Partner() {
     try {
       const session = await supabase.auth.getSession()
       const token = session.data.session?.access_token
-      if (!token) { console.error('[Partner] No token'); setSavingPix(false); return }
-
-      console.log('[Partner] Saving PIX:', { pix_key_type: pixKeyType, pix_key: pixKey.trim() })
+      if (!token) { setSavingPix(false); return }
 
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/partner-withdraw`, {
         method: 'PUT',
@@ -143,15 +146,13 @@ export default function Partner() {
       })
 
       const data = await res.json()
-      console.log('[Partner] PIX response:', res.status, data)
 
       if (res.ok) {
         setPartner({ ...partner, pix_key_type: pixKeyType, pix_key: pixKey.trim() }); setEditingPix(false)
       } else {
-        console.error('[Partner] PIX save error:', data.error)
-        alert(data.error || 'Erro ao salvar chave PIX')
+        alert(data.error || data.message || 'Erro ao salvar chave PIX')
       }
-    } catch (err) { console.error('[Partner] PIX exception:', err) } finally { setSavingPix(false) }
+    } catch (err) { console.error('[Partner] Erro ao salvar PIX:', err) } finally { setSavingPix(false) }
   }
 
   const handleWithdraw = async () => {
@@ -170,11 +171,15 @@ export default function Partner() {
         body: JSON.stringify({ amount }),
       })
 
+      const data = await res.json()
+
       if (res.ok) {
         setPartner({ ...partner, available_balance: partner.available_balance - amount })
         setShowWithdrawModal(false); setWithdrawAmount(''); loadPartnerData()
+      } else {
+        alert(data.error || data.message || 'Erro ao solicitar saque')
       }
-    } catch (err) { console.error(err) } finally { setWithdrawing(false) }
+    } catch (err) { console.error('[Partner] Erro ao sacar:', err) } finally { setWithdrawing(false) }
   }
 
   const copy = (text: string, key: string) => { navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(null), 2000) }
