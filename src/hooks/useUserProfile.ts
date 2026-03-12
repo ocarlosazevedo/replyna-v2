@@ -58,15 +58,30 @@ export function useUserProfile(): UseUserProfileResult {
         throw new Error('Sessão inválida')
       }
 
-      const response = await fetch(
+      const doRequest = (accessToken: string) => fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-profile`,
         {
           method: 'GET',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${accessToken}` },
         }
       )
 
+      let response = await doRequest(token)
+
+      if (response.status === 401) {
+        const { data: refreshed } = await supabase.auth.refreshSession()
+        const refreshedToken = refreshed?.session?.access_token
+        if (refreshedToken) {
+          response = await doRequest(refreshedToken)
+        }
+      }
+
       const data = await response.json()
+
+      if (response.status === 401) {
+        await supabase.auth.signOut()
+        throw new Error('Sessão expirada')
+      }
 
       if (response.status === 402 && data?.code === 'TRIAL_EXPIRED') {
         setProfile(data.profile || null)
