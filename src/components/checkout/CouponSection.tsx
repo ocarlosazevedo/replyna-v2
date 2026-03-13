@@ -21,7 +21,6 @@ interface CouponSectionProps {
 }
 
 export default function CouponSection({ planId, onCouponValidated, onCouponRemoved, onCodeChange, validation, initialCode }: CouponSectionProps) {
-  const [showField, setShowField] = useState(!!initialCode)
   const [code, setCode] = useState(initialCode || '')
   const [validating, setValidating] = useState(false)
 
@@ -91,7 +90,6 @@ export default function CouponSection({ planId, onCouponValidated, onCouponRemov
   }
 
   const handleRemove = () => {
-    setShowField(false)
     setCode('')
     onCouponRemoved()
   }
@@ -170,121 +168,86 @@ export default function CouponSection({ planId, onCouponValidated, onCouponRemov
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.4 }}
+      transition={{ duration: 0.4, delay: 0.1 }}
+      style={{
+        backgroundColor: 'var(--bg-card)',
+        borderRadius: '16px',
+        padding: '20px 24px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+      }}
     >
-      <AnimatePresence mode="wait">
-        {!showField ? (
-          <motion.button
-            key="toggle"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            type="button"
-            onClick={() => setShowField(true)}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              fontSize: '14px',
-              color: 'var(--accent)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontFamily: 'inherit',
-            }}
-          >
-            <Tag size={14} />
-            Tem um cupom de desconto?
-          </motion.button>
-        ) : (
-          <motion.div
-            key="field"
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+        <Tag size={16} style={{ color: 'var(--accent)' }} />
+        <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>
+          Cupom de desconto
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => {
+            const val = e.target.value.toUpperCase()
+            setCode(val)
+            onCodeChange?.(val)
+            if (validation) onCouponRemoved()
+          }}
+          style={inputStyle}
+          placeholder="CODIGO"
+        />
+        <button
+          type="button"
+          onClick={() => handleValidate()}
+          disabled={validating || !code.trim()}
+          style={{
+            padding: '10px 18px',
+            borderRadius: '10px',
+            border: 'none',
+            backgroundColor: 'var(--accent)',
+            color: '#fff',
+            fontWeight: 600,
+            fontSize: '14px',
+            cursor: validating || !code.trim() ? 'not-allowed' : 'pointer',
+            opacity: validating || !code.trim() ? 0.7 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontFamily: 'inherit',
+          }}
+        >
+          {validating ? (
+            <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+          ) : (
+            'Aplicar'
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={handleRemove}
+          style={{
+            padding: '10px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            backgroundColor: 'transparent',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <X size={16} />
+        </button>
+      </div>
+      <AnimatePresence>
+        {validation?.is_valid === false && (
+          <motion.p
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              borderRadius: '16px',
-              padding: '20px 24px',
-              border: '1px solid var(--border-color)',
-            }}
+            style={{ marginTop: '8px', fontSize: '13px', color: '#ef4444', margin: '8px 0 0' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-              <Tag size={16} style={{ color: 'var(--accent)' }} />
-              <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                Cupom de desconto
-              </span>
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => {
-                  const val = e.target.value.toUpperCase()
-                  setCode(val)
-                  onCodeChange?.(val)
-                  if (validation) onCouponRemoved()
-                }}
-                style={inputStyle}
-                placeholder="CODIGO"
-              />
-              <button
-                type="button"
-                onClick={() => handleValidate()}
-                disabled={validating || !code.trim()}
-                style={{
-                  padding: '12px 20px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  backgroundColor: 'var(--accent)',
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: validating || !code.trim() ? 'not-allowed' : 'pointer',
-                  opacity: validating || !code.trim() ? 0.7 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontFamily: 'inherit',
-                }}
-              >
-                {validating ? (
-                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                ) : (
-                  'Aplicar'
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={handleRemove}
-                style={{
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'transparent',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <AnimatePresence>
-              {validation?.is_valid === false && (
-                <motion.p
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  style={{ marginTop: '8px', fontSize: '13px', color: '#ef4444', margin: '8px 0 0' }}
-                >
-                  {validation.error_message || 'Cupom inválido'}
-                </motion.p>
-              )}
-            </AnimatePresence>
-          </motion.div>
+            {validation.error_message || 'Cupom inválido'}
+          </motion.p>
         )}
       </AnimatePresence>
     </motion.div>

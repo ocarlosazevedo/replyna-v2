@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CreditCard, Eye, EyeOff, Wifi, ShieldCheck } from 'lucide-react'
+import { CreditCard, Eye, EyeOff, Wifi } from 'lucide-react'
 import {
   detectCardBrand,
   formatCardNumber,
@@ -411,20 +411,6 @@ export default function CardInput({ card, onChange, onBrandDetected, onInternati
             Cartão de crédito
           </p>
         </div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '4px',
-            padding: '4px 10px', borderRadius: '20px',
-            backgroundColor: 'rgba(34, 197, 94, 0.08)',
-            border: '1px solid rgba(34, 197, 94, 0.2)',
-          }}
-        >
-          <ShieldCheck size={13} style={{ color: '#22c55e' }} />
-          <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 600 }}>Criptografado</span>
-        </motion.div>
       </div>
 
       <div style={{

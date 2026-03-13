@@ -235,73 +235,63 @@ export default function AddressSection({ address, onChange, isInternational, emb
         </div>
       </div>
 
-      {/* Auto-filled fields */}
-      <AnimatePresence>
-        {(cepSuccess || isInternational || address.logradouro) && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>Rua</label>
-              <input
-                type="text"
-                value={address.logradouro}
-                onChange={(e) => updateField('logradouro', e.target.value)}
-                style={inputStyle}
-                placeholder="Rua, Avenida..."
-              />
-            </div>
+      <div>
+        <div style={{ marginBottom: '16px' }}>
+          <label style={labelStyle}>Rua</label>
+          <input
+            type="text"
+            value={address.logradouro}
+            onChange={(e) => updateField('logradouro', e.target.value)}
+            style={inputStyle}
+            placeholder="Rua, Avenida..."
+          />
+        </div>
 
-            <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>Complemento</label>
-              <input
-                type="text"
-                value={address.complemento}
-                onChange={(e) => updateField('complemento', e.target.value)}
-                style={inputStyle}
-                placeholder="Apto, Sala..."
-              />
-            </div>
+        <div style={{ marginBottom: '16px' }}>
+          <label style={labelStyle}>Complemento</label>
+          <input
+            type="text"
+            value={address.complemento}
+            onChange={(e) => updateField('complemento', e.target.value)}
+            style={inputStyle}
+            placeholder="Apto, Sala..."
+          />
+        </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.6fr', gap: '12px' }}>
-              <div>
-                <label style={labelStyle}>Bairro</label>
-                <input
-                  type="text"
-                  value={address.bairro}
-                  onChange={(e) => updateField('bairro', e.target.value)}
-                  style={inputStyle}
-                  placeholder="Bairro"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Cidade</label>
-                <input
-                  type="text"
-                  value={address.cidade}
-                  onChange={(e) => updateField('cidade', e.target.value)}
-                  style={inputStyle}
-                  placeholder="Cidade"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Estado</label>
-                <input
-                  type="text"
-                  value={address.estado}
-                  onChange={(e) => updateField('estado', e.target.value)}
-                  style={inputStyle}
-                  placeholder="UF"
-                  maxLength={2}
-                />
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.6fr', gap: '12px' }}>
+          <div>
+            <label style={labelStyle}>Bairro</label>
+            <input
+              type="text"
+              value={address.bairro}
+              onChange={(e) => updateField('bairro', e.target.value)}
+              style={inputStyle}
+              placeholder="Bairro"
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Cidade</label>
+            <input
+              type="text"
+              value={address.cidade}
+              onChange={(e) => updateField('cidade', e.target.value)}
+              style={inputStyle}
+              placeholder="Cidade"
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Estado</label>
+            <input
+              type="text"
+              value={address.estado}
+              onChange={(e) => updateField('estado', e.target.value)}
+              style={inputStyle}
+              placeholder="UF"
+              maxLength={2}
+            />
+          </div>
+        </div>
+      </div>
     </motion.div>
   )
 }
