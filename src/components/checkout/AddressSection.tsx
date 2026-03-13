@@ -17,6 +17,7 @@ interface AddressSectionProps {
   address: AddressData
   onChange: (address: AddressData) => void
   isInternational?: boolean
+  embedded?: boolean
 }
 
 interface ViaCepResponse {
@@ -29,7 +30,7 @@ interface ViaCepResponse {
   erro?: boolean
 }
 
-export default function AddressSection({ address, onChange, isInternational }: AddressSectionProps) {
+export default function AddressSection({ address, onChange, isInternational, embedded }: AddressSectionProps) {
   const [cepLoading, setCepLoading] = useState(false)
   const [cepError, setCepError] = useState('')
   const [cepSuccess, setCepSuccess] = useState(false)
@@ -99,8 +100,8 @@ export default function AddressSection({ address, onChange, isInternational }: A
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: '12px 16px',
-    border: '1px solid var(--input-border)',
+    padding: '10px 16px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: '10px',
     fontSize: '15px',
     boxSizing: 'border-box',
@@ -125,10 +126,10 @@ export default function AddressSection({ address, onChange, isInternational }: A
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2 }}
       style={{
-        backgroundColor: 'var(--bg-card)',
-        borderRadius: '16px',
-        padding: '24px',
-        border: '1px solid var(--border-color)',
+        backgroundColor: embedded ? 'transparent' : 'var(--bg-card)',
+        borderRadius: embedded ? 0 : '24px',
+        padding: embedded ? 0 : '24px',
+        border: embedded ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
@@ -153,9 +154,8 @@ export default function AddressSection({ address, onChange, isInternational }: A
         </div>
       </div>
 
-      {/* CEP */}
-      {!isInternational && (
-        <div style={{ marginBottom: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+        <div>
           <label style={labelStyle}>CEP</label>
           <div style={{ position: 'relative' }}>
             <input
@@ -223,7 +223,17 @@ export default function AddressSection({ address, onChange, isInternational }: A
             )}
           </AnimatePresence>
         </div>
-      )}
+        <div>
+          <label style={labelStyle}>Número</label>
+          <input
+            type="text"
+            value={address.numero}
+            onChange={(e) => updateField('numero', e.target.value)}
+            style={inputStyle}
+            placeholder="123"
+          />
+        </div>
+      </div>
 
       {/* Auto-filled fields */}
       <AnimatePresence>
@@ -235,7 +245,7 @@ export default function AddressSection({ address, onChange, isInternational }: A
             transition={{ duration: 0.3 }}
           >
             <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>Logradouro</label>
+              <label style={labelStyle}>Rua</label>
               <input
                 type="text"
                 value={address.logradouro}
@@ -245,41 +255,28 @@ export default function AddressSection({ address, onChange, isInternational }: A
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '16px' }}>
-              <div>
-                <label style={labelStyle}>Numero</label>
-                <input
-                  type="text"
-                  value={address.numero}
-                  onChange={(e) => updateField('numero', e.target.value)}
-                  style={inputStyle}
-                  placeholder="123"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Complemento</label>
-                <input
-                  type="text"
-                  value={address.complemento}
-                  onChange={(e) => updateField('complemento', e.target.value)}
-                  style={inputStyle}
-                  placeholder="Apto, Sala..."
-                />
-              </div>
-            </div>
-
             <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>Bairro</label>
+              <label style={labelStyle}>Complemento</label>
               <input
                 type="text"
-                value={address.bairro}
-                onChange={(e) => updateField('bairro', e.target.value)}
+                value={address.complemento}
+                onChange={(e) => updateField('complemento', e.target.value)}
                 style={inputStyle}
-                placeholder="Bairro"
+                placeholder="Apto, Sala..."
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.6fr', gap: '12px' }}>
+              <div>
+                <label style={labelStyle}>Bairro</label>
+                <input
+                  type="text"
+                  value={address.bairro}
+                  onChange={(e) => updateField('bairro', e.target.value)}
+                  style={inputStyle}
+                  placeholder="Bairro"
+                />
+              </div>
               <div>
                 <label style={labelStyle}>Cidade</label>
                 <input

@@ -98,8 +98,8 @@ export default function CouponSection({ planId, onCouponValidated, onCouponRemov
 
   const inputStyle: React.CSSProperties = {
     flex: 1,
-    padding: '12px 16px',
-    border: `1px solid ${validation?.is_valid === false ? '#ef4444' : 'var(--input-border)'}`,
+    padding: '10px 16px',
+    border: `1px solid ${validation?.is_valid === false ? '#ef4444' : 'rgba(255, 255, 255, 0.1)'}`,
     borderRadius: '10px',
     fontSize: '14px',
     boxSizing: 'border-box',

@@ -258,25 +258,25 @@ export default function CheckoutSuccess() {
 
         <div style={{
           padding: '20px',
-          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+          backgroundColor: 'rgba(70, 114, 236, 0.08)',
           borderRadius: '12px',
           marginBottom: '20px',
-          border: '1px solid rgba(245, 158, 11, 0.2)',
+          border: '1px solid rgba(70, 114, 236, 0.2)',
         }}>
           <p style={{
             fontSize: '15px',
-            color: '#b45309',
+            color: 'var(--text-primary)',
             fontWeight: 600,
             marginBottom: '8px',
           }}>
-            Importante: Defina sua senha
+            Acesso enviado por email
           </p>
           <p style={{
             fontSize: '14px',
             color: 'var(--text-secondary)',
             lineHeight: 1.5,
           }}>
-            Enviamos um email para você definir sua senha de acesso. Verifique sua caixa de entrada (e spam) e clique no link para criar sua senha.
+            Enviamos um link de acesso para o seu email. Verifique sua caixa de entrada (e spam) e clique no link para entrar.
           </p>
         </div>
 

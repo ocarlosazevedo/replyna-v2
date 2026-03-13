@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CreditCard, Lock, Eye, EyeOff, Wifi, ShieldCheck } from 'lucide-react'
+import { CreditCard, Eye, EyeOff, Wifi, ShieldCheck } from 'lucide-react'
 import {
   detectCardBrand,
   formatCardNumber,
@@ -23,6 +23,8 @@ interface CardInputProps {
   onChange: (card: CardData) => void
   onBrandDetected?: (brand: CardBrand) => void
   onInternationalDetected?: (isInternational: boolean) => void
+  embedded?: boolean
+  children?: React.ReactNode
 }
 
 const BRAND_LABELS: Record<CardBrand, string> = {
@@ -291,11 +293,12 @@ function CardPreview({ card, brand, isFlipped, focusedField }: { card: CardData;
   )
 }
 
-export default function CardInput({ card, onChange, onBrandDetected, onInternationalDetected }: CardInputProps) {
+export default function CardInput({ card, onChange, onBrandDetected, onInternationalDetected, embedded, children }: CardInputProps) {
   const [brand, setBrand] = useState<CardBrand>('unknown')
   const [showCvv, setShowCvv] = useState(false)
   const [isFlipped, setIsFlipped] = useState(false)
   const [focusedField, setFocusedField] = useState<FocusedField>(null)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const holderNameRef = useRef<HTMLInputElement>(null)
   const expiryRef = useRef<HTMLInputElement>(null)
   const cvvRef = useRef<HTMLInputElement>(null)
@@ -346,10 +349,16 @@ export default function CardInput({ card, onChange, onBrandDetected, onInternati
     setIsFlipped(false)
   }
 
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: '12px 16px',
-    border: '2px solid var(--input-border)',
+    padding: '10px 16px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: '10px',
     fontSize: '15px',
     boxSizing: 'border-box',
@@ -379,10 +388,10 @@ export default function CardInput({ card, onChange, onBrandDetected, onInternati
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
       style={{
-        backgroundColor: 'var(--bg-card)',
-        borderRadius: '16px',
-        padding: '24px',
-        border: '1px solid var(--border-color)',
+        backgroundColor: embedded ? 'transparent' : 'var(--bg-card)',
+        borderRadius: embedded ? 0 : '24px',
+        padding: embedded ? 0 : '24px',
+        border: embedded ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
       }}
     >
       {/* Header */}
@@ -418,142 +427,136 @@ export default function CardInput({ card, onChange, onBrandDetected, onInternati
         </motion.div>
       </div>
 
-      {/* Card Preview */}
-      <CardPreview card={card} brand={brand} isFlipped={isFlipped} focusedField={focusedField} />
-
-      {/* Card Number */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        style={{ marginBottom: '16px' }}
-      >
-        <label style={labelStyle}>Número do cartão</label>
-        <input
-          type="text"
-          inputMode="numeric"
-          value={card.number}
-          onChange={(e) => handleNumberChange(e.target.value)}
-          onFocus={() => handleFocus('number')}
-          onBlur={handleBlur}
-          style={{
-            ...inputStyle,
-            fontFamily: '"Manrope", monospace',
-            letterSpacing: '1px',
-            ...(focusedField === 'number' ? focusedInputStyle : {}),
-          }}
-          placeholder="0000 0000 0000 0000"
-        />
-      </motion.div>
-
-      {/* Holder Name */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        style={{ marginBottom: '16px' }}
-      >
-        <label style={labelStyle}>Nome no cartão</label>
-        <input
-          ref={holderNameRef}
-          type="text"
-          value={card.holderName}
-          onChange={(e) => onChange({ ...card, holderName: e.target.value.toUpperCase() })}
-          onFocus={() => handleFocus('name')}
-          onBlur={handleBlur}
-          style={{
-            ...inputStyle,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            ...(focusedField === 'name' ? focusedInputStyle : {}),
-          }}
-          placeholder="NOME COMO ESTA NO CARTAO"
-        />
-      </motion.div>
-
-      {/* Expiry + CVV */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}
-      >
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: '24px',
+        alignItems: 'start',
+      }}>
         <div>
-          <label style={labelStyle}>Validade</label>
-          <input
-            ref={expiryRef}
-            type="text"
-            inputMode="numeric"
-            value={card.expiry}
-            onChange={(e) => handleExpiryChange(e.target.value)}
-            onFocus={() => handleFocus('expiry')}
-            onBlur={handleBlur}
-            style={{
-              ...inputStyle,
-              fontFamily: '"Manrope", monospace',
-              letterSpacing: '2px',
-              textAlign: 'center',
-              ...(focusedField === 'expiry' ? focusedInputStyle : {}),
-            }}
-            placeholder="MM/AA"
-            maxLength={5}
-          />
-        </div>
-        <div>
-          <label style={labelStyle}>CVV</label>
-          <div style={{ position: 'relative' }}>
+          {/* Card Number */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            style={{ marginBottom: '16px' }}
+          >
+            <label style={labelStyle}>Número do cartão</label>
             <input
-              ref={cvvRef}
-              type={showCvv ? 'text' : 'password'}
+              type="text"
               inputMode="numeric"
-              value={card.cvv}
-              onChange={(e) => handleCvvChange(e.target.value)}
-              onFocus={() => handleFocus('cvv')}
+              value={card.number}
+              onChange={(e) => handleNumberChange(e.target.value)}
+              onFocus={() => handleFocus('number')}
               onBlur={handleBlur}
               style={{
                 ...inputStyle,
                 fontFamily: '"Manrope", monospace',
-                letterSpacing: '4px',
-                textAlign: 'center',
-                paddingRight: '40px',
-                ...(focusedField === 'cvv' ? focusedInputStyle : {}),
+                letterSpacing: '1px',
+                ...(focusedField === 'number' ? focusedInputStyle : {}),
               }}
-              placeholder={brand === 'amex' ? '0000' : '000'}
-              maxLength={getCvvLength(brand)}
+              placeholder="0000 0000 0000 0000"
             />
-            <button
-              type="button"
-              onClick={() => setShowCvv(!showCvv)}
-              style={{
-                position: 'absolute', right: '10px', top: '50%',
-                transform: 'translateY(-50%)', background: 'none',
-                border: 'none', cursor: 'pointer', padding: '2px',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              {showCvv ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </div>
-        </div>
-      </motion.div>
+          </motion.div>
 
-      {/* Security footer */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: '6px', marginTop: '20px', padding: '12px',
-          borderRadius: '10px', backgroundColor: 'rgba(34, 197, 94, 0.04)',
-          border: '1px solid rgba(34, 197, 94, 0.08)',
-        }}
-      >
-        <Lock size={12} style={{ color: '#22c55e' }} />
-        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-          Seus dados sao criptografados com SSL de 256 bits
-        </span>
-      </motion.div>
+          {/* Holder Name */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            style={{ marginBottom: '16px' }}
+          >
+            <label style={labelStyle}>Nome no cartão</label>
+            <input
+              ref={holderNameRef}
+              type="text"
+              value={card.holderName}
+              onChange={(e) => onChange({ ...card, holderName: e.target.value.toUpperCase() })}
+              onFocus={() => handleFocus('name')}
+              onBlur={handleBlur}
+              style={{
+                ...inputStyle,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                ...(focusedField === 'name' ? focusedInputStyle : {}),
+              }}
+              placeholder="NOME COMO ESTA NO CARTAO"
+            />
+          </motion.div>
+
+          {/* Expiry + CVV */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}
+          >
+            <div>
+              <label style={labelStyle}>Validade</label>
+              <input
+                ref={expiryRef}
+                type="text"
+                inputMode="numeric"
+                value={card.expiry}
+                onChange={(e) => handleExpiryChange(e.target.value)}
+                onFocus={() => handleFocus('expiry')}
+                onBlur={handleBlur}
+                style={{
+                  ...inputStyle,
+                  fontFamily: '"Manrope", monospace',
+                  letterSpacing: '2px',
+                  textAlign: 'center',
+                  ...(focusedField === 'expiry' ? focusedInputStyle : {}),
+                }}
+                placeholder="MM/AA"
+                maxLength={5}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>CVV</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  ref={cvvRef}
+                  type={showCvv ? 'text' : 'password'}
+                  inputMode="numeric"
+                  value={card.cvv}
+                  onChange={(e) => handleCvvChange(e.target.value)}
+                  onFocus={() => handleFocus('cvv')}
+                  onBlur={handleBlur}
+                  style={{
+                    ...inputStyle,
+                    fontFamily: '"Manrope", monospace',
+                    letterSpacing: '4px',
+                    textAlign: 'center',
+                    paddingRight: '40px',
+                    ...(focusedField === 'cvv' ? focusedInputStyle : {}),
+                  }}
+                  placeholder={brand === 'amex' ? '0000' : '000'}
+                  maxLength={getCvvLength(brand)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCvv(!showCvv)}
+                  style={{
+                    position: 'absolute', right: '10px', top: '50%',
+                    transform: 'translateY(-50%)', background: 'none',
+                    border: 'none', cursor: 'pointer', padding: '2px',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  {showCvv ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+
+          {children}
+        </div>
+
+        <div>
+          <CardPreview card={card} brand={brand} isFlipped={isFlipped} focusedField={focusedField} />
+        </div>
+      </div>
     </motion.div>
   )
 }

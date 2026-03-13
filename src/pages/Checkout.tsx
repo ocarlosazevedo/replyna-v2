@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, MapPin, CreditCard, ShieldCheck, Lock } from 'lucide-react'
+import { ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, ShieldCheck, Lock, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCpfCnpj, validateCPF, parseExpiryDate } from '../utils/cardUtils'
 import { normalizePlanSlug } from '../utils/plan'
@@ -37,12 +37,11 @@ interface LocationState {
   userId?: string
 }
 
-type StepId = 'personal' | 'address' | 'payment' | 'review'
+type StepId = 'personal' | 'address' | 'payment'
 
 interface Step {
   id: StepId
   label: string
-  icon: typeof User
 }
 
 const countryCodes = [
@@ -99,6 +98,10 @@ export default function Checkout() {
   const [countryCode, setCountryCode] = useState('+55')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [cpfCnpj, setCpfCnpj] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isInternational, setIsInternational] = useState(false)
 
   // Address
@@ -120,17 +123,14 @@ export default function Checkout() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isWide, setIsWide] = useState(window.innerWidth >= 1536)
 
   // Steps definition - payment step is always included (trial tokenizes card without charging)
-  const getSteps = (): Step[] => {
-    const steps: Step[] = [
-      { id: 'personal', label: 'Dados', icon: User },
-      { id: 'address', label: 'Endereço', icon: MapPin },
-      { id: 'payment', label: 'Pagamento', icon: CreditCard },
-      { id: 'review', label: 'Revisão', icon: Check },
-    ]
-    return steps
-  }
+  const getSteps = (): Step[] => ([
+    { id: 'personal', label: 'Dados pessoais' },
+    { id: 'address', label: 'Endereço' },
+    { id: 'payment', label: 'Pagamento' },
+  ])
 
   useEffect(() => {
     if (state?.plan) {
@@ -245,7 +245,10 @@ export default function Checkout() {
   }, [isUpgrade, upgradeUserId])
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+      setIsWide(window.innerWidth >= 1536)
+    }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
@@ -278,6 +281,10 @@ export default function Checkout() {
       const cpfDigits = cpfCnpj.replace(/\D/g, '')
       if (cpfDigits.length === 11 && !validateCPF(cpfCnpj)) return 'CPF inválido'
       if (cpfDigits.length < 11) return 'Informe seu CPF completo'
+      if (isTrialFlow && !isUpgrade) {
+        if (password.trim().length < 8) return 'A senha deve ter pelo menos 8 caracteres'
+        if (password !== confirmPassword) return 'As senhas não coincidem'
+      }
     }
     if (stepId === 'address') {
       if (!isInternational && !address.cep) return 'Informe o CEP'
@@ -508,8 +515,8 @@ export default function Checkout() {
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: '12px 16px',
-    border: '1px solid var(--input-border)',
+    padding: '10px 16px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: '10px',
     fontSize: '15px',
     boxSizing: 'border-box',
@@ -533,16 +540,19 @@ export default function Checkout() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '4px',
+      gap: isMobile ? '10px' : '18px',
       marginBottom: '32px',
+      flexWrap: 'wrap',
     }}>
       {steps.map((s, index) => {
         const isCompleted = index < currentStepIndex
         const isCurrent = s.id === currentStep
-        const Icon = s.icon
+        const circleBg = isCompleted ? '#22c55e' : isCurrent ? 'var(--accent)' : 'var(--bg-card)'
+        const circleBorder = isCompleted || isCurrent ? 'transparent' : 'var(--border-color)'
+        const circleColor = isCompleted || isCurrent ? '#fff' : 'var(--text-secondary)'
 
         return (
-          <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px' }}>
             <motion.button
               type="button"
               onClick={() => {
@@ -550,73 +560,61 @@ export default function Checkout() {
               }}
               whileHover={isCompleted ? { scale: 1.05 } : {}}
               whileTap={isCompleted ? { scale: 0.95 } : {}}
-              animate={{
-                backgroundColor: isCurrent
-                  ? 'var(--accent)'
-                  : isCompleted
-                    ? 'rgba(34, 197, 94, 0.1)'
-                    : 'var(--bg-card)',
-              }}
-              transition={{ duration: 0.3 }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                borderRadius: '999px',
+                gap: '10px',
+                background: 'transparent',
                 border: 'none',
                 cursor: isCompleted ? 'pointer' : 'default',
-                backgroundColor: isCurrent
-                  ? 'var(--accent)'
-                  : isCompleted
-                    ? 'rgba(34, 197, 94, 0.1)'
-                    : 'var(--bg-card)',
-                color: isCurrent
-                  ? '#fff'
-                  : isCompleted
-                    ? '#22c55e'
-                    : 'var(--text-secondary)',
+                padding: 0,
+                color: isCurrent ? 'var(--text-primary)' : 'var(--text-secondary)',
                 fontFamily: 'inherit',
-                fontSize: '13px',
-                fontWeight: 600,
-                transition: 'color 0.3s ease',
               }}
             >
-              <AnimatePresence mode="wait">
-                {isCompleted ? (
-                  <motion.div
-                    key="check"
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                    style={{ display: 'flex' }}
-                  >
-                    <Check size={14} />
-                  </motion.div>
-                ) : (
-                  <motion.div key="icon" style={{ display: 'flex' }}>
-                    <Icon size={14} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              {!isMobile && s.label}
+              <motion.span
+                initial={false}
+                animate={{ backgroundColor: circleBg, borderColor: circleBorder, color: circleColor }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: `1px solid ${circleBorder}`,
+                  fontSize: '13px',
+                  fontWeight: 700,
+                }}
+              >
+                {isCompleted ? <Check size={16} /> : index + 1}
+              </motion.span>
+              {!isMobile && (
+                <span style={{ fontSize: '13px', fontWeight: isCurrent ? 700 : 600 }}>
+                  {s.label}
+                </span>
+              )}
             </motion.button>
             {index < steps.length - 1 && (
               <div style={{
-                width: isMobile ? '16px' : '32px',
-                height: '2px',
-                borderRadius: '1px',
-                overflow: 'hidden',
+                width: isMobile ? '22px' : '40px',
+                height: '1px',
                 backgroundColor: 'var(--border-color)',
                 position: 'relative',
+                borderRadius: '999px',
+                overflow: 'hidden',
               }}>
                 <motion.div
                   initial={false}
                   animate={{ width: isCompleted ? '100%' : '0%' }}
-                  transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                  transition={{ duration: 0.3 }}
                   style={{
-                    position: 'absolute', top: 0, left: 0, height: '100%',
-                    backgroundColor: '#22c55e', borderRadius: '1px',
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, rgba(70, 114, 236, 1) 0%, rgba(120, 96, 255, 1) 100%)',
                   }}
                 />
               </div>
@@ -627,30 +625,47 @@ export default function Checkout() {
     </div>
   )
 
-  // reviewStepContent is inlined as JSX (not a component) to avoid remounting on parent re-render
-
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
-      {/* Top bar */}
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)', position: 'relative', overflow: 'hidden' }}>
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '20px 24px',
-        maxWidth: '1100px',
-        margin: '0 auto',
-      }}>
-        <a href="https://replyna.me" style={{ display: 'flex', alignItems: 'center' }}>
-          <img src="/replyna-logo.webp" alt="Replyna" style={{ width: '120px', height: 'auto' }} />
-        </a>
-      </div>
+        position: 'absolute',
+        width: '520px',
+        height: '520px',
+        top: '-160px',
+        right: '-120px',
+        background: 'radial-gradient(circle, rgba(70, 114, 236, 0.35) 0%, rgba(70, 114, 236, 0) 70%)',
+        filter: 'blur(100px)',
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute',
+        width: '620px',
+        height: '620px',
+        bottom: '-220px',
+        left: '-140px',
+        background: 'radial-gradient(circle, rgba(120, 96, 255, 0.32) 0%, rgba(120, 96, 255, 0) 70%)',
+        filter: 'blur(120px)',
+        zIndex: 0,
+      }} />
 
-      {/* Content */}
       <div style={{
-        maxWidth: '1100px',
+        position: 'relative',
+        zIndex: 1,
+        maxWidth: isWide ? '1400px' : '1280px',
         margin: '0 auto',
-        padding: '0 20px 60px',
+        padding: '48px 24px',
       }}>
+        {/* Top bar */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '24px',
+        }}>
+          <a href="https://replyna.me" style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/replyna-logo.webp" alt="Replyna" style={{ height: '40px', width: 'auto' }} />
+          </a>
+        </div>
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -667,14 +682,11 @@ export default function Checkout() {
           </p>
         </motion.div>
 
-        {/* Step indicator */}
-        <StepIndicator />
-
         {/* 2-column layout */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 340px',
-          gap: '24px',
+          gridTemplateColumns: isMobile ? '1fr' : '1.2fr 0.8fr',
+          gap: '32px',
           alignItems: 'start',
         }}>
           {/* Sidebar on mobile (top) */}
@@ -688,7 +700,14 @@ export default function Checkout() {
           )}
 
           {/* Left: Step content */}
-          <div>
+          <div style={{
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: '24px',
+            padding: '24px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+          }}>
+            <StepIndicator />
+
             {/* Error */}
             <AnimatePresence>
               {error && (
@@ -727,10 +746,9 @@ export default function Checkout() {
                   exit="exit"
                   transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
                   style={{
-                    backgroundColor: 'var(--bg-card)',
-                    borderRadius: '16px',
-                    padding: '24px',
-                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
@@ -751,24 +769,24 @@ export default function Checkout() {
                     </div>
                   </div>
 
-                  <div style={{ marginBottom: '16px' }}>
+                  <div>
                     <label style={labelStyle}>Nome completo</label>
                     <input type="text" value={name} onChange={(e) => setName(e.target.value)}
                       style={inputStyle} placeholder="Seu nome" />
                   </div>
 
-                  <div style={{ marginBottom: '16px' }}>
+                  <div>
                     <label style={labelStyle}>Email</label>
                     <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                       style={inputStyle} placeholder="seu@email.com" />
                   </div>
 
-                  <div style={{ marginBottom: '16px' }}>
+                  <div>
                     <label style={labelStyle}>Celular / WhatsApp</label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)}
                         style={{
-                          padding: '12px 8px', border: '1px solid var(--input-border)',
+                          padding: '10px 8px', border: '1px solid rgba(255, 255, 255, 0.1)',
                           borderRadius: '10px', fontSize: '15px', backgroundColor: 'var(--input-bg)',
                           color: 'var(--text-primary)', minWidth: '110px', fontFamily: 'inherit',
                         }}>
@@ -783,13 +801,76 @@ export default function Checkout() {
 
                   <div>
                     <label style={labelStyle}>
-                      CPF ou CNPJ
+                      CPF
                     </label>
                     <input type="text" value={cpfCnpj}
                       onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))}
                       style={inputStyle}
                       placeholder="000.000.000-00" />
                   </div>
+
+                  {isTrialFlow && !isUpgrade && (
+                    <div style={{ marginTop: '20px', display: 'grid', gap: '16px' }}>
+                      <div>
+                        <label style={labelStyle}>Senha</label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            style={{ ...inputStyle, paddingRight: '42px' }}
+                            placeholder="Mínimo 8 caracteres"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            style={{
+                              position: 'absolute',
+                              right: '12px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: 'var(--text-secondary)',
+                              padding: 0,
+                            }}
+                          >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Confirmar senha</label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            style={{ ...inputStyle, paddingRight: '42px' }}
+                            placeholder="Repita sua senha"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            style={{
+                              position: 'absolute',
+                              right: '12px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: 'var(--text-secondary)',
+                              padding: 0,
+                            }}
+                          >
+                            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
@@ -803,7 +884,7 @@ export default function Checkout() {
                   exit="exit"
                   transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
                 >
-                  <AddressSection address={address} onChange={setAddress} isInternational={isInternational} />
+                  <AddressSection embedded address={address} onChange={setAddress} isInternational={isInternational} />
 
                   {isInternational && (
                     <motion.div
@@ -854,169 +935,25 @@ export default function Checkout() {
                     </div>
                   )}
                   <CardInput
+                    embedded
                     card={card}
                     onChange={setCard}
                     onBrandDetected={() => {}}
                     onInternationalDetected={setIsInternational}
-                  />
-                </motion.div>
-              )}
-
-              {currentStep === 'review' && (
-                <motion.div
-                  key="review"
-                  custom={direction}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
-                >
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
                   >
-                    {/* Personal info summary */}
-                    <div style={{
-                      backgroundColor: 'var(--bg-card)',
-                      borderRadius: '16px',
-                      padding: '20px 24px',
-                      border: '1px solid var(--border-color)',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Dados pessoais</h4>
-                        <button
-                          type="button"
-                          onClick={() => goToStep('personal')}
-                          style={{
-                            background: 'none', border: 'none', color: 'var(--accent)',
-                            cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
-                          }}
-                        >
-                          Editar
-                        </button>
-                      </div>
-                      <div style={{ display: 'grid', gap: '6px' }}>
-                        <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{name}</span>
-                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{email}</span>
-                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{getFullPhoneNumber()}</span>
-                        {cpfCnpj && <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{cpfCnpj}</span>}
-                      </div>
-                    </div>
-
-                    {/* Address summary */}
-                    <div style={{
-                      backgroundColor: 'var(--bg-card)',
-                      borderRadius: '16px',
-                      padding: '20px 24px',
-                      border: '1px solid var(--border-color)',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Endereço</h4>
-                        <button
-                          type="button"
-                          onClick={() => goToStep('address')}
-                          style={{
-                            background: 'none', border: 'none', color: 'var(--accent)',
-                            cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
-                          }}
-                        >
-                          Editar
-                        </button>
-                      </div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                        {address.logradouro}, {address.numero}
-                        {address.complemento && ` - ${address.complemento}`}<br />
-                        {address.bairro && `${address.bairro} - `}{address.cidade}/{address.estado}<br />
-                        CEP: {address.cep}
-                      </div>
-                    </div>
-
-                    {/* Card summary */}
-                    <div style={{
-                      backgroundColor: 'var(--bg-card)',
-                      borderRadius: '16px',
-                      padding: '20px 24px',
-                      border: '1px solid var(--border-color)',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Cartão</h4>
-                        <button
-                          type="button"
-                          onClick={() => goToStep('payment')}
-                          style={{
-                            background: 'none', border: 'none', color: 'var(--accent)',
-                            cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
-                          }}
-                        >
-                          Editar
-                        </button>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <CreditCard size={18} style={{ color: 'var(--text-secondary)' }} />
-                        <div>
-                          <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
-                            **** **** **** {card.number.replace(/\D/g, '').slice(-4)}
-                          </span>
-                          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', marginLeft: '12px' }}>
-                            {card.holderName}
-                          </span>
-                        </div>
-                      </div>
-                      {isTrialFlow && (
-                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '10px 0 0', lineHeight: 1.5 }}>
-                          Seu cartão será salvo para quando o período de teste terminar. Nenhuma cobrança será feita agora.
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Coupon - only for paid */}
                     {!isTrialFlow && (
-                      <CouponSection
-                        planId={plan!.id}
-                        onCouponValidated={setCouponValidation}
-                        onCouponRemoved={() => { setCouponValidation(null); setCouponCode('') }}
-                        onCodeChange={setCouponCode}
-                        validation={couponValidation}
-                        initialCode={refCode || undefined}
-                      />
-                    )}
-
-                    {/* Price summary */}
-                    {!isTrialFlow && (
-                      <div style={{
-                        backgroundColor: 'var(--bg-card)',
-                        borderRadius: '16px',
-                        padding: '20px 24px',
-                        border: '1px solid var(--border-color)',
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Plano {plan!.name}</span>
-                          <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{formatPrice(plan!.price_monthly)}/mês</span>
-                        </div>
-                        {couponValidation?.is_valid && couponValidation.discount_value && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', color: '#22c55e' }}>Desconto</span>
-                            <span style={{ fontSize: '14px', color: '#22c55e', fontWeight: 600 }}>
-                              -{couponValidation.discount_type === 'percentage'
-                                ? formatPrice(plan!.price_monthly * couponValidation.discount_value / 100)
-                                : formatPrice(couponValidation.discount_value)}
-                            </span>
-                          </div>
-                        )}
-                        <div style={{
-                          display: 'flex', justifyContent: 'space-between',
-                          paddingTop: '12px', borderTop: '1px solid var(--border-color)',
-                        }}>
-                          <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Total</span>
-                          <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                            {formatPrice(calculateFinalPrice())}/mês
-                          </span>
-                        </div>
+                      <div style={{ marginTop: '20px' }}>
+                        <CouponSection
+                          planId={plan!.id}
+                          onCouponValidated={setCouponValidation}
+                          onCouponRemoved={() => { setCouponValidation(null); setCouponCode('') }}
+                          onCodeChange={setCouponCode}
+                          validation={couponValidation}
+                          initialCode={refCode || undefined}
+                        />
                       </div>
                     )}
-                  </motion.div>
+                  </CardInput>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1035,13 +972,13 @@ export default function Checkout() {
                   whileTap={{ scale: 0.99 }}
                   style={{
                     flex: '0 0 auto',
-                    padding: '14px 24px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-card)',
-                    color: 'var(--text-primary)',
-                    fontWeight: 600,
-                    fontSize: '15px',
+                    padding: '10px 20px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-secondary)',
+                    fontWeight: 500,
+                    fontSize: '14px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -1071,10 +1008,10 @@ export default function Checkout() {
                     ? isTrialFlow ? '#22c55e' : 'var(--accent)'
                     : 'var(--accent)',
                   color: '#ffffff',
-                  padding: '14px 24px',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  fontSize: '15px',
+                  padding: '10px 24px',
+                  borderRadius: '10px',
+                  fontWeight: 500,
+                  fontSize: '14px',
                   border: 'none',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   opacity: loading ? 0.85 : 1,
@@ -1111,8 +1048,7 @@ export default function Checkout() {
                       exit={{ opacity: 0 }}
                       style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
-                      <Lock size={15} />
-                      {isTrialFlow ? 'Começar grátis' : 'Finalizar assinatura'}
+                      {isTrialFlow ? 'Iniciar teste grátis' : `Pagar ${formatPrice(calculateFinalPrice())}/mês`}
                     </motion.div>
                   ) : (
                     <motion.div
@@ -1130,39 +1066,6 @@ export default function Checkout() {
               </motion.button>
             </div>
 
-            {/* Security trust bar */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '16px',
-                marginTop: '20px',
-                padding: '14px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(34, 197, 94, 0.04)',
-                border: '1px solid rgba(34, 197, 94, 0.08)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Lock size={12} style={{ color: '#22c55e' }} />
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>SSL 256-bit</span>
-              </div>
-              <div style={{ width: '1px', height: '14px', backgroundColor: 'var(--border-color)' }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <ShieldCheck size={12} style={{ color: '#22c55e' }} />
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                  {isTrialFlow ? 'Dados protegidos' : 'Pagamento seguro'}
-                </span>
-              </div>
-              <div style={{ width: '1px', height: '14px', backgroundColor: 'var(--border-color)' }} />
-              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                Cancele quando quiser
-              </span>
-            </motion.div>
           </div>
 
           {/* Right: Sidebar (desktop) */}
@@ -1173,6 +1076,19 @@ export default function Checkout() {
               couponValidation={couponValidation}
             />
           )}
+        </div>
+
+        <div style={{
+          marginTop: '48px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          fontSize: '14px',
+          color: 'var(--text-secondary)',
+        }}>
+          <ShieldCheck size={16} style={{ color: '#22c55e' }} />
+          Pagamento seguro processado pelo Asaas · Criptografia SSL
         </div>
       </div>
     </div>
