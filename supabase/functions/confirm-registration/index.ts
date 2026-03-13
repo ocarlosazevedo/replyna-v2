@@ -178,7 +178,7 @@ serve(async (req) => {
       id: userId,
       email: normalizedEmail,
       name: name || null,
-      plan: userIsTrial ? 'Free Trial' : (planData?.slug || 'Starter'),
+      plan: userIsTrial ? 'trial' : (planData?.slug || 'starter'),
       emails_limit: userIsTrial ? 30 : (planData?.emails_limit ?? 30),
       shops_limit: userIsTrial ? 1 : (planData?.shops_limit ?? 1),
       emails_used: 0,
