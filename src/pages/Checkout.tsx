@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, ShieldCheck, Lock, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, ShieldCheck, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCpfCnpj, validateCPF, parseExpiryDate } from '../utils/cardUtils'
 import { normalizePlanSlug } from '../utils/plan'
