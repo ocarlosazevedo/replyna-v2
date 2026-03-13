@@ -259,6 +259,15 @@ serve(async (req) => {
           nextDueDate,
           updatePendingPayments: true,
           creditCardToken: tokenResult.creditCardToken,
+          creditCardHolderInfo: {
+            name: creditCardHolderInfo.name,
+            email: normalizedEmail,
+            cpfCnpj: creditCardHolderInfo.cpfCnpj,
+            postalCode: creditCardHolderInfo.postalCode || undefined,
+            addressNumber: creditCardHolderInfo.addressNumber || undefined,
+            phone: creditCardHolderInfo.phone || cleanPhone,
+            addressComplement: creditCardHolderInfo.addressComplement || undefined,
+          },
         });
 
         console.log(`[UpgradeCheckout] Assinatura existente atualizada: ${existingSub.asaas_subscription_id}`);
@@ -310,6 +319,15 @@ serve(async (req) => {
           description: `Replyna - Plano ${plan.name}`,
           nextDueDate,
           creditCardToken: tokenResult.creditCardToken,
+          creditCardHolderInfo: {
+            name: creditCardHolderInfo.name,
+            email: normalizedEmail,
+            cpfCnpj: creditCardHolderInfo.cpfCnpj,
+            postalCode: creditCardHolderInfo.postalCode || undefined,
+            addressNumber: creditCardHolderInfo.addressNumber || undefined,
+            phone: creditCardHolderInfo.phone || cleanPhone,
+            addressComplement: creditCardHolderInfo.addressComplement || undefined,
+          },
         });
 
         console.log(`[UpgradeCheckout] Nova assinatura criada: ${newSub.id}`);

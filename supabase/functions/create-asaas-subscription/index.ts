@@ -374,6 +374,15 @@ serve(async (req) => {
         description: subscriptionDescription,
         nextDueDate,
         creditCardToken,
+        creditCardHolderInfo: {
+          name: creditCardHolderInfo.name,
+          email: normalizedEmail,
+          cpfCnpj: creditCardHolderInfo.cpfCnpj,
+          postalCode: creditCardHolderInfo.postalCode || undefined,
+          addressNumber: creditCardHolderInfo.addressNumber || undefined,
+          phone: creditCardHolderInfo.phone || cleanPhone,
+          addressComplement: creditCardHolderInfo.addressComplement || undefined,
+        },
       });
 
       console.log(`[CreateSubscription] Subscription created: ${subscription.id}`);

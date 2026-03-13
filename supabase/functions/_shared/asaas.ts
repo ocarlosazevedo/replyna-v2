@@ -253,6 +253,7 @@ export async function updateSubscription(id: string, input: {
   discount?: AsaasDiscount;
   updatePendingPayments?: boolean;
   billingType?: 'CREDIT_CARD' | 'BOLETO' | 'PIX';
+  creditCardToken?: string;
   creditCard?: {
     holderName: string;
     number: string;
