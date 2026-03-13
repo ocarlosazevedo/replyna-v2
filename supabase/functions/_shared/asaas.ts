@@ -108,6 +108,11 @@ export interface AsaasSubscription {
   nextDueDate?: string;
   status?: string;
   createdAt?: string;
+  creditCard?: {
+    creditCardNumber?: string;
+    creditCardBrand?: string;
+    creditCardToken?: string;
+  };
 }
 
 export interface AsaasSubscriptionList {
