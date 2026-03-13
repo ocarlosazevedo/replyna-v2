@@ -17,6 +17,7 @@ function useIsMobile() {
 interface Plan {
   id: string
   name: string
+  slug?: string | null
   description: string | null
   price_monthly: number
   price_yearly: number | null
@@ -56,6 +57,7 @@ export default function AdminPlans() {
   const [newFeature, setNewFeature] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [copiedPlanId, setCopiedPlanId] = useState<string | null>(null)
 
   useEffect(() => {
     loadPlans()
@@ -291,9 +293,14 @@ export default function AdminPlans() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: isMobile ? '16px' : '24px', paddingTop: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: isMobile ? '16px' : '24px', paddingTop: '16px' }}>
         {plans.map((plan) => (
           <div key={plan.id} style={{ ...cardStyle, position: 'relative' }}>
+            {(() => {
+              const isPartners = (plan.slug || plan.name).toLowerCase() === 'partners'
+              const partnersLink = 'https://app.replyna.me/partners'
+              return (
+                <>
             {plan.is_popular && (
               <div style={{
                 position: 'absolute',
@@ -334,6 +341,65 @@ export default function AdminPlans() {
                 {plan.is_active ? 'Ativo' : 'Inativo'}
               </span>
             </div>
+
+            {isPartners && (
+              <div style={{
+                marginBottom: '16px',
+                padding: '12px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(234, 179, 8, 0.12)',
+                border: '1px solid rgba(234, 179, 8, 0.45)',
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#eab308', marginBottom: '6px' }}>
+                  Link Partners
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{
+                    flex: 1,
+                    minWidth: '180px',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px',
+                    wordBreak: 'break-all',
+                  }}>
+                    {partnersLink}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(partnersLink)
+                        setCopiedPlanId(plan.id)
+                        setTimeout(() => setCopiedPlanId((current) => (current === plan.id ? null : current)), 2000)
+                      } catch (err) {
+                        console.error('Erro ao copiar link:', err)
+                      }
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(234, 179, 8, 0.5)',
+                      backgroundColor: 'rgba(234, 179, 8, 0.16)',
+                      color: '#eab308',
+                      fontWeight: 600,
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Copiar link
+                  </button>
+                </div>
+                {copiedPlanId === plan.id && (
+                  <div style={{ marginTop: '6px', fontSize: '12px', color: '#22c55e', fontWeight: 600 }}>
+                    Link copiado!
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{ marginBottom: '16px' }}>
               <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -432,6 +498,9 @@ export default function AdminPlans() {
                 <Trash2 size={14} />
               </button>
             </div>
+                </>
+              )
+            })()}
           </div>
         ))}
       </div>
