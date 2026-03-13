@@ -112,6 +112,12 @@ serve(async (req) => {
   }
 
   try {
+    // Extract client IP for Asaas anti-fraud
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('cf-connecting-ip')
+      || req.headers.get('x-real-ip')
+      || '0.0.0.0';
+
     const body = (await req.json()) as CreateSubscriptionRequest;
     const {
       plan_id,
@@ -291,6 +297,7 @@ serve(async (req) => {
           cycle: 'MONTHLY',
           description: `Replyna - Plano ${plan.name} (Trial)`,
           nextDueDate: trialDueDate,
+          remoteIp: clientIp,
           creditCard: {
             holderName: creditCard!.holderName,
             number: creditCard!.number,
@@ -355,6 +362,7 @@ serve(async (req) => {
         billingType: 'CREDIT_CARD',
         value: firstPaymentValue,
         cycle: 'MONTHLY',
+        remoteIp: clientIp,
         description: subscriptionDescription,
         nextDueDate,
         creditCard: {
