@@ -293,7 +293,7 @@ export default function AdminPlans() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: isMobile ? '16px' : '24px', paddingTop: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: isMobile ? '16px' : '24px', paddingTop: '16px' }}>
         {plans.map((plan) => (
           <div key={plan.id} style={{ ...cardStyle, position: 'relative' }}>
             {(() => {
