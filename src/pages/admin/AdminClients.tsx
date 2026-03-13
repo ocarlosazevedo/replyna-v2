@@ -27,6 +27,7 @@ interface Subscription {
   status: string
   current_period_end: string
   cancel_at_period_end?: boolean | null
+  cancel_reason?: string | null
 }
 
 interface TeamMember {
@@ -51,6 +52,7 @@ interface Client {
   id: string
   email: string
   name: string | null
+  admin_notes?: string | null
   plan: string
   emails_limit: number | null  // null = ilimitado
   emails_used: number
@@ -107,6 +109,7 @@ export default function AdminClients() {
   const [createSuccess, setCreateSuccess] = useState<string | null>(null)
   const [cancelPlanTarget, setCancelPlanTarget] = useState<Client | null>(null)
   const [cancelingPlan, setCancelingPlan] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
   const paidPlans = plans.filter((plan) => (plan.price_monthly ?? 0) > 0)
 
   // Encontrar o plano Enterprise para pré-selecionar
@@ -194,6 +197,7 @@ export default function AdminClients() {
           .update({
             name: editingClient.name,
             status: editingClient.status,
+            admin_notes: editingClient.admin_notes,
           })
           .eq('id', editingClient.id)
 
@@ -218,6 +222,7 @@ export default function AdminClients() {
         const updateData: Record<string, unknown> = {
           name: editingClient.name,
           status: editingClient.status,
+          admin_notes: editingClient.admin_notes,
         }
 
         // Se mudou o plano mas não tem assinatura (cliente free), atualizar manualmente
@@ -280,6 +285,8 @@ export default function AdminClients() {
 
   const handleCancelPlan = async () => {
     if (!cancelPlanTarget) return
+    const trimmedReason = cancelReason.trim()
+    if (!trimmedReason) return
 
     setCancelingPlan(true)
     setActionMessage(null)
@@ -293,7 +300,7 @@ export default function AdminClients() {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ user_id: cancelPlanTarget.id }),
+          body: JSON.stringify({ user_id: cancelPlanTarget.id, reason: trimmedReason }),
         }
       )
 
@@ -1296,6 +1303,36 @@ export default function AdminClients() {
                     <tr key={`${client.id}-details`}>
                       <td colSpan={9} style={{ padding: '0 16px 16px 56px', borderBottom: '1px solid var(--border-color)' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {client.subscription && (
+                            <div style={{
+                              backgroundColor: 'var(--bg-primary)',
+                              borderRadius: '10px',
+                              padding: '12px',
+                              border: '1px dashed var(--border-color)',
+                            }}>
+                              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                                MOTIVO DO CANCELAMENTO
+                              </div>
+                              <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                                {client.subscription.cancel_reason?.trim() || 'Sem motivo informado'}
+                              </div>
+                            </div>
+                          )}
+                          {client.admin_notes?.trim() && (
+                            <div style={{
+                              backgroundColor: 'var(--bg-primary)',
+                              borderRadius: '10px',
+                              padding: '12px',
+                              border: '1px dashed var(--border-color)',
+                            }}>
+                              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                                OBSERVAÇÕES
+                              </div>
+                              <div style={{ fontSize: '13px', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
+                                {client.admin_notes}
+                              </div>
+                            </div>
+                          )}
                           {/* Lojas */}
                           {client.shops.length > 0 && (
                             <div style={{
@@ -1600,6 +1637,21 @@ export default function AdminClients() {
                 </select>
               </div>
 
+              <div>
+                <label style={labelStyle}>Observações</label>
+                <textarea
+                  value={editingClient.admin_notes || ''}
+                  onChange={(e) => setEditingClient({ ...editingClient, admin_notes: e.target.value })}
+                  placeholder="Anotações internas sobre o cliente"
+                  rows={4}
+                  style={{
+                    ...inputStyle,
+                    resize: 'vertical',
+                    minHeight: '96px',
+                  }}
+                />
+              </div>
+
               {/* Ações de suporte */}
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '8px' }}>
                 <label style={{ ...labelStyle, marginBottom: '12px' }}>Ações de Suporte</label>
@@ -1627,7 +1679,10 @@ export default function AdminClients() {
                     {sendingReset ? 'Enviando...' : 'Reenviar senha'}
                   </button>
                   <button
-                    onClick={() => setCancelPlanTarget(editingClient)}
+                    onClick={() => {
+                      setCancelPlanTarget(editingClient)
+                      setCancelReason('')
+                    }}
                     disabled={cancelingPlan}
                     style={{
                       flex: 1,
@@ -1878,7 +1933,10 @@ export default function AdminClients() {
             zIndex: 1001,
             padding: '20px',
           }}
-          onClick={() => setCancelPlanTarget(null)}
+          onClick={() => {
+            setCancelPlanTarget(null)
+            setCancelReason('')
+          }}
         >
           <div
             style={{
@@ -1916,9 +1974,27 @@ export default function AdminClients() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <div style={{ marginTop: '12px' }}>
+              <label style={labelStyle}>Motivo do cancelamento</label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Descreva o motivo do cancelamento"
+                rows={4}
+                style={{
+                  ...inputStyle,
+                  resize: 'vertical',
+                  minHeight: '96px',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '16px' }}>
               <button
-                onClick={() => setCancelPlanTarget(null)}
+                onClick={() => {
+                  setCancelPlanTarget(null)
+                  setCancelReason('')
+                }}
                 disabled={cancelingPlan}
                 style={{
                   padding: '12px 24px',
@@ -1934,7 +2010,7 @@ export default function AdminClients() {
               </button>
               <button
                 onClick={handleCancelPlan}
-                disabled={cancelingPlan}
+                disabled={cancelingPlan || !cancelReason.trim()}
                 style={{
                   padding: '12px 24px',
                   borderRadius: '10px',
@@ -1942,8 +2018,8 @@ export default function AdminClients() {
                   backgroundColor: '#ef4444',
                   color: '#fff',
                   fontWeight: 600,
-                  cursor: cancelingPlan ? 'not-allowed' : 'pointer',
-                  opacity: cancelingPlan ? 0.6 : 1,
+                  cursor: cancelingPlan || !cancelReason.trim() ? 'not-allowed' : 'pointer',
+                  opacity: cancelingPlan || !cancelReason.trim() ? 0.6 : 1,
                 }}
               >
                 {cancelingPlan ? 'Cancelando...' : 'Confirmar cancelamento'}
