@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getPlanDisplayName, normalizePlanSlug } from '../../utils/plan'
-import { Search, Edit2, Mail, Store, Calendar, ChevronDown, ChevronUp, ExternalLink, Trash2, Key, RefreshCw, ArrowUpDown, LogIn, UserPlus, Users } from 'lucide-react'
+import { Search, Edit2, Mail, Store, Calendar, ChevronDown, ChevronUp, ExternalLink, Trash2, Key, RefreshCw, ArrowUpDown, LogIn, UserPlus, Users, MessageCircle } from 'lucide-react'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -59,6 +59,7 @@ interface Client {
   status: string | null
   is_trial?: boolean | null
   trial_ends_at?: string | null
+  whatsapp_number?: string | null
   created_at: string
   last_login_at: string | null
   shops: Shop[]
@@ -71,6 +72,7 @@ interface Plan {
   id: string
   name: string
   slug?: string | null
+  price_monthly?: number | null
   emails_limit: number | null   // null = ilimitado
   shops_limit: number | null    // null = ilimitado
   is_active: boolean
@@ -105,10 +107,15 @@ export default function AdminClients() {
   const [createSuccess, setCreateSuccess] = useState<string | null>(null)
   const [cancelPlanTarget, setCancelPlanTarget] = useState<Client | null>(null)
   const [cancelingPlan, setCancelingPlan] = useState(false)
+  const paidPlans = plans.filter((plan) => (plan.price_monthly ?? 0) > 0)
 
   // Encontrar o plano Enterprise para pré-selecionar
   const enterprisePlan = plans.find(p => p.name.toLowerCase() === 'enterprise')
   const isMobile = useIsMobile()
+  const editingPlanSlug = editingClient ? normalizePlanSlug(editingClient.plan) : ''
+  const isEditingTrialOrFree = editingClient
+    ? editingPlanSlug === 'trial' || editingPlanSlug === 'free' || editingClient.is_trial === true
+    : false
 
   useEffect(() => {
     loadData()
@@ -155,8 +162,8 @@ export default function AdminClients() {
     setActionMessage(null)
 
     try {
-      const selectedPlan = plans.find(p => p.name.toLowerCase() === editingClient.plan)
-      const planChanged = editingClient.plan !== originalClient.plan
+      const selectedPlan = plans.find(p => normalizePlanSlug(p.slug || p.name) === normalizePlanSlug(editingClient.plan))
+      const planChanged = normalizePlanSlug(editingClient.plan) !== normalizePlanSlug(originalClient.plan)
 
       // Se o plano mudou e o cliente tem assinatura ativa, usar Edge Function para atualizar Asaas
       if (planChanged && selectedPlan && editingClient.subscription) {
@@ -583,6 +590,8 @@ export default function AdminClients() {
       year: 'numeric',
     }).format(new Date(date))
 
+  const getWhatsappDigits = (value?: string | null) => (value ?? '').replace(/\D/g, '')
+
   // Cores por plano
   const getPlanColor = (planSlug: string | null): { bg: string; color: string } => {
     const slug = normalizePlanSlug(planSlug) || 'free'
@@ -847,6 +856,8 @@ export default function AdminClients() {
               const effectiveStatus = getEffectiveStatus(client)
               const trialTag = getTrialTag(client, effectiveStatus)
               const cancelTag = getCancelScheduleTag(client)
+              const whatsappDigits = getWhatsappDigits(client.whatsapp_number)
+              const whatsappDisabled = !whatsappDigits
               return (
                 <div
                   key={client.id}
@@ -881,6 +892,26 @@ export default function AdminClients() {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => {
+                          if (whatsappDisabled) return
+                          window.open(`https://wa.me/${whatsappDigits}`, '_blank')
+                        }}
+                        disabled={whatsappDisabled}
+                        style={{
+                          padding: '8px',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(37, 211, 102, 0.4)',
+                          backgroundColor: 'transparent',
+                          color: '#25D366',
+                          cursor: whatsappDisabled ? 'not-allowed' : 'pointer',
+                          flexShrink: 0,
+                          opacity: whatsappDisabled ? 0.3 : 1,
+                        }}
+                        title="Abrir WhatsApp"
+                      >
+                        <MessageCircle size={14} />
+                      </button>
                       <button
                         onClick={() => handleImpersonate(client)}
                         disabled={impersonating === client.id}
@@ -1028,6 +1059,8 @@ export default function AdminClients() {
               const effectiveStatus = getEffectiveStatus(client)
               const trialTag = getTrialTag(client, effectiveStatus)
               const cancelTag = getCancelScheduleTag(client)
+              const whatsappDigits = getWhatsappDigits(client.whatsapp_number)
+              const whatsappDisabled = !whatsappDigits
               return (
                 <>
                   <tr key={client.id} style={{ borderBottom: expandedClient === client.id ? 'none' : '1px solid var(--border-color)' }}>
@@ -1181,6 +1214,28 @@ export default function AdminClients() {
                     </td>
                     <td style={{ padding: '16px' }}>
                       <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => {
+                            if (whatsappDisabled) return
+                            window.open(`https://wa.me/${whatsappDigits}`, '_blank')
+                          }}
+                          disabled={whatsappDisabled}
+                          style={{
+                            padding: '8px',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(37, 211, 102, 0.4)',
+                            backgroundColor: 'transparent',
+                            color: '#25D366',
+                            cursor: whatsappDisabled ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: whatsappDisabled ? 0.3 : 1,
+                          }}
+                          title="Abrir WhatsApp"
+                        >
+                          <MessageCircle size={16} />
+                        </button>
                         <button
                           onClick={() => handleImpersonate(client)}
                           disabled={impersonating === client.id}
@@ -1512,18 +1567,23 @@ export default function AdminClients() {
 
               <div>
                 <label style={labelStyle}>Plano</label>
-                <select
-                  value={editingClient.plan}
-                  onChange={(e) => setEditingClient({ ...editingClient, plan: e.target.value })}
-                  className="replyna-select form-input"
-                >
-                  <option value="free">Free</option>
-                  {plans.map((plan) => (
-                    <option key={plan.id} value={plan.name.toLowerCase()}>
-                      {plan.name}
-                    </option>
-                  ))}
-                </select>
+                {isEditingTrialOrFree ? (
+                  <div style={{ ...inputStyle, backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
+                    {getPlanDisplayName(editingClient.plan)}
+                  </div>
+                ) : (
+                  <select
+                    value={editingPlanSlug}
+                    onChange={(e) => setEditingClient({ ...editingClient, plan: e.target.value })}
+                    className="replyna-select form-input"
+                  >
+                    {paidPlans.map((plan) => (
+                      <option key={plan.id} value={normalizePlanSlug(plan.slug || plan.name)}>
+                        {plan.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div>

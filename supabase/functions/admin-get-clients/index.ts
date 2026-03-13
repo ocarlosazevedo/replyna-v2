@@ -40,7 +40,7 @@ serve(async (req) => {
         .select('id, name, shopify_domain, is_active, user_id'),
       supabase
         .from('plans')
-        .select('id, name, emails_limit, shops_limit, is_active')
+        .select('id, name, slug, price_monthly, emails_limit, shops_limit, is_active')
         .eq('is_active', true)
         .order('sort_order'),
       supabase
@@ -175,6 +175,7 @@ serve(async (req) => {
       email: user.email,
       name: user.name,
       plan: user.plan,
+      whatsapp_number: user.whatsapp_number,
       emails_limit: user.emails_limit,
       emails_used: user.emails_used,
       extra_emails_purchased: user.extra_emails_purchased || 0,
