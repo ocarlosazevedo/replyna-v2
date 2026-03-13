@@ -100,6 +100,7 @@ interface FinancialStats {
     revenue: number;
   }[];
   periodMetrics: {
+    availableBalance: number;
     revenueInPeriod: number;
     newSubscriptionsInPeriod: number;
     canceledSubscriptionsInPeriod: number;
@@ -248,10 +249,6 @@ function sumPayments(payments: AsaasPayment[]): number {
   return payments.reduce((sum, p) => sum + Number(p.value || 0), 0);
 }
 
-function isReplyna(description?: string | null): boolean {
-  return !!description && description.toLowerCase().includes('replyna');
-}
-
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -311,15 +308,23 @@ serve(async (req) => {
     const sixMonthsStartStr = formatDateYYYYMMDD(sixMonthsStart);
     const sixMonthsEndStr = formatDateYYYYMMDD(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 
+    const supabase = getSupabaseAdmin();
+    const replynaCustomersPromise = supabase
+      .from('users')
+      .select('asaas_customer_id')
+      .not('asaas_customer_id', 'is', null);
+
     const [
       balance,
       activeSubsRes,
       inactiveSubsRes,
       expiredSubsRes,
       totalCustomers,
-      overduePaymentsCount,
-      chargesInPeriod,
-      newSubscriptionsInPeriod,
+      overduePaymentsRes,
+      allChargesInPeriodRes,
+      newSubsInPeriodRes,
+      canceledInPeriodRes,
+      replynaCustomersRes,
       recentPaymentsRes,
       paymentsConfirmedInPeriod,
       paymentsReceivedInPeriod,
@@ -333,9 +338,11 @@ serve(async (req) => {
       fetchAll<AsaasSubscription>('/subscriptions', { status: 'INACTIVE' }),
       fetchAll<AsaasSubscription>('/subscriptions', { status: 'EXPIRED' }),
       fetchTotalCount('/customers', {}),
-      fetchTotalCount('/payments', { status: 'OVERDUE' }),
-      fetchTotalCount('/payments', { 'dateCreated[ge]': periodStartStr, 'dateCreated[le]': periodEndStr }),
-      fetchTotalCount('/subscriptions', { 'dateCreated[ge]': periodStartStr, 'dateCreated[le]': periodEndStr }),
+      fetchAll<AsaasPayment>('/payments', { status: 'OVERDUE' }),
+      fetchAll<AsaasPayment>('/payments', { 'dateCreated[ge]': periodStartStr, 'dateCreated[le]': periodEndStr }),
+      fetchAll<AsaasSubscription>('/subscriptions', { 'dateCreated[ge]': periodStartStr, 'dateCreated[le]': periodEndStr }),
+      fetchAll<AsaasSubscription>('/subscriptions', { status: 'INACTIVE', 'dateUpdated[ge]': periodStartStr, 'dateUpdated[le]': periodEndStr }),
+      replynaCustomersPromise,
       asaasRequest<AsaasListResponse<AsaasPayment>>('GET', '/payments', { limit: 10, order: 'desc' }),
       fetchPaymentsForRange('CONFIRMED', periodStartStr, periodEndStr),
       fetchPaymentsForRange('RECEIVED', periodStartStr, periodEndStr),
@@ -345,21 +352,35 @@ serve(async (req) => {
       fetchPaymentsForRange('RECEIVED', sixMonthsStartStr, sixMonthsEndStr),
     ]);
 
-    const activeSubs = (activeSubsRes.data || []).filter((sub) => isReplyna(sub.description));
-    const inactiveSubs = (inactiveSubsRes.data || []).filter((sub) => isReplyna(sub.description));
-    const expiredSubs = (expiredSubsRes.data || []).filter((sub) => isReplyna(sub.description));
+    if (replynaCustomersRes.error) {
+      throw new Error(replynaCustomersRes.error.message || 'Erro ao buscar clientes Replyna');
+    }
+
+    const replynaCustomerIds = new Set(
+      (replynaCustomersRes.data || [])
+        .map((r) => r.asaas_customer_id)
+        .filter(Boolean)
+    );
+
+    const isReplyna = (customerId?: string | null): boolean => {
+      return !!customerId && replynaCustomerIds.has(customerId);
+    };
+
+    const activeSubs = (activeSubsRes.data || []).filter((sub) => isReplyna(sub.customer));
+    const inactiveSubs = (inactiveSubsRes.data || []).filter((sub) => isReplyna(sub.customer));
+    const expiredSubs = (expiredSubsRes.data || []).filter((sub) => isReplyna(sub.customer));
     const allSubs = [...activeSubs, ...inactiveSubs, ...expiredSubs];
 
     const mrr = activeSubs.reduce((sum, sub) => sum + Number(sub.value || 0), 0);
     const arr = mrr * 12;
     const activeSubscriptions = activeSubs.length;
 
-    const filteredPaymentsConfirmedInPeriod = paymentsConfirmedInPeriod.filter((p) => isReplyna(p.description));
-    const filteredPaymentsReceivedInPeriod = paymentsReceivedInPeriod.filter((p) => isReplyna(p.description));
-    const filteredPaymentsConfirmedLastMonth = paymentsConfirmedLastMonth.filter((p) => isReplyna(p.description));
-    const filteredPaymentsReceivedLastMonth = paymentsReceivedLastMonth.filter((p) => isReplyna(p.description));
-    const filteredPaymentsConfirmedSixMonths = paymentsConfirmedSixMonths.filter((p) => isReplyna(p.description));
-    const filteredPaymentsReceivedSixMonths = paymentsReceivedSixMonths.filter((p) => isReplyna(p.description));
+    const filteredPaymentsConfirmedInPeriod = paymentsConfirmedInPeriod.filter((p) => isReplyna(p.customer));
+    const filteredPaymentsReceivedInPeriod = paymentsReceivedInPeriod.filter((p) => isReplyna(p.customer));
+    const filteredPaymentsConfirmedLastMonth = paymentsConfirmedLastMonth.filter((p) => isReplyna(p.customer));
+    const filteredPaymentsReceivedLastMonth = paymentsReceivedLastMonth.filter((p) => isReplyna(p.customer));
+    const filteredPaymentsConfirmedSixMonths = paymentsConfirmedSixMonths.filter((p) => isReplyna(p.customer));
+    const filteredPaymentsReceivedSixMonths = paymentsReceivedSixMonths.filter((p) => isReplyna(p.customer));
 
     const paymentsInPeriod = [...filteredPaymentsConfirmedInPeriod, ...filteredPaymentsReceivedInPeriod];
     const revenueInPeriod = sumPayments(paymentsInPeriod);
@@ -372,11 +393,8 @@ serve(async (req) => {
 
     const averageTicket = paymentsCountInPeriod > 0 ? revenueInPeriod / paymentsCountInPeriod : 0;
 
-    // Churn
-    const canceledInPeriod = [...inactiveSubs, ...expiredSubs].filter((sub) => {
-      const canceledAt = getCanceledAt(sub);
-      return canceledAt && canceledAt >= periodStart && canceledAt <= periodEnd;
-    }).length;
+    // Churn (canceled in period)
+    const canceledInPeriod = (canceledInPeriodRes.data || []).filter((sub) => isReplyna(sub.customer)).length;
 
     const activeAtStart = allSubs.filter((sub) => {
       const createdAt = getCreatedAt(sub);
@@ -389,10 +407,13 @@ serve(async (req) => {
     const churnRate = activeAtStart > 0 ? (canceledInPeriod / activeAtStart) * 100 : 0;
 
     // Subscriptions por status
+    const overdueReplyna = (overduePaymentsRes.data || []).filter((p) => isReplyna(p.customer));
+    const overdueCount = new Set(overdueReplyna.map((p) => p.customer)).size;
+
     const subscriptionsByStatus = {
       active: activeSubs.length,
       canceled: inactiveSubs.length + expiredSubs.length,
-      past_due: overduePaymentsCount,
+      past_due: overdueCount,
       trialing: 0,
     };
 
@@ -427,12 +448,11 @@ serve(async (req) => {
     }
 
     // Enriquecer dados de clientes (nome/email) usando Supabase
-    const recentPaymentsData = (recentPaymentsRes.data || []).filter((p) => isReplyna(p.description));
+    const recentPaymentsData = (recentPaymentsRes.data || []).filter((p) => isReplyna(p.customer));
     const customerIds = Array.from(new Set(recentPaymentsData.map((p) => p.customer).filter(Boolean)));
     const customerMap: Record<string, { name: string | null; email: string | null }> = {};
 
     if (customerIds.length > 0) {
-      const supabase = getSupabaseAdmin();
       const chunkSize = 100;
       for (let i = 0; i < customerIds.length; i += chunkSize) {
         const chunk = customerIds.slice(i, i + chunkSize);
@@ -481,6 +501,9 @@ serve(async (req) => {
       };
     });
 
+    const newSubscriptionsInPeriod = (newSubsInPeriodRes.data || []).filter((sub) => isReplyna(sub.customer)).length;
+    const chargesInPeriod = (allChargesInPeriodRes.data || []).filter((p) => isReplyna(p.customer)).length;
+
     const stats: FinancialStats = {
       balance: {
         available: balance.available ?? balance.balance ?? 0,
@@ -502,6 +525,7 @@ serve(async (req) => {
       subscriptionsByPlan,
       monthlyRevenue,
       periodMetrics: {
+        availableBalance: balance.available ?? 0,
         revenueInPeriod,
         newSubscriptionsInPeriod,
         canceledSubscriptionsInPeriod: canceledInPeriod,

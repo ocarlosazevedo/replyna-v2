@@ -102,6 +102,7 @@ interface FinancialStats {
     revenue: number
   }[]
   periodMetrics?: {
+    availableBalance: number
     revenueInPeriod: number
     newSubscriptionsInPeriod: number
     canceledSubscriptionsInPeriod: number
@@ -477,9 +478,9 @@ export default function AdminFinancial() {
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '16px' : '24px' }}>
           <div>
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: '#22c55e' }}>
-              {formatCurrency(stats?.periodMetrics?.revenueInPeriod || 0)}
+              {formatCurrency(stats?.periodMetrics?.availableBalance || 0)}
             </div>
-            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)' }}>Faturamento</div>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)' }}>Saldo Disponível</div>
           </div>
           <div>
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: '#3b82f6' }}>
