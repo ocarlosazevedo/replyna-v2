@@ -83,7 +83,25 @@ Deno.serve(async (req: Request) => {
 
     // =====================================================
     // 2. Resetar JOBS stuck em "processing" há mais de 10 minutos
+    //    Inclui jobs com started_at NULL (bug de retry anterior)
     // =====================================================
+    // First: reset jobs with NULL started_at (always stuck)
+    const { data: nullStartedJobs, error: nullStartedError } = await supabase
+      .from('job_queue')
+      .update({
+        status: 'pending',
+        started_at: null,
+        attempt_count: 0,
+      })
+      .eq('status', 'processing')
+      .is('started_at', null)
+      .select('id');
+
+    if (!nullStartedError && nullStartedJobs && nullStartedJobs.length > 0) {
+      console.log(`[Cleanup] Reset ${nullStartedJobs.length} stuck jobs with NULL started_at`);
+    }
+
+    // Then: reset jobs with started_at older than 10 minutes
     const { data: stuckJobs, error: stuckJobsError } = await supabase
       .from('job_queue')
       .update({
@@ -96,10 +114,12 @@ Deno.serve(async (req: Request) => {
       .select('id');
 
     if (!stuckJobsError && stuckJobs) {
-      result.stuck_jobs_reset = stuckJobs.length;
+      result.stuck_jobs_reset = stuckJobs.length + (nullStartedJobs?.length || 0);
       if (stuckJobs.length > 0) {
         console.log(`[Cleanup] Reset ${stuckJobs.length} stuck jobs to pending`);
       }
+    } else {
+      result.stuck_jobs_reset = nullStartedJobs?.length || 0;
     }
 
     // =====================================================
