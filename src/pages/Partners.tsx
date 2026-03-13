@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 const inputStyle = {
@@ -21,12 +23,16 @@ const labelStyle = {
 } as const
 
 export default function Partners() {
+  const navigate = useNavigate()
   const [planId, setPlanId] = useState<string | null>(null)
   const [loadingPlan, setLoadingPlan] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', whatsapp: '' })
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
     const loadPlan = async () => {
@@ -58,9 +64,21 @@ export default function Partners() {
     const name = form.name.trim()
     const email = form.email.trim()
     const whatsapp = form.whatsapp.trim()
+    const passwordValue = password
+    const confirmValue = confirmPassword
 
-    if (!name || !email || !whatsapp) {
+    if (!name || !email || !whatsapp || !passwordValue || !confirmValue) {
       setError('Preencha todos os campos.')
+      return
+    }
+
+    if (passwordValue.length < 8) {
+      setError('A senha deve ter no mínimo 8 caracteres.')
+      return
+    }
+
+    if (passwordValue !== confirmValue) {
+      setError('As senhas não conferem.')
       return
     }
 
@@ -85,6 +103,7 @@ export default function Partners() {
             name,
             email,
             whatsapp_number: whatsapp,
+            password: passwordValue,
             plan_id: planId,
             plan_slug: 'partners',
           }),
@@ -96,7 +115,36 @@ export default function Partners() {
         throw new Error(result.error || 'Erro ao criar conta')
       }
 
-      setSuccess(true)
+      if (result.magic_link) {
+        try {
+          const linkUrl = new URL(result.magic_link)
+          const token = linkUrl.searchParams.get('token')
+          if (token) {
+            const { error: otpError } = await supabase.auth.verifyOtp({
+              type: 'magiclink',
+              email,
+              token,
+            })
+            if (!otpError) {
+              navigate('/dashboard')
+              return
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao validar magic link:', err)
+        }
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: passwordValue,
+      })
+
+      if (signInError) {
+        throw new Error(signInError.message || 'Erro ao autenticar')
+      }
+
+      navigate('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao criar conta')
     } finally {
@@ -131,20 +179,7 @@ export default function Partners() {
           </p>
         </div>
 
-        {success ? (
-          <div style={{
-            padding: '16px',
-            borderRadius: '12px',
-            backgroundColor: 'rgba(34, 197, 94, 0.12)',
-            border: '1px solid rgba(34, 197, 94, 0.35)',
-            color: '#22c55e',
-            fontSize: '14px',
-            fontWeight: 600,
-          }}>
-            Conta criada! Verifique seu email para acessar.
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={labelStyle}>Nome</label>
               <input
@@ -174,6 +209,66 @@ export default function Partners() {
                 placeholder="(00) 00000-0000"
                 style={inputStyle}
               />
+            </div>
+            <div>
+              <label style={labelStyle}>Senha</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Crie uma senha segura"
+                  style={{ ...inputStyle, paddingRight: '44px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    right: '12px',
+                    transform: 'translateY(-50%)',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label style={labelStyle}>Confirmar senha</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirme sua senha"
+                  style={{ ...inputStyle, paddingRight: '44px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    right: '12px',
+                    transform: 'translateY(-50%)',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                  aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -209,7 +304,6 @@ export default function Partners() {
               {submitting ? 'Criando conta...' : 'Criar conta grátis'}
             </button>
           </form>
-        )}
       </div>
     </div>
   )

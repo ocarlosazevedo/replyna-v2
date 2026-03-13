@@ -18,6 +18,7 @@ interface CreateClientRequest {
   plan_slug?: string;
   notes?: string;
   whatsapp_number?: string;
+  password?: string;
 }
 
 Deno.serve(async (req) => {
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
       },
     });
 
-    const { email, name, plan_id, plan_slug, notes, whatsapp_number } = await req.json() as CreateClientRequest;
+    const { email, name, plan_id, plan_slug, notes, whatsapp_number, password } = await req.json() as CreateClientRequest;
 
     // Validações
     if (!email || !isValidEmail(email)) {
@@ -105,9 +106,23 @@ Deno.serve(async (req) => {
     if (existingAuthUser) {
       userId = existingAuthUser.id;
       console.log('Usuário já existe no Auth, usando ID:', userId);
+
+      if (password) {
+        const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          password,
+        });
+
+        if (updateAuthError) {
+          console.error('Erro ao atualizar senha do usuário no Auth:', updateAuthError);
+          return new Response(
+            JSON.stringify({ error: `Erro ao atualizar senha: ${updateAuthError.message}` }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
     } else {
-      // Criar usuário no Auth com senha temporária
-      const tempPassword = crypto.randomUUID().slice(0, 12) + 'Aa1!';
+      // Criar usuário no Auth com senha definida ou temporária
+      const tempPassword = password || (crypto.randomUUID().slice(0, 12) + 'Aa1!');
       const { data: newAuthUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: email.toLowerCase(),
         password: tempPassword,
@@ -154,14 +169,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Enviar email de definição de senha via Resend
-    const resetResult = await sendPasswordResetViaResend({
-      supabase: supabaseAdmin,
-      email: email.toLowerCase(),
-      name: name.trim(),
-    });
-    if (!resetResult.success) {
-      console.error('Erro ao enviar email via Resend:', resetResult.error);
+    let magicLink: string | null = null;
+
+    if (password) {
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: email.toLowerCase(),
+        options: { redirectTo: 'https://app.replyna.me/dashboard' },
+      });
+
+      if (linkError) {
+        console.error('Erro ao gerar magic link:', linkError);
+      } else {
+        magicLink = linkData?.properties?.action_link ?? null;
+      }
+    } else {
+      // Enviar email de definição de senha via Resend
+      const resetResult = await sendPasswordResetViaResend({
+        supabase: supabaseAdmin,
+        email: email.toLowerCase(),
+        name: name.trim(),
+      });
+      if (!resetResult.success) {
+        console.error('Erro ao enviar email via Resend:', resetResult.error);
+      }
     }
 
     console.log('Cliente VIP criado com sucesso:', userId, maskEmail(email));
@@ -174,6 +205,7 @@ Deno.serve(async (req) => {
         name: name.trim(),
         plan: plan.name,
         message: 'Cliente criado com sucesso. Email de definição de senha enviado.',
+        magic_link: magicLink,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
