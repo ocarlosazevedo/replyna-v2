@@ -1204,9 +1204,11 @@ export default function Account() {
                   <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
                     Plano {planName}
                   </div>
-                  <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    Renova em {renewalDate ? formatDate(renewalDate) : '--'}
-                  </div>
+                  {profile?.plan !== 'partners' && (
+                    <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      Renova em {renewalDate ? formatDate(renewalDate) : '--'}
+                    </div>
+                  )}
 
                   {!profile?.is_trial && subscriptionInfo?.cancel_at_period_end && (
                     <div style={{

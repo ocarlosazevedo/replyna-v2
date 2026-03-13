@@ -1341,12 +1341,14 @@ export default function Dashboard() {
                   </>
                 )}
               </div>
-              <div>
-                <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Renovação do plano</div>
-                <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
-                  {renewalDate ? formatDate(renewalDate) : 'Sem data'}
+              {profile?.plan !== 'partners' && (
+                <div>
+                  <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Renovação do plano</div>
+                  <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
+                    {renewalDate ? formatDate(renewalDate) : 'Sem data'}
+                  </div>
                 </div>
-              </div>
+              )}
               <div>
                 <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Lojas ativas</div>
                 <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
