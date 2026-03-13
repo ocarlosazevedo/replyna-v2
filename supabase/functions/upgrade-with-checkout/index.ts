@@ -56,11 +56,14 @@ function getSupabaseAdmin() {
   });
 }
 
-function formatDateYYYYMMDD(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+function formatDateBrazil(): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  return parts; // returns YYYY-MM-DD
 }
 
 function parseAsaasError(error: unknown): string {
@@ -224,7 +227,7 @@ serve(async (req) => {
     const existingSub = existingSubs?.[0] || null;
 
     const now = new Date();
-    const nextDueDate = formatDateYYYYMMDD(now);
+    const nextDueDate = formatDateBrazil();
     const baseValue = Number(plan.price_monthly || 0);
 
     try {

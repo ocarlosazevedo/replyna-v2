@@ -58,11 +58,14 @@ function getSupabaseAdmin() {
   });
 }
 
-function formatDateYYYYMMDD(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+function formatDateBrazil(): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  return parts; // returns YYYY-MM-DD
 }
 
 /** Parse Asaas error responses into user-friendly messages */
@@ -319,7 +322,7 @@ serve(async (req) => {
     }
 
     // Paid flow: create subscription with immediate charge
-    const nextDueDate = formatDateYYYYMMDD(new Date());
+    const nextDueDate = formatDateBrazil();
 
     // Build subscription description
     let subscriptionDescription = `Replyna - Plano ${plan.name}`;
