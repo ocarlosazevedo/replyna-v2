@@ -685,7 +685,7 @@ export default function Checkout() {
         {/* 2-column layout */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : '1.2fr 0.8fr',
+          gridTemplateColumns: isMobile ? '1fr' : '1.4fr 0.6fr',
           gap: '32px',
           alignItems: 'start',
         }}>
@@ -705,6 +705,7 @@ export default function Checkout() {
             borderRadius: '24px',
             padding: '24px',
             border: '1px solid rgba(255, 255, 255, 0.1)',
+            minWidth: isMobile ? 'auto' : '520px',
           }}>
             <StepIndicator />
 
