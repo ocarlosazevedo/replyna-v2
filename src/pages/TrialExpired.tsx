@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight, MessageCircle, Star, Check } from 'lucide-re
 import { useAuth } from '../hooks/useAuth'
 import { useUserProfile } from '../hooks/useUserProfile'
 import { supabase } from '../lib/supabase'
+import { normalizePlanSlug } from '../utils/plan'
 
 interface Plan {
   id: string
