@@ -45,3 +45,6 @@ verify_jwt = false
 
 [functions.admin-update-client]
 verify_jwt = false
+
+[functions.team-invite]
+verify_jwt = false

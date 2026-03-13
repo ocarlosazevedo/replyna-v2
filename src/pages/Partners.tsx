@@ -115,26 +115,6 @@ export default function Partners() {
         throw new Error(result.error || 'Erro ao criar conta')
       }
 
-      if (result.magic_link) {
-        try {
-          const linkUrl = new URL(result.magic_link)
-          const token = linkUrl.searchParams.get('token')
-          if (token) {
-            const { error: otpError } = await supabase.auth.verifyOtp({
-              type: 'magiclink',
-              email,
-              token,
-            })
-            if (!otpError) {
-              navigate('/dashboard')
-              return
-            }
-          }
-        } catch (err) {
-          console.error('Erro ao validar magic link:', err)
-        }
-      }
-
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password: passwordValue,
