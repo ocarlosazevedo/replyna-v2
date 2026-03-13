@@ -334,15 +334,11 @@ serve(async (req) => {
     // This way first payment = discounted, future payments = full price
     const firstPaymentValue = (discountApplied > 0) ? finalValue : baseValue;
 
-    // Create subscription with raw card data (direct charge, no tokenization)
+    // Step 1: Tokenize card first
+    let creditCardToken: string;
     try {
-      const subscription = await createSubscription({
+      const tokenResult = await tokenizeCreditCard({
         customer: customer.id,
-        billingType: 'CREDIT_CARD',
-        value: firstPaymentValue,
-        cycle: 'MONTHLY',
-        description: subscriptionDescription,
-        nextDueDate,
         creditCard: {
           holderName: creditCard.holderName,
           number: creditCard.number,
@@ -359,6 +355,28 @@ serve(async (req) => {
           phone: creditCardHolderInfo.phone || cleanPhone,
           addressComplement: creditCardHolderInfo.addressComplement || undefined,
         },
+      });
+      creditCardToken = tokenResult.creditCardToken;
+      console.log(`[CreateSubscription] Card tokenized: brand=${tokenResult.creditCardBrand}, token=${creditCardToken}`);
+    } catch (tokenError) {
+      console.error('[CreateSubscription] Card tokenization error:', tokenError);
+      const friendlyMessage = parseAsaasError(tokenError?.message || tokenError);
+      return new Response(
+        JSON.stringify({ error: friendlyMessage }),
+        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Step 2: Create subscription using the token
+    try {
+      const subscription = await createSubscription({
+        customer: customer.id,
+        billingType: 'CREDIT_CARD',
+        value: firstPaymentValue,
+        cycle: 'MONTHLY',
+        description: subscriptionDescription,
+        nextDueDate,
+        creditCardToken,
       });
 
       console.log(`[CreateSubscription] Subscription created: ${subscription.id}`);
@@ -377,6 +395,7 @@ serve(async (req) => {
         JSON.stringify({
           asaas_customer_id: customer.id,
           asaas_subscription_id: subscription.id,
+          asaas_credit_card_token: creditCardToken,
           plan_id: plan.id,
           plan_name: plan.name,
           coupon_id: couponId,
