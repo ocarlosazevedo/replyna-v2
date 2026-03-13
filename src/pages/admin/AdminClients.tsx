@@ -1982,7 +1982,11 @@ export default function AdminClients() {
                   Tem certeza que deseja cancelar o plano de {cancelPlanTarget.name || cancelPlanTarget.email}?
                 </p>
                 <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '6px 0 0' }}>
-                  O cliente manterá acesso até o final do período pago {cancelPlanTarget.subscription?.current_period_end ? `(${formatDate(cancelPlanTarget.subscription.current_period_end)})` : ''}.
+                  {cancelPlanTarget.subscription?.current_period_end
+                    ? `O cliente manterá acesso até ${formatDate(cancelPlanTarget.subscription.current_period_end)}.`
+                    : cancelPlanTarget.is_trial && cancelPlanTarget.trial_ends_at
+                      ? `O trial do cliente expira em ${formatDate(cancelPlanTarget.trial_ends_at)}.`
+                      : 'O cancelamento será imediato.'}
                 </p>
               </div>
             </div>
