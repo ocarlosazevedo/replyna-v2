@@ -103,6 +103,12 @@ serve(async (req) => {
   }
 
   try {
+    // Extract real client IP for Asaas anti-fraud
+    const xff = req.headers.get('x-forwarded-for');
+    const cfIp = req.headers.get('cf-connecting-ip');
+    const realIp = req.headers.get('x-real-ip');
+    const clientIp = xff?.split(',')[0]?.trim() || cfIp || realIp || '';
+
     const body = (await req.json()) as UpgradeRequest;
     const {
       user_id,
@@ -254,6 +260,7 @@ serve(async (req) => {
             phone: creditCardHolderInfo.phone || cleanPhone,
             addressComplement: creditCardHolderInfo.addressComplement || undefined,
           },
+          remoteIp: clientIp || undefined,
         });
 
         console.log(`[UpgradeCheckout] Assinatura existente atualizada: ${existingSub.asaas_subscription_id}`);
@@ -298,6 +305,7 @@ serve(async (req) => {
             phone: creditCardHolderInfo.phone || cleanPhone,
             addressComplement: creditCardHolderInfo.addressComplement || undefined,
           },
+          remoteIp: clientIp || undefined,
         });
 
         console.log(`[UpgradeCheckout] Nova assinatura criada: ${newSub.id}`);

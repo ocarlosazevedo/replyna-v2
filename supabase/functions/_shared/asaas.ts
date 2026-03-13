@@ -276,6 +276,7 @@ export async function updateSubscription(id: string, input: {
     mobilePhone?: string;
     addressComplement?: string;
   };
+  remoteIp?: string;
 }): Promise<AsaasSubscription> {
   return await asaasRequest<AsaasSubscription>('PUT', `/subscriptions/${id}`, input);
 }

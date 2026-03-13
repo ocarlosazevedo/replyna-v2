@@ -14,7 +14,6 @@ import {
   updateCustomer,
   createSubscription,
   updateSubscription,
-  tokenizeCreditCard,
 } from '../_shared/asaas.ts';
 
 interface CreditCardInput {
@@ -112,6 +111,12 @@ serve(async (req) => {
   }
 
   try {
+    // Extract real client IP for Asaas anti-fraud (required field)
+    const xff = req.headers.get('x-forwarded-for');
+    const cfIp = req.headers.get('cf-connecting-ip');
+    const realIp = req.headers.get('x-real-ip');
+    const clientIp = xff?.split(',')[0]?.trim() || cfIp || realIp || '';
+
     const body = (await req.json()) as CreateSubscriptionRequest;
     const {
       plan_id,
@@ -305,9 +310,9 @@ serve(async (req) => {
             postalCode: creditCardHolderInfo!.postalCode || undefined,
             addressNumber: creditCardHolderInfo!.addressNumber || undefined,
             phone: creditCardHolderInfo!.phone || cleanPhone,
-            mobilePhone: creditCardHolderInfo!.mobilePhone || cleanPhone,
             addressComplement: creditCardHolderInfo!.addressComplement || undefined,
           },
+          remoteIp: clientIp || undefined,
         });
 
         const returnedToken = trialSub.creditCard?.creditCardToken || null;
@@ -372,9 +377,9 @@ serve(async (req) => {
           postalCode: creditCardHolderInfo.postalCode || undefined,
           addressNumber: creditCardHolderInfo.addressNumber || undefined,
           phone: creditCardHolderInfo.phone || cleanPhone,
-          mobilePhone: creditCardHolderInfo.mobilePhone || cleanPhone,
           addressComplement: creditCardHolderInfo.addressComplement || undefined,
         },
+        remoteIp: clientIp || undefined,
       });
 
       console.log(`[CreateSubscription] Subscription created: ${subscription.id}`);
