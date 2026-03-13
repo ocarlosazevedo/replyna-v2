@@ -28,7 +28,7 @@ serve(async (req) => {
       .from('partner_invites')
       .select('id, token, used, used_by, created_at, expires_at')
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(1);
 
     if (error) {
       console.error('Erro ao buscar convites:', error);

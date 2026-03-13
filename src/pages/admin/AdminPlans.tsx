@@ -521,7 +521,7 @@ export default function AdminPlans() {
                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Nenhum convite gerado ainda.</div>
                   ) : (
                     <div style={{ display: 'grid', gap: '8px' }}>
-                      {partnerInvites.map((invite) => (
+                      {partnerInvites.slice(0, 1).map((invite) => (
                         <div key={invite.id} style={{
                           padding: '8px 10px',
                           borderRadius: '10px',
