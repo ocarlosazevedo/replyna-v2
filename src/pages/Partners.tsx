@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -26,6 +26,8 @@ export default function Partners() {
   const navigate = useNavigate()
   const [planId, setPlanId] = useState<string | null>(null)
   const [loadingPlan, setLoadingPlan] = useState(true)
+  const [loadingInvite, setLoadingInvite] = useState(true)
+  const [inviteValid, setInviteValid] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', email: '', whatsapp: '' })
@@ -33,8 +35,43 @@ export default function Partners() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const { token } = useParams<{ token: string }>()
 
   useEffect(() => {
+    const validateInvite = async () => {
+      setLoadingInvite(true)
+      setError(null)
+
+      if (!token) {
+        setInviteValid(false)
+        setError('Link expirado ou inválido. Solicite um novo convite.')
+        setLoadingInvite(false)
+        return
+      }
+
+      const { data, error: inviteError } = await supabase
+        .from('partner_invites')
+        .select('id, token, used, expires_at')
+        .eq('token', token)
+        .maybeSingle()
+
+      const isExpired = data?.expires_at ? new Date(data.expires_at).getTime() < Date.now() : false
+
+      if (inviteError || !data || data.used || isExpired) {
+        setInviteValid(false)
+        setError('Link expirado ou inválido. Solicite um novo convite.')
+      } else {
+        setInviteValid(true)
+      }
+
+      setLoadingInvite(false)
+    }
+
+    validateInvite()
+  }, [token])
+
+  useEffect(() => {
+    if (!inviteValid) return
     const loadPlan = async () => {
       setLoadingPlan(true)
       setError(null)
@@ -55,7 +92,7 @@ export default function Partners() {
     }
 
     loadPlan()
-  }, [])
+  }, [inviteValid])
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -82,7 +119,7 @@ export default function Partners() {
       return
     }
 
-    if (!planId) {
+    if (!planId || !token) {
       setError('Plano Partners não disponível no momento.')
       return
     }
@@ -106,6 +143,7 @@ export default function Partners() {
             password: passwordValue,
             plan_id: planId,
             plan_slug: 'partners',
+            invite_token: token,
           }),
         }
       )
@@ -159,7 +197,31 @@ export default function Partners() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {loadingInvite ? (
+          <div style={{
+            padding: '16px',
+            borderRadius: '12px',
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-secondary)',
+            fontSize: '14px',
+          }}>
+            Verificando convite...
+          </div>
+        ) : !inviteValid ? (
+          <div style={{
+            padding: '16px',
+            borderRadius: '12px',
+            backgroundColor: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            color: '#ef4444',
+            fontSize: '14px',
+            fontWeight: 600,
+          }}>
+            Link expirado ou inválido. Solicite um novo convite.
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={labelStyle}>Nome</label>
               <input
@@ -284,6 +346,7 @@ export default function Partners() {
               {submitting ? 'Criando conta...' : 'Criar conta grátis'}
             </button>
           </form>
+        )}
       </div>
     </div>
   )

@@ -19,6 +19,7 @@ interface CreateClientRequest {
   notes?: string;
   whatsapp_number?: string;
   password?: string;
+  invite_token?: string;
 }
 
 Deno.serve(async (req) => {
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
       },
     });
 
-    const { email, name, plan_id, plan_slug, notes, whatsapp_number, password } = await req.json() as CreateClientRequest;
+    const { email, name, plan_id, plan_slug, notes, whatsapp_number, password, invite_token } = await req.json() as CreateClientRequest;
 
     // Validações
     if (!email || !isValidEmail(email)) {
@@ -62,6 +63,29 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Plano é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Validar convite, se informado
+    let inviteRecord: { id: string } | null = null;
+    if (invite_token) {
+      const { data: inviteData, error: inviteError } = await supabaseAdmin
+        .from('partner_invites')
+        .select('id, used, expires_at')
+        .eq('token', invite_token)
+        .maybeSingle();
+
+      const isExpired = inviteData?.expires_at
+        ? new Date(inviteData.expires_at).getTime() < Date.now()
+        : false;
+
+      if (inviteError || !inviteData || inviteData.used || isExpired) {
+        return new Response(
+          JSON.stringify({ error: 'Convite inválido ou expirado' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      inviteRecord = { id: inviteData.id };
     }
 
     // Buscar dados do plano
@@ -192,6 +216,21 @@ Deno.serve(async (req) => {
       });
       if (!resetResult.success) {
         console.error('Erro ao enviar email via Resend:', resetResult.error);
+      }
+    }
+
+    if (inviteRecord) {
+      const { error: inviteUpdateError } = await supabaseAdmin
+        .from('partner_invites')
+        .update({ used: true, used_by: userId })
+        .eq('id', inviteRecord.id);
+
+      if (inviteUpdateError) {
+        console.error('Erro ao marcar convite como usado:', inviteUpdateError);
+        return new Response(
+          JSON.stringify({ error: 'Erro ao finalizar convite' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
 

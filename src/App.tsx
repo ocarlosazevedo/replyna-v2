@@ -229,7 +229,7 @@ function App() {
           <Route path="/migrate/:code" element={<MigrationAccept />} />
           <Route path="/auth/confirm" element={<AuthConfirm />} />
           <Route path="/return-request" element={<ReturnRequest />} />
-          <Route path="/partners" element={<Partners />} />
+          <Route path="/partners/invite/:token" element={<Partners />} />
 
           {/* Rotas privadas */}
           <Route path="/dashboard" element={

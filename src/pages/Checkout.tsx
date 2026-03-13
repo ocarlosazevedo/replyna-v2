@@ -151,7 +151,7 @@ export default function Checkout() {
         // Try by slug first, then by name
         const normalizedParam = normalizePlanSlug(planParam)
         if (normalizedParam === 'partners') {
-          navigate('/partners')
+          navigate('/partners/invite/invalid')
           return
         }
 

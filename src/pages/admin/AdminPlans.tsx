@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Plus, Edit2, Trash2, Star, Check } from 'lucide-react'
+import { Plus, Edit2, Trash2, Star, Check, Link as LinkIcon } from 'lucide-react'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -33,6 +33,17 @@ interface Plan {
   created_at: string
 }
 
+interface PartnerInvite {
+  id: string
+  token: string
+  used: boolean
+  used_by: string | null
+  used_by_email?: string | null
+  used_by_name?: string | null
+  created_at: string
+  expires_at: string | null
+}
+
 export default function AdminPlans() {
   const isMobile = useIsMobile()
   const [plans, setPlans] = useState<Plan[]>([])
@@ -57,11 +68,74 @@ export default function AdminPlans() {
   const [newFeature, setNewFeature] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [copiedPlanId, setCopiedPlanId] = useState<string | null>(null)
+  const [copiedInviteToken, setCopiedInviteToken] = useState<string | null>(null)
+  const [partnerInvites, setPartnerInvites] = useState<PartnerInvite[]>([])
+  const [loadingInvites, setLoadingInvites] = useState(false)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+  const [latestInviteLink, setLatestInviteLink] = useState<string | null>(null)
+  const [generatingInvite, setGeneratingInvite] = useState(false)
 
   useEffect(() => {
     loadPlans()
+    loadPartnerInvites()
   }, [])
+
+  const loadPartnerInvites = async () => {
+    setLoadingInvites(true)
+    setInviteError(null)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-get-partner-invites`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        }
+      )
+
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao carregar convites')
+      }
+
+      setPartnerInvites(result.invites || [])
+    } catch (err) {
+      console.error('Erro ao carregar convites:', err)
+      setInviteError(err instanceof Error ? err.message : 'Erro ao carregar convites')
+    } finally {
+      setLoadingInvites(false)
+    }
+  }
+
+  const handleGenerateInvite = async () => {
+    setGeneratingInvite(true)
+    setInviteError(null)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-partner-invite`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao gerar convite')
+      }
+
+      setLatestInviteLink(result.link)
+      await loadPartnerInvites()
+    } catch (err) {
+      console.error('Erro ao gerar convite:', err)
+      setInviteError(err instanceof Error ? err.message : 'Erro ao gerar convite')
+    } finally {
+      setGeneratingInvite(false)
+    }
+  }
 
   const loadPlans = async () => {
     try {
@@ -245,6 +319,11 @@ export default function AdminPlans() {
     color: 'var(--text-primary)',
   }
 
+  const formatDate = (value: string | null) => {
+    if (!value) return '--'
+    return new Intl.DateTimeFormat('pt-BR').format(new Date(value))
+  }
+
   if (loading) {
     return (
       <div style={{ padding: '24px' }}>
@@ -298,7 +377,6 @@ export default function AdminPlans() {
           <div key={plan.id} style={{ ...cardStyle, position: 'relative' }}>
             {(() => {
               const isPartners = (plan.slug || plan.name).toLowerCase() === 'partners'
-              const partnersLink = 'https://app.replyna.me/partners'
               return (
                 <>
             {plan.is_popular && (
@@ -345,7 +423,7 @@ export default function AdminPlans() {
             {isPartners && (
               <div style={{
                 marginBottom: '16px',
-                padding: '12px',
+                padding: '14px',
                 borderRadius: '12px',
                 backgroundColor: 'rgba(234, 179, 8, 0.12)',
                 border: '1px solid rgba(234, 179, 8, 0.45)',
@@ -353,51 +431,125 @@ export default function AdminPlans() {
                 <div style={{ fontSize: '12px', fontWeight: 700, color: '#eab308', marginBottom: '6px' }}>
                   Link Partners
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <div style={{
-                    flex: 1,
-                    minWidth: '180px',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                    fontSize: '12px',
-                    wordBreak: 'break-all',
-                  }}>
-                    {partnersLink}
-                  </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
                   <button
                     type="button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(partnersLink)
-                        setCopiedPlanId(plan.id)
-                        setTimeout(() => setCopiedPlanId((current) => (current === plan.id ? null : current)), 2000)
-                      } catch (err) {
-                        console.error('Erro ao copiar link:', err)
-                      }
-                    }}
+                    onClick={handleGenerateInvite}
+                    disabled={generatingInvite}
                     style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
                       padding: '8px 12px',
                       borderRadius: '8px',
                       border: '1px solid rgba(234, 179, 8, 0.5)',
-                      backgroundColor: 'rgba(234, 179, 8, 0.16)',
+                      backgroundColor: 'rgba(234, 179, 8, 0.18)',
                       color: '#eab308',
                       fontWeight: 600,
                       fontSize: '12px',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
+                      cursor: generatingInvite ? 'not-allowed' : 'pointer',
+                      opacity: generatingInvite ? 0.7 : 1,
                     }}
                   >
-                    Copiar link
+                    <LinkIcon size={14} />
+                    {generatingInvite ? 'Gerando...' : 'Gerar link de convite'}
                   </button>
                 </div>
-                {copiedPlanId === plan.id && (
+
+                {latestInviteLink && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                    <div style={{
+                      flex: 1,
+                      minWidth: '180px',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '12px',
+                      wordBreak: 'break-all',
+                    }}>
+                      {latestInviteLink}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(latestInviteLink)
+                          setCopiedInviteToken(latestInviteLink)
+                          setTimeout(() => setCopiedInviteToken((current) => (current === latestInviteLink ? null : current)), 2000)
+                        } catch (err) {
+                          console.error('Erro ao copiar link:', err)
+                        }
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(234, 179, 8, 0.5)',
+                        backgroundColor: 'rgba(234, 179, 8, 0.16)',
+                        color: '#eab308',
+                        fontWeight: 600,
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Copiar link
+                    </button>
+                  </div>
+                )}
+
+                {copiedInviteToken && (
                   <div style={{ marginTop: '6px', fontSize: '12px', color: '#22c55e', fontWeight: 600 }}>
                     Link copiado!
                   </div>
                 )}
+
+                <div style={{
+                  marginTop: '12px',
+                  paddingTop: '12px',
+                  borderTop: '1px solid rgba(234, 179, 8, 0.35)',
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#eab308', marginBottom: '6px' }}>
+                    Últimos convites
+                  </div>
+                  {loadingInvites ? (
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Carregando convites...</div>
+                  ) : inviteError ? (
+                    <div style={{ fontSize: '12px', color: '#ef4444' }}>{inviteError}</div>
+                  ) : partnerInvites.length === 0 ? (
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Nenhum convite gerado ainda.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '8px' }}>
+                      {partnerInvites.map((invite) => (
+                        <div key={invite.id} style={{
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-primary)',
+                          fontSize: '12px',
+                          color: 'var(--text-secondary)',
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{invite.token}</span>
+                            <span style={{ fontWeight: 700, color: invite.used ? '#ef4444' : '#22c55e' }}>
+                              {invite.used ? 'Usado' : 'Pendente'}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>Criado: {formatDate(invite.created_at)}</span>
+                            <span>Expira: {formatDate(invite.expires_at)}</span>
+                          </div>
+                          {invite.used && (
+                            <div style={{ marginTop: '4px', color: 'var(--text-primary)' }}>
+                              Usado por: {invite.used_by_name || invite.used_by_email || invite.used_by || '—'}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

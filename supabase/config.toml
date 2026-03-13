@@ -48,3 +48,9 @@ verify_jwt = false
 
 [functions.team-invite]
 verify_jwt = false
+
+[functions.generate-partner-invite]
+verify_jwt = false
+
+[functions.admin-get-partner-invites]
+verify_jwt = false
