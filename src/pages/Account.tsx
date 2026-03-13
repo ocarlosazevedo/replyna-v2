@@ -1208,7 +1208,7 @@ export default function Account() {
                     Renova em {renewalDate ? formatDate(renewalDate) : '--'}
                   </div>
 
-                  {subscriptionInfo?.cancel_at_period_end && (
+                  {!profile?.is_trial && subscriptionInfo?.cancel_at_period_end && (
                     <div style={{
                       marginTop: '10px',
                       padding: '10px 12px',

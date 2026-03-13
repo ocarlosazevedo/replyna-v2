@@ -43,6 +43,19 @@ serve(async (req) => {
 
     const supabase = getSupabaseAdmin();
 
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, is_trial')
+      .eq('id', user_id)
+      .single();
+
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Usuario nao encontrado' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .select('id, asaas_subscription_id')
@@ -51,7 +64,44 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    if (subError || !subscription) {
+    if (subError) {
+      return new Response(
+        JSON.stringify({ error: 'Erro ao buscar assinatura' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (user.is_trial === true) {
+      const { error: userUpdateError } = await supabase
+        .from('users')
+        .update({
+          status: 'inactive',
+          emails_limit: 0,
+          shops_limit: 0,
+        })
+        .eq('id', user_id);
+
+      if (userUpdateError) {
+        return new Response(
+          JSON.stringify({ error: 'Erro ao atualizar usuario' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (reason && subscription) {
+        await supabase
+          .from('subscriptions')
+          .update({ cancel_reason: reason })
+          .eq('id', subscription.id);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!subscription) {
       return new Response(
         JSON.stringify({ error: 'Assinatura nao encontrada' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -1984,8 +1984,8 @@ export default function AdminClients() {
                 <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '6px 0 0' }}>
                   {cancelPlanTarget.subscription?.current_period_end
                     ? `O cliente manterá acesso até ${formatDate(cancelPlanTarget.subscription.current_period_end)}.`
-                    : cancelPlanTarget.is_trial && cancelPlanTarget.trial_ends_at
-                      ? `O trial do cliente expira em ${formatDate(cancelPlanTarget.trial_ends_at)}.`
+                    : cancelPlanTarget.is_trial
+                      ? 'O cancelamento será imediato. O cliente perderá acesso agora.'
                       : 'O cancelamento será imediato.'}
                 </p>
               </div>
