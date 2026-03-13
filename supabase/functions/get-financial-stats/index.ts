@@ -38,15 +38,20 @@ interface AsaasPayment {
   value: number;
   status?: string;
   invoiceUrl?: string | null;
+  paymentDate?: string;
   createdAt?: string;
   dateCreated?: string;
   description?: string | null;
 }
 
 interface AsaasBalance {
-  balance?: number;
-  available: number;
-  pending: number;
+  balance: number;
+}
+
+interface AsaasPaymentStatistics {
+  quantity: number;
+  value: number;
+  netValue: number;
 }
 
 interface FinancialStats {
@@ -150,6 +155,12 @@ async function asaasRequest<T>(method: HttpMethod, path: string, params?: Record
   return data as T;
 }
 
+async function fetchPaymentStats(
+  params: Record<string, string | number | boolean | undefined>
+): Promise<AsaasPaymentStatistics> {
+  return asaasRequest<AsaasPaymentStatistics>('GET', '/finance/payment/statistics', params);
+}
+
 async function fetchPage<T>(path: string, params: Record<string, string | number | boolean | undefined>, limit = 100, offset = 0) {
   const response = await asaasRequest<AsaasListResponse<T>>('GET', path, { ...params, limit, offset });
   return response;
@@ -234,8 +245,8 @@ function toUnixSeconds(value?: string): number {
 async function fetchPaymentsForRange(status: string, startDate: string, endDate: string): Promise<AsaasPayment[]> {
   const { data } = await fetchAll<AsaasPayment>('/payments', {
     status,
-    'dateCreated[ge]': startDate,
-    'dateCreated[le]': endDate,
+    'paymentDate[ge]': startDate,
+    'paymentDate[le]': endDate,
   });
   return data || [];
 }
@@ -371,6 +382,8 @@ serve(async (req) => {
     const expiredSubs = (expiredSubsRes.data || []).filter((sub) => isReplyna(sub.customer));
     const allSubs = [...activeSubs, ...inactiveSubs, ...expiredSubs];
 
+    const availableBalance = balance.balance ?? 0;
+
     const mrr = activeSubs.reduce((sum, sub) => sum + Number(sub.value || 0), 0);
     const arr = mrr * 12;
     const activeSubscriptions = activeSubs.length;
@@ -383,10 +396,11 @@ serve(async (req) => {
     const filteredPaymentsReceivedSixMonths = paymentsReceivedSixMonths.filter((p) => isReplyna(p.customer));
 
     const paymentsInPeriod = [...filteredPaymentsConfirmedInPeriod, ...filteredPaymentsReceivedInPeriod];
-    const revenueInPeriod = sumPayments(paymentsInPeriod);
-    const paymentsCountInPeriod = paymentsInPeriod.length;
+    let revenueInPeriod = sumPayments(paymentsInPeriod);
+    let paymentsCountInPeriod = paymentsInPeriod.length;
 
     const revenueLastMonth = sumPayments([...filteredPaymentsConfirmedLastMonth, ...filteredPaymentsReceivedLastMonth]);
+
     const revenueGrowth = revenueLastMonth > 0
       ? ((revenueInPeriod - revenueLastMonth) / revenueLastMonth) * 100
       : (revenueInPeriod > 0 ? 100 : 0);
@@ -430,7 +444,7 @@ serve(async (req) => {
     const revenueByMonth = new Map<string, number>();
 
     for (const payment of paymentsSixMonths) {
-      const dateValue = payment.createdAt || payment.dateCreated;
+      const dateValue = payment.paymentDate || payment.createdAt || payment.dateCreated;
       if (!dateValue) continue;
       const date = new Date(dateValue);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -506,8 +520,8 @@ serve(async (req) => {
 
     const stats: FinancialStats = {
       balance: {
-        available: balance.available ?? balance.balance ?? 0,
-        pending: balance.pending ?? 0,
+        available: availableBalance,
+        pending: 0,
         currency: 'BRL',
       },
       mrr,
@@ -525,7 +539,7 @@ serve(async (req) => {
       subscriptionsByPlan,
       monthlyRevenue,
       periodMetrics: {
-        availableBalance: balance.available ?? 0,
+        availableBalance,
         revenueInPeriod,
         newSubscriptionsInPeriod,
         canceledSubscriptionsInPeriod: canceledInPeriod,
