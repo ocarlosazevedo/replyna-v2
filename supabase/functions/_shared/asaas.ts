@@ -166,7 +166,10 @@ export async function createCustomer(input: {
   postalCode?: string;
   addressNumber?: string;
 }): Promise<AsaasCustomer> {
-  return await asaasRequest<AsaasCustomer>('POST', '/customers', input);
+  return await asaasRequest<AsaasCustomer>('POST', '/customers', {
+    ...input,
+    notificationDisabled: true,
+  });
 }
 
 export async function getCustomerByEmail(email: string): Promise<AsaasCustomer | null> {
