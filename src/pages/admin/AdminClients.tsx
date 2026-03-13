@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
 import { getPlanDisplayName, normalizePlanSlug } from '../../utils/plan'
 import { Search, Edit2, Mail, Store, Calendar, ChevronDown, ChevronUp, ExternalLink, Trash2, Key, RefreshCw, ArrowUpDown, LogIn, UserPlus, Users, MessageCircle } from 'lucide-react'
 
@@ -167,6 +166,12 @@ export default function AdminClients() {
     try {
       const selectedPlan = plans.find(p => normalizePlanSlug(p.slug || p.name) === normalizePlanSlug(editingClient.plan))
       const planChanged = normalizePlanSlug(editingClient.plan) !== normalizePlanSlug(originalClient.plan)
+      const adminUpdatePayload: Record<string, unknown> = {
+        user_id: editingClient.id,
+        name: editingClient.name,
+        status: editingClient.status,
+        admin_notes: editingClient.admin_notes,
+      }
 
       // Se o plano mudou e o cliente tem assinatura ativa, usar Edge Function para atualizar Asaas
       if (planChanged && selectedPlan && editingClient.subscription) {
@@ -192,17 +197,21 @@ export default function AdminClients() {
         }
 
         // Atualizar também nome e status no banco
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({
-            name: editingClient.name,
-            status: editingClient.status,
-            admin_notes: editingClient.admin_notes,
-          })
-          .eq('id', editingClient.id)
+        const adminUpdateResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-update-client`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(adminUpdatePayload),
+          }
+        )
 
-        if (updateError) {
-          console.error('Erro ao atualizar nome/status:', updateError)
+        if (!adminUpdateResponse.ok) {
+          const adminUpdateResult = await adminUpdateResponse.json()
+          throw new Error(adminUpdateResult.error || 'Erro ao atualizar cliente')
         }
 
         setActionMessage({
@@ -219,25 +228,29 @@ export default function AdminClients() {
         }, 1500)
       } else {
         // Sem mudança de plano ou sem assinatura ativa - atualizar apenas localmente
-        const updateData: Record<string, unknown> = {
-          name: editingClient.name,
-          status: editingClient.status,
-          admin_notes: editingClient.admin_notes,
-        }
-
         // Se mudou o plano mas não tem assinatura (cliente free), atualizar manualmente
         if (planChanged && selectedPlan) {
-          updateData.plan = editingClient.plan
-          updateData.emails_limit = selectedPlan.emails_limit
-          updateData.shops_limit = selectedPlan.shops_limit
+          adminUpdatePayload.plan = editingClient.plan
+          adminUpdatePayload.emails_limit = selectedPlan.emails_limit
+          adminUpdatePayload.shops_limit = selectedPlan.shops_limit
         }
 
-        const { error } = await supabase
-          .from('users')
-          .update(updateData)
-          .eq('id', editingClient.id)
+        const adminUpdateResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-update-client`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(adminUpdatePayload),
+          }
+        )
 
-        if (error) throw error
+        if (!adminUpdateResponse.ok) {
+          const adminUpdateResult = await adminUpdateResponse.json()
+          throw new Error(adminUpdateResult.error || 'Erro ao atualizar cliente')
+        }
 
         setShowModal(false)
         loadData()
