@@ -309,10 +309,11 @@ serve(async (req) => {
             name: creditCardHolderInfo!.name,
             email: normalizedEmail,
             cpfCnpj: creditCardHolderInfo!.cpfCnpj,
-            postalCode: creditCardHolderInfo!.postalCode || undefined,
-            addressNumber: creditCardHolderInfo!.addressNumber || undefined,
+            postalCode: creditCardHolderInfo!.postalCode || '00000000',
+            addressNumber: creditCardHolderInfo!.addressNumber || 'SN',
             phone: creditCardHolderInfo!.phone || cleanPhone,
-            addressComplement: creditCardHolderInfo!.addressComplement || undefined,
+            mobilePhone: creditCardHolderInfo!.mobilePhone || cleanPhone,
+            addressComplement: creditCardHolderInfo!.addressComplement || null,
           },
         });
 
@@ -376,10 +377,11 @@ serve(async (req) => {
           name: creditCardHolderInfo.name,
           email: normalizedEmail,
           cpfCnpj: creditCardHolderInfo.cpfCnpj,
-          postalCode: creditCardHolderInfo.postalCode || undefined,
-          addressNumber: creditCardHolderInfo.addressNumber || undefined,
+          postalCode: creditCardHolderInfo.postalCode || '00000000',
+          addressNumber: creditCardHolderInfo.addressNumber || 'SN',
           phone: creditCardHolderInfo.phone || cleanPhone,
-          addressComplement: creditCardHolderInfo.addressComplement || undefined,
+          mobilePhone: creditCardHolderInfo.mobilePhone || cleanPhone,
+          addressComplement: creditCardHolderInfo.addressComplement || null,
         },
       });
 
