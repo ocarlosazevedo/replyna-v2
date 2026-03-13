@@ -1270,66 +1270,70 @@ export default function Account() {
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleOpenBillingPortal}
-                    disabled={openingBillingPortal}
-                    style={{
-                      marginTop: '10px',
-                      width: '100%',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)',
-                      padding: '10px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      background: 'var(--bg-card)',
-                      cursor: openingBillingPortal ? 'not-allowed' : 'pointer',
-                      opacity: openingBillingPortal ? 0.7 : 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    {openingBillingPortal ? (
-                      'Abrindo...'
-                    ) : (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                          <line x1="1" y1="10" x2="23" y2="10"/>
-                        </svg>
-                        Ver última fatura
-                      </>
-                    )}
-                  </button>
+                  {profile?.plan !== 'partners' && (
+                    <button
+                      type="button"
+                      onClick={handleOpenBillingPortal}
+                      disabled={openingBillingPortal}
+                      style={{
+                        marginTop: '10px',
+                        width: '100%',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)',
+                        padding: '10px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        background: 'var(--bg-card)',
+                        cursor: openingBillingPortal ? 'not-allowed' : 'pointer',
+                        opacity: openingBillingPortal ? 0.7 : 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      {openingBillingPortal ? (
+                        'Abrindo...'
+                      ) : (
+                        <>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                            <line x1="1" y1="10" x2="23" y2="10"/>
+                          </svg>
+                          Ver última fatura
+                        </>
+                      )}
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => setShowPaymentModal(true)}
-                    style={{
-                      marginTop: '6px',
-                      width: '100%',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)',
-                      padding: '10px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      background: 'var(--bg-card)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                    </svg>
-                    Atualizar método de pagamento
-                  </button>
+                  {profile?.plan !== 'partners' && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPaymentModal(true)}
+                      style={{
+                        marginTop: '6px',
+                        width: '100%',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)',
+                        padding: '10px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        background: 'var(--bg-card)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                      </svg>
+                      Atualizar método de pagamento
+                    </button>
+                  )}
                 </div>
               )}
 
