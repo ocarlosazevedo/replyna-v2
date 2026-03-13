@@ -109,7 +109,7 @@ serve(async (req) => {
     await supabase
       .from('users')
       .update({
-        plan: plan.name,
+        plan: plan.slug,
         emails_limit: plan.emails_limit,
         shops_limit: plan.shops_limit,
         status: 'active',

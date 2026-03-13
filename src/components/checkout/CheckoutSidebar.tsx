@@ -4,6 +4,7 @@ import { Check, Lock, ShieldCheck } from 'lucide-react'
 interface Plan {
   id: string
   name: string
+  slug?: string | null
   description: string | null
   price_monthly: number
   emails_limit: number | null
@@ -27,6 +28,7 @@ interface CheckoutSidebarProps {
 
 export default function CheckoutSidebar({ plan, isTrialFlow, couponValidation, isMobile }: CheckoutSidebarProps) {
   const basePrice = plan.price_monthly
+  const isTrial = isTrialFlow || plan.slug === 'trial'
   let discount = 0
   if (couponValidation?.is_valid && couponValidation.discount_value) {
     if (couponValidation.discount_type === 'percentage') {
@@ -65,9 +67,9 @@ export default function CheckoutSidebar({ plan, isTrialFlow, couponValidation, i
         <div style={{ marginBottom: '8px' }}>
           <div>
             <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-              {isTrialFlow ? 'Free Trial' : plan.name}
+              {isTrial ? 'Free Trial' : plan.name}
             </h3>
-            {plan.is_popular && !isTrialFlow && (
+            {plan.is_popular && !isTrial && (
               <motion.span
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -87,7 +89,7 @@ export default function CheckoutSidebar({ plan, isTrialFlow, couponValidation, i
         </div>
         {plan.description && (
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-            {isTrialFlow ? '30 emails grátis, 1 loja. Nenhuma cobrança será feita.' : plan.description}
+            {isTrial ? '30 emails grátis, 1 loja. Nenhuma cobrança será feita.' : plan.description}
           </p>
         )}
       </div>
@@ -106,7 +108,7 @@ export default function CheckoutSidebar({ plan, isTrialFlow, couponValidation, i
             fontWeight: 600,
             color: plan.emails_limit === null ? '#22c55e' : 'var(--text-primary)',
           }}>
-            {isTrialFlow ? '30' : plan.emails_limit === null ? 'Ilimitado' : plan.emails_limit.toLocaleString('pt-BR')}
+            {isTrial ? '30' : plan.emails_limit === null ? 'Ilimitado' : plan.emails_limit.toLocaleString('pt-BR')}
           </span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -116,12 +118,12 @@ export default function CheckoutSidebar({ plan, isTrialFlow, couponValidation, i
             fontWeight: 600,
             color: plan.shops_limit === null ? '#22c55e' : 'var(--text-primary)',
           }}>
-            {isTrialFlow ? '1' : plan.shops_limit === null ? 'Ilimitado' : plan.shops_limit}
+            {isTrial ? '1' : plan.shops_limit === null ? 'Ilimitado' : plan.shops_limit}
           </span>
         </div>
       </div>
 
-      {plan.features && plan.features.length > 0 && !isTrialFlow && (
+      {plan.features && plan.features.length > 0 && !isTrial && (
         <div style={{ marginBottom: '24px' }}>
           {plan.features.map((feature, index) => (
             <motion.div
@@ -155,7 +157,7 @@ export default function CheckoutSidebar({ plan, isTrialFlow, couponValidation, i
         borderTop: '1px solid var(--border-color)',
         paddingTop: '20px',
       }}>
-        {isTrialFlow ? (
+        {isTrial ? (
           <div style={{ textAlign: 'center' }}>
             <motion.span
               initial={{ scale: 0.9, opacity: 0 }}

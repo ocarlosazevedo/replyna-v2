@@ -280,7 +280,7 @@ async function handlePaymentConfirmed(supabase: ReturnType<typeof getSupabaseAdm
   // Buscar plano para obter limites
   const { data: plan } = await supabase
     .from('plans')
-    .select('name, emails_limit, shops_limit')
+    .select('name, slug, emails_limit, shops_limit')
     .eq('id', sub.plan_id)
     .single();
 
@@ -312,7 +312,7 @@ async function handlePaymentConfirmed(supabase: ReturnType<typeof getSupabaseAdm
   // Atualizar usuario: ativar + resetar creditos no novo ciclo
   const userUpdate: Record<string, unknown> = {
     status: 'active',
-    plan: plan.name,
+    plan: plan.slug,
     emails_limit: plan.emails_limit,
     shops_limit: plan.shops_limit,
     is_trial: false,

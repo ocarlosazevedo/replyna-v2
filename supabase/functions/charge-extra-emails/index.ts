@@ -56,8 +56,8 @@ serve(async (req) => {
 
     const { data: plan, error: planError } = await supabase
       .from('plans')
-      .select('id, name, extra_email_price, extra_email_package_size')
-      .eq('name', user.plan)
+      .select('id, name, slug, extra_email_price, extra_email_package_size')
+      .eq('slug', user.plan)
       .single();
 
     if (planError || !plan) {

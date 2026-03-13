@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { supabase } from '../lib/supabase'
 import { useTeamContext } from '../hooks/useTeamContext'
+import { getPlanDisplayName, normalizePlanSlug } from '../utils/plan'
 
 interface UserProfile {
   name: string | null
@@ -524,14 +525,14 @@ export default function Account() {
       setShopsCount(shopsIntegrated || 0)
 
       // Buscar preço de email extra do plano atual
-      const planName = data?.plan || 'Starter'
+      const planSlug = normalizePlanSlug(data?.plan || 'starter')
       const { data: planData, error: planError } = await supabase
         .from('plans')
         .select('extra_email_price, extra_email_package_size')
-        .eq('name', planName)
+        .eq('slug', planSlug)
         .single()
 
-      console.log('Plan lookup:', { planName, planData, planError })
+      console.log('Plan lookup:', { planSlug, planData, planError })
 
       if (data) {
         setProfile({
@@ -615,7 +616,7 @@ export default function Account() {
     return calculateRenewalDate(profile?.created_at ?? user?.created_at ?? null)
   }, [subscriptionInfo?.current_period_end, profile?.created_at, user?.created_at])
 
-  const planName = profile?.plan ?? '--'
+  const planName = getPlanDisplayName(profile?.plan)
   const emailsLimit = profile?.emails_limit
   const shopsLimit = profile?.shops_limit
 

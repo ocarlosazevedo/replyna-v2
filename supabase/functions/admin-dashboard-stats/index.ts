@@ -213,7 +213,7 @@ serve(async (req) => {
     const clients: Array<{ id: string; name: string | null; email: string; shops: string[] }> = [];
 
     (allUsersForPlansRes.data || []).forEach((user: { id: string; name: string | null; email: string; plan: string }) => {
-      const plan = user.plan || 'starter';
+      const plan = (user.plan || 'starter').toLowerCase().replace(/\s+/g, '-');
       planDistribution[plan] = (planDistribution[plan] || 0) + 1;
 
       // Encontrar as lojas deste usuário

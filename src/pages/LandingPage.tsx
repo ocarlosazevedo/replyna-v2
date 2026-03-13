@@ -3465,6 +3465,7 @@ void main() {
             {[
               {
                 name: 'Starter',
+                slug: 'starter',
                 desc: 'Ideal para quem está começando',
                 price: 'R$ 197',
                 period: '/mes',
@@ -3475,6 +3476,7 @@ void main() {
               },
               {
                 name: 'Business',
+                slug: 'business',
                 desc: 'Para operações em crescimento',
                 price: 'R$ 397',
                 period: '/mes',
@@ -3485,6 +3487,7 @@ void main() {
               },
               {
                 name: 'Scale',
+                slug: 'scale',
                 desc: 'Escale sem limites',
                 price: 'R$ 597',
                 period: '/mes',
@@ -3495,6 +3498,7 @@ void main() {
               },
               {
                 name: 'High Scale',
+                slug: 'high-scale',
                 desc: 'Para grandes operações',
                 price: 'R$ 997',
                 period: '/mes',
@@ -3505,6 +3509,7 @@ void main() {
               },
               {
                 name: 'Enterprise',
+                slug: 'enterprise',
                 desc: 'Solução personalizada',
                 price: 'Sob consulta',
                 period: '',
@@ -3974,7 +3979,7 @@ const INF_DATA = [
 ]
 
 // Pricing card with spotlight glow, 3D tilt, and counter animation
-function PricingCard({ plan, index }: { plan: { name: string; desc: string; price: string; period: string; emails: string; lojas: string; features: string[]; highlight: boolean }; index: number }) {
+function PricingCard({ plan, index }: { plan: { name: string; slug: string; desc: string; price: string; period: string; emails: string; lojas: string; features: string[]; highlight: boolean }; index: number }) {
   const cardRef = useRef<HTMLDivElement>(null)
   const [counter, setCounter] = useState({ emails: '0', lojas: '0' })
   const counted = useRef(false)
@@ -4076,11 +4081,11 @@ function PricingCard({ plan, index }: { plan: { name: string; desc: string; pric
             ))}
           </div>
           <a
-            href={plan.name === 'Enterprise' ? '#contato' : getAppUrl(`/checkout?plan=${encodeURIComponent(plan.name)}`)}
+            href={plan.slug === 'enterprise' ? '#contato' : getAppUrl(`/checkout?plan=${encodeURIComponent(plan.slug)}`)}
             className={plan.highlight ? 'pricing-btn pricing-btn--primary' : 'pricing-btn'}
             style={{ position: 'relative', zIndex: 3 }}
           >
-            {plan.name === 'Enterprise' ? 'Falar com vendas' : 'Selecionar plano'}
+            {plan.slug === 'enterprise' ? 'Falar com vendas' : 'Selecionar plano'}
           </a>
         </div>
       </div>

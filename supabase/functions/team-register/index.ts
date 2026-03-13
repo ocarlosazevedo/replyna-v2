@@ -75,7 +75,6 @@ serve(async (req) => {
         id: authData.user.id,
         email,
         name,
-        plan: 'team_member',
         emails_limit: 0,
         emails_used: 0,
         shops_limit: 0,

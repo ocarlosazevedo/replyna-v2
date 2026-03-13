@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { Star, ArrowRight, ArrowLeft, MessageCircle, Check } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { normalizePlanSlug } from '../utils/plan'
 
 interface Plan {
   id: string
   name: string
+  slug?: string | null
   description: string | null
   price_monthly: number
   emails_limit: number | null
@@ -42,7 +44,7 @@ export default function Register() {
 
     const slug = searchParams.get('slug')
     if (slug) {
-      const plan = plans.find(p => (p as any).slug === slug)
+      const plan = plans.find(p => normalizePlanSlug(p.slug || p.name) === normalizePlanSlug(slug))
       if (plan) {
         navigate(checkoutPath(), { state: { plan, isTrialFlow: true } })
       }
@@ -59,8 +61,8 @@ export default function Register() {
     }
 
     if (preselectedPlan) {
-      const normalizedPreselected = preselectedPlan.toLowerCase().replace(/[-\s]/g, '')
-      const plan = plans.find(p => p.name.toLowerCase().replace(/[-\s]/g, '') === normalizedPreselected)
+      const normalizedPreselected = normalizePlanSlug(preselectedPlan)
+      const plan = plans.find(p => normalizePlanSlug(p.slug || p.name) === normalizedPreselected)
       if (plan) {
         if (isEnterprisePlan(plan)) return
         navigate(checkoutPath(), { state: { plan, isTrialFlow: false } })
@@ -86,7 +88,7 @@ export default function Register() {
   }
 
   const isEnterprisePlan = (plan: Plan) => {
-    return plan.name === 'Enterprise'
+    return normalizePlanSlug(plan.slug || plan.name) === 'enterprise'
   }
 
   const handleSelectPlan = (plan: Plan) => {

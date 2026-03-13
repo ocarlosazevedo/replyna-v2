@@ -134,7 +134,6 @@ serve(async (_req) => {
         .from('users')
         .update({
           status: 'inactive',
-          plan: 'free',
           emails_limit: 0,
           shops_limit: 0,
           updated_at: now,

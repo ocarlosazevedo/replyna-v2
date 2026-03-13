@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { getPlanDisplayName, normalizePlanSlug } from '../../utils/plan'
 import { Search, Edit2, Mail, Store, Calendar, ChevronDown, ChevronUp, ExternalLink, Trash2, Key, RefreshCw, ArrowUpDown, LogIn, UserPlus, Users } from 'lucide-react'
 
 function useIsMobile() {
@@ -69,6 +70,7 @@ interface Client {
 interface Plan {
   id: string
   name: string
+  slug?: string | null
   emails_limit: number | null   // null = ilimitado
   shops_limit: number | null    // null = ilimitado
   is_active: boolean
@@ -526,11 +528,13 @@ export default function AdminClients() {
       const matchesStatus = filterStatus === 'all' || getEffectiveStatus(client) === filterStatus
 
       // Filtro de plano
-      const matchesPlan = filterPlan === 'all' || client.plan === filterPlan
+      const filterPlanNormalized = normalizePlanSlug(filterPlan)
+      const clientPlanNormalized = normalizePlanSlug(client.plan)
+      const matchesPlan = filterPlanNormalized === 'all' || clientPlanNormalized === filterPlanNormalized
 
       // Esconder membros de equipe da lista principal (aparecem no dropdown do owner)
       // Só mostra se o filtro de plano estiver especificamente em 'team_member'
-      if (client.plan === 'team_member' && filterPlan !== 'team_member') return false
+      if (clientPlanNormalized === 'team_member' && filterPlanNormalized !== 'team_member') return false
 
       return matchesSearch && matchesStatus && matchesPlan
     })
@@ -560,7 +564,7 @@ export default function AdminClients() {
               case 'starter': return 1
               case 'business': return 2
               case 'scale': return 3
-              case 'high scale': return 4
+              case 'high-scale': return 4
               case 'enterprise': return 5
               default: return 0
             }
@@ -579,16 +583,9 @@ export default function AdminClients() {
       year: 'numeric',
     }).format(new Date(date))
 
-  const getPlanDisplayName = (planSlug: string | null) => {
-    if (!planSlug) return 'Free'
-    if (planSlug === 'team_member') return 'Membro de Equipe'
-    const plan = plans.find(p => p.name.toLowerCase() === planSlug.toLowerCase())
-    return plan?.name || planSlug.charAt(0).toUpperCase() + planSlug.slice(1)
-  }
-
   // Cores por plano
   const getPlanColor = (planSlug: string | null): { bg: string; color: string } => {
-    const slug = planSlug?.toLowerCase() || 'free'
+    const slug = normalizePlanSlug(planSlug) || 'free'
     switch (slug) {
       case 'starter':
         return { bg: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' } // Verde
@@ -596,7 +593,7 @@ export default function AdminClients() {
         return { bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' } // Azul
       case 'scale':
         return { bg: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' } // Roxo
-      case 'high scale':
+      case 'high-scale':
         return { bg: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' } // Rosa
       case 'enterprise':
         return { bg: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' } // Laranja
@@ -811,10 +808,8 @@ export default function AdminClients() {
           className="replyna-select"
         >
           <option value="all">Todos os planos</option>
-          <option value="free">Free</option>
-          <option value="team_member">Membro de Equipe</option>
           {plans.map((plan) => (
-            <option key={plan.id} value={plan.name.toLowerCase()}>
+            <option key={plan.id} value={normalizePlanSlug(plan.slug || plan.name)}>
               {plan.name}
             </option>
           ))}

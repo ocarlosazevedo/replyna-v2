@@ -166,7 +166,7 @@ serve(async (req) => {
     // Buscar dados do plano para definir limites corretos
     const { data: planData } = await supabase
       .from('plans')
-      .select('name, emails_limit, shops_limit')
+      .select('name, slug, emails_limit, shops_limit')
       .eq('id', plan_id)
       .single();
 
@@ -178,7 +178,7 @@ serve(async (req) => {
       id: userId,
       email: normalizedEmail,
       name: name || null,
-      plan: userIsTrial ? 'Free Trial' : (planData?.name || 'Starter'),
+      plan: userIsTrial ? 'Free Trial' : (planData?.slug || 'Starter'),
       emails_limit: userIsTrial ? 30 : (planData?.emails_limit ?? 30),
       shops_limit: userIsTrial ? 1 : (planData?.shops_limit ?? 1),
       emails_used: 0,

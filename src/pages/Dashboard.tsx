@@ -8,6 +8,7 @@ import { useUserProfile, useUserShops } from '../hooks/useDashboardData'
 import { useTeamContext } from '../hooks/useTeamContext'
 import { useNotificationContext } from '../context/NotificationContext'
 import { supabase } from '../lib/supabase'
+import { getPlanDisplayName } from '../utils/plan'
 import DateRangePicker from '../components/DateRangePicker'
 import ConversationModal from '../components/ConversationModal'
 import NotificationCenter from '../components/NotificationCenter'
@@ -1301,7 +1302,7 @@ export default function Dashboard() {
               <div>
                 <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Plano atual</div>
                 <div style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
-                  {profile?.plan || 'Starter'}
+                  {getPlanDisplayName(profile?.plan || 'starter')}
                 </div>
               </div>
               <div>

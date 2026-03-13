@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase'
 interface Plan {
   id: string
   name: string
+  slug?: string | null
   description: string | null
   price_monthly: number
   price_yearly: number | null
@@ -49,7 +50,7 @@ export default function TrialExpired() {
   }
 
   const isEnterprise = (plan: Plan) =>
-    plan.name.toLowerCase().includes('enterprise')
+    (plan.slug || plan.name).toLowerCase().includes('enterprise')
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('pt-BR', {

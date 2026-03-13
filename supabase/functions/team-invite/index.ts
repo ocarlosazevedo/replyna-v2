@@ -134,8 +134,8 @@ serve(async (req) => {
         // Fallback: buscar limite pelo campo plan do usuário
         const { data: planData } = await supabase
           .from('plans')
-          .select('team_members_limit')
-          .ilike('name', ownerProfile.plan || '')
+          .select('slug, team_members_limit')
+          .eq('slug', ownerProfile.plan || '')
           .single();
 
         if (planData) {

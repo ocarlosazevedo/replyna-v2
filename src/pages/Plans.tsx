@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Star, ArrowRight, ArrowLeft, MessageCircle, Check } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { normalizePlanSlug } from '../utils/plan'
 import { supabase } from '../lib/supabase'
 
 interface Plan {
   id: string
   name: string
+  slug?: string | null
   description: string | null
   price_monthly: number
   price_yearly: number | null
@@ -41,7 +43,7 @@ export default function Plans() {
       const [plansResult, userResult] = await Promise.all([
         supabase
           .from('plans')
-          .select('id, name, description, price_monthly, price_yearly, emails_limit, shops_limit, team_members_limit, features, is_popular')
+          .select('id, name, slug, description, price_monthly, price_yearly, emails_limit, shops_limit, team_members_limit, features, is_popular')
           .eq('is_active', true)
           .order('sort_order', { ascending: true }),
         user
@@ -62,13 +64,13 @@ export default function Plans() {
     }
   }
 
-  const currentPlanName = userPlan?.plan || ''
+  const currentPlanSlug = normalizePlanSlug(userPlan?.plan || '')
 
   const isCurrentPlan = (plan: Plan) =>
-    plan.name.toLowerCase().trim() === currentPlanName.toLowerCase().trim()
+    normalizePlanSlug(plan.slug || plan.name) === currentPlanSlug
 
   const isEnterprise = (plan: Plan) =>
-    plan.name.toLowerCase().includes('enterprise')
+    normalizePlanSlug(plan.slug || plan.name) === 'enterprise'
 
   const currentPlanData = plans.find(p => isCurrentPlan(p)) || null
 

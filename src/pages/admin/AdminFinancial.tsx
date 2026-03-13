@@ -27,6 +27,7 @@ import {
 import { Line } from 'react-chartjs-2'
 import DateRangePicker from '../../components/DateRangePicker'
 import { useTheme } from '../../context/ThemeContext'
+import { getPlanDisplayName } from '../../utils/plan'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend)
 
@@ -703,7 +704,7 @@ export default function AdminFinancial() {
                 </div>
                 <div>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {plan.plan_name}
+                    {getPlanDisplayName(plan.plan_name)}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                     {plan.count === 1 ? 'cliente ativo' : 'clientes ativos'}
@@ -736,7 +737,7 @@ export default function AdminFinancial() {
               </div>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Starter
+                  {getPlanDisplayName('starter')}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                   clientes ativos

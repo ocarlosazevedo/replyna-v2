@@ -210,7 +210,7 @@ serve(async (req) => {
       await supabase
         .from('users')
         .update({
-          plan: newPlan.name,
+          plan: newPlan.slug,
           emails_limit: newPlan.emails_limit,
           shops_limit: newPlan.shops_limit,
           emails_used: 0,
@@ -279,7 +279,7 @@ serve(async (req) => {
     await supabase
       .from('users')
       .update({
-        plan: newPlan.name,
+        plan: newPlan.slug,
         emails_limit: newPlan.emails_limit,
         shops_limit: newPlan.shops_limit,
         emails_used: 0,

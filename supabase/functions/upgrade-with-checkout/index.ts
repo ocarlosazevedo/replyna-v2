@@ -329,7 +329,7 @@ serve(async (req) => {
 
       // Atualizar usuario com novo plano
       const updateData: Record<string, unknown> = {
-        plan: plan.name,
+        plan: plan.slug,
         emails_limit: plan.emails_limit,
         shops_limit: plan.shops_limit,
         emails_used: 0,
