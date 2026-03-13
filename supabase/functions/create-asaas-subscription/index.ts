@@ -58,14 +58,11 @@ function getSupabaseAdmin() {
   });
 }
 
-function formatDateBrazil(): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
-  return parts; // returns YYYY-MM-DD
+function formatDateYYYYMMDD(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 /** Parse Asaas error responses into user-friendly messages */
@@ -322,7 +319,7 @@ serve(async (req) => {
     }
 
     // Paid flow: create subscription with immediate charge
-    const nextDueDate = formatDateBrazil();
+    const nextDueDate = formatDateYYYYMMDD(new Date());
 
     // Build subscription description
     let subscriptionDescription = `Replyna - Plano ${plan.name}`;
@@ -334,14 +331,11 @@ serve(async (req) => {
     // This way first payment = discounted, future payments = full price
     const firstPaymentValue = (discountApplied > 0) ? finalValue : baseValue;
 
+    // Step 1: Tokenize card first (Asaas requires tokenized cards for subscriptions)
+    let creditCardToken: string;
     try {
-      const subscription = await createSubscription({
+      const tokenResult = await tokenizeCreditCard({
         customer: customer.id,
-        billingType: 'CREDIT_CARD',
-        value: firstPaymentValue,
-        cycle: 'MONTHLY',
-        description: subscriptionDescription,
-        nextDueDate,
         creditCard: {
           holderName: creditCard.holderName,
           number: creditCard.number,
@@ -358,6 +352,28 @@ serve(async (req) => {
           phone: creditCardHolderInfo.phone || cleanPhone,
           addressComplement: creditCardHolderInfo.addressComplement || undefined,
         },
+      });
+      creditCardToken = tokenResult.creditCardToken;
+      console.log(`[CreateSubscription] Card tokenized: brand=${tokenResult.creditCardBrand}, token=${creditCardToken}`);
+    } catch (tokenError) {
+      console.error('[CreateSubscription] Card tokenization error:', tokenError);
+      const friendlyMessage = parseAsaasError(tokenError?.message || tokenError);
+      return new Response(
+        JSON.stringify({ error: friendlyMessage }),
+        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Step 2: Create subscription using the token
+    try {
+      const subscription = await createSubscription({
+        customer: customer.id,
+        billingType: 'CREDIT_CARD',
+        value: firstPaymentValue,
+        cycle: 'MONTHLY',
+        description: subscriptionDescription,
+        nextDueDate,
+        creditCardToken,
       });
 
       console.log(`[CreateSubscription] Subscription created: ${subscription.id}`);
@@ -376,6 +392,7 @@ serve(async (req) => {
         JSON.stringify({
           asaas_customer_id: customer.id,
           asaas_subscription_id: subscription.id,
+          asaas_credit_card_token: creditCardToken,
           plan_id: plan.id,
           plan_name: plan.name,
           coupon_id: couponId,
@@ -386,8 +403,10 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } catch (cardError) {
-      console.error('[CreateSubscription] Card error:', cardError);
-      const friendlyMessage = parseAsaasError(cardError?.message || cardError);
+      // Handle Asaas subscription creation errors
+      const rawError = cardError?.message || String(cardError);
+      console.error('[CreateSubscription] Subscription error (raw):', rawError);
+      const friendlyMessage = parseAsaasError(rawError);
       return new Response(
         JSON.stringify({ error: friendlyMessage }),
         { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
