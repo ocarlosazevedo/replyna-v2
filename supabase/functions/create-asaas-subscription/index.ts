@@ -112,12 +112,6 @@ serve(async (req) => {
   }
 
   try {
-    // Extract client IP for Asaas anti-fraud
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-      || req.headers.get('cf-connecting-ip')
-      || req.headers.get('x-real-ip')
-      || '0.0.0.0';
-
     const body = (await req.json()) as CreateSubscriptionRequest;
     const {
       plan_id,
@@ -297,7 +291,6 @@ serve(async (req) => {
           cycle: 'MONTHLY',
           description: `Replyna - Plano ${plan.name} (Trial)`,
           nextDueDate: trialDueDate,
-          remoteIp: clientIp,
           creditCard: {
             holderName: creditCard!.holderName,
             number: creditCard!.number,
@@ -309,11 +302,11 @@ serve(async (req) => {
             name: creditCardHolderInfo!.name,
             email: normalizedEmail,
             cpfCnpj: creditCardHolderInfo!.cpfCnpj,
-            postalCode: creditCardHolderInfo!.postalCode || '00000000',
-            addressNumber: creditCardHolderInfo!.addressNumber || 'SN',
+            postalCode: creditCardHolderInfo!.postalCode || undefined,
+            addressNumber: creditCardHolderInfo!.addressNumber || undefined,
             phone: creditCardHolderInfo!.phone || cleanPhone,
             mobilePhone: creditCardHolderInfo!.mobilePhone || cleanPhone,
-            addressComplement: creditCardHolderInfo!.addressComplement || null,
+            addressComplement: creditCardHolderInfo!.addressComplement || undefined,
           },
         });
 
@@ -363,7 +356,6 @@ serve(async (req) => {
         billingType: 'CREDIT_CARD',
         value: firstPaymentValue,
         cycle: 'MONTHLY',
-        remoteIp: clientIp,
         description: subscriptionDescription,
         nextDueDate,
         creditCard: {
@@ -377,11 +369,11 @@ serve(async (req) => {
           name: creditCardHolderInfo.name,
           email: normalizedEmail,
           cpfCnpj: creditCardHolderInfo.cpfCnpj,
-          postalCode: creditCardHolderInfo.postalCode || '00000000',
-          addressNumber: creditCardHolderInfo.addressNumber || 'SN',
+          postalCode: creditCardHolderInfo.postalCode || undefined,
+          addressNumber: creditCardHolderInfo.addressNumber || undefined,
           phone: creditCardHolderInfo.phone || cleanPhone,
           mobilePhone: creditCardHolderInfo.mobilePhone || cleanPhone,
-          addressComplement: creditCardHolderInfo.addressComplement || null,
+          addressComplement: creditCardHolderInfo.addressComplement || undefined,
         },
       });
 

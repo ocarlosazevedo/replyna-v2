@@ -14,7 +14,6 @@ import {
   updateCustomer,
   createSubscription,
   updateSubscription,
-  tokenizeCreditCard,
 } from '../_shared/asaas.ts';
 
 interface CreditCardInput {
@@ -104,12 +103,6 @@ serve(async (req) => {
   }
 
   try {
-    // Extract client IP for Asaas anti-fraud
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-      || req.headers.get('cf-connecting-ip')
-      || req.headers.get('x-real-ip')
-      || '0.0.0.0';
-
     const body = (await req.json()) as UpgradeRequest;
     const {
       user_id,
@@ -289,7 +282,6 @@ serve(async (req) => {
           cycle: 'MONTHLY',
           description: `Replyna - Plano ${plan.name}`,
           nextDueDate,
-          remoteIp: clientIp,
           creditCard: {
             holderName: creditCard.holderName,
             number: creditCard.number,
