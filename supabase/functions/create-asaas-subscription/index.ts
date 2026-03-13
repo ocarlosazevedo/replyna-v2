@@ -334,40 +334,7 @@ serve(async (req) => {
     // This way first payment = discounted, future payments = full price
     const firstPaymentValue = (discountApplied > 0) ? finalValue : baseValue;
 
-    // Step 1: Tokenize card first (Asaas requires tokenized cards for subscriptions)
-    let creditCardToken: string;
-    try {
-      const tokenResult = await tokenizeCreditCard({
-        customer: customer.id,
-        creditCard: {
-          holderName: creditCard.holderName,
-          number: creditCard.number,
-          expiryMonth: creditCard.expiryMonth,
-          expiryYear: creditCard.expiryYear,
-          ccv: creditCard.ccv,
-        },
-        creditCardHolderInfo: {
-          name: creditCardHolderInfo.name,
-          email: normalizedEmail,
-          cpfCnpj: creditCardHolderInfo.cpfCnpj,
-          postalCode: creditCardHolderInfo.postalCode || undefined,
-          addressNumber: creditCardHolderInfo.addressNumber || undefined,
-          phone: creditCardHolderInfo.phone || cleanPhone,
-          addressComplement: creditCardHolderInfo.addressComplement || undefined,
-        },
-      });
-      creditCardToken = tokenResult.creditCardToken;
-      console.log(`[CreateSubscription] Card tokenized: brand=${tokenResult.creditCardBrand}, token=${creditCardToken}`);
-    } catch (tokenError) {
-      console.error('[CreateSubscription] Card tokenization error:', tokenError);
-      const friendlyMessage = parseAsaasError(tokenError?.message || tokenError);
-      return new Response(
-        JSON.stringify({ error: friendlyMessage }),
-        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Step 2: Create subscription using the token
+    // Create subscription with raw card data (direct charge, no tokenization)
     try {
       const subscription = await createSubscription({
         customer: customer.id,
@@ -376,7 +343,13 @@ serve(async (req) => {
         cycle: 'MONTHLY',
         description: subscriptionDescription,
         nextDueDate,
-        creditCardToken,
+        creditCard: {
+          holderName: creditCard.holderName,
+          number: creditCard.number,
+          expiryMonth: creditCard.expiryMonth,
+          expiryYear: creditCard.expiryYear,
+          ccv: creditCard.ccv,
+        },
         creditCardHolderInfo: {
           name: creditCardHolderInfo.name,
           email: normalizedEmail,
@@ -404,7 +377,6 @@ serve(async (req) => {
         JSON.stringify({
           asaas_customer_id: customer.id,
           asaas_subscription_id: subscription.id,
-          asaas_credit_card_token: creditCardToken,
           plan_id: plan.id,
           plan_name: plan.name,
           coupon_id: couponId,

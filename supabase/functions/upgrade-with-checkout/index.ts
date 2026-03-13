@@ -231,11 +231,14 @@ serve(async (req) => {
     const baseValue = Number(plan.price_monthly || 0);
 
     try {
-      // Se tem assinatura existente no Asaas, tokenizar e atualizar
+      // Se tem assinatura existente no Asaas, atualizar com dados raw do cartao
       if (existingSub?.asaas_subscription_id) {
-        // Tokenize card first
-        const tokenResult = await tokenizeCreditCard({
-          customer: customerId,
+        await updateSubscription(existingSub.asaas_subscription_id, {
+          value: baseValue,
+          description: `Replyna - Plano ${plan.name}`,
+          cycle: 'MONTHLY',
+          nextDueDate,
+          updatePendingPayments: true,
           creditCard: {
             holderName: creditCard.holderName,
             number: creditCard.number,
@@ -243,25 +246,6 @@ serve(async (req) => {
             expiryYear: creditCard.expiryYear,
             ccv: creditCard.ccv,
           },
-          creditCardHolderInfo: {
-            name: creditCardHolderInfo.name,
-            email: normalizedEmail,
-            cpfCnpj: creditCardHolderInfo.cpfCnpj,
-            postalCode: creditCardHolderInfo.postalCode || undefined,
-            addressNumber: creditCardHolderInfo.addressNumber || undefined,
-            phone: creditCardHolderInfo.phone || cleanPhone,
-            addressComplement: creditCardHolderInfo.addressComplement || undefined,
-          },
-        });
-        console.log(`[UpgradeCheckout] Card tokenized for update: token=${tokenResult.creditCardToken}`);
-
-        await updateSubscription(existingSub.asaas_subscription_id, {
-          value: baseValue,
-          description: `Replyna - Plano ${plan.name}`,
-          cycle: 'MONTHLY',
-          nextDueDate,
-          updatePendingPayments: true,
-          creditCardToken: tokenResult.creditCardToken,
           creditCardHolderInfo: {
             name: creditCardHolderInfo.name,
             email: normalizedEmail,
@@ -291,29 +275,7 @@ serve(async (req) => {
           })
           .eq('id', existingSub.id);
       } else {
-        // Step 1: Tokenize card first
-        const tokenResult = await tokenizeCreditCard({
-          customer: customerId,
-          creditCard: {
-            holderName: creditCard.holderName,
-            number: creditCard.number,
-            expiryMonth: creditCard.expiryMonth,
-            expiryYear: creditCard.expiryYear,
-            ccv: creditCard.ccv,
-          },
-          creditCardHolderInfo: {
-            name: creditCardHolderInfo.name,
-            email: normalizedEmail,
-            cpfCnpj: creditCardHolderInfo.cpfCnpj,
-            postalCode: creditCardHolderInfo.postalCode || undefined,
-            addressNumber: creditCardHolderInfo.addressNumber || undefined,
-            phone: creditCardHolderInfo.phone || cleanPhone,
-            addressComplement: creditCardHolderInfo.addressComplement || undefined,
-          },
-        });
-        console.log(`[UpgradeCheckout] Card tokenized: token=${tokenResult.creditCardToken}`);
-
-        // Step 2: Create subscription with token
+        // Criar nova assinatura com dados raw do cartao
         const newSub = await createSubscription({
           customer: customerId,
           billingType: 'CREDIT_CARD',
@@ -321,7 +283,13 @@ serve(async (req) => {
           cycle: 'MONTHLY',
           description: `Replyna - Plano ${plan.name}`,
           nextDueDate,
-          creditCardToken: tokenResult.creditCardToken,
+          creditCard: {
+            holderName: creditCard.holderName,
+            number: creditCard.number,
+            expiryMonth: creditCard.expiryMonth,
+            expiryYear: creditCard.expiryYear,
+            ccv: creditCard.ccv,
+          },
           creditCardHolderInfo: {
             name: creditCardHolderInfo.name,
             email: normalizedEmail,
