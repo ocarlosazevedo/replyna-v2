@@ -129,7 +129,7 @@ export default function Checkout() {
   const getSteps = (): Step[] => ([
     { id: 'personal', label: 'Dados pessoais' },
     { id: 'address', label: 'Endereço' },
-    { id: 'payment', label: 'Pagamento' },
+    { id: 'payment', label: isTrialFlow ? 'Confirmar cartão' : 'Pagamento' },
   ])
 
   useEffect(() => {
@@ -941,6 +941,8 @@ export default function Checkout() {
                     onChange={setCard}
                     onBrandDetected={() => {}}
                     onInternationalDetected={setIsInternational}
+                    title={isTrialFlow ? 'Salvar cartão' : 'Pagamento'}
+                    subtitle={isTrialFlow ? 'Nenhuma cobrança será feita agora' : 'Cartão de crédito'}
                   >
                     {!isTrialFlow && (
                       <div style={{ marginTop: '20px' }}>

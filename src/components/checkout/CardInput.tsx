@@ -25,6 +25,8 @@ interface CardInputProps {
   onInternationalDetected?: (isInternational: boolean) => void
   embedded?: boolean
   children?: React.ReactNode
+  title?: string
+  subtitle?: string
 }
 
 const BRAND_LABELS: Record<CardBrand, string> = {
@@ -293,7 +295,7 @@ function CardPreview({ card, brand, isFlipped, focusedField }: { card: CardData;
   )
 }
 
-export default function CardInput({ card, onChange, onBrandDetected, onInternationalDetected, embedded, children }: CardInputProps) {
+export default function CardInput({ card, onChange, onBrandDetected, onInternationalDetected, embedded, children, title, subtitle }: CardInputProps) {
   const [brand, setBrand] = useState<CardBrand>('unknown')
   const [showCvv, setShowCvv] = useState(false)
   const [isFlipped, setIsFlipped] = useState(false)
@@ -381,6 +383,8 @@ export default function CardInput({ card, onChange, onBrandDetected, onInternati
     color: 'var(--text-secondary)',
     marginBottom: '6px',
   }
+  const headerTitle = title || 'Pagamento'
+  const headerSubtitle = subtitle || 'Cartão de crédito'
 
   return (
     <motion.div
@@ -405,10 +409,10 @@ export default function CardInput({ card, onChange, onBrandDetected, onInternati
         </div>
         <div style={{ flex: 1 }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-            Pagamento
+            {headerTitle}
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-            Cartão de crédito
+            {headerSubtitle}
           </p>
         </div>
       </div>
