@@ -1,8 +1,8 @@
 /**
- * Edge Function: Get Financial Stats (Asaas)
+ * Edge Function: Get Financial Stats (Supabase + Asaas)
  *
- * Fonte única de verdade: Asaas.
- * Supabase usado somente para enriquecer com nome/email de clientes.
+ * Supabase: fonte principal para métricas de assinaturas.
+ * Asaas: somente financeiro (saldo, receitas, pagamentos).
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
@@ -25,11 +25,6 @@ interface AsaasSubscription {
   description?: string;
   createdAt?: string;
   dateCreated?: string;
-  updatedAt?: string;
-  dateUpdated?: string;
-  canceledAt?: string;
-  cancelDate?: string;
-  deletedDate?: string;
 }
 
 interface AsaasPayment {
@@ -38,7 +33,6 @@ interface AsaasPayment {
   value: number;
   status?: string;
   invoiceUrl?: string | null;
-  paymentDate?: string;
   createdAt?: string;
   dateCreated?: string;
   description?: string | null;
@@ -46,12 +40,6 @@ interface AsaasPayment {
 
 interface AsaasBalance {
   balance: number;
-}
-
-interface AsaasPaymentStatistics {
-  quantity: number;
-  value: number;
-  netValue: number;
 }
 
 interface FinancialStats {
@@ -155,15 +143,8 @@ async function asaasRequest<T>(method: HttpMethod, path: string, params?: Record
   return data as T;
 }
 
-async function fetchPaymentStats(
-  params: Record<string, string | number | boolean | undefined>
-): Promise<AsaasPaymentStatistics> {
-  return asaasRequest<AsaasPaymentStatistics>('GET', '/finance/payment/statistics', params);
-}
-
 async function fetchPage<T>(path: string, params: Record<string, string | number | boolean | undefined>, limit = 100, offset = 0) {
-  const response = await asaasRequest<AsaasListResponse<T>>('GET', path, { ...params, limit, offset });
-  return response;
+  return await asaasRequest<AsaasListResponse<T>>('GET', path, { ...params, limit, offset });
 }
 
 async function fetchAll<T>(path: string, params: Record<string, string | number | boolean | undefined>): Promise<{ data: T[]; totalCount: number }> {
@@ -180,7 +161,7 @@ async function fetchAll<T>(path: string, params: Record<string, string | number 
   }
 
   const results: T[] = [...(first.data || [])];
-  const batchSize = 5; // evitar explosao de requests
+  const batchSize = 5;
 
   for (let i = 0; i < offsets.length; i += batchSize) {
     const batch = offsets.slice(i, i + batchSize);
@@ -191,12 +172,6 @@ async function fetchAll<T>(path: string, params: Record<string, string | number 
   }
 
   return { data: results, totalCount };
-}
-
-async function fetchTotalCount(path: string, params: Record<string, string | number | boolean | undefined>): Promise<number> {
-  const page = await fetchPage(path, params, 1, 0);
-  if (typeof page.totalCount === 'number') return page.totalCount;
-  return page.data?.length || 0;
 }
 
 function getSupabaseAdmin() {
@@ -217,20 +192,6 @@ function formatDateYYYYMMDD(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function parseDate(value?: string): Date | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function getCreatedAt(sub: AsaasSubscription): Date | null {
-  return parseDate(sub.createdAt || sub.dateCreated);
-}
-
-function getCanceledAt(sub: AsaasSubscription): Date | null {
-  return parseDate(sub.canceledAt || sub.cancelDate || sub.deletedDate || sub.dateUpdated || sub.updatedAt);
-}
-
 function formatMonthLabel(date: Date): string {
   const label = new Intl.DateTimeFormat('pt-BR', { month: 'short', year: '2-digit' }).format(date);
   const cleaned = label.replace('.', '');
@@ -240,20 +201,6 @@ function formatMonthLabel(date: Date): string {
 function toUnixSeconds(value?: string): number {
   const date = value ? new Date(value) : new Date();
   return Math.floor(date.getTime() / 1000);
-}
-
-async function fetchPaymentsForRange(status: string, startDate: string, endDate: string): Promise<AsaasPayment[]> {
-  const { data } = await fetchAll<AsaasPayment>('/payments', {
-    status,
-    'paymentDate[ge]': startDate,
-    'paymentDate[le]': endDate,
-  });
-  return data || [];
-}
-
-async function fetchPaymentsForRangeMulti(statuses: string[], startDate: string, endDate: string): Promise<AsaasPayment[]> {
-  const results = await Promise.all(statuses.map((status) => fetchPaymentsForRange(status, startDate, endDate)));
-  return results.flat();
 }
 
 function sumPayments(payments: AsaasPayment[]): number {
@@ -270,181 +217,195 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const period = url.searchParams.get('period') || '6months';
-    const customStartDate = url.searchParams.get('startDate');
-    const customEndDate = url.searchParams.get('endDate');
+    const startDateParam = url.searchParams.get('startDate');
+    const endDateParam = url.searchParams.get('endDate');
 
     const now = new Date();
-    let periodStart: Date;
-    let periodEnd: Date = now;
+    const periodStart = startDateParam
+      ? new Date(startDateParam)
+      : new Date(now.getFullYear(), now.getMonth(), 1);
+    const periodEnd = endDateParam
+      ? new Date(endDateParam)
+      : new Date(now);
+    periodEnd.setHours(23, 59, 59, 999);
 
-    if (period === 'custom' && customStartDate && customEndDate) {
-      periodStart = new Date(customStartDate);
-      periodEnd = new Date(customEndDate);
-      periodEnd.setHours(23, 59, 59, 999);
-    } else {
-      switch (period) {
-        case '7days':
-          periodStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case '30days':
-          periodStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case '3months':
-          periodStart = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-          break;
-        case '12months':
-          periodStart = new Date(now.getFullYear(), now.getMonth() - 12, 1);
-          break;
-        case 'all':
-          periodStart = new Date(2020, 0, 1);
-          break;
-        case '6months':
-        default:
-          periodStart = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-          break;
-      }
-    }
+    const periodStartStr = formatDateYYYYMMDD(periodStart);
+    const periodEndStr = formatDateYYYYMMDD(periodEnd);
 
-    const periodStartStr = customStartDate || formatDateYYYYMMDD(periodStart);
-    const periodEndStr = customEndDate || formatDateYYYYMMDD(periodEnd);
-
-    // Mes anterior ao periodo selecionado
     const prevMonthStart = new Date(periodStart.getFullYear(), periodStart.getMonth() - 1, 1);
     const prevMonthEnd = new Date(periodStart.getFullYear(), periodStart.getMonth(), 0);
     const prevMonthStartStr = formatDateYYYYMMDD(prevMonthStart);
     const prevMonthEndStr = formatDateYYYYMMDD(prevMonthEnd);
 
     const sixMonthsStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const sixMonthsEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const sixMonthsStartStr = formatDateYYYYMMDD(sixMonthsStart);
-    const sixMonthsEndStr = formatDateYYYYMMDD(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+    const sixMonthsEndStr = formatDateYYYYMMDD(sixMonthsEnd);
 
     const supabase = getSupabaseAdmin();
-    const replynaCustomersPromise = supabase
-      .from('users')
-      .select('asaas_customer_id')
-      .not('asaas_customer_id', 'is', null);
 
-    const [
-      balance,
-      activeSubsRes,
-      inactiveSubsRes,
-      expiredSubsRes,
-      totalCustomers,
-      overduePaymentsRes,
-      allChargesInPeriodRes,
-      newSubsInPeriodRes,
-      canceledInPeriodRes,
-      replynaCustomersRes,
-      recentPaymentsRes,
-      paymentsConfirmedInPeriod,
-      paymentsReceivedInPeriod,
-      paymentsConfirmedLastMonth,
-      paymentsReceivedLastMonth,
-      paymentsConfirmedSixMonths,
-      paymentsReceivedSixMonths,
-    ] = await Promise.all([
-      asaasRequest<AsaasBalance>('GET', '/finance/balance'),
-      fetchAll<AsaasSubscription>('/subscriptions', { status: 'ACTIVE' }),
-      fetchAll<AsaasSubscription>('/subscriptions', { status: 'INACTIVE' }),
-      fetchAll<AsaasSubscription>('/subscriptions', { status: 'EXPIRED' }),
-      fetchTotalCount('/customers', {}),
-      fetchAll<AsaasPayment>('/payments', { status: 'OVERDUE' }),
-      fetchAll<AsaasPayment>('/payments', { 'dateCreated[ge]': periodStartStr, 'dateCreated[le]': periodEndStr }),
-      fetchAll<AsaasSubscription>('/subscriptions', { 'dateCreated[ge]': periodStartStr, 'dateCreated[le]': periodEndStr }),
-      fetchAll<AsaasSubscription>('/subscriptions', { status: 'INACTIVE', 'dateUpdated[ge]': periodStartStr, 'dateUpdated[le]': periodEndStr }),
-      replynaCustomersPromise,
-      asaasRequest<AsaasListResponse<AsaasPayment>>('GET', '/payments', { limit: 10, order: 'desc' }),
-      fetchPaymentsForRange('CONFIRMED', periodStartStr, periodEndStr),
-      fetchPaymentsForRange('RECEIVED', periodStartStr, periodEndStr),
-      fetchPaymentsForRange('CONFIRMED', prevMonthStartStr, prevMonthEndStr),
-      fetchPaymentsForRange('RECEIVED', prevMonthStartStr, prevMonthEndStr),
-      fetchPaymentsForRange('CONFIRMED', sixMonthsStartStr, sixMonthsEndStr),
-      fetchPaymentsForRange('RECEIVED', sixMonthsStartStr, sixMonthsEndStr),
+    const supabasePromise = Promise.all([
+      supabase
+        .from('subscriptions')
+        .select('plan_id, plans(name, price_monthly)')
+        .eq('status', 'active')
+        .not('asaas_subscription_id', 'is', null),
+      supabase
+        .from('subscriptions')
+        .select('status')
+        .not('asaas_subscription_id', 'is', null),
+      supabase
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .not('asaas_subscription_id', 'is', null)
+        .gte('created_at', periodStart.toISOString())
+        .lte('created_at', periodEnd.toISOString()),
+      supabase
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .not('asaas_subscription_id', 'is', null)
+        .gte('canceled_at', periodStart.toISOString())
+        .lte('canceled_at', periodEnd.toISOString()),
+      supabase
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .not('asaas_subscription_id', 'is', null)
+        .lte('created_at', periodStart.toISOString())
+        .or(`canceled_at.is.null,canceled_at.gt.${periodStart.toISOString()}`),
+      supabase
+        .from('users')
+        .select('asaas_customer_id, name, email')
+        .not('asaas_customer_id', 'is', null),
     ]);
 
-    if (replynaCustomersRes.error) {
-      throw new Error(replynaCustomersRes.error.message || 'Erro ao buscar clientes Replyna');
-    }
+    const asaasPromise = Promise.all([
+      asaasRequest<AsaasBalance>('GET', '/finance/balance'),
+      fetchAll<AsaasPayment>('/payments', {
+        status: 'CONFIRMED',
+        'dateCreated[ge]': periodStartStr,
+        'dateCreated[le]': periodEndStr,
+      }),
+      fetchAll<AsaasPayment>('/payments', {
+        status: 'RECEIVED',
+        'dateCreated[ge]': periodStartStr,
+        'dateCreated[le]': periodEndStr,
+      }),
+      fetchAll<AsaasPayment>('/payments', {
+        status: 'CONFIRMED',
+        'dateCreated[ge]': prevMonthStartStr,
+        'dateCreated[le]': prevMonthEndStr,
+      }),
+      fetchAll<AsaasPayment>('/payments', {
+        status: 'RECEIVED',
+        'dateCreated[ge]': prevMonthStartStr,
+        'dateCreated[le]': prevMonthEndStr,
+      }),
+      fetchAll<AsaasPayment>('/payments', {
+        status: 'CONFIRMED',
+        'dateCreated[ge]': sixMonthsStartStr,
+        'dateCreated[le]': sixMonthsEndStr,
+      }),
+      fetchAll<AsaasPayment>('/payments', {
+        status: 'RECEIVED',
+        'dateCreated[ge]': sixMonthsStartStr,
+        'dateCreated[le]': sixMonthsEndStr,
+      }),
+      fetchAll<AsaasPayment>('/payments', {
+        'dateCreated[ge]': periodStartStr,
+        'dateCreated[le]': periodEndStr,
+      }),
+      asaasRequest<AsaasListResponse<AsaasPayment>>('GET', '/payments', { limit: 10, order: 'desc' }),
+    ]);
 
+    const [
+      [
+        activeSubsRes,
+        subsStatusRes,
+        newSubsCountRes,
+        canceledSubsCountRes,
+        activeAtStartRes,
+        replynaCustomersRes,
+      ],
+      [
+        balance,
+        paymentsConfirmedInPeriodRes,
+        paymentsReceivedInPeriodRes,
+        paymentsConfirmedLastMonthRes,
+        paymentsReceivedLastMonthRes,
+        paymentsConfirmedSixMonthsRes,
+        paymentsReceivedSixMonthsRes,
+        allChargesInPeriodRes,
+        recentPaymentsRes,
+      ],
+    ] = await Promise.all([supabasePromise, asaasPromise]);
+
+    if (activeSubsRes.error) throw new Error(activeSubsRes.error.message);
+    if (subsStatusRes.error) throw new Error(subsStatusRes.error.message);
+    if (newSubsCountRes.error) throw new Error(newSubsCountRes.error.message);
+    if (canceledSubsCountRes.error) throw new Error(canceledSubsCountRes.error.message);
+    if (activeAtStartRes.error) throw new Error(activeAtStartRes.error.message);
+    if (replynaCustomersRes.error) throw new Error(replynaCustomersRes.error.message);
+
+    const replynaCustomers = replynaCustomersRes.data || [];
     const replynaCustomerIds = new Set(
-      (replynaCustomersRes.data || [])
-        .map((r) => r.asaas_customer_id)
-        .filter(Boolean)
+      replynaCustomers.map((r) => r.asaas_customer_id).filter(Boolean)
     );
-
     const isReplyna = (customerId?: string | null): boolean => {
       return !!customerId && replynaCustomerIds.has(customerId);
     };
 
-    const activeSubs = (activeSubsRes.data || []).filter((sub) => isReplyna(sub.customer));
-    const inactiveSubs = (inactiveSubsRes.data || []).filter((sub) => isReplyna(sub.customer));
-    const expiredSubs = (expiredSubsRes.data || []).filter((sub) => isReplyna(sub.customer));
-    const allSubs = [...activeSubs, ...inactiveSubs, ...expiredSubs];
+    const activeSubs = activeSubsRes.data || [];
+    const mrr = activeSubs.reduce((sum, sub) => {
+      const plan = Array.isArray(sub.plans) ? sub.plans[0] : sub.plans;
+      return sum + Number(plan?.price_monthly || 0);
+    }, 0);
 
-    const availableBalance = balance.balance ?? 0;
-
-    const mrr = activeSubs.reduce((sum, sub) => sum + Number(sub.value || 0), 0);
-    const arr = mrr * 12;
     const activeSubscriptions = activeSubs.length;
+    const arr = mrr * 12;
+    const averageTicket = activeSubscriptions > 0 ? mrr / activeSubscriptions : 0;
 
-    const filteredPaymentsConfirmedInPeriod = paymentsConfirmedInPeriod.filter((p) => isReplyna(p.customer));
-    const filteredPaymentsReceivedInPeriod = paymentsReceivedInPeriod.filter((p) => isReplyna(p.customer));
-    const filteredPaymentsConfirmedLastMonth = paymentsConfirmedLastMonth.filter((p) => isReplyna(p.customer));
-    const filteredPaymentsReceivedLastMonth = paymentsReceivedLastMonth.filter((p) => isReplyna(p.customer));
-    const filteredPaymentsConfirmedSixMonths = paymentsConfirmedSixMonths.filter((p) => isReplyna(p.customer));
-    const filteredPaymentsReceivedSixMonths = paymentsReceivedSixMonths.filter((p) => isReplyna(p.customer));
+    const statusCounts = { active: 0, past_due: 0, canceled: 0, trialing: 0 };
+    (subsStatusRes.data || []).forEach((row: { status: string | null }) => {
+      const status = row.status || '';
+      if (status === 'active') statusCounts.active += 1;
+      else if (status === 'past_due') statusCounts.past_due += 1;
+      else if (status === 'canceled') statusCounts.canceled += 1;
+      else if (status === 'trialing') statusCounts.trialing += 1;
+    });
 
-    const paymentsInPeriod = [...filteredPaymentsConfirmedInPeriod, ...filteredPaymentsReceivedInPeriod];
-    let revenueInPeriod = sumPayments(paymentsInPeriod);
-    let paymentsCountInPeriod = paymentsInPeriod.length;
-
-    const revenueLastMonth = sumPayments([...filteredPaymentsConfirmedLastMonth, ...filteredPaymentsReceivedLastMonth]);
-
-    const revenueGrowth = revenueLastMonth > 0
-      ? ((revenueInPeriod - revenueLastMonth) / revenueLastMonth) * 100
-      : (revenueInPeriod > 0 ? 100 : 0);
-
-    const averageTicket = paymentsCountInPeriod > 0 ? revenueInPeriod / paymentsCountInPeriod : 0;
-
-    // Churn (canceled in period)
-    const canceledInPeriod = (canceledInPeriodRes.data || []).filter((sub) => isReplyna(sub.customer)).length;
-
-    const activeAtStart = allSubs.filter((sub) => {
-      const createdAt = getCreatedAt(sub);
-      if (!createdAt || createdAt > periodStart) return false;
-      const canceledAt = getCanceledAt(sub);
-      if (canceledAt && canceledAt <= periodStart) return false;
-      return true;
-    }).length;
-
-    const churnRate = activeAtStart > 0 ? (canceledInPeriod / activeAtStart) * 100 : 0;
-
-    // Subscriptions por status
-    const overdueReplyna = (overduePaymentsRes.data || []).filter((p) => isReplyna(p.customer));
-    const overdueCount = new Set(overdueReplyna.map((p) => p.customer)).size;
-
-    const subscriptionsByStatus = {
-      active: activeSubs.length,
-      canceled: inactiveSubs.length + expiredSubs.length,
-      past_due: overdueCount,
-      trialing: 0,
-    };
-
-    // Subscriptions por plano (usa description do Asaas)
     const planCounts: Record<string, number> = {};
     activeSubs.forEach((sub) => {
-      const planName = (sub.description || 'Plano').trim();
+      const plan = Array.isArray(sub.plans) ? sub.plans[0] : sub.plans;
+      const planName = plan?.name || 'Plano';
       planCounts[planName] = (planCounts[planName] || 0) + 1;
     });
     const subscriptionsByPlan = Object.entries(planCounts).map(([plan_name, count]) => ({ plan_name, count }));
 
-    // Receita mensal (ultimos 6 meses)
-    const paymentsSixMonths = [...filteredPaymentsConfirmedSixMonths, ...filteredPaymentsReceivedSixMonths];
-    const revenueByMonth = new Map<string, number>();
+    const newSubscriptionsInPeriod = newSubsCountRes.count || 0;
+    const canceledInPeriod = canceledSubsCountRes.count || 0;
+    const activeAtStart = activeAtStartRes.count || 0;
+    const churnRate = activeAtStart > 0 ? (canceledInPeriod / activeAtStart) * 100 : 0;
 
+    const paymentsConfirmedInPeriod = (paymentsConfirmedInPeriodRes.data || []).filter((p) => isReplyna(p.customer));
+    const paymentsReceivedInPeriod = (paymentsReceivedInPeriodRes.data || []).filter((p) => isReplyna(p.customer));
+    const paymentsConfirmedLastMonth = (paymentsConfirmedLastMonthRes.data || []).filter((p) => isReplyna(p.customer));
+    const paymentsReceivedLastMonth = (paymentsReceivedLastMonthRes.data || []).filter((p) => isReplyna(p.customer));
+    const paymentsConfirmedSixMonths = (paymentsConfirmedSixMonthsRes.data || []).filter((p) => isReplyna(p.customer));
+    const paymentsReceivedSixMonths = (paymentsReceivedSixMonthsRes.data || []).filter((p) => isReplyna(p.customer));
+    const allChargesInPeriod = (allChargesInPeriodRes.data || []).filter((p) => isReplyna(p.customer));
+
+    const revenueInPeriod = sumPayments([...paymentsConfirmedInPeriod, ...paymentsReceivedInPeriod]);
+    const revenueLastMonth = sumPayments([...paymentsConfirmedLastMonth, ...paymentsReceivedLastMonth]);
+    const revenueGrowth = revenueLastMonth > 0
+      ? ((revenueInPeriod - revenueLastMonth) / revenueLastMonth) * 100
+      : (revenueInPeriod > 0 ? 100 : 0);
+
+    const chargesInPeriod = allChargesInPeriod.length;
+
+    const paymentsSixMonths = [...paymentsConfirmedSixMonths, ...paymentsReceivedSixMonths];
+    const revenueByMonth = new Map<string, number>();
     for (const payment of paymentsSixMonths) {
-      const dateValue = payment.paymentDate || payment.createdAt || payment.dateCreated;
+      const dateValue = payment.dateCreated || payment.createdAt;
       if (!dateValue) continue;
       const date = new Date(dateValue);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -461,31 +422,18 @@ serve(async (req) => {
       });
     }
 
-    // Enriquecer dados de clientes (nome/email) usando Supabase
-    const recentPaymentsData = (recentPaymentsRes.data || []).filter((p) => isReplyna(p.customer));
-    const customerIds = Array.from(new Set(recentPaymentsData.map((p) => p.customer).filter(Boolean)));
+    const recentPaymentsRaw = (recentPaymentsRes.data || []).filter((p) => isReplyna(p.customer));
     const customerMap: Record<string, { name: string | null; email: string | null }> = {};
-
-    if (customerIds.length > 0) {
-      const chunkSize = 100;
-      for (let i = 0; i < customerIds.length; i += chunkSize) {
-        const chunk = customerIds.slice(i, i + chunkSize);
-        const { data } = await supabase
-          .from('users')
-          .select('asaas_customer_id, name, email')
-          .in('asaas_customer_id', chunk);
-        (data || []).forEach((row) => {
-          if (row.asaas_customer_id) {
-            customerMap[row.asaas_customer_id] = {
-              name: row.name || null,
-              email: row.email || null,
-            };
-          }
-        });
+    replynaCustomers.forEach((row) => {
+      if (row.asaas_customer_id) {
+        customerMap[row.asaas_customer_id] = {
+          name: row.name || null,
+          email: row.email || null,
+        };
       }
-    }
+    });
 
-    const recentPayments = recentPaymentsData.map((p) => {
+    const recentPayments = recentPaymentsRaw.map((p) => {
       const customerInfo = customerMap[p.customer] || { name: null, email: null };
       return {
         id: p.id,
@@ -499,7 +447,7 @@ serve(async (req) => {
       };
     });
 
-    const recentInvoices = recentPaymentsData.map((p) => {
+    const recentInvoices = recentPaymentsRaw.map((p) => {
       const customerInfo = customerMap[p.customer] || { name: null, email: null };
       const value = Number(p.value || 0);
       return {
@@ -515,8 +463,7 @@ serve(async (req) => {
       };
     });
 
-    const newSubscriptionsInPeriod = (newSubsInPeriodRes.data || []).filter((sub) => isReplyna(sub.customer)).length;
-    const chargesInPeriod = (allChargesInPeriodRes.data || []).filter((p) => isReplyna(p.customer)).length;
+    const availableBalance = balance.balance ?? 0;
 
     const stats: FinancialStats = {
       balance: {
@@ -527,7 +474,7 @@ serve(async (req) => {
       mrr,
       arr,
       activeSubscriptions,
-      totalCustomers,
+      totalCustomers: replynaCustomerIds.size,
       revenueThisMonth: revenueInPeriod,
       revenueLastMonth,
       revenueGrowth,
@@ -535,7 +482,7 @@ serve(async (req) => {
       averageTicket,
       recentPayments,
       recentInvoices,
-      subscriptionsByStatus,
+      subscriptionsByStatus: statusCounts,
       subscriptionsByPlan,
       monthlyRevenue,
       periodMetrics: {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
-import { subDays } from 'date-fns'
+import { startOfMonth } from 'date-fns'
 import {
   DollarSign,
   TrendingUp,
@@ -13,6 +13,7 @@ import {
   Receipt,
   Calendar,
   Package,
+  Info,
 } from 'lucide-react'
 import {
   Chart as ChartJS,
@@ -45,8 +46,11 @@ function useIsMobile() {
 
 const getDefaultRange = (): DateRange => {
   const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return { from: subDays(today, 29), to: today } // 30 dias para carregar mais rápido
+  const start = startOfMonth(today)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(today)
+  end.setHours(0, 0, 0, 0)
+  return { from: start, to: end }
 }
 
 interface SubscriptionByPlan {
@@ -182,7 +186,15 @@ export default function AdminFinancial() {
     display: 'flex',
     alignItems: 'flex-start',
     gap: '16px',
+    position: 'relative' as const,
   }
+
+  const InfoTooltip = ({ text }: { text: string }) => (
+    <div className="replyna-info-tooltip">
+      <Info size={14} className="replyna-info-tooltip-icon" />
+      <div className="replyna-info-tooltip-content">{text}</div>
+    </div>
+  )
 
   const iconBoxStyle = (color: string) => ({
     width: isMobile ? '40px' : '48px',
@@ -476,25 +488,29 @@ export default function AdminFinancial() {
           Métricas do Período Selecionado
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '16px' : '24px' }}>
-          <div>
+          <div style={{ position: 'relative' }}>
+            <InfoTooltip text="Saldo disponível para saque agora. Fonte: Asaas API /finance/balance." />
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: '#22c55e' }}>
               {formatCurrency(stats?.periodMetrics?.availableBalance || 0)}
             </div>
             <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)' }}>Saldo Disponível</div>
           </div>
-          <div>
+          <div style={{ position: 'relative' }}>
+            <InfoTooltip text="Subscriptions criadas no período (created_at). Fonte: Supabase." />
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: '#3b82f6' }}>
               {stats?.periodMetrics?.newSubscriptionsInPeriod || 0}
             </div>
             <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)' }}>Novas Assinaturas</div>
           </div>
-          <div>
+          <div style={{ position: 'relative' }}>
+            <InfoTooltip text="Subscriptions canceladas no período (canceled_at). Fonte: Supabase." />
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: '#ef4444' }}>
               {stats?.periodMetrics?.canceledSubscriptionsInPeriod || 0}
             </div>
             <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)' }}>Cancelamentos</div>
           </div>
-          <div>
+          <div style={{ position: 'relative' }}>
+            <InfoTooltip text="Total de payments criados no período. Fonte: Asaas API." />
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: '#8b5cf6' }}>
               {stats?.periodMetrics?.chargesInPeriod || 0}
             </div>
@@ -506,6 +522,7 @@ export default function AdminFinancial() {
       {/* Metricas principais */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px', marginBottom: '24px' }}>
         <div style={statCardStyle}>
+          <InfoTooltip text="Soma do price_monthly de todas as assinaturas ativas no Supabase (status=active). Não muda com o filtro de data." />
           <div style={iconBoxStyle('#22c55e')}>
             <DollarSign size={isMobile ? 20 : 24} style={{ color: '#22c55e' }} />
           </div>
@@ -523,6 +540,7 @@ export default function AdminFinancial() {
         </div>
 
         <div style={statCardStyle}>
+          <InfoTooltip text="Soma dos pagamentos CONFIRMED + RECEIVED no período selecionado. Fonte: Asaas API, filtro: dateCreated no período." />
           <div style={iconBoxStyle('#3b82f6')}>
             <Calendar size={isMobile ? 20 : 24} style={{ color: '#3b82f6' }} />
           </div>
@@ -548,6 +566,7 @@ export default function AdminFinancial() {
         </div>
 
         <div style={statCardStyle}>
+          <InfoTooltip text="COUNT de subscriptions com status=active no Supabase. Não muda com o filtro de data." />
           <div style={iconBoxStyle('#8b5cf6')}>
             <Users size={isMobile ? 20 : 24} style={{ color: '#8b5cf6' }} />
           </div>
@@ -565,6 +584,7 @@ export default function AdminFinancial() {
         </div>
 
         <div style={statCardStyle}>
+          <InfoTooltip text="MRR ÷ total de assinaturas ativas. Calculado localmente." />
           <div style={iconBoxStyle('#f59e0b')}>
             <Receipt size={isMobile ? 20 : 24} style={{ color: '#f59e0b' }} />
           </div>
@@ -585,6 +605,7 @@ export default function AdminFinancial() {
       {/* Segunda linha de metricas */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px', marginBottom: '24px' }}>
         <div style={statCardStyle}>
+          <InfoTooltip text="MRR × 12. Calculado localmente." />
           <div style={iconBoxStyle('#3b82f6')}>
             <TrendingUp size={isMobile ? 20 : 24} style={{ color: '#3b82f6' }} />
           </div>
@@ -602,6 +623,7 @@ export default function AdminFinancial() {
         </div>
 
         <div style={statCardStyle}>
+          <InfoTooltip text="Cancelamentos no período ÷ ativos no início do período × 100. Fonte: Supabase, campo canceled_at." />
           <div style={iconBoxStyle('#ef4444')}>
             <ArrowDownRight size={isMobile ? 20 : 24} style={{ color: '#ef4444' }} />
           </div>
@@ -619,6 +641,7 @@ export default function AdminFinancial() {
         </div>
 
         <div style={statCardStyle}>
+          <InfoTooltip text="Soma CONFIRMED + RECEIVED do mês anterior ao período selecionado. Fonte: Asaas API." />
           <div style={iconBoxStyle('#6b7280')}>
             <CreditCard size={isMobile ? 20 : 24} style={{ color: '#6b7280' }} />
           </div>
@@ -637,6 +660,7 @@ export default function AdminFinancial() {
 
         {/* Card de Assinaturas por Status */}
         <div style={statCardStyle}>
+          <InfoTooltip text="Contagem por status direto do Supabase: active=Ativo, past_due=Inadimplência, canceled=Cancelado." />
           <div style={iconBoxStyle('#22c55e')}>
             <Users size={isMobile ? 20 : 24} style={{ color: '#22c55e' }} />
           </div>
@@ -897,6 +921,43 @@ export default function AdminFinancial() {
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
+        }
+        .replyna-info-tooltip {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2;
+        }
+        .replyna-info-tooltip-icon {
+          color: #9ca3af;
+          width: 14px;
+          height: 14px;
+        }
+        .replyna-info-tooltip-content {
+          position: absolute;
+          bottom: calc(100% + 8px);
+          right: 0;
+          background: #111827;
+          color: #e5e7eb;
+          padding: 8px 10px;
+          border-radius: 8px;
+          font-size: 11px;
+          line-height: 1.35;
+          max-width: 250px;
+          width: max-content;
+          opacity: 0;
+          pointer-events: none;
+          transform: translateY(4px);
+          transition: opacity 0.15s ease, transform 0.15s ease;
+          box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+          z-index: 10;
+        }
+        .replyna-info-tooltip:hover .replyna-info-tooltip-content {
+          opacity: 1;
+          transform: translateY(0);
         }
       `}</style>
     </div>
