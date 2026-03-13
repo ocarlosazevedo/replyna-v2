@@ -578,6 +578,8 @@ export default function AdminClients() {
         return { bg: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' } // Indigo
       case 'free':
         return { bg: 'rgba(107, 114, 128, 0.1)', color: '#6b7280' } // Cinza
+      case 'partners':
+        return { bg: 'rgba(234, 179, 8, 0.1)', color: '#eab308' } // Amarelo
       default:
         // Para qualquer outro plano não mapeado, usar cyan
         return { bg: 'rgba(6, 182, 212, 0.1)', color: '#06b6d4' }
