@@ -248,6 +248,10 @@ function sumPayments(payments: AsaasPayment[]): number {
   return payments.reduce((sum, p) => sum + Number(p.value || 0), 0);
 }
 
+function isReplyna(description?: string | null): boolean {
+  return !!description && description.toLowerCase().includes('replyna');
+}
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -341,20 +345,27 @@ serve(async (req) => {
       fetchPaymentsForRange('RECEIVED', sixMonthsStartStr, sixMonthsEndStr),
     ]);
 
-    const activeSubs = activeSubsRes.data || [];
-    const inactiveSubs = inactiveSubsRes.data || [];
-    const expiredSubs = expiredSubsRes.data || [];
+    const activeSubs = (activeSubsRes.data || []).filter((sub) => isReplyna(sub.description));
+    const inactiveSubs = (inactiveSubsRes.data || []).filter((sub) => isReplyna(sub.description));
+    const expiredSubs = (expiredSubsRes.data || []).filter((sub) => isReplyna(sub.description));
     const allSubs = [...activeSubs, ...inactiveSubs, ...expiredSubs];
 
     const mrr = activeSubs.reduce((sum, sub) => sum + Number(sub.value || 0), 0);
     const arr = mrr * 12;
     const activeSubscriptions = activeSubs.length;
 
-    const paymentsInPeriod = [...paymentsConfirmedInPeriod, ...paymentsReceivedInPeriod];
+    const filteredPaymentsConfirmedInPeriod = paymentsConfirmedInPeriod.filter((p) => isReplyna(p.description));
+    const filteredPaymentsReceivedInPeriod = paymentsReceivedInPeriod.filter((p) => isReplyna(p.description));
+    const filteredPaymentsConfirmedLastMonth = paymentsConfirmedLastMonth.filter((p) => isReplyna(p.description));
+    const filteredPaymentsReceivedLastMonth = paymentsReceivedLastMonth.filter((p) => isReplyna(p.description));
+    const filteredPaymentsConfirmedSixMonths = paymentsConfirmedSixMonths.filter((p) => isReplyna(p.description));
+    const filteredPaymentsReceivedSixMonths = paymentsReceivedSixMonths.filter((p) => isReplyna(p.description));
+
+    const paymentsInPeriod = [...filteredPaymentsConfirmedInPeriod, ...filteredPaymentsReceivedInPeriod];
     const revenueInPeriod = sumPayments(paymentsInPeriod);
     const paymentsCountInPeriod = paymentsInPeriod.length;
 
-    const revenueLastMonth = sumPayments([...paymentsConfirmedLastMonth, ...paymentsReceivedLastMonth]);
+    const revenueLastMonth = sumPayments([...filteredPaymentsConfirmedLastMonth, ...filteredPaymentsReceivedLastMonth]);
     const revenueGrowth = revenueLastMonth > 0
       ? ((revenueInPeriod - revenueLastMonth) / revenueLastMonth) * 100
       : (revenueInPeriod > 0 ? 100 : 0);
@@ -394,7 +405,7 @@ serve(async (req) => {
     const subscriptionsByPlan = Object.entries(planCounts).map(([plan_name, count]) => ({ plan_name, count }));
 
     // Receita mensal (ultimos 6 meses)
-    const paymentsSixMonths = [...paymentsConfirmedSixMonths, ...paymentsReceivedSixMonths];
+    const paymentsSixMonths = [...filteredPaymentsConfirmedSixMonths, ...filteredPaymentsReceivedSixMonths];
     const revenueByMonth = new Map<string, number>();
 
     for (const payment of paymentsSixMonths) {
@@ -416,7 +427,7 @@ serve(async (req) => {
     }
 
     // Enriquecer dados de clientes (nome/email) usando Supabase
-    const recentPaymentsData = recentPaymentsRes.data || [];
+    const recentPaymentsData = (recentPaymentsRes.data || []).filter((p) => isReplyna(p.description));
     const customerIds = Array.from(new Set(recentPaymentsData.map((p) => p.customer).filter(Boolean)));
     const customerMap: Record<string, { name: string | null; email: string | null }> = {};
 
