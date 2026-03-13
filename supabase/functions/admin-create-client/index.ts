@@ -14,8 +14,10 @@ import { sendPasswordResetViaResend } from '../_shared/resend.ts';
 interface CreateClientRequest {
   email: string;
   name: string;
-  plan_id: string;
+  plan_id?: string;
+  plan_slug?: string;
   notes?: string;
+  whatsapp_number?: string;
 }
 
 Deno.serve(async (req) => {
@@ -37,7 +39,7 @@ Deno.serve(async (req) => {
       },
     });
 
-    const { email, name, plan_id, notes } = await req.json() as CreateClientRequest;
+    const { email, name, plan_id, plan_slug, notes, whatsapp_number } = await req.json() as CreateClientRequest;
 
     // Validações
     if (!email || !isValidEmail(email)) {
@@ -54,7 +56,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!plan_id) {
+    if (!plan_id && !plan_slug) {
       return new Response(
         JSON.stringify({ error: 'Plano é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -62,11 +64,14 @@ Deno.serve(async (req) => {
     }
 
     // Buscar dados do plano
-    const { data: plan, error: planError } = await supabaseAdmin
+    const planQuery = supabaseAdmin
       .from('plans')
-      .select('id, name, emails_limit, shops_limit')
-      .eq('id', plan_id)
-      .single();
+      .select('id, name, slug, emails_limit, shops_limit')
+      .limit(1);
+
+    const { data: plan, error: planError } = plan_id
+      ? await planQuery.eq('id', plan_id).single()
+      : await planQuery.eq('slug', plan_slug).single();
 
     if (planError || !plan) {
       return new Response(
@@ -127,11 +132,12 @@ Deno.serve(async (req) => {
       id: userId,
       email: email.toLowerCase(),
       name: name.trim(),
-      plan: plan.name.toLowerCase(),
+      plan: (plan.slug || plan.name.toLowerCase()),
       emails_limit: plan.emails_limit, // null = ilimitado
       shops_limit: plan.shops_limit,   // null = ilimitado
       emails_used: 0,
       status: 'active',
+      whatsapp_number: whatsapp_number ? String(whatsapp_number).trim() : null,
       // Campo para identificar que é um cliente VIP (não tem assinatura Stripe)
       stripe_customer_id: null,
     };

@@ -255,7 +255,7 @@ export default function Plans() {
       )}
 
       {(() => {
-        const filteredPlans = plans.filter(p => p.price_monthly > 0)
+        const filteredPlans = plans.filter(p => p.price_monthly > 0 && normalizePlanSlug(p.slug || p.name) !== 'partners')
         const colCount = filteredPlans.length
 
         return (

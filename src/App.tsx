@@ -43,6 +43,7 @@ const ReturnRequest = lazy(() => import('./pages/ReturnRequest'))
 const Team = lazy(() => import('./pages/Team'))
 const TeamInvite = lazy(() => import('./pages/TeamInvite'))
 const Partner = lazy(() => import('./pages/Partner'))
+const Partners = lazy(() => import('./pages/Partners'))
 
 // Lazy load - Admin Pages
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
@@ -228,6 +229,7 @@ function App() {
           <Route path="/migrate/:code" element={<MigrationAccept />} />
           <Route path="/auth/confirm" element={<AuthConfirm />} />
           <Route path="/return-request" element={<ReturnRequest />} />
+          <Route path="/partners" element={<Partners />} />
 
           {/* Rotas privadas */}
           <Route path="/dashboard" element={

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, MapPin, CreditCard, ShieldCheck, Lock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCpfCnpj, validateCPF, parseExpiryDate } from '../utils/cardUtils'
+import { normalizePlanSlug } from '../utils/plan'
 import CheckoutSidebar from '../components/checkout/CheckoutSidebar'
 import AddressSection, { type AddressData } from '../components/checkout/AddressSection'
 import CardInput, { type CardData } from '../components/checkout/CardInput'
@@ -148,9 +149,15 @@ export default function Checkout() {
     if (planParam) {
       const loadPlan = async () => {
         // Try by slug first, then by name
+        const normalizedParam = normalizePlanSlug(planParam)
+        if (normalizedParam === 'partners') {
+          navigate('/partners')
+          return
+        }
+
         let { data } = await supabase
           .from('plans')
-          .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
+          .select('id, name, slug, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
           .eq('is_active', true)
           .eq('slug', planParam)
           .maybeSingle()
@@ -158,14 +165,14 @@ export default function Checkout() {
         if (!data) {
           const res = await supabase
             .from('plans')
-            .select('id, name, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
+            .select('id, name, slug, description, price_monthly, emails_limit, shops_limit, features, is_popular, is_active')
             .eq('is_active', true)
             .ilike('name', planParam)
             .maybeSingle()
           data = res.data
         }
 
-        if (data) {
+        if (data && normalizePlanSlug(data.slug || data.name) !== 'partners') {
           const isTrial = data.price_monthly === 0
           setPlan(data)
           setIsTrialFlow(isTrial)

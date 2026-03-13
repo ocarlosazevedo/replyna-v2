@@ -153,7 +153,7 @@ export default function TrialExpired() {
     }
   }
 
-  const paidPlans = plans.filter((plan) => plan.price_monthly > 0)
+  const paidPlans = plans.filter((plan) => plan.price_monthly > 0 && normalizePlanSlug(plan.slug || plan.name) !== 'partners')
 
   if (loading) {
     return (

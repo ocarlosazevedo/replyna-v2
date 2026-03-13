@@ -53,7 +53,7 @@ export default function Register() {
 
     const isTrial = searchParams.get('trial') === 'true'
     if (isTrial) {
-      const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
+      const basePlan = plans.find(p => p.is_active && p.price_monthly > 0 && normalizePlanSlug(p.slug || p.name) !== 'partners')
       if (basePlan) {
         navigate(checkoutPath(), { state: { plan: basePlan, isTrialFlow: true } })
       }
@@ -100,7 +100,7 @@ export default function Register() {
   }
 
   const handleStartTrial = () => {
-    const basePlan = plans.find(p => p.is_active && p.price_monthly > 0)
+      const basePlan = plans.find(p => p.is_active && p.price_monthly > 0 && normalizePlanSlug(p.slug || p.name) !== 'partners')
     if (basePlan) {
       navigate(refCode ? `/checkout?ref=${encodeURIComponent(refCode)}` : '/checkout', { state: { plan: basePlan, isTrialFlow: true } })
     }
@@ -245,7 +245,7 @@ export default function Register() {
             .plans-grid-wrapper::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
           `}</style>
 
-            {plans.filter((plan) => plan.price_monthly > 0).map((plan) => (
+            {plans.filter((plan) => plan.price_monthly > 0 && normalizePlanSlug(plan.slug || plan.name) !== 'partners').map((plan) => (
               <div
                 key={plan.id}
                 onClick={() => handleSelectPlan(plan)}
