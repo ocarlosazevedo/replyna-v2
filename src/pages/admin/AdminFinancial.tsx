@@ -99,6 +99,7 @@ interface FinancialStats {
     past_due: number
     canceled: number
     trialing: number
+    partners: number
   }
   subscriptionsByPlan?: SubscriptionByPlan[]
   monthlyRevenue: {
@@ -281,8 +282,14 @@ export default function AdminFinancial() {
     ? Math.max(...stats.monthlyRevenue.map(m => m.revenue), 1)
     : 1
 
+  const formatChartMonthLabel = (label: string) => {
+    const cleaned = label.replace(/\./g, '').trim()
+    if (cleaned.includes('/')) return cleaned.split('/')[0]
+    return cleaned.split(' ')[0]
+  }
+
   const chartData = useMemo(() => ({
-    labels: stats?.monthlyRevenue.map((item) => item.month) || [],
+    labels: stats?.monthlyRevenue.map((item) => formatChartMonthLabel(item.month)) || [],
     datasets: [
       {
         label: 'Receita',
@@ -634,9 +641,11 @@ export default function AdminFinancial() {
             <div style={{ fontSize: isMobile ? '18px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {(stats?.churnRate || 0).toFixed(1)}%
             </div>
-            <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              no período selecionado
-            </div>
+            {((stats?.churnRate === null || stats?.churnRate === undefined || Number.isNaN(stats?.churnRate)) && (
+              <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                no período selecionado
+              </div>
+            ))}
           </div>
         </div>
 
@@ -672,7 +681,7 @@ export default function AdminFinancial() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '12px', color: '#22c55e', fontWeight: 600 }}>Ativos</span>
                 <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {(stats?.subscriptionsByStatus.active || 0) + (stats?.subscriptionsByStatus.trialing || 0)}
+                  {stats?.subscriptionsByStatus.active || 0}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -685,6 +694,18 @@ export default function AdminFinancial() {
                 <span style={{ fontSize: '12px', color: '#f59e0b', fontWeight: 600 }}>Inadimplência</span>
                 <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {stats?.subscriptionsByStatus.past_due || 0}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>Trialing</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {stats?.subscriptionsByStatus.trialing || 0}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#eab308', fontWeight: 600 }}>Partners</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {stats?.subscriptionsByStatus.partners || 0}
                 </span>
               </div>
             </div>

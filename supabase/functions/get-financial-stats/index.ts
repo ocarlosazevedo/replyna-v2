@@ -33,6 +33,7 @@ interface AsaasPayment {
   value: number;
   status?: string;
   invoiceUrl?: string | null;
+  dueDate?: string;
   createdAt?: string;
   dateCreated?: string;
   description?: string | null;
@@ -83,6 +84,7 @@ interface FinancialStats {
     past_due: number;
     canceled: number;
     trialing: number;
+    partners: number;
   };
   subscriptionsByPlan: {
     plan_name: string;
@@ -287,6 +289,15 @@ serve(async (req) => {
         .from('users')
         .select('asaas_customer_id, name, email')
         .not('asaas_customer_id', 'is', null),
+      supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_trial', true)
+        .eq('status', 'active'),
+      supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('plan', 'partners'),
     ]);
 
     const asaasPromise = Promise.all([
@@ -336,6 +347,8 @@ serve(async (req) => {
         canceledSubsCountRes,
         activeAtStartRes,
         replynaCustomersRes,
+        trialUsersCountRes,
+        partnersCountRes,
       ],
       [
         balance,
@@ -356,6 +369,8 @@ serve(async (req) => {
     if (canceledSubsCountRes.error) throw new Error(canceledSubsCountRes.error.message);
     if (activeAtStartRes.error) throw new Error(activeAtStartRes.error.message);
     if (replynaCustomersRes.error) throw new Error(replynaCustomersRes.error.message);
+    if (trialUsersCountRes.error) throw new Error(trialUsersCountRes.error.message);
+    if (partnersCountRes.error) throw new Error(partnersCountRes.error.message);
 
     const replynaCustomers = replynaCustomersRes.data || [];
     const replynaCustomerIds = new Set(
@@ -375,7 +390,7 @@ serve(async (req) => {
     const arr = mrr * 12;
     const averageTicket = activeSubscriptions > 0 ? mrr / activeSubscriptions : 0;
 
-    const statusCounts = { active: 0, past_due: 0, canceled: 0, trialing: 0 };
+    const statusCounts = { active: 0, past_due: 0, canceled: 0, trialing: 0, partners: 0 };
     (subsStatusRes.data || []).forEach((row: { status: string | null }) => {
       const status = row.status || '';
       if (status === 'active') statusCounts.active += 1;
@@ -383,6 +398,8 @@ serve(async (req) => {
       else if (status === 'canceled') statusCounts.canceled += 1;
       else if (status === 'trialing') statusCounts.trialing += 1;
     });
+    statusCounts.trialing = trialUsersCountRes.count || 0;
+    statusCounts.partners = partnersCountRes.count || 0;
 
     const planCounts: Record<string, number> = {};
     activeSubs.forEach((sub) => {
@@ -416,7 +433,7 @@ serve(async (req) => {
     const paymentsSixMonths = [...paymentsConfirmedSixMonths, ...paymentsReceivedSixMonths];
     const revenueByMonth = new Map<string, number>();
     for (const payment of paymentsSixMonths) {
-      const dateValue = payment.dateCreated || payment.createdAt;
+      const dateValue = payment.dueDate || payment.dateCreated || payment.createdAt;
       if (!dateValue) continue;
       const date = new Date(dateValue);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
