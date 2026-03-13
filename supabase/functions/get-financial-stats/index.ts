@@ -224,9 +224,20 @@ serve(async (req) => {
     const periodStart = startDateParam
       ? new Date(startDateParam)
       : new Date(now.getFullYear(), now.getMonth(), 1);
-    const periodEnd = endDateParam
+    let periodEnd = endDateParam
       ? new Date(endDateParam)
       : new Date(now);
+    // Se o filtro for "Este mês" (início no 1º dia e fim em hoje),
+    // usar o último dia do mês completo para bater com o Asaas.
+    if (startDateParam && endDateParam) {
+      const startIsFirstDay = periodStart.getDate() === 1;
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endParamDate = new Date(periodEnd.getFullYear(), periodEnd.getMonth(), periodEnd.getDate());
+      const sameMonth = periodStart.getFullYear() === now.getFullYear() && periodStart.getMonth() === now.getMonth();
+      if (startIsFirstDay && sameMonth && endParamDate.getTime() === today.getTime()) {
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      }
+    }
     periodEnd.setHours(23, 59, 59, 999);
 
     const periodStartStr = formatDateYYYYMMDD(periodStart);
