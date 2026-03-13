@@ -451,20 +451,50 @@ async function processMessage(
         });
       }
     } else if (isEmptyOrInvalid) {
-      // Email inválido e não conseguiu extrair de formulário
-      await updateMessage(message.id, {
-        status: 'failed',
-        error_message: 'Email do remetente inválido',
-      });
-      throw new Error('Email do remetente inválido');
+      // Fallback 1: usar customer_email da conversa (de mensagens anteriores do mesmo thread)
+      if (conversation.customer_email && conversation.customer_email.includes('@') &&
+          conversation.customer_email !== 'unknown@invalid.local') {
+        console.log(`[Processor] from_email vazio, usando customer_email da conversa como fallback: ${conversation.customer_email}`);
+        message.from_email = conversation.customer_email;
+        await updateMessage(message.id, {
+          from_email: conversation.customer_email,
+        });
+      } else {
+        // Fallback 2: tentar extrair qualquer email válido do corpo da mensagem
+        const bodyContent = message.body_text || message.body_html || '';
+        const genericEmailMatch = bodyContent.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+        const shopEmailLower = (shop.imap_user || shop.support_email || '').toLowerCase();
+
+        if (genericEmailMatch && genericEmailMatch[1].toLowerCase() !== shopEmailLower) {
+          const extractedEmail = genericEmailMatch[1].toLowerCase();
+          console.log(`[Processor] from_email vazio, email extraído do corpo: ${extractedEmail}`);
+          message.from_email = extractedEmail;
+          await updateMessage(message.id, { from_email: extractedEmail });
+          await updateConversation(conversation.id, { customer_email: extractedEmail });
+        } else {
+          // Último recurso: marcar como pending_human para revisão manual
+          console.log(`[Processor] Message ${message.id}: sem from_email e sem fallback, encaminhando para atendimento humano`);
+          await updateMessage(message.id, {
+            status: 'pending_human',
+            error_message: 'Email do remetente não identificado - encaminhado para atendimento humano',
+          });
+          await updateConversation(conversation.id, {
+            status: 'pending_human',
+          });
+          return false;
+        }
+      }
     } else {
-      // É email Shopify mas não conseguiu extrair - marcar como falha
+      // É email Shopify mas não conseguiu extrair - encaminhar para humano
+      console.log(`[Processor] Shopify contact form but could not extract customer email, forwarding to human`);
       await updateMessage(message.id, {
-        status: 'failed',
-        error_message: 'Formulário Shopify: não foi possível extrair email do cliente',
+        status: 'pending_human',
+        error_message: 'Formulário Shopify: email do cliente não identificado - encaminhado para atendimento humano',
       });
-      console.log(`[Processor] Shopify contact form but could not extract customer email from body`);
-      throw new Error('Formulário Shopify: não foi possível extrair email do cliente');
+      await updateConversation(conversation.id, {
+        status: 'pending_human',
+      });
+      return false;
     }
   }
 

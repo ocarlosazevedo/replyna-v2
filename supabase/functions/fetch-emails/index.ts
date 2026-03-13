@@ -269,6 +269,19 @@ async function saveAndEnqueueEmail(
   shop: Shop,
   supabase: any
 ): Promise<void> {
+  // Fallback: usar Reply-To como from_email quando From está vazio
+  if ((!email.from_email || !email.from_email.includes('@')) && email.reply_to && email.reply_to.includes('@')) {
+    console.log(`[Shop:${shop.name}] From vazio, usando Reply-To como fallback: ${email.reply_to}`);
+    email.from_email = email.reply_to;
+  }
+
+  // Filtrar emails enviados pela própria loja (evitar processar próprios emails lidos do IMAP)
+  const shopEmail = (shop.imap_user || shop.support_email || '').toLowerCase();
+  if (shopEmail && email.from_email && email.from_email.toLowerCase() === shopEmail) {
+    console.log(`[Shop:${shop.name}] Ignorando email da própria loja: ${email.from_email} (subject: "${email.subject}")`);
+    return;
+  }
+
   // Validação: rejeitar emails fantasma antes de salvar no banco
   const hasNoFrom = !email.from_email || !email.from_email.includes('@');
   const hasNoBody = !email.body_text && !email.body_html;
