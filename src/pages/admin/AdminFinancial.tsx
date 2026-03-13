@@ -157,7 +157,7 @@ export default function AdminFinancial() {
       const data = await response.json()
       setStats(data)
     } catch (err) {
-      console.error('Erro ao carregar estatisticas:', err)
+      console.error('Erro ao carregar estatísticas:', err)
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
     } finally {
       setLoading(false)
@@ -521,7 +521,7 @@ export default function AdminFinancial() {
             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: '#8b5cf6' }}>
               {stats?.periodMetrics?.chargesInPeriod || 0}
             </div>
-            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)' }}>Cobrancas</div>
+            <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)' }}>Cobranças</div>
           </div>
         </div>
       </div>
@@ -547,13 +547,13 @@ export default function AdminFinancial() {
         </div>
 
         <div style={statCardStyle}>
-          <InfoTooltip text="Soma dos pagamentos CONFIRMED + RECEIVED no período selecionado. Fonte: Asaas API, filtro: dateCreated no período." />
+          <InfoTooltip text="Soma dos pagamentos CONFIRMED + RECEIVED com vencimento no mês completo (1º ao último dia). Fonte: Asaas API, filtro: dueDate. Exclui pagamentos de outros produtos (CodProfit, Headshot)." />
           <div style={iconBoxStyle('#3b82f6')}>
             <Calendar size={isMobile ? 20 : 24} style={{ color: '#3b82f6' }} />
           </div>
           <div>
             <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Receita do Mes
+              Receita do Mês
             </div>
             <div style={{ fontSize: isMobile ? '18px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {formatCurrency(stats?.revenueThisMonth || 0)}
@@ -597,13 +597,13 @@ export default function AdminFinancial() {
           </div>
           <div>
             <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Ticket Medio
+              Ticket Médio
             </div>
             <div style={{ fontSize: isMobile ? '18px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {formatCurrency(stats?.averageTicket || 0)}
             </div>
             <div style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              por transacao
+              por transação
             </div>
           </div>
         </div>
@@ -650,13 +650,13 @@ export default function AdminFinancial() {
         </div>
 
         <div style={statCardStyle}>
-          <InfoTooltip text="Soma CONFIRMED + RECEIVED do mês anterior ao período selecionado. Fonte: Asaas API." />
+          <InfoTooltip text="Soma dos pagamentos CONFIRMED + RECEIVED com vencimento no mês anterior completo. Fonte: Asaas API, filtro: dueDate." />
           <div style={iconBoxStyle('#6b7280')}>
             <CreditCard size={isMobile ? 20 : 24} style={{ color: '#6b7280' }} />
           </div>
           <div>
             <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Mes Anterior
+              Mês Anterior
             </div>
             <div style={{ fontSize: isMobile ? '18px' : '28px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {formatCurrency(stats?.revenueLastMonth || 0)}
