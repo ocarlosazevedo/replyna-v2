@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CreditCard, Eye, EyeOff, Wifi } from 'lucide-react'
+import { Eye, EyeOff, Wifi } from 'lucide-react'
 import {
   detectCardBrand,
   formatCardNumber,
@@ -295,7 +295,7 @@ function CardPreview({ card, brand, isFlipped, focusedField }: { card: CardData;
   )
 }
 
-export default function CardInput({ card, onChange, onBrandDetected, onInternationalDetected, embedded, children, title, subtitle }: CardInputProps) {
+export default function CardInput({ card, onChange, onBrandDetected, onInternationalDetected, embedded, children }: CardInputProps) {
   const [brand, setBrand] = useState<CardBrand>('unknown')
   const [showCvv, setShowCvv] = useState(false)
   const [isFlipped, setIsFlipped] = useState(false)
@@ -383,9 +383,6 @@ export default function CardInput({ card, onChange, onBrandDetected, onInternati
     color: 'var(--text-secondary)',
     marginBottom: '6px',
   }
-  const headerTitle = title || 'Pagamento'
-  const headerSubtitle = subtitle || 'Cartão de crédito'
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -398,25 +395,6 @@ export default function CardInput({ card, onChange, onBrandDetected, onInternati
         border: embedded ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
       }}
     >
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-        <div style={{
-          width: '36px', height: '36px', borderRadius: '10px',
-          backgroundColor: 'rgba(70, 114, 236, 0.1)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <CreditCard size={18} style={{ color: 'var(--accent)' }} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-            {headerTitle}
-          </h3>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-            {headerSubtitle}
-          </p>
-        </div>
-      </div>
-
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',

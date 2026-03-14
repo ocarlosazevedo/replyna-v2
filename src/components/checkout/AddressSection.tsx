@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MapPin, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { formatCEP } from '../../utils/cardUtils'
 
 export interface AddressData {
@@ -132,28 +132,6 @@ export default function AddressSection({ address, onChange, isInternational, emb
         border: embedded ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-        <div style={{
-          width: '36px',
-          height: '36px',
-          borderRadius: '10px',
-          backgroundColor: 'rgba(70, 114, 236, 0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <MapPin size={18} style={{ color: 'var(--accent)' }} />
-        </div>
-        <div>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-            Endereço
-          </h3>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-            Endereço de cobrança
-          </p>
-        </div>
-      </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
         <div>
           <label style={labelStyle}>CEP</label>

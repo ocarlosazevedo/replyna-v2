@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, User, Loader2, AlertCircle, Info, Check, ShieldCheck, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, AlertCircle, Info, Check, ShieldCheck, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCpfCnpj, validateCPF, parseExpiryDate } from '../utils/cardUtils'
 import { normalizePlanSlug } from '../utils/plan'
@@ -752,24 +752,6 @@ export default function Checkout() {
                     gap: '16px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                    <div style={{
-                      width: '36px', height: '36px', borderRadius: '10px',
-                      backgroundColor: 'rgba(70, 114, 236, 0.1)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <User size={18} style={{ color: 'var(--accent)' }} />
-                    </div>
-                    <div>
-                      <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                        Dados pessoais
-                      </h3>
-                      <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-                        Informações da sua conta
-                      </p>
-                    </div>
-                  </div>
-
                   <div>
                     <label style={labelStyle}>Nome completo</label>
                     <input type="text" value={name} onChange={(e) => setName(e.target.value)}
@@ -782,36 +764,79 @@ export default function Checkout() {
                       style={inputStyle} placeholder="seu@email.com" />
                   </div>
 
-                  <div>
-                    <label style={labelStyle}>Celular / WhatsApp</label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)}
-                        style={{
-                          padding: '10px 8px', border: '1px solid rgba(255, 255, 255, 0.1)',
-                          borderRadius: '10px', fontSize: '15px', backgroundColor: 'var(--input-bg)',
-                          color: 'var(--text-primary)', minWidth: '110px', fontFamily: 'inherit',
-                        }}>
-                        {countryCodes.map((c) => (
-                          <option key={c.code} value={c.code}>{c.label}</option>
-                        ))}
-                      </select>
-                      <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)}
-                        style={{ ...inputStyle, flex: 1 }} placeholder="11 99999-9999" />
-                    </div>
-                  </div>
+                  {isTrialFlow ? (
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                      gap: '12px',
+                    }}>
+                      <div>
+                        <label style={labelStyle}>Celular / WhatsApp</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)}
+                            style={{
+                              padding: '10px 8px', border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '10px', fontSize: '15px', backgroundColor: 'var(--input-bg)',
+                              color: 'var(--text-primary)', minWidth: '110px', fontFamily: 'inherit',
+                            }}>
+                            {countryCodes.map((c) => (
+                              <option key={c.code} value={c.code}>{c.label}</option>
+                            ))}
+                          </select>
+                          <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)}
+                            style={{ ...inputStyle, flex: 1 }} placeholder="11 99999-9999" />
+                        </div>
+                      </div>
 
-                  <div>
-                    <label style={labelStyle}>
-                      CPF
-                    </label>
-                    <input type="text" value={cpfCnpj}
-                      onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))}
-                      style={inputStyle}
-                      placeholder="000.000.000-00" />
-                  </div>
+                      <div>
+                        <label style={labelStyle}>
+                          CPF
+                        </label>
+                        <input type="text" value={cpfCnpj}
+                          onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))}
+                          style={inputStyle}
+                          placeholder="000.000.000-00" />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label style={labelStyle}>Celular / WhatsApp</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)}
+                            style={{
+                              padding: '10px 8px', border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '10px', fontSize: '15px', backgroundColor: 'var(--input-bg)',
+                              color: 'var(--text-primary)', minWidth: '110px', fontFamily: 'inherit',
+                            }}>
+                            {countryCodes.map((c) => (
+                              <option key={c.code} value={c.code}>{c.label}</option>
+                            ))}
+                          </select>
+                          <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)}
+                            style={{ ...inputStyle, flex: 1 }} placeholder="11 99999-9999" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={labelStyle}>
+                          CPF
+                        </label>
+                        <input type="text" value={cpfCnpj}
+                          onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))}
+                          style={inputStyle}
+                          placeholder="000.000.000-00" />
+                      </div>
+                    </>
+                  )}
 
                   {isTrialFlow && !isUpgrade && (
-                    <div style={{ marginTop: '20px', display: 'grid', gap: '16px' }}>
+                    <div style={{
+                      marginTop: '20px',
+                      display: 'grid',
+                      gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                      gap: '16px',
+                    }}>
                       <div>
                         <label style={labelStyle}>Senha</label>
                         <div style={{ position: 'relative' }}>
