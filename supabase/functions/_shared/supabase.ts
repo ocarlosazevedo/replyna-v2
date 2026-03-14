@@ -52,6 +52,7 @@ export interface Shop {
   // Email processing options
   email_start_mode: 'all_unread' | 'from_integration_date';
   email_start_date: string | null;
+  pending_backfill: boolean;
 
   // Sync
   last_email_sync_at: string | null;

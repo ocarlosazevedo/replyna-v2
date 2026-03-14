@@ -122,6 +122,62 @@ serve(async (req) => {
 
     console.log(`[ConfirmPayment] User ${user_id} ativado com plano ${plan.name}`);
 
+    // Atualizar lojas: remover filtro de data para buscar TODOS os emails não lidos
+    // e marcar para backfill de emails antigos que foram marcados como lidos no trial
+    const { data: userShops } = await supabase
+      .from('shops')
+      .select('id')
+      .eq('user_id', user_id);
+
+    if (userShops && userShops.length > 0) {
+      const shopIds = userShops.map((s: any) => s.id);
+
+      // Mudar para all_unread: próximo fetch vai buscar TODOS os não lidos sem filtro de data
+      await supabase
+        .from('shops')
+        .update({
+          email_start_mode: 'all_unread',
+          pending_backfill: true,
+          updated_at: now.toISOString(),
+        })
+        .in('id', shopIds);
+
+      console.log(`[ConfirmPayment] ${shopIds.length} loja(s) atualizadas para all_unread + backfill`);
+
+      // Re-enfileirar mensagens pending_credits para serem processadas agora
+      for (const shopId of shopIds) {
+        const { data: pendingMessages } = await supabase
+          .from('messages')
+          .select('id, conversation:conversations!inner(shop_id)')
+          .eq('status', 'pending_credits')
+          .eq('direction', 'inbound')
+          .eq('conversation.shop_id', shopId);
+
+        if (pendingMessages && pendingMessages.length > 0) {
+          // Atualizar status para pending
+          const messageIds = pendingMessages.map((m: any) => m.id);
+          await supabase
+            .from('messages')
+            .update({ status: 'pending', updated_at: now.toISOString() })
+            .in('id', messageIds);
+
+          // Enfileirar cada mensagem na job_queue
+          for (const msg of pendingMessages) {
+            await supabase.rpc('enqueue_job', {
+              p_job_type: 'process_email',
+              p_shop_id: shopId,
+              p_message_id: msg.id,
+              p_payload: {},
+              p_priority: 0,
+              p_max_attempts: 3,
+            });
+          }
+
+          console.log(`[ConfirmPayment] ${pendingMessages.length} mensagens pending_credits re-enfileiradas para loja ${shopId}`);
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({
         confirmed: true,

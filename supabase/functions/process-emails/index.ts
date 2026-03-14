@@ -45,6 +45,7 @@ import {
 import {
   decryptEmailCredentials,
   fetchUnreadEmails,
+  fetchSeenEmails,
   markEmailsAsSeen,
   sendEmail,
   buildReplyHeaders,
@@ -705,6 +706,26 @@ async function processShop(shop: Shop, globalStartTime: number): Promise<ShopSta
     throw error;
   }
 
+  // 2.5. Backfill: buscar emails antigos SEEN se a loja tem pending_backfill
+  if (shop.pending_backfill) {
+    try {
+      console.log(`[Shop ${shop.name}] Backfill ativo - buscando emails antigos (SEEN) dos últimos 30 dias`);
+      const seenEmails = await fetchSeenEmails(emailCredentials, 100, 30);
+      console.log(`[Shop ${shop.name}] ${seenEmails.length} emails antigos encontrados para backfill`);
+      incomingEmails = [...incomingEmails, ...seenEmails];
+      stats.emails_received = incomingEmails.length;
+
+      const supabase = getSupabaseClient();
+      await supabase
+        .from('shops')
+        .update({ pending_backfill: false, updated_at: new Date().toISOString() })
+        .eq('id', shop.id);
+      console.log(`[Shop ${shop.name}] Backfill concluído, flag desativada`);
+    } catch (error) {
+      console.error(`[Shop ${shop.name}] Erro no backfill (continuando com emails normais):`, error);
+    }
+  }
+
   // 3. Salvar emails no banco e marcar como lidos no IMAP após salvar
   const shopEmail = emailCredentials.smtp_user.toLowerCase();
   const savedUids: number[] = [];
@@ -1114,7 +1135,7 @@ async function processMessageInternal(
 
   // Fallback: usar subject como contexto
   if ((!cleanBody || cleanBody.trim().length < 3) && message.subject && message.subject.trim().length > 3) {
-    cleanBody = `[Cliente respondeu ao email com assunto: ${message.subject}]`;
+    cleanBody = `[Empty email body. Customer replied to email with subject: ${message.subject}]`;
   }
 
   if (!cleanBody || cleanBody.trim().length < 3) {

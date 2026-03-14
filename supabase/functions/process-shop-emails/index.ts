@@ -40,6 +40,7 @@ import {
 import {
   decryptEmailCredentials,
   fetchUnreadEmails,
+  fetchSeenEmails,
   markEmailsAsSeen,
   sendEmail,
   buildReplyHeaders,
@@ -297,6 +298,29 @@ async function processShop(
     console.error(`[Worker] Erro ao buscar emails da loja ${shop.id}:`, error);
     await updateShopEmailSync(shop.id, error instanceof Error ? error.message : 'Erro ao conectar IMAP');
     throw error;
+  }
+
+  // 2.5. Backfill: buscar emails antigos SEEN se a loja tem pending_backfill
+  // Isso acontece quando o cliente sai do free trial e vai para o plano pago
+  if (shop.pending_backfill) {
+    try {
+      console.log(`[Worker] Loja ${shop.id}: Backfill ativo - buscando emails antigos (SEEN) dos últimos 30 dias`);
+      const seenEmails = await fetchSeenEmails(emailCredentials, 100, 30);
+      console.log(`[Worker] Loja ${shop.id}: ${seenEmails.length} emails antigos encontrados para backfill`);
+      // Adicionar ao array de emails (dedup via message_id no saveIncomingEmail)
+      incomingEmails = [...incomingEmails, ...seenEmails];
+      stats.emails_received = incomingEmails.length;
+
+      // Desativar backfill após buscar
+      const supabase = getSupabaseClient();
+      await supabase
+        .from('shops')
+        .update({ pending_backfill: false, updated_at: new Date().toISOString() })
+        .eq('id', shop.id);
+      console.log(`[Worker] Loja ${shop.id}: Backfill concluído, flag desativada`);
+    } catch (error) {
+      console.error(`[Worker] Loja ${shop.id}: Erro no backfill (continuando com emails normais):`, error);
+    }
   }
 
   // 3. Salvar emails no banco e marcar como lidos no IMAP após salvar
@@ -707,10 +731,10 @@ async function processMessage(
     }
   }
 
-  // Fallback: usar subject como contexto
+  // Fallback: usar subject como contexto (mensagem em inglês neutro para não contaminar detecção de idioma)
   if ((!cleanBody || cleanBody.trim().length < 3) && message.subject && message.subject.trim().length > 3) {
     console.log(`[Worker] Corpo vazio, usando assunto: "${message.subject}"`);
-    cleanBody = `[Cliente respondeu ao email com assunto: ${message.subject}]`;
+    cleanBody = `[Empty email body. Customer replied to email with subject: ${message.subject}]`;
   }
 
   if (!cleanBody || cleanBody.trim().length < 3) {

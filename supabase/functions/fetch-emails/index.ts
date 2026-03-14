@@ -27,7 +27,7 @@ import {
   getActiveShopsWithEmail,
   type Shop,
 } from '../_shared/supabase.ts';
-import { decryptEmailCredentials, fetchUnreadEmails, markEmailsAsSeen } from '../_shared/email.ts';
+import { decryptEmailCredentials, fetchUnreadEmails, fetchSeenEmails, markEmailsAsSeen } from '../_shared/email.ts';
 
 // Configuration
 const MAX_CONCURRENT_SHOPS = 10; // Process 10 shops in parallel
@@ -192,16 +192,14 @@ async function processShop(shop: Shop, supabase: any): Promise<ShopResult> {
     }
 
     // Calculate IMAP start date based on shop's email_start_mode
-    let emailStartDate: Date;
+    let emailStartDate: Date | null = null;
     if (shop.email_start_mode === 'from_integration_date' && shop.email_start_date) {
       // Use shop's integration date - only fetch emails after this date
       emailStartDate = new Date(shop.email_start_date);
       console.log(`[Shop:${shop.name}] Using integration date filter: ${emailStartDate.toISOString()}`);
     } else {
-      // Default: fetch emails from last 7 days
-      emailStartDate = new Date();
-      emailStartDate.setDate(emailStartDate.getDate() - 7);
-      console.log(`[Shop:${shop.name}] Using default 7-day filter: ${emailStartDate.toISOString()}`);
+      // all_unread: buscar TODOS os emails não lidos sem filtro de data
+      console.log(`[Shop:${shop.name}] Mode all_unread - fetching all unread emails without date filter`);
     }
 
     // Fetch unread emails via IMAP
@@ -220,6 +218,25 @@ async function processShop(shop: Shop, supabase: any): Promise<ShopResult> {
       shopResult.error_message = `IMAP error: ${error.message}`;
       // Don't throw - continue to next shop
       return shopResult;
+    }
+
+    // Backfill: buscar emails antigos SEEN se a loja tem pending_backfill
+    if (shop.pending_backfill) {
+      try {
+        console.log(`[Shop:${shop.name}] Backfill ativo - buscando emails antigos (SEEN) dos últimos 30 dias`);
+        const seenEmails = await fetchSeenEmails(emailCredentials, 100, 30);
+        console.log(`[Shop:${shop.name}] ${seenEmails.length} emails antigos encontrados para backfill`);
+        incomingEmails = [...incomingEmails, ...seenEmails];
+        shopResult.emails_fetched = incomingEmails.length;
+
+        await supabase
+          .from('shops')
+          .update({ pending_backfill: false, updated_at: new Date().toISOString() })
+          .eq('id', shop.id);
+        console.log(`[Shop:${shop.name}] Backfill concluído, flag desativada`);
+      } catch (error: any) {
+        console.error(`[Shop:${shop.name}] Erro no backfill (continuando com emails normais):`, error.message);
+      }
     }
 
     // Process each email: save + enqueue, then mark as seen in IMAP

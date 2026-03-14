@@ -183,29 +183,55 @@ class SimpleImapClient {
     await this.writer.write(this.encode(command + '\r\n'));
   }
 
+  private streamClosed = false;
+
   private async readResponse(): Promise<string> {
     if (!this.reader) throw new Error('Not connected');
 
     const { value, done } = await this.reader.read();
-    if (done || !value) return '';
+    if (done || !value) {
+      this.streamClosed = true;
+      return '';
+    }
 
     return this.decode(value);
   }
 
   private async readUntilTag(tag: string): Promise<string> {
     let response = '';
-    const maxIterations = 100;
+    const maxIterations = 200;
     let iterations = 0;
+    let emptyReads = 0;
+    const maxEmptyReads = 10; // Máximo de leituras vazias consecutivas antes de desistir
 
     while (iterations < maxIterations) {
       const chunk = await this.readResponse();
-      response += chunk;
+
+      if (chunk) {
+        response += chunk;
+        emptyReads = 0; // Reset contador de leituras vazias
+      } else {
+        emptyReads++;
+        // Se o stream fechou ou muitas leituras vazias, parar
+        if (this.streamClosed) {
+          console.warn(`[IMAP] Stream closed while waiting for tag ${tag}. Response so far (${response.length} chars): ${response.substring(0, 500)}`);
+          break;
+        }
+        if (emptyReads >= maxEmptyReads) {
+          console.warn(`[IMAP] ${maxEmptyReads} empty reads in a row waiting for tag ${tag}. Response so far (${response.length} chars): ${response.substring(0, 500)}`);
+          break;
+        }
+      }
 
       // Verificar se recebemos a resposta completa (linha com o tag)
       if (response.includes(`${tag} OK`) || response.includes(`${tag} NO`) || response.includes(`${tag} BAD`)) {
         break;
       }
       iterations++;
+    }
+
+    if (iterations >= maxIterations) {
+      console.warn(`[IMAP] Max iterations (${maxIterations}) reached waiting for tag ${tag}. Response (${response.length} chars): ${response.substring(0, 500)}`);
     }
 
     return response;
@@ -235,6 +261,24 @@ class SimpleImapClient {
     return searchMatch[1].trim().split(/\s+/).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
   }
 
+  /**
+   * Busca emails SEEN (já lidos) recebidos desde uma data específica.
+   * Usado para backfill quando cliente sai do free trial para plano pago.
+   */
+  async searchSeenSince(sinceDate: Date): Promise<number[]> {
+    const tag = this.getTag();
+    // Formato de data IMAP: DD-Mon-YYYY
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dateStr = `${sinceDate.getDate()}-${months[sinceDate.getMonth()]}-${sinceDate.getFullYear()}`;
+    await this.sendCommand(`${tag} SEARCH SEEN SINCE ${dateStr}`);
+    const response = await this.readUntilTag(tag);
+
+    const searchMatch = response.match(/\* SEARCH([\d\s]*)/);
+    if (!searchMatch || !searchMatch[1].trim()) return [];
+
+    return searchMatch[1].trim().split(/\s+/).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
+  }
+
   async fetchMessage(uid: number): Promise<{
     envelope: {
       messageId: string;
@@ -250,11 +294,21 @@ class SimpleImapClient {
     references: string;
   }> {
     const tag = this.getTag();
-    // Buscar headers From, To, Subject, Message-ID, Reply-To diretamente além do corpo
-    await this.sendCommand(`${tag} FETCH ${uid} (BODY[HEADER.FIELDS (From To Subject Message-ID Date In-Reply-To References Reply-To)] BODY[TEXT])`);
+    // Buscar headers e corpo SEM marcar como lido (BODY.PEEK em vez de BODY)
+    // BODY[...] marca automaticamente como \Seen no IMAP, o que faz o email "desaparecer"
+    // antes de ser processado. BODY.PEEK[...] lê sem alterar flags.
+    await this.sendCommand(`${tag} FETCH ${uid} (BODY.PEEK[HEADER.FIELDS (From To Subject Message-ID Date In-Reply-To References Reply-To)] BODY.PEEK[TEXT])`);
     const response = await this.readUntilTag(tag);
 
     console.log('IMAP FETCH response (primeiros 2000 chars):', response.substring(0, 2000));
+
+    // Detectar respostas IMAP vazias ou truncadas (comum com Zoho)
+    if (!response || response.trim().length < 10) {
+      console.error(`[IMAP] FETCH retornou resposta vazia/truncada para UID ${uid} (${response.length} chars). Conexão pode ter sido fechada pelo servidor.`);
+    }
+    if (!response.includes(`${tag} OK`)) {
+      console.warn(`[IMAP] FETCH para UID ${uid} não contém tag OK - resposta possivelmente incompleta`);
+    }
 
     let messageId = '';
     let from = '';
@@ -434,7 +488,7 @@ class SimpleImapClient {
       console.log(`[IMAP] BODY[TEXT] vazio para mensagem ${uid} de ${from}, tentando BODY[] como fallback...`);
       try {
         const tag2 = this.getTag();
-        await this.sendCommand(`${tag2} FETCH ${uid} (BODY[])`);
+        await this.sendCommand(`${tag2} FETCH ${uid} (BODY.PEEK[])`);
         const fullResponse = await this.readUntilTag(tag2);
 
         // Extrair corpo completo da resposta
@@ -691,6 +745,13 @@ export async function fetchUnreadEmails(
           continue;
         }
 
+        // Se não tem remetente E o messageId é gerado, provavelmente o FETCH falhou (resposta truncada/vazia do IMAP)
+        // NÃO marcar como lido - tentar novamente na próxima execução
+        if (hasNoFrom && isGenerated) {
+          console.warn(`[fetchUnreadEmails] SKIP UID ${uid}: FETCH provavelmente falhou (sem remetente, messageId gerado). Será re-tentado.`);
+          continue;
+        }
+
         emails.push({
           message_id: msg.envelope.messageId,
           from_email: msg.envelope.from,
@@ -712,6 +773,95 @@ export async function fetchUnreadEmails(
         console.log(`Fetched mensagem ${uid}: ${msg.envelope.subject}`);
       } catch (msgError) {
         console.error(`Erro ao processar mensagem ${uid}:`, msgError);
+      }
+    }
+  } finally {
+    await client.logout();
+  }
+
+  return emails;
+}
+
+/**
+ * Busca emails já lidos (SEEN) no IMAP recebidos nos últimos N dias.
+ * Usado para backfill quando cliente sai do free trial para plano pago.
+ * Emails já existentes no banco serão filtrados pela deduplicação (message_id).
+ *
+ * @param credentials - Credenciais de email
+ * @param maxEmails - Número máximo de emails a buscar
+ * @param sinceDaysAgo - Buscar emails dos últimos N dias (default: 30)
+ */
+export async function fetchSeenEmails(
+  credentials: EmailCredentials,
+  maxEmails: number = 100,
+  sinceDaysAgo: number = 30
+): Promise<IncomingEmail[]> {
+  const client = new SimpleImapClient(
+    credentials.imap_host,
+    credentials.imap_port,
+    credentials.imap_user,
+    credentials.imap_password
+  );
+
+  const emails: IncomingEmail[] = [];
+
+  try {
+    console.log(`[Backfill] Conectando ao IMAP ${credentials.imap_host}:${credentials.imap_port}...`);
+    await client.connect();
+    console.log('[Backfill] Conectado! Selecionando INBOX...');
+
+    await client.selectInbox();
+
+    const sinceDate = new Date();
+    sinceDate.setDate(sinceDate.getDate() - sinceDaysAgo);
+    console.log(`[Backfill] Buscando emails SEEN desde ${sinceDate.toISOString()}...`);
+
+    const seenIds = await client.searchSeenSince(sinceDate);
+    console.log(`[Backfill] Encontrados ${seenIds.length} emails SEEN`);
+
+    const idsToFetch = seenIds.slice(0, maxEmails);
+
+    for (const uid of idsToFetch) {
+      try {
+        const msg = await client.fetchMessage(uid);
+        const receivedAt = new Date(msg.envelope.date);
+
+        const decodedBody = decodeEmailBodyFull(msg.body);
+        const bodyText = cleanEmailBody(decodedBody.text || '', decodedBody.html || '');
+        const limitedImages = decodedBody.images.slice(0, 5);
+
+        const hasNoFrom = !msg.envelope.from || !msg.envelope.from.includes('@');
+        const hasNoBody = !bodyText && !decodedBody.html && (!msg.body || msg.body.trim().length === 0);
+
+        if (hasNoFrom && hasNoBody) {
+          continue;
+        }
+
+        if (hasNoFrom && msg.envelope.messageId.includes('@generated')) {
+          continue;
+        }
+
+        emails.push({
+          message_id: msg.envelope.messageId,
+          from_email: msg.envelope.from,
+          from_name: msg.envelope.fromName,
+          reply_to: msg.envelope.replyTo,
+          to_email: credentials.imap_user,
+          subject: msg.envelope.subject?.trim() || '(Sem assunto)',
+          body_text: bodyText || null,
+          body_html: decodedBody.html,
+          in_reply_to: msg.inReplyTo || null,
+          references: msg.references || null,
+          received_at: receivedAt,
+          has_attachments: decodedBody.hasAttachments,
+          attachment_count: decodedBody.attachmentCount,
+          images: limitedImages,
+          imap_uid: uid,
+        });
+
+        console.log(`[Backfill] Fetched mensagem ${uid}: ${msg.envelope.subject}`);
+      } catch (msgError) {
+        console.error(`[Backfill] Erro ao processar mensagem ${uid}:`, msgError);
       }
     }
   } finally {
