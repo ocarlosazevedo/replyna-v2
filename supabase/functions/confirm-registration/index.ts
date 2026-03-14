@@ -321,9 +321,6 @@ serve(async (req) => {
 
     const updateData: Record<string, unknown> = {
       email: normalizedEmail,
-      name: name || null,
-      whatsapp_number: whatsapp_number || null,
-      cpf_cnpj: cpf_cnpj || null,
       plan: userIsTrial ? 'trial' : (planData?.slug || 'starter'),
       emails_limit: userIsTrial ? 30 : (planData?.emails_limit ?? 30),
       shops_limit: userIsTrial ? 1 : (planData?.shops_limit ?? 1),
@@ -335,6 +332,10 @@ serve(async (req) => {
       trial_ends_at: userIsTrial ? trialEndsAt.toISOString() : null,
       updated_at: now.toISOString(),
     };
+
+    if (name) updateData.name = name;
+    if (whatsapp_number) updateData.whatsapp_number = whatsapp_number;
+    if (cpf_cnpj) updateData.cpf_cnpj = cpf_cnpj;
 
     const { data: existingFinalUser } = await supabase
       .from('users')
