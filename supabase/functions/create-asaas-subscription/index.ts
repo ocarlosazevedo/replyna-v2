@@ -359,9 +359,16 @@ serve(async (req) => {
       subscriptionDescription = `Replyna - Plano ${plan.name} (Cupom: -${discountApplied.toFixed(2)})`;
     }
 
-    // For coupon: create at discounted value, then update to full price
-    // This way first payment = discounted, future payments = full price
-    const firstPaymentValue = (discountApplied > 0) ? finalValue : baseValue;
+    // Use Asaas native discount for first payment instead of sending a lower value
+    // This avoids floating point issues (e.g., 197 - 19.7 = 177.29999999999998)
+    const discountRounded = Math.round(discountApplied * 100) / 100;
+    const asaasDiscount = (discountRounded > 0) ? {
+      value: discountRounded,
+      dueDateLimitDays: 0,
+      type: 'FIXED' as const,
+    } : undefined;
+
+    const firstPaymentValue = baseValue; // Always full price, discount handled by Asaas
 
     try {
       const subscription = await createSubscription({
@@ -371,6 +378,7 @@ serve(async (req) => {
         cycle: 'MONTHLY',
         description: subscriptionDescription,
         nextDueDate,
+        discount: asaasDiscount,
         creditCard: {
           holderName: creditCard.holderName,
           number: creditCard.number,
@@ -395,14 +403,12 @@ serve(async (req) => {
       // Save the token that Asaas returns in the response
       const returnedToken = subscription.creditCard?.creditCardToken || null;
 
-      // If coupon was applied, update subscription to full price for future payments
-      if (discountApplied > 0 && firstPaymentValue < baseValue) {
+      // Remove discount for future payments (discount was only for first payment)
+      if (asaasDiscount) {
         await updateSubscription(subscription.id, {
-          value: baseValue,
-          updatePendingPayments: false,
           description: `Replyna - Plano ${plan.name}`,
         });
-        console.log(`[CreateSubscription] Updated subscription to full price: ${baseValue}`);
+        console.log(`[CreateSubscription] Removed first-payment discount for future payments`);
       }
 
       return new Response(
@@ -430,7 +436,8 @@ serve(async (req) => {
           debug_info: {
             value: firstPaymentValue,
             baseValue,
-            discountApplied,
+            discountApplied: discountRounded,
+            asaasDiscount: asaasDiscount || null,
             isPartnerCoupon,
             coupon_code: coupon_code || null,
             remoteIp: clientIp,
