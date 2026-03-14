@@ -43,6 +43,8 @@ export default function CheckoutSuccess() {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({
+            stage: 'finalize',
+            user_id: parsed.user_id || undefined,
             email: parsed.email,
             name: parsed.name,
             whatsapp_number: parsed.whatsapp_number || undefined,

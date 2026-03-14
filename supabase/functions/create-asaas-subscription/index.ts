@@ -37,6 +37,7 @@ interface CreditCardHolderInfoInput {
 
 interface CreateSubscriptionRequest {
   plan_id: string;
+  user_id?: string;
   user_email: string;
   user_name?: string;
   whatsapp_number?: string;
@@ -120,6 +121,7 @@ serve(async (req) => {
     const body = (await req.json()) as CreateSubscriptionRequest;
     const {
       plan_id,
+      user_id,
       user_email,
       user_name,
       whatsapp_number,
@@ -157,15 +159,18 @@ serve(async (req) => {
     // Verificar se email ja existe
     const { data: userByEmail } = await supabase
       .from('users')
-      .select('id')
+      .select('id, status')
       .eq('email', normalizedEmail)
       .limit(1);
 
     if (userByEmail && userByEmail.length > 0) {
-      return new Response(
-        JSON.stringify({ error: 'Este email ja possui uma conta ativa. Faca login ou use outro email.' }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      const existing = userByEmail[0];
+      if (!user_id || existing.id !== user_id) {
+        return new Response(
+          JSON.stringify({ error: 'Este email ja possui uma conta ativa. Faca login ou use outro email.' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const { data: plan, error: planError } = await supabase

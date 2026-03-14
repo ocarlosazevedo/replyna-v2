@@ -87,6 +87,7 @@ export default function Checkout() {
   const [isTrialFlow, setIsTrialFlow] = useState(false)
   const [isUpgrade, setIsUpgrade] = useState(false)
   const [upgradeUserId, setUpgradeUserId] = useState<string | null>(null)
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null)
 
   // Current step
   const [currentStep, setCurrentStep] = useState<StepId>('personal')
@@ -138,6 +139,8 @@ export default function Checkout() {
       setIsTrialFlow(state.isTrialFlow || false)
       setIsUpgrade(state.isUpgrade || false)
       setUpgradeUserId(state.userId || null)
+      const savedPendingUserId = sessionStorage.getItem('checkout_user_id')
+      if (savedPendingUserId) setPendingUserId(savedPendingUserId)
       sessionStorage.setItem('checkout_plan', JSON.stringify(state.plan))
       sessionStorage.setItem('checkout_trial', String(state.isTrialFlow || false))
       sessionStorage.setItem('checkout_upgrade', String(state.isUpgrade || false))
@@ -190,11 +193,13 @@ export default function Checkout() {
     const savedTrial = sessionStorage.getItem('checkout_trial')
     const savedUpgrade = sessionStorage.getItem('checkout_upgrade')
     const savedUserId = sessionStorage.getItem('checkout_upgrade_user_id')
+    const savedPendingUserId = sessionStorage.getItem('checkout_user_id')
     if (savedPlan) {
       setPlan(JSON.parse(savedPlan))
       setIsTrialFlow(savedTrial === 'true')
       setIsUpgrade(savedUpgrade === 'true')
       setUpgradeUserId(savedUserId || null)
+      if (savedPendingUserId) setPendingUserId(savedPendingUserId)
     } else {
       navigate('/register')
     }
@@ -259,6 +264,11 @@ export default function Checkout() {
     return `${countryCode} ${num}`
   }
 
+  const persistPendingUserId = (id: string) => {
+    setPendingUserId(id)
+    sessionStorage.setItem('checkout_user_id', id)
+  }
+
   const calculateFinalPrice = () => {
     if (!plan) return 0
     const basePrice = plan.price_monthly
@@ -281,7 +291,7 @@ export default function Checkout() {
       const cpfDigits = cpfCnpj.replace(/\D/g, '')
       if (cpfDigits.length === 11 && !validateCPF(cpfCnpj)) return 'CPF inválido'
       if (cpfDigits.length < 11) return 'Informe seu CPF completo'
-      if (isTrialFlow && !isUpgrade) {
+      if (!isUpgrade) {
         if (password.trim().length < 8) return 'A senha deve ter pelo menos 8 caracteres'
         if (password !== confirmPassword) return 'As senhas não coincidem'
       }
@@ -319,7 +329,7 @@ export default function Checkout() {
     setError('')
   }
 
-  const goNext = () => {
+  const goNext = async () => {
     const validationError = validateStep(currentStep)
     if (validationError) {
       setError(validationError)
@@ -330,6 +340,88 @@ export default function Checkout() {
     const steps = getSteps()
     const currentIndex = steps.findIndex(s => s.id === currentStep)
     if (currentIndex < steps.length - 1) {
+      if (!isUpgrade && currentStep === 'personal') {
+        if (!plan) {
+          setError('Plano não encontrado. Recarregue a página.')
+          return
+        }
+        setLoading(true)
+        try {
+          const cpfDigits = cpfCnpj.replace(/\D/g, '')
+          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-registration`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              stage: 'pending',
+              email,
+              name,
+              whatsapp_number: getFullPhoneNumber() || undefined,
+              cpf_cnpj: cpfDigits || undefined,
+              password: password || undefined,
+              plan_id: plan.id,
+              is_trial: isTrialFlow || undefined,
+            }),
+          })
+
+          const data = await response.json()
+          if (!response.ok) {
+            throw new Error(data.error || 'Erro ao iniciar cadastro')
+          }
+
+          if (data.user_id) {
+            persistPendingUserId(data.user_id)
+          }
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : 'Erro ao iniciar cadastro'
+          setError(message)
+          return
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      if (!isUpgrade && currentStep === 'address') {
+        if (!pendingUserId) {
+          setError('Não foi possível identificar o cadastro em andamento')
+          return
+        }
+        setLoading(true)
+        try {
+          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-registration`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              stage: 'address',
+              user_id: pendingUserId,
+              cep: address.cep,
+              logradouro: address.logradouro,
+              numero: address.numero,
+              complemento: address.complemento,
+              bairro: address.bairro,
+              cidade: address.cidade,
+              estado: address.estado,
+            }),
+          })
+
+          const data = await response.json()
+          if (!response.ok) {
+            throw new Error(data.error || 'Erro ao salvar endereço')
+          }
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : 'Erro ao salvar endereço'
+          setError(message)
+          return
+        } finally {
+          setLoading(false)
+        }
+      }
+
       setDirection(1)
       setCurrentStep(steps[currentIndex + 1].id)
     }
@@ -405,6 +497,7 @@ export default function Checkout() {
         sessionStorage.removeItem('checkout_trial')
         sessionStorage.removeItem('checkout_upgrade')
         sessionStorage.removeItem('checkout_upgrade_user_id')
+        sessionStorage.removeItem('checkout_user_id')
 
         // Redirecionar para conta com mensagem de sucesso
         navigate('/account', { state: { upgradeSuccess: true, planName: plan.name } })
@@ -414,6 +507,7 @@ export default function Checkout() {
       // === FLUXO NORMAL: novo usuario ===
       const body: Record<string, unknown> = {
         plan_id: plan.id,
+        user_id: pendingUserId || undefined,
         user_email: email,
         user_name: name,
         whatsapp_number: getFullPhoneNumber() || undefined,
@@ -464,6 +558,7 @@ export default function Checkout() {
       }
 
       localStorage.setItem('pending_registration', JSON.stringify({
+        user_id: pendingUserId || null,
         email,
         name,
         whatsapp_number: getFullPhoneNumber() || null,
@@ -477,6 +572,8 @@ export default function Checkout() {
         partner_id: data.partner_id || null,
         is_trial: data.is_trial || false,
       }))
+
+      sessionStorage.removeItem('checkout_user_id')
 
       navigate('/checkout/success')
     } catch (err: unknown) {
@@ -830,73 +927,71 @@ export default function Checkout() {
                     </>
                   )}
 
-                  {isTrialFlow && !isUpgrade && (
-                    <div style={{
-                      marginTop: '20px',
-                      display: 'grid',
-                      gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                      gap: '16px',
-                    }}>
-                      <div>
-                        <label style={labelStyle}>Senha</label>
-                        <div style={{ position: 'relative' }}>
-                          <input
-                            type={showPassword ? 'text' : 'password'}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            style={{ ...inputStyle, paddingRight: '42px' }}
-                            placeholder="Mínimo 8 caracteres"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            style={{
-                              position: 'absolute',
-                              right: '12px',
-                              top: '50%',
-                              transform: 'translateY(-50%)',
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              color: 'var(--text-secondary)',
-                              padding: 0,
-                            }}
-                          >
-                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </button>
-                        </div>
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Confirmar senha</label>
-                        <div style={{ position: 'relative' }}>
-                          <input
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            style={{ ...inputStyle, paddingRight: '42px' }}
-                            placeholder="Repita sua senha"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            style={{
-                              position: 'absolute',
-                              right: '12px',
-                              top: '50%',
-                              transform: 'translateY(-50%)',
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              color: 'var(--text-secondary)',
-                              padding: 0,
-                            }}
-                          >
-                            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </button>
-                        </div>
+                  <div style={{
+                    marginTop: '20px',
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                    gap: '16px',
+                  }}>
+                    <div>
+                      <label style={labelStyle}>Senha</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          style={{ ...inputStyle, paddingRight: '42px' }}
+                          placeholder="Mínimo 8 caracteres"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{
+                            position: 'absolute',
+                            right: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-secondary)',
+                            padding: 0,
+                          }}
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
                       </div>
                     </div>
-                  )}
+                    <div>
+                      <label style={labelStyle}>Confirmar senha</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          style={{ ...inputStyle, paddingRight: '42px' }}
+                          placeholder="Repita sua senha"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          style={{
+                            position: 'absolute',
+                            right: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-secondary)',
+                            padding: 0,
+                          }}
+                        >
+                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </motion.div>
               )}
 

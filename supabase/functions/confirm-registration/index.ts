@@ -11,17 +11,28 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { getSubscription } from '../_shared/asaas.ts';
 
 interface ConfirmRegistrationRequest {
-  email: string;
-  name: string;
+  stage?: 'pending' | 'address' | 'finalize';
+  user_id?: string;
+  email?: string;
+  name?: string;
   whatsapp_number?: string;
-  plan_id: string;
-  asaas_customer_id: string;
+  cpf_cnpj?: string;
+  password?: string;
+  plan_id?: string;
+  asaas_customer_id?: string;
   asaas_subscription_id?: string;
   asaas_credit_card_token?: string;
   coupon_id?: string;
   discount_applied?: number;
   partner_id?: string;
   is_trial?: boolean;
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
 }
 
 function getSupabaseAdmin() {
@@ -46,9 +57,13 @@ serve(async (req) => {
   try {
     const body = (await req.json()) as ConfirmRegistrationRequest;
     const {
+      stage,
+      user_id,
       email,
       name,
       whatsapp_number,
+      cpf_cnpj,
+      password,
       plan_id,
       asaas_customer_id,
       asaas_subscription_id,
@@ -57,19 +72,192 @@ serve(async (req) => {
       discount_applied,
       partner_id,
       is_trial,
+      cep,
+      logradouro,
+      numero,
+      complemento,
+      bairro,
+      cidade,
+      estado,
     } = body;
 
-    if (!email || !plan_id || !asaas_customer_id) {
+    const supabase = getSupabaseAdmin();
+    const currentStage = stage || 'finalize';
+    const normalizedEmail = email ? email.toLowerCase() : '';
+    const now = new Date();
+    const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    if (currentStage === 'address') {
+      if (!user_id && !normalizedEmail) {
+        return new Response(
+          JSON.stringify({ error: 'Campos obrigatorios: user_id ou email' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      let targetUserId = user_id || null;
+      if (!targetUserId) {
+        const { data: userByEmail } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', normalizedEmail)
+          .limit(1);
+        targetUserId = userByEmail?.[0]?.id || null;
+      }
+
+      if (!targetUserId) {
+        return new Response(
+          JSON.stringify({ error: 'Usuario nao encontrado para atualizar endereco' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const addressUpdate: Record<string, unknown> = {
+        cep,
+        logradouro,
+        numero,
+        complemento,
+        bairro,
+        cidade,
+        estado,
+        updated_at: now.toISOString(),
+      };
+
+      Object.keys(addressUpdate).forEach((key) => {
+        if (addressUpdate[key] === undefined) delete addressUpdate[key];
+      });
+
+      await supabase.from('users').update(addressUpdate).eq('id', targetUserId);
+
+      return new Response(
+        JSON.stringify({ success: true, user_id: targetUserId }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (currentStage === 'pending') {
+      if (!normalizedEmail || !plan_id) {
+        return new Response(
+          JSON.stringify({ error: 'Campos obrigatorios: email, plan_id' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data: planData, error: planError } = await supabase
+        .from('plans')
+        .select('name, slug, emails_limit, shops_limit')
+        .eq('id', plan_id)
+        .single();
+
+      if (planError || !planData) {
+        return new Response(
+          JSON.stringify({ error: 'Plano nao encontrado' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const userIsTrial = is_trial === true;
+
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id, status')
+        .eq('email', normalizedEmail)
+        .limit(1);
+
+      if (existingUser && existingUser.length > 0) {
+        const existing = existingUser[0];
+        if (existing.status === 'active' || existing.status === 'suspended') {
+          return new Response(
+            JSON.stringify({ error: 'Este email ja possui uma conta ativa. Faca login ou use outro email.' }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const updateData: Record<string, unknown> = {
+          name: name || null,
+          whatsapp_number: whatsapp_number || null,
+          cpf_cnpj: cpf_cnpj || null,
+          plan: userIsTrial ? 'trial' : (planData?.slug || 'starter'),
+          is_trial: userIsTrial,
+          status: 'pending',
+          updated_at: now.toISOString(),
+        };
+
+        await supabase.from('users').update(updateData).eq('id', existing.id);
+
+        return new Response(
+          JSON.stringify({ success: true, user_id: existing.id }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      let authUserId: string | null = null;
+      const tempPassword = crypto.randomUUID().slice(0, 12) + 'Aa1!';
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: normalizedEmail,
+        password: password || tempPassword,
+        email_confirm: true,
+        user_metadata: { name: name || '' },
+      });
+
+      if (authError) {
+        const message = authError.message?.toLowerCase() || '';
+        if (message.includes('already') || message.includes('exists') || message.includes('registered')) {
+          const { data: linkData } = await supabase.auth.admin.generateLink({
+            type: 'magiclink',
+            email: normalizedEmail,
+            options: {
+              redirectTo: `${origin || 'https://app.replyna.me'}/dashboard`,
+            },
+          });
+          authUserId = linkData?.user?.id || null;
+        } else {
+          throw new Error(`Erro ao criar usuario: ${authError.message}`);
+        }
+      } else {
+        authUserId = authData?.user?.id || null;
+      }
+
+      if (!authUserId) {
+        throw new Error('Erro ao criar usuario: ID ausente');
+      }
+
+      await supabase.from('users').insert({
+        id: authUserId,
+        email: normalizedEmail,
+        name: name || null,
+        plan: userIsTrial ? 'trial' : (planData?.slug || 'starter'),
+        emails_limit: userIsTrial ? 30 : (planData?.emails_limit ?? 30),
+        shops_limit: userIsTrial ? 1 : (planData?.shops_limit ?? 1),
+        emails_used: 0,
+        extra_emails_purchased: 0,
+        extra_emails_used: 0,
+        pending_extra_emails: 0,
+        asaas_customer_id: null,
+        asaas_credit_card_token: null,
+        status: 'pending',
+        is_trial: userIsTrial,
+        trial_started_at: userIsTrial ? now.toISOString() : null,
+        trial_ends_at: userIsTrial ? trialEndsAt.toISOString() : null,
+        whatsapp_number: whatsapp_number || null,
+        cpf_cnpj: cpf_cnpj || null,
+        updated_at: now.toISOString(),
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, user_id: authUserId }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // === FINALIZE (default) ===
+    if (!normalizedEmail || !plan_id || !asaas_customer_id) {
       return new Response(
         JSON.stringify({ error: 'Campos obrigatorios: email, plan_id, asaas_customer_id' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const normalizedEmail = email.toLowerCase();
-    const supabase = getSupabaseAdmin();
-
-    // Verificar assinatura no Asaas se fornecida (pago, nao trial)
     if (asaas_subscription_id) {
       try {
         await getSubscription(asaas_subscription_id);
@@ -81,146 +269,126 @@ serve(async (req) => {
       }
     }
 
-    // Verificar se usuario ja existe (evitar duplicatas se chamado 2x)
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', normalizedEmail)
-      .limit(1);
-
-    if (existingUser && existingUser.length > 0) {
-      // Usuario ja existe - atualizar dados do Asaas que possam estar faltando
-      const existingId = existingUser[0].id;
-      const updateData: Record<string, unknown> = {};
-      if (asaas_customer_id) updateData.asaas_customer_id = asaas_customer_id;
-      if (asaas_credit_card_token) updateData.asaas_credit_card_token = asaas_credit_card_token;
-      if (is_trial !== undefined) updateData.is_trial = is_trial;
-      if (whatsapp_number) updateData.whatsapp_number = whatsapp_number;
-      if (name) updateData.name = name;
-
-      if (Object.keys(updateData).length > 0) {
-        await supabase.from('users').update(updateData).eq('id', existingId);
-        console.log(`[ConfirmRegistration] Usuario existente atualizado com dados Asaas: ${existingId}`);
-      }
-
-      // Gerar magic link
-      const { data: linkData } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: normalizedEmail,
-        options: {
-          redirectTo: `${origin || 'https://app.replyna.me'}/dashboard`,
-        },
-      });
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          already_exists: true,
-          magic_link: linkData?.properties?.action_link || null,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Criar usuario no Auth
-    const tempPassword = crypto.randomUUID().slice(0, 12) + 'Aa1!';
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: normalizedEmail,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { name: name || '' },
-    });
-
-    if (authError) {
-      const message = authError.message?.toLowerCase() || '';
-      if (message.includes('already') || message.includes('exists') || message.includes('registered')) {
-        // Auth user exists but not in users table - generate magic link
-        const { data: linkData } = await supabase.auth.admin.generateLink({
-          type: 'magiclink',
-          email: normalizedEmail,
-          options: {
-            redirectTo: `${origin || 'https://app.replyna.me'}/dashboard`,
-          },
-        });
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            already_exists: true,
-            magic_link: linkData?.properties?.action_link || null,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      throw new Error(`Erro ao criar usuario: ${authError.message}`);
-    }
-
-    const userId = authData?.user?.id;
-    if (!userId) {
-      throw new Error('Erro ao criar usuario: ID ausente');
-    }
-
-    const now = new Date();
-    const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-    // Buscar dados do plano para definir limites corretos
     const { data: planData } = await supabase
       .from('plans')
       .select('name, slug, emails_limit, shops_limit')
       .eq('id', plan_id)
       .single();
 
-    // Determinar se eh trial ou pago
     const userIsTrial = is_trial === true;
 
-    // Insert na tabela users com dados corretos do plano
-    await supabase.from('users').insert({
-      id: userId,
+    let targetUserId = user_id || null;
+    if (!targetUserId) {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', normalizedEmail)
+        .limit(1);
+      targetUserId = existingUser?.[0]?.id || null;
+    }
+
+    if (!targetUserId) {
+      const tempPassword = crypto.randomUUID().slice(0, 12) + 'Aa1!';
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: normalizedEmail,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { name: name || '' },
+      });
+
+      if (authError) {
+        const message = authError.message?.toLowerCase() || '';
+        if (message.includes('already') || message.includes('exists') || message.includes('registered')) {
+          const { data: linkData } = await supabase.auth.admin.generateLink({
+            type: 'magiclink',
+            email: normalizedEmail,
+            options: {
+              redirectTo: `${origin || 'https://app.replyna.me'}/dashboard`,
+            },
+          });
+          targetUserId = linkData?.user?.id || null;
+        } else {
+          throw new Error(`Erro ao criar usuario: ${authError.message}`);
+        }
+      } else {
+        targetUserId = authData?.user?.id || null;
+      }
+    }
+
+    if (!targetUserId) {
+      throw new Error('Erro ao criar usuario: ID ausente');
+    }
+
+    const updateData: Record<string, unknown> = {
       email: normalizedEmail,
       name: name || null,
+      whatsapp_number: whatsapp_number || null,
+      cpf_cnpj: cpf_cnpj || null,
       plan: userIsTrial ? 'trial' : (planData?.slug || 'starter'),
       emails_limit: userIsTrial ? 30 : (planData?.emails_limit ?? 30),
       shops_limit: userIsTrial ? 1 : (planData?.shops_limit ?? 1),
-      emails_used: 0,
-      extra_emails_purchased: 0,
-      extra_emails_used: 0,
-      pending_extra_emails: 0,
       asaas_customer_id,
       asaas_credit_card_token: asaas_credit_card_token || null,
       status: 'active',
       is_trial: userIsTrial,
       trial_started_at: userIsTrial ? now.toISOString() : null,
       trial_ends_at: userIsTrial ? trialEndsAt.toISOString() : null,
-      whatsapp_number: whatsapp_number || null,
       updated_at: now.toISOString(),
-    });
+    };
 
-    // Criar subscription no banco (apenas se tem assinatura no Asaas)
-    if (asaas_subscription_id) {
-      const periodEnd = new Date(now);
-      periodEnd.setDate(periodEnd.getDate() + 30);
+    const { data: existingFinalUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', targetUserId)
+      .limit(1);
 
-      await supabase.from('subscriptions').insert({
-        user_id: userId,
-        plan_id,
-        asaas_customer_id,
-        asaas_subscription_id,
-        status: userIsTrial ? 'trialing' : 'active',
-        billing_cycle: 'monthly',
-        current_period_start: now.toISOString(),
-        current_period_end: periodEnd.toISOString(),
-        cancel_at_period_end: false,
-        coupon_id: coupon_id || null,
+    if (existingFinalUser && existingFinalUser.length > 0) {
+      await supabase.from('users').update(updateData).eq('id', targetUserId);
+    } else {
+      await supabase.from('users').insert({
+        id: targetUserId,
+        ...updateData,
+        emails_used: 0,
+        extra_emails_purchased: 0,
+        extra_emails_used: 0,
+        pending_extra_emails: 0,
       });
+    }
 
-      // Aplicar cupom se houver
-      if (coupon_id && discount_applied) {
-        await supabase.rpc('use_coupon', {
-          p_coupon_id: coupon_id,
-          p_user_id: userId,
-          p_discount_applied: discount_applied,
-          p_subscription_id: asaas_subscription_id,
+    if (asaas_subscription_id) {
+      const { data: existingSub } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('asaas_subscription_id', asaas_subscription_id)
+        .limit(1);
+
+      if (!existingSub || existingSub.length === 0) {
+        const periodEnd = new Date(now);
+        periodEnd.setDate(periodEnd.getDate() + 30);
+
+        await supabase.from('subscriptions').insert({
+          user_id: targetUserId,
+          plan_id,
+          asaas_customer_id,
+          asaas_subscription_id,
+          status: userIsTrial ? 'trialing' : 'active',
+          billing_cycle: 'monthly',
+          current_period_start: now.toISOString(),
+          current_period_end: periodEnd.toISOString(),
+          cancel_at_period_end: false,
+          coupon_id: coupon_id || null,
         });
+
+        if (coupon_id && discount_applied) {
+          await supabase.rpc('use_coupon', {
+            p_coupon_id: coupon_id,
+            p_user_id: targetUserId,
+            p_discount_applied: discount_applied,
+            p_subscription_id: asaas_subscription_id,
+          });
+        }
+      } else {
+        console.log(`[ConfirmRegistration] Subscription ja existe: ${asaas_subscription_id}`);
       }
     }
 
@@ -229,7 +397,7 @@ serve(async (req) => {
       try {
         await supabase.from('partner_referrals').insert({
           partner_id,
-          referred_user_id: userId,
+          referred_user_id: targetUserId,
         });
 
         // Incrementar total_referrals do partner
@@ -249,7 +417,7 @@ serve(async (req) => {
             .eq('id', partner_id);
         }
 
-        console.log(`[ConfirmRegistration] Partner referral created: partner=${partner_id}, user=${userId}`);
+        console.log(`[ConfirmRegistration] Partner referral created: partner=${partner_id}, user=${targetUserId}`);
       } catch (refError) {
         // Não falhar o registro por erro no referral
         console.error('[ConfirmRegistration] Error creating partner referral:', refError);
@@ -266,12 +434,12 @@ serve(async (req) => {
     });
     const magicLink = linkData?.properties?.action_link || null;
 
-    console.log(`[ConfirmRegistration] User created: ${userId}, trial: ${is_trial}`);
+    console.log(`[ConfirmRegistration] User created: ${targetUserId}, trial: ${is_trial}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        user_id: userId,
+        user_id: targetUserId,
         magic_link: magicLink,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
