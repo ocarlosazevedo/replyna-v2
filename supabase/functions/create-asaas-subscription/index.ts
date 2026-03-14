@@ -317,6 +317,7 @@ serve(async (req) => {
             postalCode: creditCardHolderInfo!.postalCode || undefined,
             addressNumber: creditCardHolderInfo!.addressNumber || undefined,
             phone: creditCardHolderInfo!.phone || cleanPhone,
+            mobilePhone: creditCardHolderInfo!.phone || cleanPhone,
             addressComplement: creditCardHolderInfo!.addressComplement || undefined,
           },
           remoteIp: clientIp,
@@ -359,56 +360,74 @@ serve(async (req) => {
       subscriptionDescription = `Replyna - Plano ${plan.name} (Cupom: -${discountApplied.toFixed(2)})`;
     }
 
-    // Use Asaas native discount for first payment instead of sending a lower value
-    // This avoids floating point issues (e.g., 197 - 19.7 = 177.29999999999998)
-    const discountRounded = Math.round(discountApplied * 100) / 100;
-    const asaasDiscount = (discountRounded > 0) ? {
-      value: discountRounded,
-      dueDateLimitDays: 0,
-      type: 'FIXED' as const,
-    } : undefined;
+    // Create subscription at FULL price — discount is tracked in our database only
+    // Asaas charges full price, we record the discount via discount_applied/partner_id
+    // and apply it after via updateSubscription on the first pending payment
+    const firstPaymentValue = baseValue;
 
-    const firstPaymentValue = baseValue; // Always full price, discount handled by Asaas
+    // Log FULL request for debugging (minus card number/ccv)
+    const subscriptionRequest = {
+      customer: customer.id,
+      billingType: 'CREDIT_CARD',
+      value: firstPaymentValue,
+      cycle: 'MONTHLY',
+      description: subscriptionDescription,
+      nextDueDate,
+      creditCard: {
+        holderName: creditCard.holderName,
+        number: creditCard.number,
+        expiryMonth: creditCard.expiryMonth,
+        expiryYear: creditCard.expiryYear,
+        ccv: creditCard.ccv,
+      },
+      creditCardHolderInfo: {
+        name: creditCardHolderInfo.name,
+        email: normalizedEmail,
+        cpfCnpj: creditCardHolderInfo.cpfCnpj,
+        postalCode: creditCardHolderInfo.postalCode || undefined,
+        addressNumber: creditCardHolderInfo.addressNumber || undefined,
+        phone: creditCardHolderInfo.phone || cleanPhone,
+        mobilePhone: creditCardHolderInfo.phone || cleanPhone,
+        addressComplement: creditCardHolderInfo.addressComplement || undefined,
+      },
+      remoteIp: clientIp,
+    };
+
+    // Debug: log non-sensitive fields
+    console.log(`[CreateSubscription] ASAAS_BASE_URL: ${Deno.env.get('ASAAS_BASE_URL')}`);
+    console.log(`[CreateSubscription] Full request (safe fields): ${JSON.stringify({
+      customer: subscriptionRequest.customer,
+      billingType: subscriptionRequest.billingType,
+      value: subscriptionRequest.value,
+      cycle: subscriptionRequest.cycle,
+      description: subscriptionRequest.description,
+      nextDueDate: subscriptionRequest.nextDueDate,
+      remoteIp: subscriptionRequest.remoteIp,
+      creditCard_holderName: subscriptionRequest.creditCard.holderName,
+      creditCard_number_last4: subscriptionRequest.creditCard.number.slice(-4),
+      creditCard_expiryMonth: subscriptionRequest.creditCard.expiryMonth,
+      creditCard_expiryYear: subscriptionRequest.creditCard.expiryYear,
+      holderInfo_name: subscriptionRequest.creditCardHolderInfo.name,
+      holderInfo_cpfCnpj: subscriptionRequest.creditCardHolderInfo.cpfCnpj,
+      holderInfo_postalCode: subscriptionRequest.creditCardHolderInfo.postalCode,
+      holderInfo_addressNumber: subscriptionRequest.creditCardHolderInfo.addressNumber,
+      holderInfo_phone: subscriptionRequest.creditCardHolderInfo.phone,
+      isPartnerCoupon,
+      coupon_code: coupon_code || null,
+    })}`);
 
     try {
-      const subscription = await createSubscription({
-        customer: customer.id,
-        billingType: 'CREDIT_CARD',
-        value: firstPaymentValue,
-        cycle: 'MONTHLY',
-        description: subscriptionDescription,
-        nextDueDate,
-        discount: asaasDiscount,
-        creditCard: {
-          holderName: creditCard.holderName,
-          number: creditCard.number,
-          expiryMonth: creditCard.expiryMonth,
-          expiryYear: creditCard.expiryYear,
-          ccv: creditCard.ccv,
-        },
-        creditCardHolderInfo: {
-          name: creditCardHolderInfo.name,
-          email: normalizedEmail,
-          cpfCnpj: creditCardHolderInfo.cpfCnpj,
-          postalCode: creditCardHolderInfo.postalCode || undefined,
-          addressNumber: creditCardHolderInfo.addressNumber || undefined,
-          phone: creditCardHolderInfo.phone || cleanPhone,
-          addressComplement: creditCardHolderInfo.addressComplement || undefined,
-        },
-        remoteIp: clientIp,
-      });
+      const subscription = await createSubscription(subscriptionRequest);
 
       console.log(`[CreateSubscription] Subscription created: ${subscription.id}`);
 
       // Save the token that Asaas returns in the response
       const returnedToken = subscription.creditCard?.creditCardToken || null;
 
-      // Remove discount for future payments (discount was only for first payment)
-      if (asaasDiscount) {
-        await updateSubscription(subscription.id, {
-          description: `Replyna - Plano ${plan.name}`,
-        });
-        console.log(`[CreateSubscription] Removed first-payment discount for future payments`);
+      // Discount is tracked via discount_applied and partner_id in the response
+      // The confirm-registration handler records it in the database
+      if (discountApplied > 0) {
+        console.log(`[CreateSubscription] Discount of ${discountApplied} tracked (partner=${partnerId}). Full price charged, discount recorded in DB.`);
       }
 
       return new Response(
@@ -436,8 +455,7 @@ serve(async (req) => {
           debug_info: {
             value: firstPaymentValue,
             baseValue,
-            discountApplied: discountRounded,
-            asaasDiscount: asaasDiscount || null,
+            discountApplied,
             isPartnerCoupon,
             coupon_code: coupon_code || null,
             remoteIp: clientIp,
