@@ -15,6 +15,7 @@ interface UserProfile {
   created_at: string | null
   extra_emails_purchased: number | null
   extra_emails_used: number | null
+  status: string | null
 }
 
 interface ConversationRow {
@@ -53,7 +54,7 @@ export function useUserProfile(userId: string | undefined) {
     async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('name, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used')
+        .select('name, plan, emails_limit, emails_used, shops_limit, created_at, extra_emails_purchased, extra_emails_used, status')
         .eq('id', userId!)
         .maybeSingle()
       if (error) throw error
