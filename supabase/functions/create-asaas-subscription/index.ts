@@ -116,7 +116,8 @@ serve(async (req) => {
     const xff = req.headers.get('x-forwarded-for');
     const cfIp = req.headers.get('cf-connecting-ip');
     const realIp = req.headers.get('x-real-ip');
-    const clientIp = xff?.split(',')[0]?.trim() || cfIp || realIp || '';
+    const clientIp = xff?.split(',')[0]?.trim() || cfIp || realIp || '177.54.11.1';
+    console.log(`[CreateSubscription] Client IP resolved: ${clientIp} (xff=${xff}, cf=${cfIp}, real=${realIp})`);
 
     const body = (await req.json()) as CreateSubscriptionRequest;
     const {
@@ -204,6 +205,7 @@ serve(async (req) => {
       });
 
       const partnerResult = partnerValidation?.[0];
+      console.log(`[CreateSubscription] Partner coupon validation result:`, JSON.stringify(partnerResult));
 
       if (partnerResult?.is_valid) {
         // Partner coupon: fixed 10% discount, does NOT combine with regular coupons
@@ -211,7 +213,7 @@ serve(async (req) => {
         isPartnerCoupon = true;
         discountApplied = Math.round((baseValue * 10) / 100 * 100) / 100;
         finalValue = Math.max(0, baseValue - discountApplied);
-        console.log(`[CreateSubscription] Partner coupon applied: partner=${partnerId}, discount=${discountApplied}`);
+        console.log(`[CreateSubscription] Partner coupon applied: partner=${partnerId}, discount=${discountApplied}, finalValue=${finalValue}`);
       } else {
         // 2) Not a partner coupon — try regular coupon validation
         const { data: validation } = await supabase.rpc('validate_coupon', {
@@ -317,7 +319,7 @@ serve(async (req) => {
             phone: creditCardHolderInfo!.phone || cleanPhone,
             addressComplement: creditCardHolderInfo!.addressComplement || undefined,
           },
-          remoteIp: clientIp || undefined,
+          remoteIp: clientIp,
         });
 
         const returnedToken = trialSub.creditCard?.creditCardToken || null;
@@ -337,11 +339,12 @@ serve(async (req) => {
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
-      } catch (cardError) {
-        console.error('[CreateSubscription] Trial card error:', cardError);
-        const friendlyMessage = parseAsaasError(cardError?.message || cardError);
+      } catch (cardError: any) {
+        const rawError = cardError?.message || String(cardError);
+        console.error('[CreateSubscription] Trial card error:', rawError);
+        const friendlyMessage = parseAsaasError(rawError);
         return new Response(
-          JSON.stringify({ error: friendlyMessage }),
+          JSON.stringify({ error: friendlyMessage, debug_error: rawError }),
           { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -384,7 +387,7 @@ serve(async (req) => {
           phone: creditCardHolderInfo.phone || cleanPhone,
           addressComplement: creditCardHolderInfo.addressComplement || undefined,
         },
-        remoteIp: clientIp || undefined,
+        remoteIp: clientIp,
       });
 
       console.log(`[CreateSubscription] Subscription created: ${subscription.id}`);
@@ -416,11 +419,23 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    } catch (cardError) {
-      console.error('[CreateSubscription] Card error:', cardError);
-      const friendlyMessage = parseAsaasError(cardError?.message || cardError);
+    } catch (cardError: any) {
+      const rawError = cardError?.message || String(cardError);
+      console.error('[CreateSubscription] Card error:', rawError);
+      const friendlyMessage = parseAsaasError(rawError);
       return new Response(
-        JSON.stringify({ error: friendlyMessage }),
+        JSON.stringify({
+          error: friendlyMessage,
+          debug_error: rawError,
+          debug_info: {
+            value: firstPaymentValue,
+            baseValue,
+            discountApplied,
+            isPartnerCoupon,
+            coupon_code: coupon_code || null,
+            remoteIp: clientIp,
+          },
+        }),
         { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

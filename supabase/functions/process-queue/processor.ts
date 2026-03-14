@@ -545,7 +545,7 @@ async function processMessage(
   // Fallback final: usar o subject como indicador de contexto se tiver conteúdo relevante
   if ((!cleanBody || cleanBody.trim().length < 3) && message.subject && message.subject.length > 5) {
     console.log(`[Processor] Corpo vazio mas subject tem conteúdo: "${message.subject}"`);
-    cleanBody = `[Cliente respondeu ao email com assunto: ${message.subject}]`;
+    cleanBody = `[Empty email body. Customer replied to email with subject: ${message.subject}]`;
   }
 
   if (!cleanBody || cleanBody.trim().length < 3) {

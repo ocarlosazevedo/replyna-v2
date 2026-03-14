@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
 
     // Fallback: usar subject
     if ((!cleanBody || cleanBody.trim().length < 3) && message.subject && message.subject.trim().length > 3) {
-      cleanBody = `[Cliente respondeu ao email com assunto: ${message.subject}]`;
+      cleanBody = `[Empty email body. Customer replied to email with subject: ${message.subject}]`;
     }
 
     if (!cleanBody || cleanBody.trim().length < 3) {

@@ -588,6 +588,9 @@ function detectLanguageFromText(text: string): string | null {
     /\b(end\s+of\s+(the\s+)?(week|month|day))\b/i,
     /\b(as\s+soon\s+as|asap)\b/i,
     /\bpaypal\b/i,
+    // Assinaturas de dispositivos Apple (indicam inglês)
+    /sent\s+from\s+my\s+(iphone|ipad|mac|apple)/i,
+    /\bfrom\s+my\s+(iphone|ipad)\b/i,
   ];
 
   for (const pattern of englishPatterns) {
@@ -2210,7 +2213,8 @@ REGRAS CRÍTICAS:
     let detectedLanguage: string | null = null;
 
     // PASSO 1: Tentar detectar do BODY primeiro (prioridade máxima - é o texto do cliente)
-    if (emailBody && emailBody.length > 5 && !emailBody.startsWith('[FORMULÁRIO')) {
+    // Ignorar bodies que são placeholders do sistema (não escritos pelo cliente)
+    if (emailBody && emailBody.length > 5 && !emailBody.startsWith('[FORMULÁRIO') && !emailBody.startsWith('[Empty email body')) {
       detectedLanguage = detectLanguageFromText(emailBody);
       if (detectedLanguage) {
         console.log(`[classifyEmail] Language detected from BODY: "${detectedLanguage}"`);
@@ -2275,6 +2279,14 @@ REGRAS CRÍTICAS:
         .replace(/\(sin asunto\)/i, '')
         .replace(/pedido\s*#?\d+/i, '') // Remove "Pedido #1234"
         .replace(/order\s*#?\d+/i, '')  // Remove "Order #1234"
+        // Remove subjects auto-gerados pela loja (categorias internas) que não refletem o idioma do cliente
+        .replace(/^d[úu]vidas\s+gerais$/i, '')
+        .replace(/^rastreio$/i, '')
+        .replace(/^troca[\s/]*devolu[çc][ãa]o[\s/]*reembolso$/i, '')
+        .replace(/^edi[çc][ãa]o[\s/]*de?\s*pedido$/i, '')
+        .replace(/^suporte\s+humano$/i, '')
+        .replace(/^general\s+questions?$/i, '')
+        .replace(/^tracking$/i, '')
         .trim();
       if (cleanSubject.length > 3) {
         detectedLanguage = detectLanguageFromText(cleanSubject);

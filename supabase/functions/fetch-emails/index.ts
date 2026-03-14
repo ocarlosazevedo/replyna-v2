@@ -414,9 +414,10 @@ async function saveAndEnqueueEmail(
  * Update shop's last email sync timestamp
  */
 async function updateShopEmailSync(shopId: string, supabase: any): Promise<void> {
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from('shops')
-    .update({ last_email_sync: new Date().toISOString() })
+    .update({ last_email_sync: now, last_email_sync_at: now })
     .eq('id', shopId);
 
   if (error) {
