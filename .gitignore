@@ -10,3 +10,6 @@ coverage/
 
 .vercel
 .env*.local
+
+# Build artifacts
+build-output.txt
