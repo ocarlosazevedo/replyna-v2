@@ -406,12 +406,14 @@ export default function AdminClients() {
     }
   }
 
-  type AdminStatus = 'active' | 'trial' | 'delinquent' | 'canceled'
+  type AdminStatus = 'active' | 'trial' | 'delinquent' | 'canceled' | 'pending'
 
   const mapUserStatusToAdmin = (status: string | null | undefined): AdminStatus => {
     switch (status) {
       case 'active':
         return 'active'
+      case 'pending':
+        return 'pending'
       case 'trialing':
       case 'expired':
         return 'trial'
@@ -593,6 +595,8 @@ export default function AdminClients() {
         return { ...base, backgroundColor: 'rgba(34, 197, 94, 0.16)', color: '#22c55e' }
       case 'trial':
         return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.16)', color: '#3b82f6' }
+      case 'pending':
+        return { ...base, backgroundColor: 'rgba(148, 163, 184, 0.16)', color: '#94a3b8' }
       case 'delinquent':
         return { ...base, backgroundColor: 'rgba(245, 158, 11, 0.16)', color: '#f59e0b' }
       case 'canceled':
@@ -605,6 +609,7 @@ export default function AdminClients() {
     switch (status) {
       case 'active': return 'Ativo'
       case 'trial': return 'Trial'
+      case 'pending': return 'Pendente'
       case 'delinquent': return 'Inadimplente'
       case 'canceled': return 'Cancelado'
       default: return 'Cancelado'
@@ -627,6 +632,8 @@ export default function AdminClients() {
     switch (status) {
       case 'active':
         return 'active'
+      case 'pending':
+        return 'pending'
       case 'trialing':
       case 'expired':
         return 'trialing'
@@ -753,6 +760,7 @@ export default function AdminClients() {
           <option value="all">Todos os status</option>
           <option value="active">Ativos</option>
           <option value="trial">Trial</option>
+          <option value="pending">Pendente</option>
           <option value="delinquent">Inadimplentes</option>
           <option value="canceled">Cancelados</option>
         </select>
@@ -1570,6 +1578,7 @@ export default function AdminClients() {
                   className="replyna-select form-input"
                 >
                   <option value="active">Ativo</option>
+                  <option value="pending">Pendente</option>
                   <option value="trialing">Trial</option>
                   <option value="suspended">Inadimplente</option>
                   <option value="canceled">Cancelado</option>

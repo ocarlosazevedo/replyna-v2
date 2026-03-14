@@ -85,6 +85,7 @@ interface FinancialStats {
     canceled: number;
     trialing: number;
     partners: number;
+    pending: number;
   };
   subscriptionsByPlan: {
     plan_name: string;
@@ -298,6 +299,10 @@ serve(async (req) => {
         .from('users')
         .select('id', { count: 'exact', head: true })
         .eq('plan', 'partners'),
+      supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending'),
     ]);
 
     const asaasPromise = Promise.all([
@@ -349,6 +354,7 @@ serve(async (req) => {
         replynaCustomersRes,
         trialUsersCountRes,
         partnersCountRes,
+        pendingUsersCountRes,
       ],
       [
         balance,
@@ -371,6 +377,7 @@ serve(async (req) => {
     if (replynaCustomersRes.error) throw new Error(replynaCustomersRes.error.message);
     if (trialUsersCountRes.error) throw new Error(trialUsersCountRes.error.message);
     if (partnersCountRes.error) throw new Error(partnersCountRes.error.message);
+    if (pendingUsersCountRes.error) throw new Error(pendingUsersCountRes.error.message);
 
     const replynaCustomers = replynaCustomersRes.data || [];
     const replynaCustomerIds = new Set(
@@ -390,7 +397,7 @@ serve(async (req) => {
     const arr = mrr * 12;
     const averageTicket = activeSubscriptions > 0 ? mrr / activeSubscriptions : 0;
 
-    const statusCounts = { active: 0, past_due: 0, canceled: 0, trialing: 0, partners: 0 };
+    const statusCounts = { active: 0, past_due: 0, canceled: 0, trialing: 0, partners: 0, pending: 0 };
     (subsStatusRes.data || []).forEach((row: { status: string | null }) => {
       const status = row.status || '';
       if (status === 'active') statusCounts.active += 1;
@@ -400,6 +407,7 @@ serve(async (req) => {
     });
     statusCounts.trialing = trialUsersCountRes.count || 0;
     statusCounts.partners = partnersCountRes.count || 0;
+    statusCounts.pending = pendingUsersCountRes.count || 0;
 
     const planCounts: Record<string, number> = {};
     activeSubs.forEach((sub) => {

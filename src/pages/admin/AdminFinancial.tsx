@@ -100,6 +100,7 @@ interface FinancialStats {
     canceled: number
     trialing: number
     partners: number
+    pending: number
   }
   subscriptionsByPlan?: SubscriptionByPlan[]
   monthlyRevenue: {
@@ -706,6 +707,12 @@ export default function AdminFinancial() {
                 <span style={{ fontSize: '12px', color: '#eab308', fontWeight: 600 }}>Partners</span>
                 <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {stats?.subscriptionsByStatus.partners || 0}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Pendentes</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {stats?.subscriptionsByStatus.pending || 0}
                 </span>
               </div>
             </div>
