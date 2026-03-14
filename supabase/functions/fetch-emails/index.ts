@@ -29,9 +29,11 @@ import {
 } from '../_shared/supabase.ts';
 import { decryptEmailCredentials, fetchUnreadEmails, fetchSeenEmails, markEmailsAsSeen } from '../_shared/email.ts';
 
-// Configuration
-const MAX_CONCURRENT_SHOPS = 10; // Process 10 shops in parallel
-const MAX_EMAILS_PER_SHOP = 50; // Fetch up to 50 unread emails per shop
+// Configuration — Supabase Edge Functions have a 2s CPU time limit
+// To process all 77+ shops, we process few per cycle and rely on frequent cron (every 2 min)
+const MAX_CONCURRENT_SHOPS = 1; // Sequential processing to minimize CPU
+const MAX_SHOPS_PER_CYCLE = 3; // Only 3 shops per invocation
+const MAX_EMAILS_PER_SHOP = 30; // Fetch up to 30 unread emails per shop
 const MAX_EXECUTION_TIME_MS = 110000; // 110 seconds (Edge Function limit is 120s)
 
 interface IncomingEmail {
@@ -73,9 +75,10 @@ Deno.serve(async (req: Request) => {
   try {
     console.log('[Ingestion] Starting email fetch cycle');
 
-    // Get all active shops with email configured
-    const shops = await getActiveShopsWithEmail();
-    console.log(`[Ingestion] Found ${shops.length} active shops with email`);
+    // Get active shops with email configured (limited per cycle to avoid CPU timeout)
+    const allShops = await getActiveShopsWithEmail();
+    const shops = allShops.slice(0, MAX_SHOPS_PER_CYCLE);
+    console.log(`[Ingestion] Found ${allShops.length} active shops, processing ${shops.length} this cycle`);
 
     if (shops.length === 0) {
       return new Response(
