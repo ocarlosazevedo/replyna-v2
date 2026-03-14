@@ -149,7 +149,7 @@ export default function Plans() {
       // Recarregar dados do usuário
       const { data: updated } = await supabase
         .from('users')
-        .select('plan, is_trial')
+        .select('plan, is_trial, status')
         .eq('id', user.id)
         .single()
 
