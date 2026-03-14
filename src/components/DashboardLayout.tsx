@@ -113,10 +113,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       }
     }
 
+    const handleFocus = () => {
+      loadSubscriptionStatus()
+    }
+
     loadSubscriptionStatus()
+    window.addEventListener('focus', handleFocus)
 
     return () => {
       isMounted = false
+      window.removeEventListener('focus', handleFocus)
     }
   }, [user])
 
@@ -389,8 +395,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             left: 0,
             right: 0,
             zIndex: 1105,
-            backgroundColor: '#f59e0b',
-            color: '#1f2937',
+            backgroundColor: '#ef4444',
+            color: '#ffffff',
             padding: '10px 16px',
             display: 'flex',
             alignItems: 'center',
@@ -409,9 +415,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             disabled={openingBillingPortal}
             style={{
               borderRadius: '8px',
-              border: '1px solid rgba(31, 41, 55, 0.3)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
               backgroundColor: '#ffffff',
-              color: '#1f2937',
+              color: '#ef4444',
               padding: '8px 14px',
               fontSize: '13px',
               fontWeight: 700,
