@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@react-three/rapier": "^2.2.0",
     "@supabase/supabase-js": "^2.49.4",
     "@vercel/node": "^5.5.23",
     "chart.js": "^4.5.1",
