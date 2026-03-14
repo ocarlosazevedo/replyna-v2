@@ -5,6 +5,7 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import { supabase } from '../lib/supabase'
 import { useTeamContext } from '../hooks/useTeamContext'
 import { getPlanDisplayName, normalizePlanSlug } from '../utils/plan'
+import { fetchBillingPortalUrl } from '../utils/billingPortal'
 
 interface UserProfile {
   name: string | null
@@ -208,26 +209,9 @@ export default function Account() {
     setNotice(null)
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-billing-portal`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ user_id: user.id }),
-        }
-      )
-
-      const data = await response.json()
-
-      if (data.success && data.url) {
-        // Abrir ultima fatura
-        window.location.href = data.url
-      } else {
-        throw new Error(data.error || 'Nenhuma fatura encontrada')
-      }
+      const url = await fetchBillingPortalUrl(user.id)
+      // Abrir ultima fatura
+      window.location.href = url
     } catch (err) {
       console.error('Erro ao abrir fatura:', err)
       setNotice({

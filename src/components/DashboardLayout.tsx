@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Store, Ticket, FileText, User, LogOut, Menu, X, Users, Handshake, CreditCard, type LucideIcon } from 'lucide-react'
+import { LayoutGrid, Store, Ticket, FileText, User, LogOut, Menu, X, Users, Handshake, CreditCard, AlertTriangle, type LucideIcon } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useUserProfile } from '../hooks/useUserProfile'
 import { useTeamContext } from '../hooks/useTeamContext'
 import { supabase } from '../lib/supabase'
 import WhatsAppButton from './WhatsAppButton'
+import { fetchBillingPortalUrl } from '../utils/billingPortal'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -20,6 +21,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isMobile, setIsMobile] = useState(false)
   const [ticketCount, setTicketCount] = useState(0)
   const [formsCount, setFormsCount] = useState(0)
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null)
+  const [openingBillingPortal, setOpeningBillingPortal] = useState(false)
 
   // Detectar se é mobile
   useEffect(() => {
@@ -82,6 +85,41 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     setIsMobileMenuOpen(false)
   }, [location.pathname])
 
+  // Buscar status da assinatura para aviso de inadimplencia
+  useEffect(() => {
+    if (!user) return
+    let isMounted = true
+
+    const loadSubscriptionStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('subscriptions')
+          .select('status')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (error) {
+          console.error('Erro ao carregar status da assinatura:', error)
+          return
+        }
+
+        if (isMounted) {
+          setSubscriptionStatus(data?.status ?? null)
+        }
+      } catch (err) {
+        console.error('Erro ao carregar status da assinatura:', err)
+      }
+    }
+
+    loadSubscriptionStatus()
+
+    return () => {
+      isMounted = false
+    }
+  }, [user])
+
   // Prevenir scroll quando menu está aberto
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -122,6 +160,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const isActive = (path: string) => location.pathname === path
   const isExpired = profile?.status === 'expired'
+  const showPastDueBanner = subscriptionStatus === 'past_due' && !isExpired
+  const bannerOffset = showPastDueBanner ? 56 : 0
+
+  const handleOpenBillingPortal = async () => {
+    if (!user || openingBillingPortal) return
+    setOpeningBillingPortal(true)
+    try {
+      const url = await fetchBillingPortalUrl(user.id)
+      window.location.href = url
+    } catch (err) {
+      console.error('Erro ao abrir fatura:', err)
+    } finally {
+      setOpeningBillingPortal(false)
+    }
+  }
 
   const upgradeItem: MenuItem = { path: '/plans', label: 'Planos e upgrade', icon: CreditCard }
   const visibleMenuItems: MenuItem[] = isExpired ? [upgradeItem, ...menuItems] : menuItems
@@ -328,12 +381,55 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--bg-primary)' }}>
+      {showPastDueBanner && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1105,
+            backgroundColor: '#f59e0b',
+            color: '#1f2937',
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', fontWeight: 600 }}>
+            <AlertTriangle size={18} />
+            <span>Sua assinatura está com pagamento pendente. Regularize para continuar usando a Replyna.</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleOpenBillingPortal}
+            disabled={openingBillingPortal}
+            style={{
+              borderRadius: '8px',
+              border: '1px solid rgba(31, 41, 55, 0.3)',
+              backgroundColor: '#ffffff',
+              color: '#1f2937',
+              padding: '8px 14px',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: openingBillingPortal ? 'not-allowed' : 'pointer',
+              opacity: openingBillingPortal ? 0.7 : 1,
+            }}
+          >
+            {openingBillingPortal ? 'Abrindo...' : 'Regularizar pagamento'}
+          </button>
+        </div>
+      )}
+
       {/* Mobile Header */}
       {isMobile && (
         <header
           style={{
             position: 'fixed',
-            top: 0,
+            top: bannerOffset,
             left: 0,
             right: 0,
             height: '60px',
@@ -377,7 +473,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           onClick={() => setIsMobileMenuOpen(false)}
           style={{
             position: 'fixed',
-            inset: 0,
+            top: bannerOffset,
+            right: 0,
+            bottom: 0,
+            left: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
             zIndex: 1001,
           }}
@@ -393,7 +492,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           display: 'flex',
           flexDirection: 'column',
           position: 'fixed',
-          top: 0,
+          top: bannerOffset,
           left: isMobile ? (isMobileMenuOpen ? 0 : '-264px') : 0,
           bottom: 0,
           height: '100vh',
@@ -409,7 +508,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <main
         style={{
           flex: 1,
-          padding: isMobile ? '76px 16px 24px' : '0',
+          padding: isMobile ? `${76 + bannerOffset}px 16px 24px` : '0',
+          paddingTop: isMobile ? undefined : bannerOffset,
           backgroundColor: 'var(--bg-primary)',
           marginLeft: isMobile ? 0 : '264px',
           width: isMobile ? '100%' : 'calc(100% - 264px)',
