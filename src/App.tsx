@@ -109,6 +109,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/trial-expired" replace />
   }
 
+  const allowedWhenInactive = new Set(['/plans'])
+  if (profile?.status === 'inactive' && !allowedWhenInactive.has(location.pathname)) {
+    return <Navigate to="/plans" replace />
+  }
+
   return <TeamProvider>{children}</TeamProvider>
 }
 

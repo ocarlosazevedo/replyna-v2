@@ -1341,7 +1341,7 @@ export default function Dashboard() {
                   </>
                 )}
               </div>
-              {profile?.plan !== 'partners' && (
+              {profile?.plan !== 'partners' && profile?.status !== 'inactive' && profile?.status !== 'canceled' && (
                 <div>
                   <div style={{ fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Renovação do plano</div>
                   <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
