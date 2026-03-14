@@ -166,6 +166,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const isActive = (path: string) => location.pathname === path
   const isExpired = profile?.status === 'expired'
+  const isInactive = profile?.status === 'inactive'
+  const isRestricted = isExpired || isInactive
   const showPastDueBanner = subscriptionStatus === 'past_due' && !isExpired
   const bannerOffset = showPastDueBanner ? 56 : 0
 
@@ -183,7 +185,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const upgradeItem: MenuItem = { path: '/plans', label: 'Planos e upgrade', icon: CreditCard }
-  const visibleMenuItems: MenuItem[] = isExpired ? [upgradeItem, ...menuItems] : menuItems
+  const visibleMenuItems: MenuItem[] = isRestricted ? [upgradeItem, ...menuItems] : menuItems
 
   const sidebarContent = (
     <>
@@ -239,7 +241,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {visibleMenuItems.map((item) => {
-              const isDisabled = isExpired && item.path !== '/plans'
+              const isDisabled = isRestricted && item.path !== '/plans'
               if (isDisabled) {
                 return (
                   <li key={item.path} style={{ marginBottom: '8px' }}>
@@ -321,7 +323,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* User & Logout */}
       <div style={{ padding: '16px', borderTop: '1px solid var(--sidebar-border)' }}>
-        {!teamLoading && !isTeamContext && !isExpired && (
+        {!teamLoading && !isTeamContext && !isRestricted && (
           <Link
             to="/account"
             className={`replyna-sidebar-link${isActive('/account') ? ' active' : ''}`}
@@ -340,7 +342,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             Minha conta
           </Link>
         )}
-        {!teamLoading && !isTeamContext && isExpired && (
+        {!teamLoading && !isTeamContext && isRestricted && (
           <div
             className="replyna-sidebar-link"
             aria-disabled="true"

@@ -22,6 +22,7 @@ interface Plan {
 interface UserPlanInfo {
   plan: string | null
   is_trial: boolean | null
+  status: string | null
 }
 
 export default function Plans() {
@@ -49,7 +50,7 @@ export default function Plans() {
         user
           ? supabase
               .from('users')
-              .select('plan, is_trial')
+              .select('plan, is_trial, status')
               .eq('id', user.id)
               .single()
           : Promise.resolve({ data: null, error: null }),
@@ -64,15 +65,16 @@ export default function Plans() {
     }
   }
 
+  const isInactive = userPlan?.status === 'inactive'
   const currentPlanSlug = normalizePlanSlug(userPlan?.plan || '')
 
   const isCurrentPlan = (plan: Plan) =>
-    normalizePlanSlug(plan.slug || plan.name) === currentPlanSlug
+    !isInactive && normalizePlanSlug(plan.slug || plan.name) === currentPlanSlug
 
   const isEnterprise = (plan: Plan) =>
     normalizePlanSlug(plan.slug || plan.name) === 'enterprise'
 
-  const currentPlanData = plans.find(p => isCurrentPlan(p)) || null
+  const currentPlanData = isInactive ? null : plans.find(p => isCurrentPlan(p)) || null
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('pt-BR', {
@@ -188,42 +190,61 @@ export default function Plans() {
 
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-      <button
-        onClick={() => navigate('/account')}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          background: 'none',
-          border: 'none',
-          color: 'var(--text-secondary)',
-          fontSize: '14px',
-          cursor: 'pointer',
-          padding: 0,
-          marginBottom: '20px',
-        }}
-      >
-        <ArrowLeft size={16} />
-        Voltar para Minha Conta
-      </button>
+      {!isInactive && (
+        <button
+          onClick={() => navigate('/account')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            fontSize: '14px',
+            cursor: 'pointer',
+            padding: 0,
+            marginBottom: '20px',
+          }}
+        >
+          <ArrowLeft size={16} />
+          Voltar para Minha Conta
+        </button>
+      )}
 
-      <h1 style={{
-        fontSize: '24px',
-        fontWeight: 700,
-        color: 'var(--text-primary)',
-        marginBottom: '8px',
-        marginTop: 0,
-      }}>
-        Alterar plano
-      </h1>
-      <p style={{
-        color: 'var(--text-secondary)',
-        fontSize: '15px',
-        marginBottom: '28px',
-        marginTop: 0,
-      }}>
-        Selecione o plano ideal para o seu negócio. A alteração é aplicada imediatamente.
-      </p>
+      {isInactive ? (
+        <div style={{
+          padding: '14px 18px',
+          borderRadius: '12px',
+          marginBottom: '24px',
+          backgroundColor: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.35)',
+          color: '#ef4444',
+          fontSize: '15px',
+          fontWeight: 600,
+        }}>
+          Seu plano foi cancelado. Escolha um plano abaixo para reativar sua conta.
+        </div>
+      ) : (
+        <>
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginBottom: '8px',
+            marginTop: 0,
+          }}>
+            Alterar plano
+          </h1>
+          <p style={{
+            color: 'var(--text-secondary)',
+            fontSize: '15px',
+            marginBottom: '28px',
+            marginTop: 0,
+          }}>
+            Selecione o plano ideal para o seu negócio. A alteração é aplicada imediatamente.
+          </p>
+        </>
+      )}
 
       {notice && (
         <div style={{
