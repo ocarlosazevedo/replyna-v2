@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { useUserProfile } from './hooks/useUserProfile'
+import { ProfileProvider } from './hooks/useProfileContext'
 import { AdminProvider, useAdmin } from './context/AdminContext'
 import { NotificationProvider } from './context/NotificationContext'
 
@@ -90,9 +91,10 @@ const isLandingPath = () => {
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const location = useLocation()
-  const { profile, loading: profileLoading } = useUserProfile()
+  const profileData = useUserProfile()
+  const { profile, loading: profileLoading } = profileData
 
-  if (loading || profileLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -104,17 +106,25 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" />
   }
 
-  const allowedWhenExpired = new Set(['/trial-expired', '/plans', '/checkout', '/checkout/success'])
-  if (profile?.status === 'expired' && !allowedWhenExpired.has(location.pathname)) {
-    return <Navigate to="/trial-expired" replace />
+  if (!profileLoading) {
+    const allowedWhenExpired = new Set(['/trial-expired', '/plans', '/checkout', '/checkout/success'])
+    if (profile?.status === 'expired' && !allowedWhenExpired.has(location.pathname)) {
+      return <Navigate to="/trial-expired" replace />
+    }
+
+    const allowedWhenInactive = new Set(['/plans'])
+    if (profile?.status === 'inactive' && !allowedWhenInactive.has(location.pathname)) {
+      return <Navigate to="/plans" replace />
+    }
   }
 
-  const allowedWhenInactive = new Set(['/plans'])
-  if (profile?.status === 'inactive' && !allowedWhenInactive.has(location.pathname)) {
-    return <Navigate to="/plans" replace />
-  }
-
-  return <TeamProvider>{children}</TeamProvider>
+  return (
+    <TeamProvider>
+      <ProfileProvider value={profileData}>
+        {children}
+      </ProfileProvider>
+    </TeamProvider>
+  )
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {

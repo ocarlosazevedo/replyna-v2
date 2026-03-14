@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 
-interface UserProfile {
+export interface UserProfile {
   id: string
   email: string
   name: string | null
@@ -17,14 +17,14 @@ interface UserProfile {
   trial_ends_at: string | null
 }
 
-interface Shop {
+export interface Shop {
   id: string
   name: string
   shopify_domain: string
   is_active: boolean
 }
 
-interface UseUserProfileResult {
+export interface UseUserProfileResult {
   profile: UserProfile | null
   shops: Shop[]
   loading: boolean

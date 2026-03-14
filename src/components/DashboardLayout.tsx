@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { LayoutGrid, Store, Ticket, FileText, User, LogOut, Menu, X, Users, Handshake, CreditCard, AlertTriangle, type LucideIcon } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { useUserProfile } from '../hooks/useUserProfile'
+import { useProfileContext } from '../hooks/useProfileContext'
 import { useTeamContext } from '../hooks/useTeamContext'
 import { supabase } from '../lib/supabase'
 import WhatsAppButton from './WhatsAppButton'
@@ -14,7 +14,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, signOut } = useAuth()
-  const { shops, profile } = useUserProfile()
+  const { profile, shops, loading: profileLoading } = useProfileContext()
   const { isTeamContext, hasPermission, allowedShopIds, loading: teamLoading } = useTeamContext()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -34,8 +34,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Buscar contagem de tickets e manter real-time
+  // Buscar contagem de tickets e manter real-time (somente nas rotas que precisam)
   useEffect(() => {
+    const pathname = location.pathname
+    const shouldTrack = pathname === '/dashboard' || pathname === '/tickets' || pathname === '/formularios'
+    if (!shouldTrack) {
+      return
+    }
+
     // Em contexto de equipe, usar allowedShopIds; caso contrário, usar lojas próprias
     const shopIds = isTeamContext && allowedShopIds ? allowedShopIds : shops.map((s) => s.id)
     if (shopIds.length === 0) return
@@ -78,7 +84,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [shops, isTeamContext, allowedShopIds])
+  }, [location.pathname, shops, isTeamContext, allowedShopIds])
 
   // Fechar menu ao mudar de página
   useEffect(() => {
@@ -189,6 +195,39 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const sidebarContent = (
     <>
+      {profileLoading && !showPastDueBanner && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '36px',
+            background: 'linear-gradient(90deg, rgba(37, 99, 235, 0.18), rgba(59, 130, 246, 0.12))',
+            borderBottom: '1px solid rgba(59, 130, 246, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            fontSize: '12px',
+            color: 'var(--text-secondary)',
+            zIndex: 999,
+            pointerEvents: 'none',
+          }}
+        >
+          <div
+            style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              border: '2px solid rgba(148, 163, 184, 0.4)',
+              borderTopColor: 'var(--accent)',
+              animation: 'spin 0.8s linear infinite',
+            }}
+          />
+          Verificando status do plano…
+        </div>
+      )}
       {/* Logo */}
       <div style={{
         padding: isMobile ? '16px 20px' : '24px',
