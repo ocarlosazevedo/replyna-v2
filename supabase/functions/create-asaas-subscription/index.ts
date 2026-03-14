@@ -116,7 +116,11 @@ serve(async (req) => {
     const xff = req.headers.get('x-forwarded-for');
     const cfIp = req.headers.get('cf-connecting-ip');
     const realIp = req.headers.get('x-real-ip');
-    const clientIp = xff?.split(',')[0]?.trim() || cfIp || realIp || '177.54.11.1';
+    const resolvedIp = xff?.split(',')[0]?.trim() || cfIp || realIp || null;
+    if (!resolvedIp) {
+      console.warn('[CreateSubscription] Nenhum header de IP encontrado, usando fallback 177.54.11.1');
+    }
+    const clientIp = resolvedIp || '177.54.11.1';
     console.log(`[CreateSubscription] Client IP resolved: ${clientIp} (xff=${xff}, cf=${cfIp}, real=${realIp})`);
 
     const body = (await req.json()) as CreateSubscriptionRequest;
@@ -274,13 +278,17 @@ serve(async (req) => {
       });
     } else {
       // Update existing customer with CPF and address if missing
-      await updateCustomer(customer.id, {
-        name: user_name || customer.name,
-        cpfCnpj: creditCardHolderInfo?.cpfCnpj || undefined,
-        mobilePhone: cleanPhone || undefined,
-        postalCode: creditCardHolderInfo?.postalCode || undefined,
-        addressNumber: creditCardHolderInfo?.addressNumber || undefined,
-      });
+      try {
+        await updateCustomer(customer.id, {
+          name: user_name || customer.name,
+          cpfCnpj: creditCardHolderInfo?.cpfCnpj || undefined,
+          mobilePhone: cleanPhone || undefined,
+          postalCode: creditCardHolderInfo?.postalCode || undefined,
+          addressNumber: creditCardHolderInfo?.addressNumber || undefined,
+        });
+      } catch (updateErr) {
+        console.warn('[CreateSubscription] updateCustomer failed (non-fatal), continuing:', updateErr);
+      }
     }
 
     // Trial flow: save card via tokenization (no charge), do NOT create a subscription
