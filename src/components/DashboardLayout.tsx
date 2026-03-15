@@ -195,39 +195,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const sidebarContent = (
     <>
-      {profileLoading && !showPastDueBanner && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '36px',
-            background: 'linear-gradient(90deg, rgba(37, 99, 235, 0.18), rgba(59, 130, 246, 0.12))',
-            borderBottom: '1px solid rgba(59, 130, 246, 0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            fontSize: '12px',
-            color: 'var(--text-secondary)',
-            zIndex: 999,
-            pointerEvents: 'none',
-          }}
-        >
-          <div
-            style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              border: '2px solid rgba(148, 163, 184, 0.4)',
-              borderTopColor: 'var(--accent)',
-              animation: 'spin 0.8s linear infinite',
-            }}
-          />
-          Verificando status do plano…
-        </div>
-      )}
       {/* Logo */}
       <div style={{
         padding: isMobile ? '16px 20px' : '24px',
