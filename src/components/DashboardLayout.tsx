@@ -14,7 +14,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, signOut } = useAuth()
-  const { profile, shops, loading: profileLoading } = useProfileContext()
+  const { profile, shops } = useProfileContext()
   const { isTeamContext, hasPermission, allowedShopIds, loading: teamLoading } = useTeamContext()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
